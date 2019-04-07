@@ -1,0 +1,160 @@
+# External Modules
+from typing  import TypeVar as TV # type: ignore
+from typing  import List as L,Type
+from abc     import abstractmethod,ABCMeta
+from ast     import literal_eval
+from inspect import _empty  # type: ignore
+
+# Internal modules
+from dbgen.utils.misc import Base
+
+################################################################################
+class DataType(Base, metaclass = ABCMeta):
+    def __len__(self) -> int:
+        '''Default length, ONLY Tuple has a non-one length'''
+        return 1
+
+    @abstractmethod
+    def __str__(self) -> str:
+        '''Need to provide a str representation'''
+        raise NotImplementedError
+
+    @classmethod
+    def get_datatype(cls, t : Type) -> 'DataType':
+        if isinstance(t,str):
+            try:
+                t = literal_eval(t) # try to evaluate, likely will fail
+            except ValueError:
+                pass
+
+        strt = str(t)
+
+        # Python builtins
+        if   t == float:      return BaseType("Float")
+        elif t == int:        return BaseType("Int")
+        elif t == str:        return BaseType("Str")
+        elif t == bool:       return BaseType("Bool")
+        elif t == type(None): return NoneType()
+
+        # Special cases from chemistry libraries
+        elif 'Atoms' in strt :
+            return BaseType("Atoms")
+        elif strt == 'Structure':
+            return BaseType("Structure")
+        elif strt in ['BULK',"<class 'bulk_enumerator.bulk.BULK'>"]:
+            return BaseType("BULK")
+        elif 'Graph' in strt:
+            return BaseType("MultiGraph")
+        elif 'Structure' in strt:
+            return BaseType("Structure")
+
+        # Typing higher order types
+        elif str(t.__class__)==str(Union) or strt[:12]=='typing.Union':
+            return Union([cls.get_datatype(x) for x in t.__args__])
+
+        elif 'Tuple' in strt:
+            return Tuple([cls.get_datatype(x) for x in t.__args__])
+
+        elif 'Callable' in strt:
+            from_args = [cls.get_datatype(x) for x in t.__args__[:-1]]
+            to_arg    = cls.get_datatype(t.__args__[-1])
+            return Callable(from_args,to_arg)
+
+        elif isinstance(t,TV): # type: ignore
+            return TypeVar(t.__name__)
+
+        elif strt[:11]=='typing.List':
+            return List(cls.get_datatype(t.__args__[0]))
+
+        elif strt[:11]=='typing.Dict':
+            a1,a2 = [cls.get_datatype(x) for x in t.__args__]
+            return Dict(a1,a2)
+
+        elif strt == 'typing.Any' or t == _empty: # type: ignore
+            return AnyType()
+
+        else:
+            print('NEW DATATYPE FOUND %s'%strt);
+            import pdb;pdb.set_trace()
+            raise NotImplementedError()
+
+################################################################################
+
+class AnyType(DataType):
+    def __str__(self)->str:
+        return 'Any'
+
+################################################################################
+
+class NoneType(DataType):
+    def __str__(self)->str:
+        return 'None'
+
+################################################################################
+
+class BaseType(DataType):
+    def __init__(self,unBase:str)->None:
+        self.unBase = unBase
+
+    def __str__(self)->str:
+        return '"%s"'%self.unBase
+
+################################################################################
+
+class TypeVar(DataType):
+    def __init__(self,name:str)->None:
+        self.name = name
+
+    def __str__(self)->str:
+        return '"%s"'%self.name
+
+################################################################################
+
+class Callable(DataType):
+    def __init__(self, args : L[DataType], out : DataType) -> None:
+        self.c_args = args
+        self.out    = out
+
+    def __str__(self) -> str:
+        ar = ' -> '
+        return ar.join(map(str,self.c_args)) + ar + str(self.out)
+
+################################################################################
+
+class Union(DataType):
+    def __init__(self, args : L[DataType]) -> None:
+        self.args = args
+
+    def __str__(self) -> str:
+        return '{%s}'%(','.join(sorted(map(str,self.args))))
+
+################################################################################
+
+class Tuple(DataType):
+    def __init__(self, args : L[DataType]) -> None:
+        self.args= args
+
+    def __str__(self) -> str:
+        return '(%s)'%(','.join(map(str,self.args)))
+
+    def __len__(self) -> int:
+        return len(self.args)
+
+################################################################################
+
+class List(DataType):
+    def __init__(self, content : DataType) -> None:
+        self.content = content
+
+    def __str__(self) -> str:
+        return '[%s]'%(str(self.content))
+
+################################################################################
+
+class Dict(DataType):
+    def __init__(self, fromT : DataType, toT : DataType) -> None:
+        self.key = fromT
+        self.val = toT
+
+    def __str__(self) -> str:
+        return '{ %s : %s }'%(str(self.key),str(self.val))

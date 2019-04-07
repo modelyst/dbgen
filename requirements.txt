@@ -1,0 +1,10 @@
+    
+ase
+networkx
+mysqlclient
+pymatgen
+tqdm
+PyOpenGL
+PyQt5
+pathos
+infix

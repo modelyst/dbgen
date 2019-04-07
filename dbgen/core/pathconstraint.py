@@ -1,0 +1,122 @@
+from typing            import (TYPE_CHECKING, Any,
+                               Set as S,
+                               List as L,
+                               Tuple as T,
+                               Union as U,
+                               Iterator as I,
+                               Optional as O)
+
+from networkx import DiGraph # type: ignore
+from infinite import product # type: ignore
+
+# Internal
+if TYPE_CHECKING:
+    from dbgen.core.schema import Rel,RelTup,Obj
+    from dbgen.core.schemaclass import Schema
+    Schema,Rel,RelTup
+from dbgen.utils.misc  import Base
+from dbgen.core.fromclause import  Path
+##############################################################################
+
+class Constraint(Base):
+    def __init__(self,
+                 tab       : U[str,'Obj'],
+                 reqs      : L[U['Rel','RelTup']] = None, # constraints on final 'linear' sequence
+                 xclude    : L[U['Rel','RelTup']] = None, # Never use these
+                 backtrack : bool                 = False,# allow the
+                 branch    : L['Constraint']      = None  # any branching prior to final sequence
+                 ) -> None:
+        self.tab       = tab if isinstance(tab,str) else tab.name
+        self.reqs      = reqs  or []
+        self.xclude    = set(xclude or [])
+        self.backtrack = backtrack
+        self.branch    = set(branch) if branch else set()
+
+        if branch:
+            err = 'All branches must start from same table %s'
+            tabs = {b.tab for b in self.branch}
+            assert len(tabs)==1, err % tabs
+
+    def __str__(self) -> str:
+       return 'Constraint<%s>'%self.tab
+
+    @property
+    def branch_obj(self) -> str:
+        '''Get the branching object, if it exists'''
+        return next(iter(self.branch)).tab
+
+    def find(self,
+             m      : 'Schema',
+             basis  : U[str,'Obj',L[U[str,'Obj']]],
+             links  : L[U['Rel','RelTup']] = None,
+             quit   : bool     = True
+             ) -> None:
+        '''
+        User interface for getting paths
+        '''
+        msg   = '''Searching for paths from %s to %s\n'''+'%s\n\t'*4
+
+        ig    = m._info_graph(links or []).reverse()
+
+        if not isinstance(basis,list):
+            basis_ = [basis]
+        else:
+            basis_ = basis
+        base = [x if isinstance(x,str) else x.name for x in basis_]
+        bstr = ','.join(base)
+
+        self._update_reltup(m)
+
+        l1,l2,l3,l4 = 25, len(bstr), 4, len(self.tab)
+        under     = ' '*l1 + '#'*l2 + ' '*l3 + '#'*l4
+        constrstr = '(constraints %s)'%(self.reqs) if self.reqs else ''
+        branchstr = '(branch %s)'%(self.branch) if self.branch else ''
+        linkstr   = '(bypass chickenfeet for %s)'%links if links else ''
+
+        print(msg%(bstr,self.tab,under,constrstr,branchstr,linkstr))
+
+
+        for path in self.find_path(ig,base):
+            print(repr(path))
+            print(path._from().print())
+            if input('\nContinue?\n\ty/n -> ').lower() not in ['y','yes']: break
+
+        if quit: exit()
+
+    def find_path(self, schema : DiGraph,basis : L[str]) -> I[Path]:
+        stack = [(Path(self.tab),list(self.reqs))]
+        while stack:
+            path, reqs = stack.pop(0)
+            if not reqs and self.branch and path.base==self.branch_obj:
+                branchiters = [c.find_path(schema,basis) for c in self.branch]
+                for branches in product(*branchiters):
+                    G = path.copy()
+                    for branch in branches:
+                        G = G.add_branch(branch)
+                    yield G
+                print('No more paths')
+                return
+
+            if not reqs and path.base in basis:
+                yield path
+            else:
+                for edge in schema[path.base]:
+                    seen = set() if self.backtrack else path.all_rels()
+                    fks = sorted(set(schema[path.base][edge]['fks'])-self.xclude - seen)
+                    for fk in fks:
+
+                        if reqs:
+                            rs = reqs[:-1] if reqs[-1] == fk else list(reqs)
+                        else:
+                            rs = []
+                        stack.append((path.add(fk),rs))
+
+    def _update_reltup(self, m : 'Schema') -> 'None':
+        self.reqs = [m.get_rel(r) for r in self.reqs]
+        self.branch = {b.__update_reltup(m) for b in self.branch}
+
+    def __update_reltup(self, m : 'Schema') -> 'Constraint':
+        '''Version of _update_reltup that returns a copy'''
+        c = self.copy()
+        c._update_reltup(m)
+        return c
