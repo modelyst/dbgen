@@ -55,6 +55,9 @@ class Expr(Base,metaclass = ABCMeta):
     # Representing expressions #
     #--------------------------#
     def __str__(self)->str:
+        """
+        Default string representation: all fields run through str()
+        """
         return self.show(lambda x:str(x))
 
     def __repr__(self)->str:
@@ -244,7 +247,7 @@ class Named(Expr):
     def name(self)->str:
         return type(self).__name__
 
-class Agg(Unary):
+class Agg(Expr):
     """
     This class is meant to be inherited by any SQL function we want to flag
     as an aggregation.
@@ -274,14 +277,13 @@ class MAX(Named,Agg,Unary): pass
 class SUM(Named,Agg,Unary): pass
 class MIN(Named,Agg,Unary): pass
 class AVG(Named,Agg,Unary): pass
-class STD(Named,Agg,Unary): pass
 class COUNT(Agg,Named,Unary): pass
 class CONCAT(Named,Nary):     pass
 class BINARY(Named,Unary):    pass  # haha
 class REGEXP(Named,Binary):   pass
 class REPLACE(Named,Ternary): pass
 class COALESCE(Named,Nary):   pass
-class GROUP_CONCAT(Named,Agg,Nary): pass
+
 
 @pipe_infix
 class LIKE(Named,Binary):   pass
@@ -294,6 +296,8 @@ class DIV(Binary):    name = '/'
 class PLUS(Binary):   name = '+'
 class MINUS(Binary):  name = '-'
 class POW(Named,Binary):          infix = False
+class LEFT(Named,Binary):         infix = False
+class RIGHT(Named,Binary):        infix = False
 class JSON_EXTRACT(Named,Binary): infix = False
 
 @pipe_infix
@@ -372,7 +376,7 @@ class IF_ELSE(Expr):
         return [self.cond,self._if,self._else]
     def show(self,f:Fn)->str:
         c,i,e = map(f,self.fields())
-        return 'IF(%s,%s,%s)'%(c,i,e)
+        return 'CASE WHEN (%s) THEN (%s) ELSE (%s) END'%(c,i,e)
 
 @pipe_infix
 def IF(outcome:Expr,condition:Expr)->T[Expr,Expr]:
@@ -387,7 +391,7 @@ class CONVERT(Expr):
         self.expr = expr
         self.dtype = dtype
 
-        err = 'Are you SURE that MySQL can convert to this dtype? %s'
+        err = 'Are you SURE that Postgres can convert to this dtype? %s'
         assert isinstance(dtype,(Decimal,Varchar)), err%dtype
 
     def fields(self) -> L[Expr]:
@@ -412,15 +416,35 @@ class SUBSELECT(Expr):
         e = f(self.expr)
         return '(SELECT %s FROM %s WHERE %s )'%(e,self.tab,self.where)
 
+class GROUP_CONCAT(Agg):
+    def __init__(self,expr : Expr, delim : str = None, order : Expr = None) -> None:
+        self.expr  = expr
+        self.delim = delim or ','
+        self.order = order
+
+
+    def fields(self) -> L[Expr]:
+        return [self.expr] + ([self.order] if self.order is not None else [])
+
+    @property
+    def name(self)->str: return 'string_agg'
+    def show(self,f:Fn) -> str:
+        ord = 'ORDER BY '+f(self.order) if self.order is not None else ''
+
+        return 'string_agg(%s :: TEXT,\'%s\' %s)'%(f(self.expr),self.delim,ord)
+
+class STD(Agg,Unary):
+    name = 'stddev_pop'
+
 ##############################################################################
 class PathAttr(Expr):
-    def __init__(self,path:Path = None, attr:'AttrTup' = None) -> None:
+    def __init__(self, path : Path = None, attr : 'AttrTup' = None) -> None:
         assert attr
         self.path  = path or Path(attr.obj)
         self.attr  = attr
 
     def __str__(self) -> str:
-        return '`%s`.`%s`'%(self.path,self.attr.name)
+        return '"%s"."%s"'%(self.path,self.attr.name)
 
     def __repr__(self) -> str:
         return 'Attr<%s.%s>'%(self.path,self.attr)
@@ -465,8 +489,10 @@ class PathAttr(Expr):
 # Specific Exprs and Funcs #
 ############################
 
-Zero = Literal(0)
-One  = Literal(1)
+Zero  = Literal(0)
+One   = Literal(1)
+true  = Literal('true')
+false = Literal('false')
 
 def Sum(iterable : L[Expr])-> Expr:
     '''The builtin 'sum' function doesn't play with non-integers'''

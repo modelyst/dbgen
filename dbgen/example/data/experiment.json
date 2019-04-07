@@ -1,0 +1,38 @@
+ {
+  "1001": {
+    "anode" : {
+      "id":101,
+    "composition": "GaAs"},
+    "cathode" : {
+      "id":102,
+      "composition":"IrO2"
+    },
+    "capacitance": 1.4,
+    "date" : "10/23/18",
+    "solvent" : "water"
+  },
+
+  "1003": {
+    "anode" : {
+      "id":102,
+    "composition": "IrO2"},
+    "cathode" : {
+      "id":101,
+      "composition":"GaAs"
+    },
+    "capacitance": 0.7,
+    "date" : "10/13/18",
+    "solvent" : "butane"
+  },
+
+  "1002": {
+    "anode" : {
+      "id":201,
+    "composition": "Cu"},
+    "cathode" : {
+      "id":101,
+      "composition":"GaAs"
+    },
+    "capacitance": 1.8,
+    "date" : "10/16/18"
+}}

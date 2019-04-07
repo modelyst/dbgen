@@ -1,0 +1,9 @@
+Sample ,Step,Procedure,Timestamp,Researcher,Notes
+101,1,Calcination,11/1/18,111223333,400 K
+101,2,CVD ,11/2/18,111223333,300 K 
+101,3,Spin coating,11/3/18,111223333,200 RPM
+102,1,Thermal evaporation,11/4/18,444556666,500 K 
+102,2,Electroplating,11/5/18,444556666,4 V vs RHE
+103,1,ALD,11/6/18,111223333,TMA + H2O
+102,3,CVD ,11/7/18,123456789,600 K
+103,2,Annealing,11/8/18,111223333,"500 K, 1 hr"

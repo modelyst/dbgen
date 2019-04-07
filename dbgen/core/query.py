@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     Schema
 
 from dbgen.core.fromclause import From
-from dbgen.core.expr       import Expr, PathAttr, Agg, One
+from dbgen.core.expr       import Expr, PathAttr, Agg, true
 from dbgen.core.funclike   import Arg
 from dbgen.core.pathconstraint import Path
 from dbgen.core.schema       import RelTup, Obj
@@ -21,10 +21,30 @@ from dbgen.core.misc       import ConnectInfo as ConnI
 from dbgen.utils.lists     import flatten, nub
 from dbgen.utils.sql        import select_dict
 
+'''
+The Query class, as well as Ref (used to indirectly refer to an object in a
+query without knowing the exact join path)
+
+Furthermore some Model methods that are highly related to queries are defined
+'''
+
 Fn = C[[Any],str] # type shortcut
 
 ################################################################################
 class Query(Expr):
+    '''
+    Specification of a query, which can only be realized in the context of a model
+
+    exprs - things you SELECT for, keys in dict are the aliases of the outputs
+    basis - determines how many rows can possibly be in the output
+            e.g. ['atom'] means one row per atom
+                 ['element','struct'] means one row per (element,struct) pair
+    constr - expression which must be evaluated as true in WHERE clause
+    aconstr- expression which must be evaluated as true in HAVING clause
+             (to do, automatically distinguish constr from aconstr by whether or not contains any aggs?)
+    option - Objects which may or may not exist (i.e. LEFT JOIN on these)
+    opt_attr - Attributes mentioned in query which may be null (otherwise NOT NULL constraint added to WHERE)
+    '''
     def __init__(self,
                  exprs    : D[str,Expr],
                  basis    : L[U[str,Obj]] = None,
@@ -34,9 +54,13 @@ class Query(Expr):
                  option   : L[RelTup]     = None,
                  opt_attr : L[PathAttr]   = None,
                 ) -> None:
+        err = 'Expected %s, but got %s (%s)'
+        for k,v in exprs.items():
+            assert isinstance(k,str), err%('str',k,type(k))
+            assert isinstance(v,Expr),err%('Expr',v,type(v))
         self.exprs   = exprs
         self.aggcols = aggcols  or []
-        self.constr  = constr   or One
+        self.constr  = constr   or true
         self.aconstr = aconstr  or None
 
         if not basis:
@@ -61,24 +85,29 @@ class Query(Expr):
     # Abstract methods #
     ####################
     def show(self, f : Fn) -> str:
+        '''How to represent a Query as a subselect'''
         raise NotImplementedError
 
     def fields(self) -> L[Expr]:
+        '''Might be missing a few things here .... '''
         return list(self.exprs.values())
     ####################
     # Public methods #
     ####################
 
     def allobj(self) -> L[str]:
+        '''All object names that are mentioned in query'''
         return  [o.obj for o in self.option] \
               + self.basis + [a.obj for a in self.allattr()]
 
     def allattr(self) -> S[PathAttr]:
-        es = list(self.exprs.values()) + [self.constr ,self.aconstr or One]
+        '''All path+attributes that are mentioned in query'''
+        es = list(self.exprs.values()) + [self.constr ,self.aconstr or true]
         return set(flatten([expr.attrs() for expr in es])
                    + self.aggcols)
 
     def allrels(self) -> S[RelTup]:
+        '''All relations EXPLICITLY mentioned in the query'''
         out = set(self.option)
         for a in self.allattr():
             out = out | a.allrels()
@@ -88,31 +117,58 @@ class Query(Expr):
     # Private methods #
     ###################
     def _make_from(self) -> From:
+        ''' FROM clause of a query - combining FROMs from all the Paths '''
         f     = From(self.basis)
         attrs = self.allattr()
         for a in attrs: f = f | a.path._from()
         return f
 
     def showQ(self) -> str:
+        '''
+        Render a query
+
+        To do: HAVING Clause
+        '''
+        # FROM clause
+        #------------
         f = self._make_from()
-        cols   = ',\n\t'.join(['%s AS `%s`'%(e,k) # .show(shower)
+
+        # What we select for
+        #-------------------
+        cols   = ',\n\t'.join(['%s AS "%s"'%(e,k) # .show(shower)
                                 for k,e in self.exprs.items()])
         cols = ','+cols if cols else ''
+        # WHERE and HAVING clauses
+        #---------------------------------
+        # Aggregations refered to in WHERE are treated specially
         where  = str(self.constr) #self.show_constr({})
-        notdel = '\n\t'.join(['AND NOT `%s`.deleted'%o for o in f.aliases()])
+        notdel = '\n\t'.join(['AND NOT "%s".deleted'%o for o in f.aliases()])
         notnul = '\n\t'.join(['AND %s IS NOT NULL'%(x)
                     for x in self.allattr() if x not in self.opt_attr])
         consts = 'WHERE %s' %('\n\t'.join([where,notdel,notnul]))
+
+        # HAVING aggregations are treated 'normally'
         if self.aconstr:
             haves  = '\nHAVING %s'%self.aconstr
         else:
             haves = ''
+
+        # Group by clause, if anything SELECT'd has an aggregation
+        #---------------------------------------------------------
         gb      = [str(x) for x in self.aggcols]
         groupby  = '\nGROUP BY %s'%(','.join(gb)) if gb else ''
+
+        # Compute FROM clause
+        #--------------------
         f_str    = f.print(self.option)
-        fmt_args = [f.pks(),cols,f_str,consts,groupby,haves]
+
+        # Put everything together to make query string
+        #----------------------------------------------------
+        fmt_args = [f.pks(agg=bool(groupby)),cols,f_str,consts,groupby,haves]
         output = 'SELECT {0}\n\t{1}\n{2}\n{3}{4}{5}'.format(*fmt_args)
+
         return output
 
     def exec_query(self, db : ConnI) -> L[dict]:
+        '''Execute a query object in a giving model using a database connection'''
         return select_dict(db, self.showQ())

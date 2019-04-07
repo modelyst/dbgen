@@ -1,0 +1,45 @@
+# External modules
+from os import environ
+from os.path import join 
+# Internal Modules
+from dbgen import (Model, Gen, PyBlock, Env, Query, Const, Import, defaultEnv,
+                   Literal as Lit, Arg, JPath, CONCAT)
+
+from ..scripts.io.parse_employees import parse_employees
+################################################################################
+root = environ['MODEL_ROOT']
+
+def io(mod : Model) -> None:
+
+    # Extract tables
+    tabs = ['employee','department']
+
+    Emp, Dept = map(mod.get, tabs)
+
+    e__d, sec = map(mod.get_rel,[Emp.r('department'),Dept.r('secretary')])
+
+    ################################################################################
+
+    pe_func = PyBlock(parse_employees,
+                      env  = defaultEnv + Env(Import('csv','reader')),
+                      args = [Const(join(root,'data/example.csv'))],
+                      outnames = ['ename','sal','man','dname','sec'])
+
+    pop_employees =                                                           \
+        Gen(name = 'pop_employees',
+            desc = 'parses CSV file with employee info',
+            funcs = [pe_func],
+            tags  = ['io'],
+            actions = [Emp(insert  = True,
+                           name    = pe_func['ename'],
+                           salary  = pe_func['sal'],
+                           manager = Emp(insert = True,
+                                         name   = pe_func['man']),
+                           department = Dept(insert = True,
+                                             name = pe_func['dname'],
+                                             secretary = Emp(insert = True,
+                                                             name   = pe_func['sec'])))])
+
+    ################################################################################
+    gens = [pop_employees]
+    mod.add(gens)

@@ -14,6 +14,9 @@ def identity(x : T) -> T:
 
 
 class Base(object,metaclass=ABCMeta):
+    '''
+    Common methods shared by many DbGen objects
+    '''
     @abstractmethod
     def __str__(self)->str:
         raise NotImplementedError
@@ -22,6 +25,11 @@ class Base(object,metaclass=ABCMeta):
         return str(self)
 
     def __eq__(self, other : Any) -> bool:
+        '''
+        Maybe the below should be preferred? Try it out, sometime!
+        return type(self) == type(other) and vars(self) == vars(other)
+
+        '''
         if type(other) == type(self):
             return vars(self) == vars(other)
         else:
@@ -32,6 +40,9 @@ class Base(object,metaclass=ABCMeta):
         return deepcopy(self)
 
     def toJSON(self) -> str:
+        for v in vars(self).values():
+            if ' at 0x' in str(v):  # HACK
+                raise ValueError('serializing an object with reference to memory:'+ str(vars(self)))
         return encode(self,make_refs=False)
 
     @staticmethod

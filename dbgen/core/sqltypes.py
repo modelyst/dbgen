@@ -7,25 +7,36 @@ from datetime import datetime
 from string   import ascii_lowercase,ascii_uppercase,digits
 
 from dbgen.utils.misc import Base
+"""
+Representations of SQL Data Types
+"""
 ################################################################################
 chars = ascii_lowercase+ ascii_uppercase + digits
 
 class SQLType(Base,metaclass=ABCMeta):
+    """
+    SQL datatypes
+    """
 
     data = {} # type: dict
 
     @abstractmethod
     def __str__(self) -> str:
+        '''String representation to be used in raw SQL expression'''
         raise NotImplementedError
 
     @abstractmethod
     def rand(self) -> Any:
+        '''Random Python value for this datatype (for testing purposes)'''
         raise NotImplementedError
 
     def __init__(self) -> None: pass
 
     @staticmethod
     def from_str(s:str) -> 'SQLType':
+        """
+        Ad hoc string parsing
+        """
         if 'VARCHAR' in s:
             mem = split(r'\(|\)',s)[1]
             return Varchar(int(mem))
@@ -69,17 +80,21 @@ class Decimal(SQLType):
     def rand(cls) -> Any :
         '''Random instance (for testing purposes)'''
         return uniform(-100,100)
+class Boolean(SQLType):
+    def __init__(self)->None: pass
+    def __str__(self)->str: return 'Boolean'
+    def rand(self)->Any: return choice(['true','false'])
 
 class Int(SQLType):
     def __init__(self, kind : str = 'medium', signed : bool = True) -> None:
-        kinds = ['tiny','medium','big']
+        kinds = ['small','medium','big']
         assert kind in kinds, "Invalid Int type: %s not found in %s"%(kind,kinds)
         self.kind   = kind
         self.signed = signed
 
     def __str__(self) -> str:
-        options = ['tiny','medium','big']
-        if   self.kind == 'tiny':   core= "TINYINT"
+        options = ['small','medium','big']
+        if   self.kind == 'small':   core= "SMALLINT"
         elif self.kind == 'medium': core= "INTEGER"
         elif self.kind == 'big' :   core= "BIGINT"
         else:
@@ -98,12 +113,13 @@ class Text(SQLType):
         self.kind = kind
 
     def __str__(self) -> str:
-        if   self.kind == 'tiny':   return "TINYTEXT"
-        elif self.kind == '':       return "TEXT"
-        elif self.kind == 'medium': return "MEDIUMTEXT"
-        elif self.kind == 'long' :  return "LONGTEXT"
-        else:
-            raise ValueError('unknown TEXT kind: '+self.kind)
+        return 'TEXT'
+        # if   self.kind == 'tiny':   return "TINYTEXT"
+        # elif self.kind == '':       return "TEXT"
+        # elif self.kind == 'medium': return "MEDIUMTEXT"
+        # elif self.kind == 'long' :  return "LONGTEXT"
+        # else:
+        #     raise ValueError('unknown TEXT kind: '+self.kind)
 
     def rand(self) -> Any :
         '''Random instance (for testing purposes)'''

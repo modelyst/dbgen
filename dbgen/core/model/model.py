@@ -26,6 +26,11 @@ Stuff = U[L[Obj],L[Rel],L[str],L[AttrTup],L[RelTup],L[Gen],L[View],L[PathEQ],L[T
           L[U[Obj,Rel,RelTup,AttrTup,str,Gen,PathEQ,View]]]
 ##########################################################################################
 class Model(Schema):
+    '''
+    Just a named container for objects, relations, and generators
+
+    Also, path equivalencies: which can be checked ad hoc
+    '''
     def __init__(self,
                  name : str,
                  objs : L[Obj]    = None,
@@ -70,6 +75,11 @@ class Model(Schema):
     ##################
     # Public methods #
     ##################
+    def test_funcs(self) -> None:
+        '''Run all PyBlock tests'''
+        for g in self.gens.values():
+            for f in g.funcs:
+                f.test()
 
     def check_paths(self, db : ConnI) -> None:
         '''Use ASSERT statements to verify one's path equalities are upheld'''
@@ -269,6 +279,13 @@ class Model(Schema):
     ### Gen related ###
     ###################
     def _validate_action(self, a : Action) -> None:
+        '''
+        It is assumed that an Action provides all identifying data for an
+        object, so that either its PK can be selected OR we can insert a new
+        row...however this depends on the global model state (identifying
+        relations can be added) so a model-level validation is necessary
+        The action __init__ already verifies all ID attributes are present
+        '''
         # Check all identifying relationships are covered
         if not a.pk: # don't have a PK, so need identifying info
             for fk in self._obj_fks(a.obj):
@@ -300,6 +317,7 @@ class Model(Schema):
         return list(topsort_with_dict(self._gen_graph(),self.gens))
 
     def _gen_graph(self) -> DiGraph:
+        ''' Make a graph out of generator dependencies '''
         G = DiGraph()
 
         ddict = {a:g.dep() for a,g in self.gens.items()}
@@ -313,6 +331,7 @@ class Model(Schema):
         return G
 
     def _todo(self) -> S[str]:
+        ''' All attributes that do not yet have a generator populating them '''
         allattr = set()
         for o in self.objs.values():
             allattr.update([o.name+'.'+a for a in o.attrnames()])

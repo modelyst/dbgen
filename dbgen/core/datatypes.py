@@ -8,8 +8,20 @@ from inspect import _empty  # type: ignore
 # Internal modules
 from dbgen.utils.misc import Base
 
+'''
+Defines the abstract class DataType and all classes that implement it
+'''
 ################################################################################
 class DataType(Base, metaclass = ABCMeta):
+    """
+    Internal representation of Python datatypes
+
+    This is needed because the output datatypes from python's 'inspect' module
+    are not serializable. To convert such an output into an instance of this
+    class, use the class method DataType.get_datatype()
+
+    This class is meant to be extended as new cases appear
+    """
     def __len__(self) -> int:
         '''Default length, ONLY Tuple has a non-one length'''
         return 1
@@ -21,6 +33,11 @@ class DataType(Base, metaclass = ABCMeta):
 
     @classmethod
     def get_datatype(cls, t : Type) -> 'DataType':
+        """
+        Convert a Python Type object into a simple representation
+
+        This is very ad hoc and hacky
+        """
         if isinstance(t,str):
             try:
                 t = literal_eval(t) # try to evaluate, likely will fail

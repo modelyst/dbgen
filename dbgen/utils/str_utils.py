@@ -3,19 +3,25 @@ from hashlib import sha512
 Any
 ################################################################################
 def hash_(x:'Any')->str:
+    """
+    Creates a 128 Byte hash value
+    """
     return sha512(str(x).encode()).hexdigest()
 
 
 def abbreviate(x:'Any')->'Any':
+    '''Truncate super long messages'''
     if isinstance(x,str) and len(x) > 1000:
         return x[:1000]+'...\n\t'
     else:
         return x
 
 def cap(x:str)->str:
+    '''Capitalize'''
     return x[0].upper() + x[1:]
 
 def levenshteinDistance(s1 : str, s2 : str) -> int:
+    '''Distance between strings: # of characters difference'''
     if len(s1) > len(s2):
         s1, s2 = s2, s1
 

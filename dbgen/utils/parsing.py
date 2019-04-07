@@ -5,6 +5,10 @@ from argparse       import ArgumentParser
 
 ################################################################################
 def parse_line(string: str, substr: str, index: int = 0) -> Optional[str]:
+    """
+    Returns the n'th line containing substring
+    Any negative index will return last one.
+    """
     iter = finditer(substr + ".*$", string, MULTILINE)
     found = False
 
@@ -32,6 +36,10 @@ def btw(s: str, begin: str, end: str, off: int = 0) -> Tuple[str, int]:
 
 
 def condense_qe(x:str)->str:
+    """
+    Condense quantum espresso logfiles by throwing away electronic step info
+    and band structure info
+    """
     a = x[x.rfind('python dir'):]
     y = sub('(bands \(ev\)).*?(Fermi)','',a, flags=DOTALL)
     z = sub('(iteration #  1).*?(End of)','',y, flags=DOTALL)

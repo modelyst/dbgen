@@ -48,6 +48,10 @@ def run_gen(self   : 'Model',
             serial : bool = False,
             bar    : bool = False
            ) -> int:
+    """
+    Executes a SQL query, then maps each output over a processing function.
+    How the DB is modified is determined self.actions (list of InsertUpdate).
+    """
     # Initialize Variables
     #--------------------
     start        = time()
@@ -61,9 +65,11 @@ def run_gen(self   : 'Model',
         '''Unique hash function to this Generator'''
         return hash_(ghash + str(x))
 
-    cpus      = cpu_count() or 1
+    # Determine how to map over input rows
+    #-------------------------------------
+    cpus      = cpu_count() or 1 # play safe, leave one free
     cxns      = (mconn,conn)            if parallel else (gmcxn,gcxn)
-    ctx       = get_context('forkserver') 
+    ctx       = get_context('forkserver') # addresses problem due to parallelization of numpy not playing with multiprocessing
     mapper    = partial(ctx.Pool(cpus).imap_unordered,chunksize = 5) if parallel else map
 
     applyfunc = apply_parallel if parallel else apply_serial
@@ -75,7 +81,7 @@ def run_gen(self   : 'Model',
             cxn.execute(gen.query.showQ())
 
             for row in tqdm(cxn, position = 1, desc = 'stream', **bargs):
-                if retry_:
+                if retry_: # skip repeat checking; external world changed
                     is_rpt = [] # type: list
                 else:
                     inshash = hasher(row)
@@ -95,11 +101,14 @@ def run_gen(self   : 'Model',
             else:
                 with tqdm(total=1,desc='querying',**bargs) as tq:
                     q      = gen.query.showQ()
-                    inputs = select_dict(gcxn,q)
+                    try:
+                        inputs = select_dict(gcxn,q)
+                    except Exception as e:
+                        print(e);print(q);import pdb;pdb.set_trace();assert False
                     tq.update()
 
             if len(inputs)>0:
-                if retry_:
+                if retry_: # skip repeat checking
                     inputs = [(x,hasher(x),cxns) for x in inputs] # type: ignore
                 else:
                     with tqdm(total=1,desc='repeat_checking',**bargs) as tq:
@@ -128,22 +137,30 @@ def run_gen(self   : 'Model',
                 for _ in mapper(f, inputs): # type: ignore
                     tq.update()
 
+        # Closing business
+        #-----------------
         gen.update_status(gmcxn,run_id,'completed')
         tot_time = time() - start
         q = mkUpdateCmd('gens',['runtime','rate','n_inputs'],['run','name'])
         rate    = round(tot_time/60,4)
         runtime = round(safe_div(tot_time,tot),2)
         sqlexecute(gmcxn,q,[runtime,rate,tot,run_id,gen.name])
-        return 0
+        return 0 # don't change error count
+
     except ExternalError as e:
         msg = '\n\nError when running generator %s\n'%gen.name
         print(msg)
         q = mkUpdateCmd('gens',['error','status'],['run','name'])
         sqlexecute(gmcxn,q,[str(e),'failed',run_id,gen.name])
-        return 1
-ins_rpt_stmt = """ INSERT INTO repeats (gen,run,uid) VALUES (%s,%s,%s)
-                    ON DUPLICATE KEY UPDATE uid=uid"""
+        return 1 # increment error count
 
+#############
+# CONSTANTS #
+#############
+ins_rpt_stmt = """ INSERT INTO repeats (gen,run,uid) VALUES (%s,%s,%s)
+                    ON CONFLICT (uid) DO NOTHING"""
+
+# Helper functions stored outside class so that they can be pickled by multiprocessing
 def apply_and_act(pbs    : L[PyBlock],
                   acts   : L[Action],
                   objs   : D[str,Obj],
@@ -155,6 +172,9 @@ def apply_and_act(pbs    : L[PyBlock],
                   a_id   : int,
                   run_id : int
                  ) -> None:
+    """
+    The common part of parallel and serial application
+    """
     d = {'query':row}
     for pb in pbs:
         d[pb.hash] = pb(d)
@@ -162,6 +182,7 @@ def apply_and_act(pbs    : L[PyBlock],
     for a in acts:
         a.act(cxn=cxn,objs=objs,fks=fks,row=d)
 
+    # If successful, store input+gen_id hash in metadb
     sqlexecute(mcxn, ins_rpt_stmt, [a_id, run_id, hsh])
 
 def apply_parallel(inp   : T[dict, str, T['ConnI','ConnI']],

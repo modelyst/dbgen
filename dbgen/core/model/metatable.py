@@ -1,5 +1,5 @@
 # External Modules
-from typing  import TYPE_CHECKING
+from typing  import TYPE_CHECKING, Any
 from tqdm    import tqdm                       # type: ignore
 from copy    import deepcopy
 
@@ -10,11 +10,17 @@ if TYPE_CHECKING:
     from dbgen.core.gen         import Gen
     ConnI,Model,Gen
 
-from dbgen.core.sqltypes   import Varchar, Decimal, Text, Timestamp, Int
+from dbgen.core.sqltypes   import Varchar, Decimal, Text, Timestamp, Int, Boolean
 from dbgen.core.schema     import Obj, Rel, Attr
 from dbgen.utils.str_utils import hash_
 from dbgen.utils.sql       import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
 #############################################################################
+def safex(conn:Any,q:str,binds:list)->None:
+    try:
+        sqlexecute(conn,q,binds)
+    except Exception as e:
+        import pdb;pdb.set_trace()
+
 ###########
 # Constants
 ##########
@@ -27,7 +33,7 @@ CREATE OR REPLACE VIEW curr_run AS
     ORDER BY gens.ind
 '''
 objs = [
-    Obj('connection',"Info required to connect to a MySQL DB",
+    Obj('connection',"Info required to connect to a PostGres DB",
         attrs = [Attr('hostname',   Varchar(),id=True),
                   Attr('user',      Varchar(),id=True),
                   Attr('port',                id=True),
@@ -75,7 +81,7 @@ objs = [
                 Attr('until_',  Varchar()),
                 Attr('delta',   Decimal(),desc='Runtime in minutes'),
                 Attr('errs',    Int()),
-                Attr('retry',   Int('tiny')),
+                Attr('retry',   Boolean()),
                 Attr('onlyrun', Varchar()),
                 Attr('exclude', Varchar())]),
 
@@ -100,8 +106,8 @@ objs = [
     Obj('repeats','A record of which inputs a given Action has already seen'),
         ]
 
-rels = [Rel('object',   'attr',id=True),
-        Rel('gen',      'pyblock',id=True),
+rels = [Rel('object',   'attr',    id = True),
+        Rel('gen',      'pyblock', id = True),
         Rel('func',     'pyblock'),
         Rel('connection','run'),
         Rel('const',     'arg'),
@@ -129,6 +135,9 @@ def make_meta(self   : 'Model',
               until  : str,
               bar    : bool,
              ) -> int:
+    """
+    Initialize metatables
+    """
 
     NUKE_META = True # whether or not to erase metatable data if nuking DB
     meta = self._build_new('meta')
@@ -137,11 +146,7 @@ def make_meta(self   : 'Model',
     ################################################################################
 
     if nuke and NUKE_META:
-        safe_conn    = deepcopy(mconn)
-        safe_conn.db = ''
-        safe_cxn = safe_conn.connect()
-        sqlexecute(safe_cxn,'DROP DATABASE IF EXISTS '+mconn.db)
-        sqlexecute(safe_cxn,'CREATE SCHEMA '+mconn.db)
+        mconn.drop(); mconn.create()
         gmcxn = mconn.connect()
     else:
         try:
@@ -153,7 +158,7 @@ def make_meta(self   : 'Model',
     #--------------------------------------
 
     for t in meta.objs.values():
-        sqlexecute(gmcxn,t.create())
+        for sql in t.create(): sqlexecute(gmcxn,sql)
 
     if nuke:
         for r in meta._rels():
@@ -183,7 +188,7 @@ def make_meta(self   : 'Model',
     run_cols = ['run_id','uid','retry','onlyrun','exclude',
                 'connection','start','until_']
 
-    run_args = [run_id, run_id, int(retry), only, xclude, int(cxn_id), start, until]
+    run_args = [run_id, run_id, retry, only, xclude, cxn_id, start, until]
 
     fmt_args = [','.join(run_cols), ','.join(['%s'] * len(run_args))]
     run_sql  = 'INSERT INTO run ({}) VALUES ({})'.format(*fmt_args)
@@ -201,10 +206,10 @@ def make_meta(self   : 'Model',
                              'basis','uid'])
     tqargs = dict(leave=False, disable = not bar)
     for o in tqdm(self.objs.values(),desc=od,**tqargs):
-        sqlexecute(gmcxn,oq,[run_id,o.add(gmcxn),hash_(str(run_id)+o.hash)])
+        safex(gmcxn,oq,[run_id,o.add(gmcxn),hash_(str(run_id)+o.hash)])
 
     for vn,v in tqdm(self.views.items(),desc=vd,**tqargs):
-        sqlexecute(gmcxn,vq,[run_id,v.add(gmcxn),hash_(str(run_id)+v.hash)])
+        safex(gmcxn,vq,[run_id,v.add(gmcxn),hash_(str(run_id)+v.hash)])
 
     for i,u in enumerate(tqdm(self.ordered_gens(),desc=ad,**tqargs)):
         #print(i,u)
@@ -213,6 +218,6 @@ def make_meta(self   : 'Model',
         td,cd,nt,nc = u.dep().all()
         b = ','.join(v.basis) if v else ''
 
-        sqlexecute(gmcxn,aq,[run_id,u.add(gmcxn),u.name,'initialized',u.desc,q,
+        safex(gmcxn,aq,[run_id,u.add(gmcxn),u.name,'initialized',u.desc,q,
                              i,td,cd,nt,nc,b,hash_(str(run_id)+u.hash)])
     return run_id

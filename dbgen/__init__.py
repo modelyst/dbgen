@@ -15,11 +15,11 @@ from dbgen.core.funclike  import (PyBlock, Const, Arg)
 from dbgen.core.expr      import (Expr, AND, IF, ELSE, Literal, MAX, One, LT, GT, LE, GE,
                                  COUNT, LEN, IN, GROUP_CONCAT, CONCAT, Literal,
                                  ABS, SUM, NOT,REGEXP, BINARY, Sum, toDecimal,
-                                 NULL, MIN,COALESCE, LIKE, OR, EQ, NE, Zero,
+                                 NULL, MIN,COALESCE, LIKE, OR, EQ, NE, Zero, true, false,
                                  JSON_EXTRACT, REPLACE, CONVERT, R2, STD, AVG,
-                                 PathAttr, SUBSELECT)
+                                 PathAttr, SUBSELECT, LEFT, RIGHT)
 
-from dbgen.core.sqltypes  import SQLType,Int,Varchar,Decimal,Text,Date,Double
+from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Double, Boolean
 
 
 ############################

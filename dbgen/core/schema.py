@@ -4,6 +4,7 @@ from typing import (Any, TYPE_CHECKING,
                     List     as L,
                     Dict     as D,
                     Union    as U,
+                    Tuple    as T,
                     Iterator as I)
 from abc import ABCMeta,abstractmethod
 # Internal
@@ -22,6 +23,12 @@ from dbgen.core.funclike   import Arg, PyBlock
 from dbgen.utils.misc      import Base
 from dbgen.utils.sql       import (Connection as Conn,mkSelectCmd,sqlselect,
                                    mkInsCmd,sqlexecute)
+
+'''
+Components of a schema: Objects, Attributes, and Relations
+
+Also the RelTup container class is defined
+'''
 ########################################################################################
 ######################
 # Simple Tuple types #
@@ -38,6 +45,12 @@ class AttrTup(Base):
         return PathAttr(x,self)
 
 class RelTup(Base):
+    '''
+    A tuple (objectname, relationname) that an object can produce independent
+    of a Model instance .... it will later have to be validated by the model to
+    be a relation that actually exists, but lower level classes can work with it
+    in the meantime
+    '''
     def __init__(self, objname : str, relname : str) -> None:
         self.obj = objname.lower()
         self.rel = relname.lower()
@@ -47,6 +60,7 @@ class RelTup(Base):
 
 ################################################################################
 class Attr(Base):
+    ''' Attribute, considered from a schema-making perspective (NOT as an Expr) '''
     def __init__(self,
                  name    : str,
                  dtype   : SQLType = None,
@@ -63,12 +77,20 @@ class Attr(Base):
     def __str__(self) -> str:
         return 'Attr<%s,%s>'%(self.name, self.dtype)
 
-    def create_col(self) -> str:
+    ####################
+    # Public methods #
+    ####################
+
+    def create_col(self,tabname:str) -> T[str,str]:
+        """
+        Create statement for column when creating a table.
+        """
         dt   = str(self.dtype)
         dflt = '' if self.default is None else "DEFAULT %s"%(self.default)
-        desc = "COMMENT '%s'"%self.desc.replace("'","''") if self.desc else ''
-        fmt_args = [self.name,dt,dflt,desc]
-        return "`{}` \t{} {} {}".format(*fmt_args)
+        desc = 'comment on column "{}"."{}" is \'{}\''.format(tabname,self.name,self.desc.replace("'","''"))
+        fmt_args = [self.name,dt,dflt]
+        create = '"{}" \t{} {}'.format(*fmt_args)
+        return create,desc
 
 class View(Base,metaclass=ABCMeta):
     def __str__(self) -> str:
@@ -83,12 +105,14 @@ class View(Base,metaclass=ABCMeta):
         raise NotImplementedError
     def add(self,cxn:Conn)->int:
         '''add view to metadb, return PK'''
+        # Try to find an Object with an equivalent hash in the existing table
         get_v = mkSelectCmd('view',['view_id'],['uid'])
         v_id  = sqlselect(cxn,get_v,[self.hash])
 
         if v_id:
             return v_id[0][0] # already there
         else:
+            # Create a new record in the View table and get its ID
             cmd  = mkInsCmd('view',['uid','name','query'])
             sqlexecute(cxn,cmd,[self.hash,self.name,self.qstr()])
             return sqlselect(cxn,get_v,[self.hash])[0][0]
@@ -120,6 +144,7 @@ class RawView(View):
         return Dep(td,cd,[self.name],nc)
 
 class Obj(Base):
+    '''Object with attributes. Basic entity of a model'''
     def __init__(self,
                  name  : str,
                  desc  : str     = None,
@@ -139,6 +164,13 @@ class Obj(Base):
         return 'Object<%s, %d attrs>'%(self.name,len(self.attrs))
 
     def __call__(self,**kwargs : Any) -> Action:
+        '''
+        Construct an Action which specifies AT LEAST how to identify this
+        object (via PK or data) AND POSSIBLY more non-identifying info to update
+
+        - Attributes and relations are referred to by name with kwargs
+        - A keyword equal to the object's own name signifies a PK argument
+        '''
         kwargs = {k.lower():v for k,v in kwargs.items()} # convert keys to L.C.
         pk_     = kwargs.pop(self.name, None)
         if pk_:
@@ -147,16 +179,23 @@ class Obj(Base):
         else:
             pk = pk_
         insert = kwargs.pop('insert',False)
+
         if not pk: # if we don't have a PK reference
-            assert all([i in kwargs for i in self.ids()])
+            err = 'Cannot modify {} without PK reference. Missing essential data: {}'
+            missing = set(self.ids())-set(kwargs)
+            assert not missing, err.format(self.name,missing)
+
         attrs = {k:v for k,v in kwargs.items() if k in self.attrnames()}
         fks   = {k:v for k,v in kwargs.items() if k not in attrs}
+
         for k,v in fks.items():
             if not isinstance(v,Action):
                 # We OUGHT have a reference to a FK from a query
                 assert isinstance(v,Arg)
-                assert v.key == 'query', 'Is %s really a relation?'%k
+                assert v.key == 'query', 'Is %s really a relation of %s?'%(k,self.name)
+
                 fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v.name)
+
         return Action(self.name, attrs = attrs, fks = fks, pk = pk, insert = insert)
 
     def __getitem__(self, key : str ) -> AttrTup:
@@ -168,9 +207,15 @@ class Obj(Base):
     # Public methods #
 
     def get(self, key: str) -> AttrTup:
+        '''
+        A version of __getitem__ that doesn't check whether attribute is defined
+        Use when we need to refer to an attribute which may not (yet) exist
+        '''
         return AttrTup(key,self.name)
 
     def act(self, **kwargs : Any) -> Action:
+        '''Do we need to add a "insert" flag in order to say: "it's ok for this
+        action to insert any required parent objects recursively?"'''
         return self(**kwargs)
 
     def add_attrs(self,ats:L[Attr]) -> None:
@@ -183,26 +228,34 @@ class Obj(Base):
             del self.attrs[a]
 
     def r(self, relname : str) -> RelTup:
+        '''
+        Refer to a relation of an object. Without a Model, we have to do with
+        reference by name
+        '''
         return RelTup(self.name,relname)
 
     def attrnames(self,init : bool = False) -> L[str]:
+        '''Names of all (top-level) attributes'''
         return [n for n,a in self.attrs.items() if a.id or not init]
 
-    def create(self) -> str:
-        create_str    = 'CREATE TABLE IF NOT EXISTS `%s` ' % self.name
+    def create(self) -> L[str]:
+        '''
+        Generate SQL necessary to create an object's corresponding table
+        '''
+        create_str    = 'CREATE TABLE IF NOT EXISTS "%s" ' % self.name
 
-        cols          = [a.create_col() for a in self.attrs.values()]
-
-        pk    = self._id+' INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT'
+        colcoldescs   = [a.create_col(self.name) for a in self.attrs.values()]
+        cols,coldescs = [x[0] for x in colcoldescs],[x[1] for x in colcoldescs]
+        pk    = self._id+' SERIAL PRIMARY KEY '
         uid   = 'uid VARCHAR(255) NOT NULL UNIQUE'
-        deld  = 'deleted TINYINT NOT NULL DEFAULT 0'
+        deld  = 'deleted BOOLEAN NOT NULL DEFAULT FALSE'
         cols  = [pk,uid,deld] + cols
 
-        desc          = "COMMENT = '%s'"%self.desc.replace("'","''")
-
-        fmt_args      = [create_str,'\n\t,'.join(cols),desc]
-        cmd           = "{}\n\t({}) {}".format(*fmt_args)
-        return cmd
+        tabdesc       = 'comment on table "{}" is \'{}\''.format(self.name,self.desc.replace("'","''"))
+        fmt_args      = [create_str,'\n\t,'.join(cols)]
+        cmd           = "{}\n\t({})".format(*fmt_args)
+        sqls          = [cmd,tabdesc]+coldescs
+        return sqls
 
     @property
     def id(self) -> AttrTup:
@@ -232,12 +285,12 @@ class Obj(Base):
             tab_id = sqlselect(cxn,get_t,[self.hash])[0][0]
 
             # Before returning ID, we have to populate Attr table
-            ins_cols = ['object','attr_id','name','dtype','description',
+            ins_cols = ['object','name','dtype','description',
                         'defaultval','uid']
 
-            for col_id,c in enumerate(self.attrs.values()):
+            for c in self.attrs.values():
                 # Insert info about an attribute
-                binds = [tab_id,col_id,c.name,str(c.dtype),c.desc,
+                binds = [tab_id,c.name,str(c.dtype),c.desc,
                           str(c.default),c.hash]
 
                 cmd = mkInsCmd('attr',ins_cols)
@@ -253,6 +306,9 @@ class Obj(Base):
         return o
 
     def default_action(self, pb : PyBlock) -> Action:
+        '''Assuming there is some pyblock with all the info we need to insert
+            this object (in some standardized naming scheme), use it to insert
+            instances of this object'''
         raise NotImplementedError
 
     ###################
@@ -262,6 +318,11 @@ class Obj(Base):
 
 
 class Rel(Base):
+    '''
+    Asymmetric Relation between objects
+
+    Can be identifying or non-identifying
+    '''
     def __init__(self,
                  name : str,
                  o1   : str,
@@ -314,6 +375,9 @@ class Rel(Base):
     #...
 
 class Path(Base):
+    '''
+    Some list of foreign keys (possibly empty), possibly followed by attribute
+    '''
     def __init__(self,rels : L[RelTup] = None, attr : AttrTup = None) -> None:
         self.rels = rels or []
         self.attr  = attr
@@ -339,14 +403,14 @@ class Path(Base):
         for r in self.rels:
             alias += '$' + r.rel
         col = self._end_attr(m).name
-        return '`%s`.`%s`'%(alias,col)
+        return '"%s"."%s"'%(alias,col)
 
     def joins(self, ids : D[str,str], m: 'Model') -> L[str]:
         '''From clause that makes self.select() defined in query'''
 
         j  = [] # type: L[str]
         oldpath = self.start()
-        jstr = 'JOIN `{0}` AS `{1}` ON `{1}`.`{4}` = `{2}`.`{3}`'
+        jstr = 'JOIN "{0}" AS "{1}" ON "{1}"."{4}" = "{2}"."{3}"'
         next = self.start()
         for i,r in enumerate(self.rels[:-1]):
             newpath = oldpath + '$' + r.rel
@@ -379,9 +443,17 @@ class Path(Base):
         else:
             o = m[self.attr.obj]
             a = [a for n,a in o.attrs.items() if n == self.attr.name]
+            assert len(a) < 2
+            if not a:
+                err = 'Could not find %s in %s: Path %s'
+                import pdb;pdb.set_trace()
+                raise ValueError(err%(a,o,self))
             return str(a[0].dtype)
 
 class PathEQ(Base):
+    '''
+    Specification that two paths should result in the same value
+    '''
     def __init__(self, p1 : Path, p2 : Path) -> None:
         assert p1 != p2, 'Cannot do pathEQ between things that are literally equivalent'
         assert p1.start() == p2.start(), 'Paths must have same start point'
