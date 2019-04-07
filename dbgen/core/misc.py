@@ -5,17 +5,29 @@ from os              import environ
 from os.path         import exists
 from json            import load, dump
 from pprint          import pformat
-from MySQLdb         import connect,Connection,OperationalError # type: ignore
-from MySQLdb.cursors import Cursor,SSDictCursor                 # type: ignore
-
+from psycopg2        import connect,Error                   # type: ignore
+from psycopg2.extras import DictCursor                      # type: ignore
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.gen import Gen
     Gen
 
 from dbgen.utils.misc import Base
+"""
+Defines some support classes used throughout the project:
+- ExternalError
+- ConnectInfo
+- Test
+- Dep
+
+"""
+Connection = Any
 ################################################################################
 class ExternalError(Exception,Base):
+    """
+    Custom class for catching errors that occur in code external to dbgen
+    """
     def __init__(self, message : str) -> None:
         super().__init__(message)
     def __str__(self) -> str:
@@ -24,9 +36,12 @@ class ExternalError(Exception,Base):
 ################################################################################
 
 class ConnectInfo(Base):
+    """
+    PostGreSQL connection info
+    """
     def __init__(self,
                  host   : str = '127.0.0.1',
-                 port   : int = 3306,
+                 port   : int = 5432,
                  user   : str = None,
                  passwd : str = None,
                  db     : str = ''
@@ -44,25 +59,23 @@ class ConnectInfo(Base):
     def __str__(self) -> str:
         return pformat(self.__dict__)
 
-    def connect(self, dic : bool = False , attempt : int  = 3) -> Connection:
+    def connect(self, attempt : int  = 3) -> Connection:
         e = ''
-
         for _ in range(attempt):
-
             try:
-                return connect(host        = self.host,
+                conn = connect(host        = self.host,
                                port        = self.port,
                                user        = self.user,
-                               passwd      = self.passwd,
-                               db          = self.db,
-                               autocommit  = True,
-                               cursorclass = SSDictCursor if dic else Cursor,
+                               password    = self.passwd,
+                               dbname      = self.db,
                                connect_timeout = 28800)
-            except OperationalError as e:
+                conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                return conn
+            except Error as e:
                 print(e)
                 sleep(1)
 
-        raise OperationalError()
+        raise Error()
 
     def to_file(self, pth : str) -> None:
         '''Store connectinfo data as a JSON file'''
@@ -78,9 +91,43 @@ class ConnectInfo(Base):
         with open(pth,'r') as f:
             return ConnectInfo(**load(f))
 
+    def neutral(self)->Connection:
+        copy = self.copy()
+        copy.db = 'postgres'
+        conn = copy.connect()
+        return conn.cursor()
+
+    def kill(self)->None:
+        '''Kills connections to the DB'''
+        killQ = '''SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = %s
+                      AND pid <> pg_backend_pid();'''
+        with self.neutral() as cxn:
+            cxn.execute(killQ,vars=[self.db])
+
+    def drop(self)->None:
+        '''Completely removes a DB'''
+        dropQ = 'DROP DATABASE IF EXISTS ' + self.db
+        self.kill()
+        with self.neutral() as cxn:
+            cxn.execute(dropQ,vars=[self.db])
+
+    def create(self)->None:
+        '''Kills connections to the DB'''
+        createQ = 'CREATE DATABASE ' + self.db
+        with self.neutral() as cxn:
+            cxn.execute(createQ,vars=[self.db])
+
+
+
 ################################################################################
 
 class Dep(Base):
+    '''
+    Capture dependency information between two Generators that modify a DB
+    through four different sets: the tabs/cols that are inputs/outputs.
+    '''
     def __init__(self,
                  tabs_needed  : L[str] = [],
                  cols_needed  : L[str] = [],
@@ -127,6 +174,11 @@ class Dep(Base):
 
 ################################################################################
 class Test(object):
+    """
+    Execute a test before running action. If it returns True, the test is
+    passed, otherwise it returns an object which is fed into the "message"
+    function. This prints a message: "Not Executed (<string of object>)"
+    """
     def __init__(self,
                  test    : C[['Gen',Any],bool],
                  message : C[[Any],str]

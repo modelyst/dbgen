@@ -8,9 +8,13 @@ A = TypeVar('A')
 B = TypeVar('B')
 ##############################################################
 def flatten(lol: L[L[A]])->L[A]:
+    """Convert list of lists to a single list via concatenation"""
     return [item for sublist in lol for item in sublist]
 ##############################################################
 def nub(seq: L[A], idfun : C = None)->L[A]:
+    """
+    Remove duplicates but preserve order.
+    """
     if idfun is None:
         def f(x:A)->A: return x
     else:
@@ -29,10 +33,20 @@ def merge_dicts(dicts: L[D[A, B]])->D[A, B]:
 
 ##############################################################
 def concat_map(f: C[[A], L[B]], args: L[A]) -> L[B]:
+    """
+    Maps a function over an input.
+    We apply the function to every element in the list and concatenate result.
+
+    """
     return flatten([f(arg) for arg in args])
 
 ##############################################################
 def broadcast(dic:dict,xs:L[str])->list:
+    """
+    Access a list of keys from a dictionary, enforcing that all non-length-1
+    elements have the same length and replicating length-1 elements to the
+    largest length list
+    """
     valid_types = (int,str,tuple,float,list,bytes,Decimal,type(None))
     type_err    = "Arg (%s) BAD DATATYPE %s IN NAMESPACE "
     broad_err   = "Can't broadcast: maxlen = %d, len a = %d (%s)"
@@ -86,6 +100,9 @@ def gcd(args: L[Any])->Any:
     return abs(b)
 
 def normalize_list(l: list) -> list:
+    """
+    [a,a,a,a,b,b,c,c] => [a,a,b,c]
+    """
     if len(l) == 0:
         return l
     d = {x: l.count(x) for x in l}

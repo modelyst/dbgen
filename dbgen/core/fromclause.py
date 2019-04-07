@@ -20,6 +20,18 @@ from dbgen.utils.lists   import flatten
 ################################################################################
 
 class Path(Base):
+    '''                         (loop 2x)
+                 ->           ^|
+            -> C -> D         |v
+    A -> B            -> E -> F -> G
+              -> H
+
+    Would be represented like so:
+    Path('G',[fg,ff,ff,ef,[[de,[[cd1,bc,ab],
+                                [cd2,bc,ab]],
+                           [he,bh,ab]
+                          ]])
+    '''
     def __init__(self,end : U[str,'Obj'], fks:list = None)->None:
         self.end = end if isinstance(end,str) else end.name
         self.fks = fks or []
@@ -38,11 +50,22 @@ class Path(Base):
          return 'JPath("%s", %s)'%(self.end,self.fks)
 
     def __add__(self,other : 'Path') -> 'Path':
+        '''
+        Concatenate paths: tail of first must match base of second
+
+        P1 (A --> B), P2 (B --> C) ==> P1 + P2 (A --> C)
+        '''
         assert other.linear, 'Cannot concatenate paths if the second path branches'
         assert self.end == other.base, 'Cannot concatenate paths unless head/tail matches'
         return Path(other.end, other.fks + self.fks)
 
     def __sub__(self,other:'Path')->'Path':
+        '''
+        Take a path difference to truncate edges from the start of a path
+            ... only defined under rare circumstances
+
+        P1 (A --> C), P2 (A --> B) ==> P1 - P2 (B --> C)
+        '''
         l2  = len(other.fks)
         err = 'Cannot take path difference: latter path is not subset of first'
         assert self.fks[-l2:] == other.fks, err
@@ -121,6 +144,12 @@ class Path(Base):
         return From(joins=self.alljoin())
 
 class Join(Base):
+    '''
+    Constructed from a Path object
+
+    Represents a table plus a unique set of JOINs that led to that table
+        (accounting for multiple linear paths)
+    '''
     def __init__(self, obj:str, conds : D['Join',S['Rel']] = None) -> None:
         assert isinstance(obj,str)
         self.obj   = obj
@@ -144,6 +173,8 @@ class Join(Base):
 
     @property
     def alias(self) -> str:
+        '''How to uniquely refer to this PATH through the schema'''
+
         if not self.conds:
             return self.obj
 
@@ -157,24 +188,35 @@ class Join(Base):
         out  = b64encode(m.digest()).decode('ascii')[:3]
         return self.obj+'(%s)'%out
 
-    def print(self,optional : L['Rel'] = None) -> str:
+    def print(self, optional : L['Rel'] = None) -> str:
+        '''Render JOIN statement in FROM clause'''
         conds = [self._cond(j,e) for j,e in self.conds.items()] # conditions to join on
         opts  = optional or []
-        left = bool(conds) # if we have no conditions to join on, we should inner join
-        # Assume a left join. if any FKs in current edge are NOT in "optional", then set to Inner join
-        for e in self.conds.values():
-            for fk in e: # type: ignore
-                if fk.tup() not in opts:
-                    left = False
-                    break
-        l = ' LEFT ' if left else ' INNER '
+        if not bool(conds):
+            jointype = ' CROSS '
+        else:
+            left = True
+            # Assume a left join. if any FKs in current edge are NOT in "optional", then set to Inner join
+            for e in self.conds.values():
+                for fk in e: # type: ignore
+                    if fk.tup() not in opts:
+                        left = False
+                        break
+            jointype = ' LEFT ' if left else ' INNER '
         on    = ' ON '+'\n\t\t\tAND '.join(conds) if conds else '' # Possibly do not join on any condition
-        args  = [l, self.obj, self.alias, on]
-        return '\n\t{}JOIN {} AS `{}` {}'.format(*args)
+        args  = [jointype, self.obj, self.alias, on]
+        return '\n\t{}JOIN {} AS "{}" {}'.format(*args)
 
     ## Private Methods ###
 
     def _cond(self, j : 'Join', rels : S['Rel']) -> str:
+        '''Assume the alias defined by the arg's Join has already been defined
+            in the FROM statement. Write a SQL JOIN condition that will be used
+            to define the current Join object's alias
+
+            NEED TO MODIFY EVERYTHING SO THAT WE USE <object>.id, not <object>.name + '_id'
+            '''
+
         conds = [] # type: L[str]
         for fk in rels:
             o       = fk.other(self.obj)
@@ -182,7 +224,7 @@ class Join(Base):
             aliases =  [j.alias,self.alias]
             cols    = [fk.name,self.obj+'_id'] if forward else [o+'_id',fk.name]
             args    = [aliases[0],cols[0],aliases[1],cols[1]]
-            new     = ' `{}`.`{}` = `{}`.`{}` '.format(*args)
+            new     = ' "{}"."{}" = "{}"."{}" '.format(*args)
             conds.append(new)
         return '\n\t\tAND '.join(conds)
 
@@ -196,7 +238,7 @@ class From(Base):
     @property
     def basis(self) -> S[str]:
         return {j.obj for j in self.joins if not j.conds}
-
+    # Public methods #
     def __str__(self)->str:
         return 'From(basis=%s,%d joins)' %(self.basis,len(self.joins))
 
@@ -218,6 +260,7 @@ class From(Base):
     def aliases(self) -> L[str]:
         return [j.alias for j in self.joins]
 
-    def pks(self) -> str:
-        return ',\n\t'.join(['`{0}`.`{1}_id` AS `{0}` '.format(a,j.obj)
+    def pks(self,agg:bool=False) -> str:
+        col = 'MAX("{0}"."{1}_id")' if agg else '"{0}"."{1}_id"'
+        return ',\n\t'.join([(col+' AS "{0}" ').format(a,j.obj)
                             for a,j in zip(self.aliases(),self.joins)])

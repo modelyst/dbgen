@@ -18,9 +18,19 @@ from dbgen.utils.lists  import broadcast
 from dbgen.utils.sql    import (Connection as Conn, sqlselect, addQs,
                                  sqlexecute)
 
+'''
+Defines the class of modifications to a database
+
+There is a horrific amount of duplicated code in this file...... oughta fixit
+'''
 ################################################################################
 
 class Action(Base):
+    """
+    The purpose for this object is to make an easily serializable data structure
+    that knows how to update the database (these methods could easily be for
+    Model, but we don't want to send the entire model just to do this small thing)
+    """
     def __init__(self,
                  obj    : str,
                  attrs  : D[str,U[Arg,Const]],
@@ -35,6 +45,8 @@ class Action(Base):
         self.pk     = pk
         self.insert = insert
 
+        err = 'Cant insert %s if we already have PK %s'
+        assert not (pk and insert), err%(obj,pk)
 
     def __str__(self) -> str:
         n = len(self.attrs)
@@ -45,12 +57,14 @@ class Action(Base):
     # Public methods #
     ###################
     def newtabs(self) -> L[str]:
+        '''All tables that could be inserted into this action'''
         out = [self.obj] if self.insert else []
         for a in self.fks.values():
             out.extend(a.newtabs())
         return out
 
     def newcols(self) -> L[str]:
+        '''All attributes that could be populated by this action'''
         out = [self.obj+'.'+a for a in self.attrs.keys()]
         for k,a in self.fks.items():
             out.extend([self.obj+'.'+k] + a.newcols())
@@ -62,6 +76,10 @@ class Action(Base):
             fks  : DiGraph,
             row  : dict
            ) -> None:
+        '''
+        Top level call from a Generator to execute an action (top level is
+        always insert or update, never just a select)
+        '''
         if self.insert:
             self._insert(cxn=cxn,objs=objs,fks=fks,row=row)
         else:
@@ -69,6 +87,7 @@ class Action(Base):
         return None
 
     def rename_object(self, o : 'Obj', n :str) -> 'Action':
+        '''Replaces all references to a given object to one having a new name'''
         a = self.copy()
         if a.obj == o.name:
             a.obj = n
@@ -87,23 +106,42 @@ class Action(Base):
                 row    : D[str,Any],
                 prefix : str = ''
                ) -> D[str,Any]:
+        '''
+        Add complementary information to dictionary containing information
 
+        We either have a PK and want the underlying data of the instance or we
+        have the data and want a PK
+
+        Any information in self.attrs or self.fks that is NOT identifying info
+        is completely disregarded for this task
+
+        '''
+
+        # Short-circuit if we have a Primary Key to work with
         if self.pk:
             val = row['query'][self.pk]
             return self._select_pk(cxn=cxn,objs=objs,fks=fks,prefix=prefix,objstr=self.obj,val=val)
 
+        # Create Obj instance from the name of the object
         obj = objs[self.obj]
 
+        # Dict top level attr names -> their values in the data dictionary "row"
         out = OrderedDict({(prefix + '.' + a) : arg.arg_get(row)
                             for a,arg in self.attrs.items()
                             if a in obj.ids()})
 
+        # Recursively add to dict with parent attributes and their values
         for _,_,rels in sorted(fks.edges(self.obj,data=True)):
+            # All identifying relations starting with the current object
             for rel in rels['fks']:
                 if rel.id:
+                    err = 'We should ALWAYS have ID relationships defined: '
+                    assert rel.name in self.fks, err + str(rel.name)
 
+                    # Get the identifying info of the subobject
                     new_dict = self.fks[rel.name]._select(cxn=cxn,objs=objs,fks=fks,row=row,prefix=prefix)
 
+                    # Add it to current dict, DFS style
                     for k,v in new_dict.items():
                         out[prefix + '.' + rel.name + '.' + k] = v
 
@@ -118,14 +156,21 @@ class Action(Base):
                    objstr : str,
                    val    : int
                   ) -> D[str,Any]:
+        '''
+        We have a PK to some object and want an ordered dict of its ID attributes
+        (recursively unpacked, DFS style)
+        '''
+        # Create Obj instance from the name of the object
         obj = objs[objstr]
 
+        # Dict top level attr names -> their values in the data dictionary "row"
         fk_inits = []  # type: L[Rel]
         parents  = []  # type: L[Rel]
 
         edges = [x for _,_,x in sorted(fks.edges(objstr,data=True))]
 
         for edge in edges:
+            # For every relation starting from current object
             for rel in edge['fks']:
                 if rel.id:
                     fk_inits.append(rel)
@@ -133,7 +178,7 @@ class Action(Base):
 
         colnames = obj.ids() + [f.name for f in fk_inits]
 
-        cols   = ','.join(['`%s`'%x for x in colnames])
+        cols   = ','.join(['"%s"'%x for x in colnames])
         q      = 'SELECT {0} FROM {1} WHERE {2}=%s'.format(cols,objstr,obj._id)
         try:
             rawout = sqlselect(cxn,q,[val])[0]
@@ -157,36 +202,65 @@ class Action(Base):
                 cxn  : Conn,
                 row  : dict
                ) -> None:
+        '''
+        We have enough information to either insert an instance of an Object
+        or update it
+
+        If we don't have a PK, we need to locate the record via its hash, which
+        may involve invoking SELECT queries
+
+        Consider A which has three identifying relationships (two to B, one to C)
+        Let each object have an identifying attribute : a,b,c,d
+        the idattrs are: ['a','r1.b','r1.r4.d','r2.b','r2.r4.d','r3.c']
+
+           r1
+          --->      r4
+        A  r2   B  ---> D
+          --->
+          r3
+          --> C
+
+        '''
         if self.pk:
             self._update(cxn=cxn,objs=objs,fks=fks,row=row)
         else:
             obj      = objs[self.obj]
             attriter = self.attrs.items()
 
+            # Maintain a DICT of all ID attr vals (recursively expanded):
             initattr = OrderedDict({a:arg.arg_get(row) for a,arg in attriter
                                         if a in obj.ids()})
 
+            # Maintain a DICT of all attrs/rels to be i/u (NOT recursive)
             attrs = {a:arg.arg_get(row) for a,arg in attriter}
 
             for _,_,rels in sorted(fks.edges(self.obj,data=True)):
+                # For every relation starting from current object
                 for rel in rels['fks']:
                     to_obj_id = objs[rel.o2]._id
+                    # Stmt we will execute to get value for this FK
                     q = 'SELECT {0} FROM {1} WHERE uid = %s'.format(to_obj_id,rel.o2)
+
+                    # List of (possibly many) values for this FK we will get
                     targ_ids = [] # type: L[int]
 
                     if rel.name in self.fks:
 
+                        # Get the Action associated with this parent/component
                         new_act = self.fks[rel.name]
                         if new_act.pk:
                             attrs[rel.name] = row['query'][new_act.pk]
                             if rel.id:
                                 inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
                         else:
+                            # If this subaction is marked as "insert", then try to insert it first
                             if new_act.insert:
                                 new_act._insert(cxn=cxn,objs=objs,fks=fks,row=row)
 
+                            # Get Identifying information of target object {name:val}
                             inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
 
+                            # Get list of hash values for all instances of related object
                             hsh   = [hash_(x) for x in broadcast(inits,list(sorted(inits.keys())))]
 
                             for h in hsh: # Hash -> PK
@@ -194,29 +268,36 @@ class Action(Base):
                                 except IndexError:
                                     print(q); import pdb;pdb.set_trace(); assert False
 
+                            # Store related object PKs under the relation name
                             attrs[rel.name] = targ_ids
 
+                        # Only add to initattr if this is an identifying relation
                         if rel.id:
                             for k,v in inits.items():
                                 initattr[rel.name+'.'+k] = v
 
+            # Get hash(es) of current object using the ID ATTRIBUTES from all identifying relations
             attrs['uid']  = [hash_(x) for x in broadcast(initattr,list(sorted(initattr.keys())))]
 
-            if not attrs['uid']:
-                attrs['uid'] = ''
+            # Edge case, a "global" table w/ no inits
+            if not attrs['uid']: attrs['uid'] = ''
 
             binds = broadcast(attrs,list(attrs.keys())*2)
-            insert_cols = ','.join(['`%s`'%x for x in attrs])
+
+            # Prepare insertion query
+            #------------------------
+            insert_cols = ','.join(['"%s"'%x for x in attrs])
             qmarks      = ','.join(['%s']*len(attrs))
-            dups        = addQs(['`%s`'%x for x in attrs],', ')
+            dups        = addQs(['"%s"'%x for x in attrs],', ')
             fmt_args    = [self.obj, insert_cols, qmarks, dups]
             query       = """INSERT INTO {0} ({1}) VALUES ({2})
-                             ON DUPLICATE KEY UPDATE {3}""".format(*fmt_args)
+                             ON CONFLICT (uid) DO UPDATE SET {3}""".format(*fmt_args)
 
             for b in binds:
                 try: sqlexecute(cxn,query,b)
-                except:
-                    print(query,b);import pdb;pdb.set_trace(); assert False
+                except Exception as e:
+                    print(e);print(query,b);import pdb;pdb.set_trace(); assert False
+
 
     def _update(self,
                 cxn  : Conn,
@@ -224,9 +305,17 @@ class Action(Base):
                 fks  : DiGraph,
                 row  : dict
                 ) -> None:
+        '''
+        Update but we don't have a PK
+        '''
+        # Validate
         for a in self.attrs:
             if a in objs[self.obj].ids():
                 raise ValueError('Cannot update an identifying attribute: ',a)
+
+        # TODO: Also check that no FKs are IDs???
+
+        # Call appropriate update function
         if self.pk:
             self._update_from_pk(cxn=cxn,objs=objs,fks=fks,row=row)
         else:
@@ -238,6 +327,7 @@ class Action(Base):
                           fks  : DiGraph,
                           row  : dict
                          ) -> None:
+        ''' Get hash and update row using that'''
         data = self._select(cxn=cxn,objs=objs,fks=fks,row=row)
         hsh  = [hash_(x) for x in broadcast(data,list(sorted(data.keys())))]
 
@@ -247,8 +337,13 @@ class Action(Base):
                         fks  : DiGraph,
                         row  : dict
                         ) -> None:
+        '''Special case of insertupdate where we have a PK - clearly we're not
+        doing an insert. We can identify row with pk rather than hash
+        '''
+        assert self.pk
         val = row['query'][self.pk]
 
+        # Maintain a DICT of all attrs/rels
         attrs = {a:arg.arg_get(row) for a,arg in self.attrs.items()}
 
         for _,_,rels in sorted(fks.edges(self.obj,data=True)):
@@ -256,6 +351,7 @@ class Action(Base):
                 if rel.name in self.fks:
                     new_act = self.fks[rel.name]
                     to_obj_id = objs[rel.o2]._id
+                    # If this subaction is marked as "insert", then try to insert it first
                     if new_act.pk:
                         targ = row['query'][new_act.pk]
                     else:
@@ -264,12 +360,14 @@ class Action(Base):
 
                         inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
                         hsh   = [hash_(x) for x in broadcast(inits,list(sorted(inits.keys())))]
+                        assert len(hsh) == 1
                         q = 'SELECT {0} FROM {1} WHERE uid = %s'.format(to_obj_id,rel.o2)
                         targ = sqlselect(cxn,q,[hsh[0]])[0][0]
                     attrs[rel.name] = targ
 
+        assert attrs
         binds = list(attrs.values()) + [val]
-        set_  = addQs(['`%s`'%x for x in attrs.keys()],',\n\t\t\t')
+        set_  = addQs(['"%s"'%x for x in attrs.keys()],',\n\t\t\t')
         objid = objs[self.obj]._id
         query = 'UPDATE {0} SET {1} WHERE {2} = %s'.format(self.obj,set_,objid)
         sqlexecute(cxn,query,binds)

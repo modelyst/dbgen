@@ -18,13 +18,41 @@ from dbgen.utils.misc  import hash_, Base
 from dbgen.utils.sql   import (sqlexecute,mkInsCmd,sqlselect,mkSelectCmd,
                                 Connection as Conn)
 
+"""
+Defines the Func class, which is initialized with any Python callable but gets
+enriched in the __init__ with a lot more information and methods (from inspect)
+"""
+
+assert version_info[1] > 5, "Stop using old python3 (need 3.x, x > 5)"
+################################################################################
 class Import(Base):
+    '''
+    Representation of an Python import line.
+
+    Examples:
+
+    --> from libname import unaliased, things, aliased as Thing
+        Import('libname',         <---- (DO NOT make this a keyword argument!!!)
+                'unaliased',
+                'things',
+                aliased = 'Thing')
+
+    --> import numpy as np
+        Import('numpy', alias = 'np')
+
+    Unsupported edge case: trying to import some variable literally named
+                            "alias" using an alias
+    '''
     def __init__(self,
                  lib        : str,
                  *unaliased : str,
                  alias      : str = '',
                  **aliased  : str
         ) -> None:
+
+        err = "Can't import %s as %s AND import specific terms (%s,%s) at once"
+        terms = unaliased or aliased
+        assert not (alias and terms), err%(lib,alias,unaliased,aliased)
 
         self.lib              = lib
         self.alias            = alias
@@ -42,6 +70,7 @@ class Import(Base):
 
     @staticmethod
     def from_str(s : str) -> 'Import':
+        '''Parse a header line (parens not supported yet)'''
         if s[:6] == 'import':
             if ' as ' in s[7:]:
                 lib,alias = [s[7:].split('as')[i].strip() for i in range(2)]
@@ -61,6 +90,9 @@ class Import(Base):
             return Import(lib, *unalias, **aliased)
 
 class Env(Base):
+    '''
+    Environment in which a python statement gets executed
+    '''
     def __init__(self, *imports : Import) -> None:
         self.imports = list(imports)
 
@@ -88,6 +120,9 @@ emptyEnv   = Env()
 
 ################################################################################
 class Func(Base):
+    """
+    A function that can be used during the DB generation process.
+    """
     def __init__(self, src : str, env: Env = None) -> None:
         assert isinstance(src,str), 'Expected src str, but got %s'%type(src)
 
@@ -184,12 +219,19 @@ class Func(Base):
 
     # Public methods #
     def store_func(self) -> None:
+        '''Load func from source code and store as attribute (better performance
+        but object is no longer serializable / comparable for equality )
+        '''
         self._func = self._from_src()
 
     def del_func(self) -> None:
+        '''Remove callable attribute after performance is no longer needed'''
         if hasattr(self,'_func'): del self._func
 
     def add(self, cxn : Conn) -> int:
+        """
+        Log function data to metaDB, return its ID
+        """
         q    = mkSelectCmd('_func',['func_id'],['checksum'])
         f_id = sqlselect(cxn,q,[hash_(self.src)])
         if f_id:
@@ -225,6 +267,10 @@ class Func(Base):
 
     @classmethod
     def from_callable(cls, f : U[C, 'Func'], e : Env = None) -> 'Func':
+        """
+        Generate a func from a variety of possible input data types.
+        """
+
         if e:
             return Func(src = cls.get_source(f), env=e)
         elif isinstance(f, Func):
@@ -235,13 +281,16 @@ class Func(Base):
 
     @staticmethod
     def get_source(f : C) -> str:
+        """
+        Return the source code, even if it's lambda function.
+        """
         try:
             source_lines, _ = getsourcelines(f)
         except (IOError, TypeError) as e: # functions defined in pdb / REPL / eval / some other way in which source code not clear
             import pdb; pdb.set_trace()
             raise ValueError('from_callable: ',f,e)
 
-        # Handle `def`-ed functions and long lambdas
+        # Handle 'def'-ed functions and long lambdas
         src = ''.join(source_lines).strip()
 
         if len(source_lines) > 1 and src[:3]=='def':

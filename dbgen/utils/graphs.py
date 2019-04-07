@@ -8,6 +8,10 @@ from networkx.algorithms import (lexicographical_topological_sort,simple_cycles,
 # Graph
 #--------
 def topsort_with_dict(G:DiGraph,d:dict)->List:
+    """
+    Assuming a graph with object names and dict mapping names to objects,
+    perform a topsort and return the list of objects.
+    """
     try:
         sortd = list(lexicographical_topological_sort(G))
         return [d[x] for x in sortd]

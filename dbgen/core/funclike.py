@@ -15,6 +15,13 @@ from dbgen.core.misc   import ConnectInfo as Conn,ExternalError
 from dbgen.utils.sql   import mkInsCmd,sqlexecute
 from dbgen.utils.misc  import Base
 
+'''
+The "T" of ETL: things that are like functions.
+
+A generalization of a function is a computational graph (where nodes are functions)
+
+These nodes (PyBlocks) have Args which refer to other PyBlocks (or a query)
+'''
 ####################################################################################
 class ArgLike(Base,metaclass=ABCMeta):
     @abstractmethod
@@ -22,6 +29,9 @@ class ArgLike(Base,metaclass=ABCMeta):
         raise NotImplementedError
 
 class Arg(ArgLike):
+    """
+    How a function refers to a namespace
+    """
 
     def __init__(self, key : str, name  : str) -> None:
         self.key  = key.lower()
@@ -59,16 +69,21 @@ class Const(ArgLike):
         return self.val
 
 class PyBlock(Base):
+    """
+    A computational block that executes Python code
+    """
     def __init__(self,
                  func     : U[C,Func],
                  env      : Env                            = None,
                  args     : U[L[Arg],L[Const],L[ArgLike]]  = None,
-                 outnames : L[str]                         = None
+                 outnames : L[str]                         = None,
+                 tests    : L[T[tuple,Any]]                = None,
                 ) -> None:
         # Store fields
         self.func     = Func.from_callable(func,env)
         self.args     = args or []
         self.outnames = [o.lower() for o in outnames or ['out']]
+        self.tests    = tests or []
 
         # Validate input
         if outnames:
@@ -120,3 +135,8 @@ class PyBlock(Base):
         f_id = self.func.add(cxn)
         q    = mkInsCmd('_py_block',cols)
         sqlexecute(cxn,q,[a_id,b_id,f_id,','.join(self.outnames)])
+
+    def test(self) -> None:
+        '''Throw error if any tests are failed'''
+        for args,target in self.tests:
+            assert self.func(*args) == target

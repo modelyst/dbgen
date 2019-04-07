@@ -19,6 +19,16 @@ from dbgen.core.fromclause import  Path
 ##############################################################################
 
 class Constraint(Base):
+    '''
+    A way of specifying HOW one arrives at a certain table through JOINing on
+    relations. Under normal circumstances, we constrain possible JOIN paths by
+    giving a sequence of relations that must be traversed in a certain order.
+
+    This alone would only allow for linear (nonbranching) paths.
+
+    It is possible that a table should be arrived at via multiple
+    distinct paths, in which case "branch" should be used.
+    '''
     def __init__(self,
                  tab       : U[str,'Obj'],
                  reqs      : L[U['Rel','RelTup']] = None, # constraints on final 'linear' sequence
@@ -56,8 +66,10 @@ class Constraint(Base):
         '''
         msg   = '''Searching for paths from %s to %s\n'''+'%s\n\t'*4
 
+        # Compute informatino graph in light of the 'links'
         ig    = m._info_graph(links or []).reverse()
 
+        # Process basis data
         if not isinstance(basis,list):
             basis_ = [basis]
         else:
@@ -67,6 +79,7 @@ class Constraint(Base):
 
         self._update_reltup(m)
 
+        # underline important things
         l1,l2,l3,l4 = 25, len(bstr), 4, len(self.tab)
         under     = ' '*l1 + '#'*l2 + ' '*l3 + '#'*l4
         constrstr = '(constraints %s)'%(self.reqs) if self.reqs else ''
@@ -84,9 +97,16 @@ class Constraint(Base):
         if quit: exit()
 
     def find_path(self, schema : DiGraph,basis : L[str]) -> I[Path]:
+        '''Work backwards to find a path to the target that satisfies constraints'''
+        # Initialize with empty FK graph, all requirements present
         stack = [(Path(self.tab),list(self.reqs))]
+        # Explore possible states in BFS
         while stack:
+            # Get current state
             path, reqs = stack.pop(0)
+            #print('\n\tnew iteration',path,reqs)
+
+            # Enter the branching logic if we are at branchobj
             if not reqs and self.branch and path.base==self.branch_obj:
                 branchiters = [c.find_path(schema,basis) for c in self.branch]
                 for branches in product(*branchiters):
@@ -98,8 +118,9 @@ class Constraint(Base):
                 return
 
             if not reqs and path.base in basis:
-                yield path
+                yield path # We're done!
             else:
+                # Possible FKs to join on
                 for edge in schema[path.base]:
                     seen = set() if self.backtrack else path.all_rels()
                     fks = sorted(set(schema[path.base][edge]['fks'])-self.xclude - seen)
@@ -110,6 +131,8 @@ class Constraint(Base):
                         else:
                             rs = []
                         stack.append((path.add(fk),rs))
+
+        print('No more paths')
 
     def _update_reltup(self, m : 'Schema') -> 'None':
         self.reqs = [m.get_rel(r) for r in self.reqs]
