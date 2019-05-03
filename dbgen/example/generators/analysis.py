@@ -29,12 +29,12 @@ def analysis(m : Model) -> None:
                    'and only computes this when the procedure name is '         \
                    'greater than three letter long!'
 
-    '''
+
     c = Constraint('scientist',reqs=[history__operator])
     c.find(m,basis=['history'],quit=False)
     c = Constraint('sample',reqs=[fuel_cell__anode])
     c.find(m,basis=['fuel_cell'],)
-    '''
+
     epath = JPath("sample", [electrode__sample, anode__electrode, fuel_cell__anode])
     spath = JPath('scientist',[history__operator])
     ppath = JPath('procedures',[history__expt_type])

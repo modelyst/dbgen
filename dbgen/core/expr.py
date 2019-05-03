@@ -2,6 +2,7 @@
 from abc    import abstractmethod,ABCMeta
 from typing import (Any, TYPE_CHECKING,
                     Set      as S,
+                    Dict     as D,
                     List     as L,
                     Tuple    as T,
                     Callable as C,
@@ -365,6 +366,19 @@ class IN(Named):
         return '%s IN (%s)'%(f(self.x),','.join(xs))
 
 ##########
+class CASE(Expr):
+    def __init__(self,cases:D[Expr,Expr],else_:Expr)->None:
+        self.cases = cases
+        self.else_  = else_
+    def fields(self)->L[Expr]:
+        return list(self.cases.keys())+list(self.cases.values())+[self.else_]
+    def show(self,f:Fn)->str:
+        body = ' '.join(['WHEN (%s) THEN (%s)'%(f(k),f(v))
+                        for k,v in self.cases.items()])
+        end = ' ELSE (%s) END'%(f(self.else_))
+        return 'CASE  '+body + end
+
+
 # IF_ELSE is *not* for public use; rather:  <Ex1> |IF| <Ex2> |ELSE| <Ex3>
 class IF_ELSE(Expr):
     def __init__(self,cond:Expr,_if:Expr,other:Expr)->None:
@@ -399,7 +413,7 @@ class CONVERT(Expr):
 
     def show(self,f:Fn) -> str:
         e = f(self.expr)
-        return 'CONVERT(%s,%s)'%(e,self.dtype)
+        return 'CAST(%s AS %s)'%(e,self.dtype)
 
 class SUBSELECT(Expr):
     '''Hacky way of getting in subselect .... will not automatically detect
@@ -421,7 +435,6 @@ class GROUP_CONCAT(Agg):
         self.expr  = expr
         self.delim = delim or ','
         self.order = order
-
 
     def fields(self) -> L[Expr]:
         return [self.expr] + ([self.order] if self.order is not None else [])

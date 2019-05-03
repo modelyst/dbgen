@@ -7,13 +7,19 @@ from shutil     import copyfile
 from argparse   import ArgumentParser
 '''
 Initialize a dbgen model
+
+PROBLEMS
+
+-path to .env and /data/ folders should be able to be specified (or by default be
+    parallel )
+- don't use DBGEN_ROOT -- use '__file__' instead to get current dbgen repo
 '''
 ################################################################################
 
 #Check to confirm that python3.6 or newer is being used
 major_version, minor_version = sys.version_info[:2]
 if major_version < 3 or minor_version < 6:
-    raise Exception("Python 3.6 or a more recent version is required.")
+    raise Exception("Python 3.6+ is required.")
 
 root = environ['DBGEN_ROOT']
 user = environ['USER']
@@ -21,7 +27,7 @@ user = environ['USER']
 
 class File(object):
     def __init__(self, pth : str, template : str)->None:
-        self.pth = pth
+        self.pth      = pth
         self.template = template
     def content(self,kwargs:dict)->str:
         with open(join(root,'dbgen/CLI/newfiles',self.template),'r') as f:
@@ -34,13 +40,13 @@ ginit   = File('generators/__init__.py','ginit')
 default = File('dbgen_files/default.py','default')
 io      = File('generators/io.py','io')
 man     = File('main.py','main')
-data     = File('data/example.csv','data')
+data    = File('data/example.csv','data')
 parse   = File('scripts/io/parse_employees.py','parse')
 dev,log = [File('dbgen_files/%s.json'%x,x) for x in ['dev','log']]
 
 files = [sch,ginit,default,man,io,parse,dev,log]
 inits = ['','scripts/','scripts/io/']
-dirs  = ['generators','scripts','data','dbgen_files','scripts/io',
+dirs  = ['generators','scripts','dbgen_files','scripts/io',
         'dbgen_files/storage','dbgen_files/tmp']
 
 
@@ -50,9 +56,8 @@ parser.add_argument('pth',type  = str, help = 'Root folder')
 parser.add_argument('name',type = str, help = 'Name of model')
 ################################################################################
 envvars = dict(
-    MODEL_STORAGE = 'dbgen_files/storage',
     MODEL_TEMP    = 'dbgen_files/tmp',
-    MODEL_ROOT    = '')
+    MODEL_ROOT    = '') # THIS SHOULD BE AN EMPTY STRING!!!
 ################################################################################
 
 def main(pth : str, name : str) -> None:
@@ -69,7 +74,7 @@ def main(pth : str, name : str) -> None:
     # Create virtual environment
     env  = join(pth,'.env/bin/activate')
     reqs = join(root,'requirements.txt')
-    create(join(pth,'.env'),with_pip = True,symlinks = True, clear = True)
+    create(join(pth,'.env'),with_pip = True, symlinks = True, clear = True)
     system('source '+env+'; pip install -r '+reqs)
     copyfile(reqs,join(pth,'requirements.txt'))
     with open(env,'a') as f:

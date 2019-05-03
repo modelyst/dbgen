@@ -60,7 +60,7 @@ class Import(Base):
         self.aliased_terms    = aliased
 
     def __str__(self) -> str:
-        if self.alias:
+        if not (self.unaliased_terms or self.aliased_terms):
             alias = (' as %s' % self.alias) if self.alias else ''
             return 'import %s %s'%(self.lib, alias)
         else:

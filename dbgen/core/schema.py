@@ -68,6 +68,7 @@ class Attr(Base):
                  default : Any     = None,
                  desc    : str     = '<No description>'
                  ) -> None:
+        assert name
         self.name    = name.lower()
         self.desc    = desc
         self.dtype   = dtype or Int()

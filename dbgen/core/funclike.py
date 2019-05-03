@@ -62,6 +62,9 @@ class Arg(ArgLike):
 
 class Const(ArgLike):
     def __init__(self,val:Any) -> None:
+        if hasattr(val,'__call__'):
+            try: val = Func.from_callable(val)
+            except: pass
         self.val = val
     def __str__(self) -> str:
         return 'Const<%s>'%self.val

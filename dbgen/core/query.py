@@ -142,7 +142,7 @@ class Query(Expr):
         #---------------------------------
         # Aggregations refered to in WHERE are treated specially
         where  = str(self.constr) #self.show_constr({})
-        notdel = '\n\t'.join(['AND NOT "%s".deleted'%o for o in f.aliases()])
+        notdel = '\n\t'.join(['AND NOT COALESCE("%s".deleted,False)'%o for o in f.aliases()])
         notnul = '\n\t'.join(['AND %s IS NOT NULL'%(x)
                     for x in self.allattr() if x not in self.opt_attr])
         consts = 'WHERE %s' %('\n\t'.join([where,notdel,notnul]))
