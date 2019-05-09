@@ -266,13 +266,13 @@ class Func(Base):
             assert False, 'Error loading source code'
 
     @classmethod
-    def from_callable(cls, f : U[C, 'Func'], e : Env = None) -> 'Func':
+    def from_callable(cls, f : U[C, 'Func'], env : Env = None) -> 'Func':
         """
         Generate a func from a variety of possible input data types.
         """
 
-        if e:
-            return Func(src = cls.get_source(f), env=e)
+        if env:
+            return Func(src = cls.get_source(f), env=env)
         elif isinstance(f, Func):
             return f
         else:

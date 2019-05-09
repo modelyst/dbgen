@@ -8,7 +8,7 @@ from dbgen.core.pathconstraint import Constraint, Path as JPath
 
 from dbgen.core.query     import Query
 
-from dbgen.core.func      import Import, Env, defaultEnv
+from dbgen.core.func      import Import, Env, defaultEnv, Func
 
 from dbgen.core.funclike  import (PyBlock, Const, Arg)
 
@@ -19,7 +19,7 @@ from dbgen.core.expr      import (Expr, AND, IF, ELSE, Literal, MAX, One, LT, GT
                                  JSON_EXTRACT, REPLACE, CONVERT, R2, STD, AVG,
                                  PathAttr, SUBSELECT, LEFT, RIGHT, CASE)
 
-from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Double, Boolean
+from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Timestamp, Double, Boolean
 
 
 ############################

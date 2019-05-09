@@ -1,4 +1,4 @@
- # External modules
+# External modules
 from typing import (TYPE_CHECKING,
                      Any,
                      List     as L,
@@ -67,7 +67,7 @@ def run_gen(self   : 'Model',
 
     # Determine how to map over input rows
     #-------------------------------------
-    cpus      = cpu_count() or 1 # play safe, leave one free
+    cpus      = cpu_count()-1 or 1 # play safe, leave one free
     cxns      = (mconn,conn)            if parallel else (gmcxn,gcxn)
     ctx       = get_context('forkserver') # addresses problem due to parallelization of numpy not playing with multiprocessing
     mapper    = partial(ctx.Pool(cpus).imap_unordered,chunksize = 5) if parallel else map
@@ -77,7 +77,7 @@ def run_gen(self   : 'Model',
     try:
         if 'stream' in gen.tags:
             assert gen.query
-            cxn = conn.connect(dic=True).cursor()
+            cxn = conn.connect().cursor()
             cxn.execute(gen.query.showQ())
 
             for row in tqdm(cxn, position = 1, desc = 'stream', **bargs):
@@ -124,7 +124,6 @@ def run_gen(self   : 'Model',
                         tq.update()
 
             tot = len(inputs)
-
             with tqdm(total=tot, desc='applying', **bargs) as tq:
                 f = partial(applyfunc,
                             f      = gen.funcs,

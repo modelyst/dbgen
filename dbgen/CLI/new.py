@@ -54,13 +54,14 @@ dirs  = ['generators','scripts','dbgen_files','scripts/io',
 parser = ArgumentParser(description  = 'Initialize a dbGen model', allow_abbrev = True)
 parser.add_argument('pth',type  = str, help = 'Root folder')
 parser.add_argument('name',type = str, help = 'Name of model')
+parser.add_argument('env',default='.env/bin/activate',type = str, help = 'Name of model')
 ################################################################################
 envvars = dict(
     MODEL_TEMP    = 'dbgen_files/tmp',
     MODEL_ROOT    = '') # THIS SHOULD BE AN EMPTY STRING!!!
 ################################################################################
 
-def main(pth : str, name : str) -> None:
+def main(pth : str, name : str, env : str) -> None:
     '''
     Initialize a DbGen model
     '''
@@ -72,7 +73,7 @@ def main(pth : str, name : str) -> None:
     for fi  in files: fi.write(pth, model = name, user = user)
 
     # Create virtual environment
-    env  = join(pth,'.env/bin/activate')
+    env  = join(pth,env)
     reqs = join(root,'requirements.txt')
     create(join(pth,'.env'),with_pip = True, symlinks = True, clear = True)
     system('source '+env+'; pip install -r '+reqs)
@@ -84,4 +85,4 @@ def main(pth : str, name : str) -> None:
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    main(args.pth,args.name)
+    main(args.pth,args.name, args.env)

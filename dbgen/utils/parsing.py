@@ -85,3 +85,7 @@ parser.add_argument('--retry',
 parser.add_argument('--serial',
                     default = '',
                     help    = 'Ignore any "parallel" flags')
+
+parser.add_argument('--clean',
+                    default = False,
+                    help    = 'Clean the database of the deleted column and uid !DOESN\'t DELETE DELETED ROWS YET!')

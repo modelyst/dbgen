@@ -83,7 +83,7 @@ class PyBlock(Base):
                  tests    : L[T[tuple,Any]]                = None,
                 ) -> None:
         # Store fields
-        self.func     = Func.from_callable(func,env)
+        self.func     = Func.from_callable(func,env = env)
         self.args     = args or []
         self.outnames = [o.lower() for o in outnames or ['out']]
         self.tests    = tests or []
