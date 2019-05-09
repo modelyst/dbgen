@@ -399,7 +399,7 @@ class CONVERT(Expr):
 
     def show(self,f:Fn) -> str:
         e = f(self.expr)
-        return 'CONVERT(%s,%s)'%(e,self.dtype)
+        return 'CAST(%s AS %s)'%(e,self.dtype)
 
 class SUBSELECT(Expr):
     '''Hacky way of getting in subselect .... will not automatically detect

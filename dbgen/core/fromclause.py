@@ -263,4 +263,4 @@ class From(Base):
     def pks(self,agg:bool=False) -> str:
         col = 'MAX("{0}"."{1}_id")' if agg else '"{0}"."{1}_id"'
         return ',\n\t'.join([(col+' AS "{0}" ').format(a,j.obj)
-                            for a,j in zip(self.aliases(),self.joins)])
+                            for a,j in sorted(zip(self.aliases(),self.joins))])

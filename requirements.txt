@@ -1,10 +1,6 @@
-    
-ase
 networkx
-mysqlclient
-pymatgen
+psycopg2
 tqdm
-PyOpenGL
-PyQt5
 pathos
 infix
+infinite

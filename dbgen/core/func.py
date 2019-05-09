@@ -60,7 +60,7 @@ class Import(Base):
         self.aliased_terms    = aliased
 
     def __str__(self) -> str:
-        if self.alias:
+        if not (self.unaliased_terms or self.aliased_terms):
             alias = (' as %s' % self.alias) if self.alias else ''
             return 'import %s %s'%(self.lib, alias)
         else:
@@ -266,13 +266,13 @@ class Func(Base):
             assert False, 'Error loading source code'
 
     @classmethod
-    def from_callable(cls, f : U[C, 'Func'], e : Env = None) -> 'Func':
+    def from_callable(cls, f : U[C, 'Func'], env : Env = None) -> 'Func':
         """
         Generate a func from a variety of possible input data types.
         """
 
-        if e:
-            return Func(src = cls.get_source(f), env=e)
+        if env:
+            return Func(src = cls.get_source(f), env=env)
         elif isinstance(f, Func):
             return f
         else:
