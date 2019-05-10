@@ -69,7 +69,6 @@ class Gen(Base):
         '''Unique hash function to this Generator'''
         return hash_(self.hash + str(x))
 
-
     def dep(self) -> Dep:
         '''
         Determine the tabs/cols that are both inputs and outputs to the Gen
@@ -118,10 +117,24 @@ class Gen(Base):
             g.query.basis = [n if b == o.name else b for b in g.query.basis]
         for i,a in enumerate(g.actions):
             g.actions[i] = a.rename_object(o,n)
-
-
-
         return g
+
+    def purge(self, conn : Conn, mconn : Conn) -> None:
+        '''
+        If a generator is purged, then any
+        tables it populates will be truncated. Any columns it populates will be set all
+        to NULL'''
+        d = self.dep()
+        tabs,cols = d.tabs_yielded,d.cols_yielded
+        for t in tabs:
+            sqlexecute(conn,'TRUNCATE {} CASCADE'.format(t))
+
+        for t,c in map(lambda x: x.split('.'),cols):
+            sqlexecute(mconn,'UPDATE {} SET {} = NULL'.format(t,c))
+
+        gids = sqlselect(mconn,'SELECT gen_id FROM gen WHERE name = %s',[self.name])
+        for gid in gids:
+            sqlexecute(mconn,"DELETE FROM repeats WHERE gen_id = %s",[gid])
 
     ##################
     # Private Methods #
