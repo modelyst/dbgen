@@ -4,3 +4,4 @@ tqdm
 pathos
 infix
 infinite
+jsonpickle

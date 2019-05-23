@@ -142,11 +142,14 @@ class Schema(Base):
     # Objects #
     ###########
     def add_cols(self, obj : Obj) -> L[str]:
-
-        attr_stmts = ["ALTER TABLE {0} ADD {1}".format(obj.name,c.create_col(obj.name))
-                     for c in obj.attrs.values()]
+        attr_stmts = []
+        for c in obj.attrs.values():
+            obj_name = obj.name
+            col_name, col_desc = c.create_col(obj.name)
+            stmt = "ALTER TABLE %s ADD COLUMN %s"%(obj.name,col_name)
+            attr_stmts.append(stmt)
+            attr_stmts.append(col_desc)
         rel_stmts  = [self._create_fk(rel) for rel in self._obj_fks(obj.name)]
-
         return attr_stmts + rel_stmts
 
     #########
