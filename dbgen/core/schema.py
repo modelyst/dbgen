@@ -221,7 +221,7 @@ class Obj(Base):
 
     def add_attrs(self,ats:L[Attr]) -> None:
         for a in ats:
-            assert not a in self.attrs or a.name in self.forbidden
+            assert not a.name in self.attrs or a.name in self.forbidden
         self.attrs.update({a.name:a for a in ats})
 
     def del_attrs(self,ats:L[str])->None:

@@ -116,11 +116,13 @@ class Action(Base):
         is completely disregarded for this task
 
         '''
-
         # Short-circuit if we have a Primary Key to work with
         if self.pk:
             val = row['query'][self.pk]
-            return self._select_pk(cxn=cxn,objs=objs,fks=fks,prefix=prefix,objstr=self.obj,val=val)
+            if val is None:
+                return {prefix +'.'+x:None for x in objs[self.obj].ids() }
+            pre = prefix+'.'+self.obj+'.'
+            return {pre+k:v for k,v in self._select_pk(cxn=cxn,objs=objs,fks=fks,prefix=pre,objstr=self.obj,val=val).items()}
 
         # Create Obj instance from the name of the object
         obj = objs[self.obj]
@@ -191,7 +193,7 @@ class Action(Base):
             for k,v in cls._select_pk(cxn=cxn,objs=objs,fks=fks,
                                        prefix=prefix_,objstr=rel.o2,
                                        val = pkval).items():
-                out[k] = v
+                out[prefix_+'.'+k] = v
 
         return out
 
@@ -259,10 +261,8 @@ class Action(Base):
 
                             # Get Identifying information of target object {name:val}
                             inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
-
                             # Get list of hash values for all instances of related object
                             hsh   = [hash_(x) for x in broadcast(inits,list(sorted(inits.keys())))]
-
                             for h in hsh: # Hash -> PK
                                 try: targ_ids.append(sqlselect(cxn,q,[h])[0][0])
                                 except IndexError:

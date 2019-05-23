@@ -114,20 +114,6 @@ class Expr(Base,metaclass = ABCMeta):
         """If it has any recursive structure to unpack, unpack it"""
         return x._all() if hasattr(x,'_all') else [x]
 
-    # @staticmethod
-    # def escape(x:Any)->Any:
-    #     """
-    #     Prepare user-entered strings to be used as string constants in SQL
-    #     """
-    #     if isinstance(x,str):
-    #         return "'%s'"%x.replace('%','%%')
-    #     elif isinstance(x,tuple):
-    #         return tuple([Expr.escape(y) for y in x])
-    #     elif isinstance(x,list):
-    #         return [Expr.escape(y) for y in x]
-    #     else:
-    #         return x
-
 ################################################################################
 
 ##############
@@ -291,6 +277,7 @@ class LIKE(Named,Binary):   pass
 
 # Ones that need a field defined
 #-------------------------------
+class Tup(Nary):      name = ''
 class LEN(Unary):     name = 'CHAR_LENGTH'
 class MUL(Binary):    name = '*'
 class DIV(Binary):    name = '/'
@@ -338,6 +325,7 @@ class NULL(Named,Unary):
 
 # Ones that need to be implemented from scratch
 #----------------------------------------------
+
 class Literal(Expr):
     def __init__(self,x : Any)->None:
         self.x = x
@@ -348,6 +336,8 @@ class Literal(Expr):
 
         if isinstance(self.x,str):
             return "('%s')"%f(self.x).replace("'","\\'").replace('%','%%')
+        elif self.x is None:
+            return '(NULL)'
         else:
             x = f(self.x)
             return '(%s)' % x
