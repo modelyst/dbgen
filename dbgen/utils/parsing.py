@@ -51,8 +51,8 @@ parser = ArgumentParser(description  = 'Run a DBG update',
                        allow_abbrev = True)
 
 parser.add_argument('--nuke',
-                    default = False,
-                    type    = lambda x:bool(strtobool(x)),
+                    default = '',
+                    type    = str,
                     help    = 'Reset the DB - needed if you make schema changes')
 
 parser.add_argument('--add',
@@ -71,11 +71,11 @@ parser.add_argument('--xclude',
 
 parser.add_argument('--start',
                     default = '',
-                    help    = 'Start at the designed Rule')
+                    help    = 'Start at the designed Generator')
 
 parser.add_argument('--until',
                     default = '',
-                    help    = 'Stop at the designed Rule')
+                    help    = 'Stop at the designed Generator')
 
 parser.add_argument('--retry',
                     default = False,
