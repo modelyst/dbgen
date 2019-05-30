@@ -181,8 +181,8 @@ def make_meta(self   : 'Model',
 
     # Get current connection ID
     #----------------------------------------------
-    get_cxn = mkSelectCmd('connection',['connection_id'],cxn_cols)
-    cxn_id  = sqlselect(gmcxn,get_cxn,cxn_args)[0][0]
+    get_cxn = mkSelectCmd('connection',['connection_id'],['uid'])
+    cxn_id  = sqlselect(gmcxn,get_cxn,cxn_args[:1])[0][0]
 
     # Insert top level information about current run
     #----------------------------------------------

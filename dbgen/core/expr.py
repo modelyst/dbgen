@@ -15,13 +15,13 @@ from operator   import add
 
 # Internal Modules
 if TYPE_CHECKING:
+    from dbgen.core.schema import AttrTup,RelTup
 
-    from dbgen.core.schema          import AttrTup,RelTup
 from dbgen.core.pathconstraint  import Path
-from dbgen.core.sqltypes   import SQLType,Decimal,Varchar
-from dbgen.utils.lists     import concat_map
-from dbgen.utils.misc      import Base
-from dbgen.utils.lists   import flatten
+from dbgen.core.sqltypes        import SQLType,Decimal,Varchar,Text,Int
+from dbgen.utils.lists          import concat_map
+from dbgen.utils.misc           import Base
+from dbgen.utils.lists          import flatten
 
 """
 Python-sql interface
@@ -396,7 +396,7 @@ class CONVERT(Expr):
         self.dtype = dtype
 
         err = 'Are you SURE that Postgres can convert to this dtype? %s'
-        assert isinstance(dtype,(Decimal,Varchar)), err%dtype
+        assert isinstance(dtype,(Decimal,Varchar,Text,Int)), err%dtype
 
     def fields(self) -> L[Expr]:
         return [self.expr]
