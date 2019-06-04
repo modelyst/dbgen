@@ -5,6 +5,8 @@ from os              import environ
 from os.path         import exists
 from json            import load, dump
 from pprint          import pformat
+from contextlib      import suppress
+from sshtunnel       import SSHTunnelForwarder # type: ignore
 from psycopg2        import connect,Error                   # type: ignore
 from psycopg2.extras import DictCursor                      # type: ignore
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
@@ -44,7 +46,13 @@ class ConnectInfo(Base):
                  port   : int = 5432,
                  user   : str = None,
                  passwd : str = None,
-                 db     : str = ''
+                 db     : str = '',
+                 ssh                 : str = '',
+                 ssh_port            : int = 22,
+                 ssh_username        : str = '',
+                 ssh_pkey            : str = '',
+                 remote_bind_address : str = 'localhost',
+                 remote_bind_port    : int = 5432,
                 ) -> None:
 
         if not user:
@@ -55,22 +63,37 @@ class ConnectInfo(Base):
         self.user   = user
         self.passwd = passwd
         self.db     = db
+        self.ssh                 = ssh
+        self.ssh_port            = ssh_port
+        self.ssh_username        = ssh_username
+        self.ssh_pkey            = ssh_pkey
+        self.remote_bind_address = remote_bind_address
+        self.remote_bind_port    = remote_bind_port
 
     def __str__(self) -> str:
         return pformat(self.__dict__)
+
+    def tunnel(self)->SSHTunnelForwarder:
+        return SSHTunnelForwarder(
+                (self.ssh, self.ssh_port),
+                ssh_username = self.ssh_username,
+                ssh_pkey     = self.ssh_pkey,
+                remote_bind_address=(self.remote_bind_address, self.remote_bind_port),
+                ) if self.ssh else suppress()
 
     def connect(self, attempt : int  = 3) -> Connection:
         e = ''
         for _ in range(attempt):
             try:
-                conn = connect(host        = self.host,
-                               port        = self.port,
-                               user        = self.user,
-                               password    = self.passwd,
-                               dbname      = self.db,
-                               connect_timeout = 28800)
-                conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-                return conn
+                with self.tunnel():
+                    conn = connect(host        = self.host,
+                                   port        = self.port,
+                                   user        = self.user,
+                                   password    = self.passwd,
+                                   dbname      = self.db,
+                                   connect_timeout = 28800)
+                    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    return conn
             except Error as e:
                 print(e)
                 sleep(1)
@@ -91,13 +114,13 @@ class ConnectInfo(Base):
         with open(pth,'r') as f:
             return ConnectInfo(**load(f))
 
-    def neutral(self)->Connection:
+    def neutral(self) -> Connection:
         copy = self.copy()
         copy.db = 'postgres'
         conn = copy.connect()
         return conn.cursor()
 
-    def kill(self)->None:
+    def kill(self) -> None:
         '''Kills connections to the DB'''
         killQ = '''SELECT pg_terminate_backend(pg_stat_activity.pid)
                     FROM pg_stat_activity
@@ -106,20 +129,18 @@ class ConnectInfo(Base):
         with self.neutral() as cxn:
             cxn.execute(killQ,vars=[self.db])
 
-    def drop(self)->None:
+    def drop(self) -> None:
         '''Completely removes a DB'''
         dropQ = 'DROP DATABASE IF EXISTS ' + self.db
         self.kill()
         with self.neutral() as cxn:
             cxn.execute(dropQ,vars=[self.db])
 
-    def create(self)->None:
+    def create(self) -> None:
         '''Kills connections to the DB'''
         createQ = 'CREATE DATABASE ' + self.db
         with self.neutral() as cxn:
             cxn.execute(createQ,vars=[self.db])
-
-
 
 ################################################################################
 
@@ -169,9 +190,6 @@ class Dep(Base):
             tn = tn | d.tabs_needed;  cn = cn | d.cols_needed
             ty = ty | d.tabs_yielded; cy = cy | d.cols_yielded
         return cls(tn,cn,ty,cy) # type: ignore
-################################################################################
-
-
 ################################################################################
 class Test(object):
     """
