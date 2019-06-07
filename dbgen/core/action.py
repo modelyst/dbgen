@@ -35,7 +35,7 @@ class Action(Base):
                  obj    : str,
                  attrs  : D[str,U[Arg,Const]],
                  fks    : D[str,'Action'],
-                 pk     : str    = None,
+                 pk     : Arg    = None,
                  insert : bool   = False
                  ) -> None:
 
@@ -46,7 +46,8 @@ class Action(Base):
         self.insert = insert
 
         err = 'Cant insert %s if we already have PK %s'
-        assert not (pk and insert), err%(obj,pk)
+        assert (pk is None) or (not insert), err%(obj,pk)
+        assert isinstance(pk,(Arg,type(None))), (obj,attrs,fks,pk,insert)
 
     def __str__(self) -> str:
         n = len(self.attrs)
@@ -116,11 +117,13 @@ class Action(Base):
         is completely disregarded for this task
 
         '''
-
         # Short-circuit if we have a Primary Key to work with
-        if self.pk:
-            val = row['query'][self.pk]
-            return self._select_pk(cxn=cxn,objs=objs,fks=fks,prefix=prefix,objstr=self.obj,val=val)
+        if self.pk is not None:
+            val = self.pk.arg_get(row) #row['query'][self.pk]
+            if val is None:
+                return {prefix +'.'+x:None for x in objs[self.obj].ids() }
+            pre = prefix+'.'+self.obj+'.'
+            return {pre+k:v for k,v in self._select_pk(cxn=cxn,objs=objs,fks=fks,prefix=pre,objstr=self.obj,val=val).items()}
 
         # Create Obj instance from the name of the object
         obj = objs[self.obj]
@@ -178,6 +181,9 @@ class Action(Base):
 
         colnames = obj.ids() + [f.name for f in fk_inits]
 
+        if val is None:
+            return {prefix+x:None for x in colnames}
+
         cols   = ','.join(['"%s"'%x for x in colnames])
         q      = 'SELECT {0} FROM {1} WHERE {2}=%s'.format(cols,objstr,obj._id)
         try:
@@ -191,7 +197,7 @@ class Action(Base):
             for k,v in cls._select_pk(cxn=cxn,objs=objs,fks=fks,
                                        prefix=prefix_,objstr=rel.o2,
                                        val = pkval).items():
-                out[k] = v
+                out[prefix_+'.'+k] = v
 
         return out
 
@@ -221,7 +227,7 @@ class Action(Base):
           --> C
 
         '''
-        if self.pk:
+        if self.pk is not None:
             self._update(cxn=cxn,objs=objs,fks=fks,row=row)
         else:
             obj      = objs[self.obj]
@@ -248,9 +254,12 @@ class Action(Base):
 
                         # Get the Action associated with this parent/component
                         new_act = self.fks[rel.name]
-                        if new_act.pk:
-                            attrs[rel.name] = row['query'][new_act.pk]
+                        if new_act.pk is not None:
+                            attrs[rel.name] = new_act.pk.arg_get(row) #row['query'][new_act.pk]
+
                             if rel.id:
+                                errstr = 'Identifying FKs (e.g. %s.%s) should be populated from the QUERY'
+                                assert isinstance(attrs[rel.name],int), errstr%(self.obj,rel.name)
                                 inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
                         else:
                             # If this subaction is marked as "insert", then try to insert it first
@@ -259,10 +268,8 @@ class Action(Base):
 
                             # Get Identifying information of target object {name:val}
                             inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
-
                             # Get list of hash values for all instances of related object
                             hsh   = [hash_(x) for x in broadcast(inits,list(sorted(inits.keys())))]
-
                             for h in hsh: # Hash -> PK
                                 try: targ_ids.append(sqlselect(cxn,q,[h])[0][0])
                                 except IndexError:
@@ -316,7 +323,7 @@ class Action(Base):
         # TODO: Also check that no FKs are IDs???
 
         # Call appropriate update function
-        if self.pk:
+        if self.pk is not None:
             self._update_from_pk(cxn=cxn,objs=objs,fks=fks,row=row)
         else:
             self._update_from_data(cxn=cxn,objs=objs,fks=fks,row=row)
@@ -340,8 +347,8 @@ class Action(Base):
         '''Special case of insertupdate where we have a PK - clearly we're not
         doing an insert. We can identify row with pk rather than hash
         '''
-        assert self.pk
-        val = row['query'][self.pk]
+        assert self.pk is not None
+        val = self.pk.arg_get(row) #row['query'][self.pk]
 
         # Maintain a DICT of all attrs/rels
         attrs = {a:arg.arg_get(row) for a,arg in self.attrs.items()}
@@ -352,8 +359,8 @@ class Action(Base):
                     new_act = self.fks[rel.name]
                     to_obj_id = objs[rel.o2]._id
                     # If this subaction is marked as "insert", then try to insert it first
-                    if new_act.pk:
-                        targ = row['query'][new_act.pk]
+                    if new_act.pk is not None:
+                        targ = new_act.pk.arg_get(row) #row['query'][new_act.pk]
                     else:
                         if new_act.insert:
                             new_act._insert(cxn=cxn,objs=objs,fks=fks,row=row)

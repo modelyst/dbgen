@@ -43,13 +43,13 @@ class Schema(Base):
 
     def make_schema(self,
                     conn : ConnI,
-                    nuke : bool = True,
-                    bar : bool = True
+                    nuke : str  = '',
+                    bar  : bool = True
                     ) -> None:
         '''
         Create empty schema
         '''
-        if nuke:
+        if nuke.lower() in ['t','true']:
             safe_conn    = deepcopy(conn)
             safe_conn.db = 'postgres'
             safe_cxn = safe_conn.connect()

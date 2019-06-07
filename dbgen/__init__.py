@@ -17,7 +17,7 @@ from dbgen.core.expr      import (Expr, AND, IF, ELSE, Literal, MAX, One, LT, GT
                                  ABS, SUM, NOT,REGEXP, BINARY, Sum, toDecimal,
                                  NULL, MIN,COALESCE, LIKE, OR, EQ, NE, Zero, true, false,
                                  JSON_EXTRACT, REPLACE, CONVERT, R2, STD, AVG,
-                                 PathAttr, SUBSELECT, LEFT, RIGHT)
+                                 PathAttr, SUBSELECT, LEFT, RIGHT, CASE, Tup)
 
 from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Timestamp, Double, Boolean
 

@@ -68,6 +68,7 @@ class Attr(Base):
                  default : Any     = None,
                  desc    : str     = '<No description>'
                  ) -> None:
+        assert name
         self.name    = name.lower()
         self.desc    = desc
         self.dtype   = dtype or Int()
@@ -172,12 +173,9 @@ class Obj(Base):
         - A keyword equal to the object's own name signifies a PK argument
         '''
         kwargs = {k.lower():v for k,v in kwargs.items()} # convert keys to L.C.
-        pk_     = kwargs.pop(self.name, None)
-        if pk_:
-            assert isinstance(pk_,Arg), 'Invalid pk type: %s%s'%(pk_,type(pk_))
-            pk = pk_.name
-        else:
-            pk = pk_
+        pk     = kwargs.pop(self.name, None)
+        # if pk_: pk = pk_.name
+        # else: pk = pk_
         insert = kwargs.pop('insert',False)
 
         if not pk: # if we don't have a PK reference
@@ -194,7 +192,7 @@ class Obj(Base):
                 assert isinstance(v,Arg)
                 assert v.key == 'query', 'Is %s really a relation of %s?'%(k,self.name)
 
-                fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v.name)
+                fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v)
 
         return Action(self.name, attrs = attrs, fks = fks, pk = pk, insert = insert)
 
@@ -220,7 +218,7 @@ class Obj(Base):
 
     def add_attrs(self,ats:L[Attr]) -> None:
         for a in ats:
-            assert not a in self.attrs or a.name in self.forbidden
+            assert not a.name in self.attrs or a.name in self.forbidden
         self.attrs.update({a.name:a for a in ats})
 
     def del_attrs(self,ats:L[str])->None:

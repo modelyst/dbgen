@@ -48,7 +48,7 @@ def broadcast(dic:dict,xs:L[str])->list:
     elements have the same length and replicating length-1 elements to the
     largest length list
     """
-    valid_types = (int,str,tuple,float,list,bytes,Decimal, datetime,type(None))
+    valid_types = (int,str,tuple,float,list,bytes,datetime,Decimal,type(None))
     type_err    = "Arg (%s) BAD DATATYPE %s IN NAMESPACE "
     broad_err   = "Can't broadcast: maxlen = %d, len a = %d (%s)"
     maxlen = 1 # initialize variable

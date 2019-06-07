@@ -82,6 +82,7 @@ objs = [
                 Attr('delta',   Decimal(),desc='Runtime in minutes'),
                 Attr('errs',    Int()),
                 Attr('retry',   Boolean()),
+                Attr('nuke', Varchar()),
                 Attr('onlyrun', Varchar()),
                 Attr('exclude', Varchar())]),
 
@@ -127,7 +128,7 @@ rels = [Rel('object',   'attr',    id = True),
 def make_meta(self   : 'Model',
               mconn  : 'ConnI',
               conn   : 'ConnI',
-              nuke   : bool,
+              nuke   : str,
               retry  : bool,
               only   : str,
               xclude : str,
@@ -141,11 +142,11 @@ def make_meta(self   : 'Model',
 
     NUKE_META = True # whether or not to erase metatable data if nuking DB
     meta = self._build_new('meta')
-    meta.add(objs);meta.add(rels)
+    meta.add(objs); meta.add(rels)
 
     ################################################################################
 
-    if nuke and NUKE_META:
+    if nuke.lower() in ['t','true'] and NUKE_META:
         mconn.drop(); mconn.create()
         gmcxn = mconn.connect()
     else:
@@ -180,15 +181,15 @@ def make_meta(self   : 'Model',
 
     # Get current connection ID
     #----------------------------------------------
-    get_cxn = mkSelectCmd('connection',['connection_id'],cxn_cols)
-    cxn_id  = sqlselect(gmcxn,get_cxn,cxn_args)[0][0]
+    get_cxn = mkSelectCmd('connection',['connection_id'],['uid'])
+    cxn_id  = sqlselect(gmcxn,get_cxn,cxn_args[:1])[0][0]
 
     # Insert top level information about current run
     #----------------------------------------------
-    run_cols = ['run_id','uid','retry','onlyrun','exclude',
+    run_cols = ['run_id','uid','retry','onlyrun','exclude','nuke',
                 'connection','start','until_']
 
-    run_args = [run_id, run_id, retry, only, xclude, cxn_id, start, until]
+    run_args = [run_id, run_id, retry, only, xclude, nuke, cxn_id, start, until]
 
     fmt_args = [','.join(run_cols), ','.join(['%s'] * len(run_args))]
     run_sql  = 'INSERT INTO run ({}) VALUES ({})'.format(*fmt_args)

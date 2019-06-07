@@ -2,6 +2,7 @@
 from abc    import abstractmethod,ABCMeta
 from typing import (Any, TYPE_CHECKING,
                     Set      as S,
+                    Dict     as D,
                     List     as L,
                     Tuple    as T,
                     Callable as C,
@@ -14,13 +15,13 @@ from operator   import add
 
 # Internal Modules
 if TYPE_CHECKING:
+    from dbgen.core.schema import AttrTup,RelTup
 
-    from dbgen.core.schema          import AttrTup,RelTup
 from dbgen.core.pathconstraint  import Path
-from dbgen.core.sqltypes   import SQLType,Decimal,Varchar
-from dbgen.utils.lists     import concat_map
-from dbgen.utils.misc      import Base
-from dbgen.utils.lists   import flatten
+from dbgen.core.sqltypes        import SQLType,Decimal,Varchar,Text,Int
+from dbgen.utils.lists          import concat_map
+from dbgen.utils.misc           import Base
+from dbgen.utils.lists          import flatten
 
 """
 Python-sql interface
@@ -112,20 +113,6 @@ class Expr(Base,metaclass = ABCMeta):
     def get_all(x : Any) -> list:
         """If it has any recursive structure to unpack, unpack it"""
         return x._all() if hasattr(x,'_all') else [x]
-
-    # @staticmethod
-    # def escape(x:Any)->Any:
-    #     """
-    #     Prepare user-entered strings to be used as string constants in SQL
-    #     """
-    #     if isinstance(x,str):
-    #         return "'%s'"%x.replace('%','%%')
-    #     elif isinstance(x,tuple):
-    #         return tuple([Expr.escape(y) for y in x])
-    #     elif isinstance(x,list):
-    #         return [Expr.escape(y) for y in x]
-    #     else:
-    #         return x
 
 ################################################################################
 
@@ -290,6 +277,7 @@ class LIKE(Named,Binary):   pass
 
 # Ones that need a field defined
 #-------------------------------
+class Tup(Nary):      name = ''
 class LEN(Unary):     name = 'CHAR_LENGTH'
 class MUL(Binary):    name = '*'
 class DIV(Binary):    name = '/'
@@ -337,6 +325,7 @@ class NULL(Named,Unary):
 
 # Ones that need to be implemented from scratch
 #----------------------------------------------
+
 class Literal(Expr):
     def __init__(self,x : Any)->None:
         self.x = x
@@ -347,6 +336,8 @@ class Literal(Expr):
 
         if isinstance(self.x,str):
             return "('%s')"%f(self.x).replace("'","\\'").replace('%','%%')
+        elif self.x is None:
+            return '(NULL)'
         else:
             x = f(self.x)
             return '(%s)' % x
@@ -365,6 +356,19 @@ class IN(Named):
         return '%s IN (%s)'%(f(self.x),','.join(xs))
 
 ##########
+class CASE(Expr):
+    def __init__(self,cases:D[Expr,Expr],else_:Expr)->None:
+        self.cases = cases
+        self.else_  = else_
+    def fields(self)->L[Expr]:
+        return list(self.cases.keys())+list(self.cases.values())+[self.else_]
+    def show(self,f:Fn)->str:
+        body = ' '.join(['WHEN (%s) THEN (%s)'%(f(k),f(v))
+                        for k,v in self.cases.items()])
+        end = ' ELSE (%s) END'%(f(self.else_))
+        return 'CASE  '+body + end
+
+
 # IF_ELSE is *not* for public use; rather:  <Ex1> |IF| <Ex2> |ELSE| <Ex3>
 class IF_ELSE(Expr):
     def __init__(self,cond:Expr,_if:Expr,other:Expr)->None:
@@ -392,7 +396,7 @@ class CONVERT(Expr):
         self.dtype = dtype
 
         err = 'Are you SURE that Postgres can convert to this dtype? %s'
-        assert isinstance(dtype,(Decimal,Varchar)), err%dtype
+        assert isinstance(dtype,(Decimal,Varchar,Text,Int)), err%dtype
 
     def fields(self) -> L[Expr]:
         return [self.expr]
@@ -421,7 +425,6 @@ class GROUP_CONCAT(Agg):
         self.expr  = expr
         self.delim = delim or ','
         self.order = order
-
 
     def fields(self) -> L[Expr]:
         return [self.expr] + ([self.order] if self.order is not None else [])

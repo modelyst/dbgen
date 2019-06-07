@@ -19,7 +19,7 @@ from dbgen.utils.lists     import concat_map
 def run(self      : 'Model',
         conn      : ConnI,
         meta_conn : ConnI,
-        nuke      : bool = False,
+        nuke      : str  = '',
         add       : bool = False,
         retry     : bool = False,
         only      : str = '',
@@ -35,7 +35,12 @@ def run(self      : 'Model',
     to the model's specified rules.
 
     - conn/meta_conn: information to connect to database and logging database
-    - nuke: start database from scratch
+    - nuke: By default, this is not used. If "True"/"T", everything except generators
+            tagged "no_nuke" are purged. Otherwise, give a space separated list
+            of generator names/tags. If a generator is purged, then any
+            tables it populates will be truncated. Any columns it populates will be set all
+            to NULL. Any generators with inputs OR outputs that have any overlap with the outputs
+            of a purged generator will be purged themselves.
     - add: needed if new entities/columns have been added to the model (but not yet in DB)
     - retry: ignore repeat checking
     - only: only run generators with these names (or these tags)
@@ -88,9 +93,18 @@ def run(self      : 'Model',
     # Clean up database
     #-----------------
     if nuke:
-        self.make_schema(conn=conn,nuke=nuke,bar=bar)
-
-    if add and not nuke:
+        if nuke.lower() in ['t','true']:
+            self.make_schema(conn=conn,nuke=nuke,bar=bar) # FULL NUKE
+        else:
+            deltags = set(nuke.split())
+            delgens = set()
+            for gen in self.ordered_gens():
+                if set([gen.name]+gen.tags).intersection(deltags):
+                    delgens.add(gen.name)
+            for gen in self.ordered_gens():
+                if gen.name in delgens:
+                    gen.purge(conn.connect(),meta_conn.connect())
+    elif add:
         for ta in tqdm(self.objs.values(),desc='Adding new columns',leave=False):
             for sqlexpr in self.add_cols(ta):
                 try:                     sqlexecute(conn.connect(),sqlexpr)
