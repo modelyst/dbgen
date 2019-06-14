@@ -112,15 +112,11 @@ def run_gen(self   : 'Model',
                     inputs = [(x,hasher(x),cxns) for x in inputs] # type: ignore
                 else:
                     with tqdm(total=1,desc='repeat_checking',**bargs) as tq:
-                        ins_stmt = "INSERT INTO temp (uid,ind) VALUES "
-                        ins_iter = enumerate(map(hasher,inputs))
-                        ins_vals = ','.join(["('%s',%d)"%(x,i) for i,x in ins_iter])
-
-                        sqlexecute(gmcxn,ins_stmt+ins_vals)
+                        unfiltered_inputs = [(x,hasher(x)) for x in inputs] # type: ignore
+                        rpt_select = 'SELECT uid FROM repeats WHERE repeats.gen = %s'
+                        rpts = set([x[0] for x in sqlselect(gmcxn,rpt_select,[a_id])])
+                        inputs = [(x,hx,cxns) for x,hx in unfiltered_inputs if hx not in rpts]
                         tq.set_description('repeat_checking (selecting non-repeats)')
-                        rpts = sqlselect(gmcxn,rpt_select,[a_id])
-                        inputs = [(inputs[i],r,cxns) for i,r in rpts] # type: ignore
-                        sqlexecute(gmcxn,"TRUNCATE TABLE temp;")
                         tq.update()
 
             tot = len(inputs)

@@ -258,8 +258,10 @@ class Action(Base):
                             attrs[rel.name] = new_act.pk.arg_get(row) #row['query'][new_act.pk]
 
                             if rel.id:
-                                errstr = 'Identifying FKs (e.g. %s.%s) should be populated from the QUERY'
-                                assert isinstance(attrs[rel.name],int), errstr%(self.obj,rel.name)
+                                # This would be nice, but is it really necessary? 
+                                # errstr = 'Identifying FKs (e.g. %s.%s) should be populated from the QUERY'
+                                # assert rel.name in row['query'], errstr%(self.obj,rel.name)
+                                assert isinstance(attrs[rel.name],(int,type(None))), type(attrs[rel.name])
                                 inits = new_act._select(cxn=cxn,objs=objs,fks=fks,row=row)
                         else:
                             # If this subaction is marked as "insert", then try to insert it first
