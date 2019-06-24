@@ -84,6 +84,9 @@ class Schema(Base):
             self.objs[o.name] = o # Add
             self._fks.add_node(o.name)
 
+        for rel in o.fks.values():
+            self._add_relation(rel)
+
 
     def _add_view(self, v : View) -> None:
         '''Add to model'''
@@ -99,6 +102,7 @@ class Schema(Base):
         '''Add to model'''
         # Validate
         #---------
+        assert isinstance(r,Rel)
         err = 'Cannot add %s: %s not found in model '
         assert r.o1 in self, err%(r, r.o1)
         assert r.o2 in self, err%(r, r.o2)
@@ -202,6 +206,7 @@ class Schema(Base):
         for fk in self._obj_fks(r.obj):
             if fk.name == r.rel:
                 return fk
+        import pdb;pdb.set_trace()
         raise ValueError('Invalid RelTup %s'%r)
 
     def _info_graph(self, links : L[U[Rel,RelTup]]) -> DiGraph:

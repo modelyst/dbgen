@@ -15,9 +15,9 @@ if TYPE_CHECKING:
     Model,Query,Schema
 
 from dbgen.core.sqltypes   import SQLType, Int
-from dbgen.core.action     import Action
+from dbgen.core.action2     import Action
 from dbgen.core.misc       import Dep
-from dbgen.core.expr       import PathAttr
+from dbgen.core.expr       import PathAttr, Expr, CONCAT, Literal as Lit
 from dbgen.core.pathconstraint import Path as AP
 from dbgen.core.funclike   import Arg, PyBlock
 from dbgen.utils.misc      import Base
@@ -144,18 +144,44 @@ class RawView(View):
         nc = ['%s.%s'%(self.name,x) for x in self.new]
         return Dep(td,cd,[self.name],nc)
 
+class UserRel(Base):
+    '''
+    USER EXPOSED Relation between objects. no need to specify source, as it is
+    declared from within the UserObj constructor.
+    Can be identifying or non-identifying
+    '''
+    def __init__(self,
+                 name : str,
+                 tar   : str = None,
+                 id   : bool= False,
+                 desc : str = '<No description>'
+                ) -> None:
+        self.name = name.lower()
+        self.desc = desc
+        self.tar   = tar.lower() if tar else self.name
+        self.id   = id
+
+    def __str__(self) -> str:
+        idstr = '(id)' if self.id else ''
+        return '{}{} -> {}'.format(self.name,idstr,self.tar)
+
+    def to_rel(self,obj:str) -> 'Rel':
+        return Rel(name=self.name,o1=obj,o2=self.tar,id=self.id,desc=self.desc)
+
 class Obj(Base):
     '''Object with attributes. Basic entity of a model'''
     def __init__(self,
                  name  : str,
-                 desc  : str     = None,
-                 attrs : L[Attr] = None,
-                 id    : str     = None
+                 desc  : str        = None,
+                 attrs : L[Attr]    = None,
+                 fks   : L[UserRel] = None,
+                 id    : str        = None
                 ) -> None:
 
         self.name  = name.lower()
         self.desc  = desc  or '<No description>'
         self.attrs = {a.name : a for a in attrs or []}
+        self.fks   = {r.name:r.to_rel(self.name) for r in fks or []}
         self._id   = id if id else self.name + '_id'
         # Validate
         self.forbidden = [self._id,'uid','deleted'] # RESERVED
@@ -255,14 +281,18 @@ class Obj(Base):
         sqls          = [cmd,tabdesc]+coldescs
         return sqls
 
-    @property
-    def id(self) -> AttrTup:
+    def id(self, path : AP = None) -> Expr:
         '''Main use case: GROUP BY an object, rather than a particular column'''
-        return AttrTup(self._id,self.name)
+        return CONCAT(PathAttr(path,attr=AttrTup(self._id,self.name)),Lit(" "),
+                      PathAttr(path,attr=AttrTup('uid',self.name)))
 
     def ids(self) -> L[str]:
         '''Names of all the identifying (top-level) attributes '''
         return [n for n,a in self.attrs.items() if a.id]
+
+    def id_fks(self) -> L[str]:
+        '''Names of all the identifying (top-level) FKs '''
+        return [n for n,f in self.fks.items() if f.id]
 
     def add(self, cxn : Conn) -> int:
         '''
@@ -430,13 +460,13 @@ class Path(Base):
         '''the ID colname if we don't have a normal attribute as terminus'''
         if (not self.attr) :
             rel = m.get_rel(self.rels[-1])
-            return m[rel.o2].id
+            return AttrTup(m[rel.o2]._id,rel.o2)
         else:
             return self.attr
 
     def _path_end(self, m : 'Schema') -> str:
         '''Determine the datatype of the end of a path'''
-        if (not self.attr) or (m[self.attr.obj].id == self.attr):
+        if (not self.attr) or (AttrTup(m[self.attr.obj]._id,self.attr.obj) == self.attr):
             return 'id'
         else:
             o = m[self.attr.obj]

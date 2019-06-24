@@ -20,7 +20,7 @@ from dbgen.core.schema          import Obj
 from dbgen.core.misc            import ConnectInfo as ConnI
 from dbgen.core.gen             import Gen
 from dbgen.core.funclike        import PyBlock
-from dbgen.core.action          import Action
+from dbgen.core.action2          import Action
 from dbgen.core.misc            import ExternalError
 
 from dbgen.utils.numeric        import safe_div
@@ -92,7 +92,7 @@ def run_gen(self   : 'Model',
                     for pb in gen.funcs:
                         d[pb.hash] = pb(d)
                     for a in gen.actions:
-                        a.act(cxn=gcxn,objs=self.objs,fks=self._fks,row=d)
+                        a.act(cxn=gcxn,objs=self.objs,row=d)
             cxn.close()
 
         else:
@@ -125,7 +125,6 @@ def run_gen(self   : 'Model',
                             f      = gen.funcs,
                             acts   = gen.actions,
                             objs   = self.objs,
-                            fks    = self._fks,
                             a_id   = a_id,
                             run_id = run_id)
 
@@ -159,7 +158,6 @@ ins_rpt_stmt = """ INSERT INTO repeats (gen,run,uid) VALUES (%s,%s,%s)
 def apply_and_act(pbs    : L[PyBlock],
                   acts   : L[Action],
                   objs   : D[str,Obj],
-                  fks    : DiGraph,
                   mcxn   : 'Conn',
                   cxn    : 'Conn',
                   row    : dict,
@@ -175,7 +173,7 @@ def apply_and_act(pbs    : L[PyBlock],
         d[pb.hash] = pb(d)
 
     for a in acts:
-        a.act(cxn=cxn,objs=objs,fks=fks,row=d)
+        a.act(cxn=cxn,objs=objs,row=d)
 
     # If successful, store input+gen_id hash in metadb
     sqlexecute(mcxn, ins_rpt_stmt, [a_id, run_id, hsh])
@@ -184,14 +182,13 @@ def apply_parallel(inp   : T[dict, str, T['ConnI','ConnI']],
                   f      : L[PyBlock],
                   acts   : L[Action],
                   objs   : D[str,Obj],
-                  fks    : DiGraph,
                   a_id   : int,
                   run_id : int
                  ) -> None:
 
     r,h,(mdb,db) = inp
     open_db,open_mdb = db.connect(), mdb.connect()
-    apply_and_act(pbs = f, acts = acts, objs = objs, fks = fks,
+    apply_and_act(pbs = f, acts = acts, objs = objs,
                   mcxn = open_mdb, cxn = open_db, row = r, hsh = h,
                   a_id = a_id, run_id = run_id)
     open_db.close(); open_mdb.close()
@@ -200,11 +197,10 @@ def apply_serial(inp   : T[dict,str,T['ConnI','ConnI']],
                  f      : L[PyBlock],
                  acts   : L[Action],
                  objs   : D[str,Obj],
-                 fks    : DiGraph,
                  a_id   : int,
                  run_id : int
                  )-> None:
     r,h,(open_mdb, open_db) = inp
-    apply_and_act(pbs = f, acts = acts, objs = objs, fks = fks,
+    apply_and_act(pbs = f, acts = acts, objs = objs,
                   mcxn = open_mdb, cxn = open_db, row = r, hsh = h,
                   a_id = a_id, run_id = run_id)

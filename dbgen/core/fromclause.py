@@ -34,7 +34,7 @@ class Path(Base):
     '''
     def __init__(self,end : U[str,'Obj'], fks:list = None)->None:
         self.end = end if isinstance(end,str) else end.name
-        self.fks = fks or []
+        self.fks = fks or []        
         err = 'expected {} in {} (objs of {})\nall fks: {}'
         if fks and fks[0]:
             if isinstance(fks[0],list):
@@ -188,7 +188,7 @@ class Join(Base):
         out  = b64encode(m.digest()).decode('ascii')[:3]
         return self.obj+'(%s)'%out
 
-    def print(self, optional : L['Rel'] = None) -> str:
+    def print(self, optional : L['RelTup'] = None) -> str:
         '''Render JOIN statement in FROM clause'''
         conds = [self._cond(j,e) for j,e in self.conds.items()] # conditions to join on
         opts  = optional or []

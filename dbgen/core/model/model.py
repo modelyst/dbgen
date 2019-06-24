@@ -12,7 +12,7 @@ from dbgen.core.model.run       import run, check_patheq,validate_name
 from dbgen.core.model.metatable import make_meta
 
 from dbgen.core.gen        import Gen
-from dbgen.core.action     import Action
+from dbgen.core.action2     import Action
 from dbgen.core.funclike   import PyBlock
 from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup
 from dbgen.core.schemaclass import Schema
@@ -34,7 +34,7 @@ class Model(Schema):
     def __init__(self,
                  name : str,
                  objs : L[Obj]    = None,
-                 rels : L[Rel]    = None,
+                 #rels : L[Rel]    = None,
                  gens : L[Gen]    = None,
                  views: L[View]   = None,
                  pes  : L[PathEQ] = None,
@@ -46,12 +46,13 @@ class Model(Schema):
         self.views = {v.name : v for v in (views or [])}
 
         self._fks = DiGraph()
-        self._fks.add_edges_from(self.objs) # nodes are object NAMES
+        self._fks.add_nodes_from(self.objs) # nodes are object NAMES
 
         self.pe   = set(pes or []) # path equivalencies
 
-        for rel in rels or []:
-            self._add_relation(rel)
+        for o in self.objs.values():
+            for rel in o.fks.values():
+                self._add_relation(rel)
 
     def __str__(self) -> str:
         p = '%d objs' % len(self.objs)
