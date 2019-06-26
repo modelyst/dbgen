@@ -2,7 +2,7 @@
 import sys
 from venv       import create           # type: ignore
 from os         import mkdir, environ, system
-from os.path    import join, exists
+from os.path    import join, exists, abspath
 from shutil     import copyfile
 from argparse   import ArgumentParser
 '''
@@ -21,7 +21,8 @@ major_version, minor_version = sys.version_info[:2]
 if major_version < 3 or minor_version < 6:
     raise Exception("Python 3.6+ is required.")
 
-root = environ['DBGEN_ROOT']
+root = abspath(join(__file__,'../../../'))
+print(root)
 user = environ['USER']
 ################################################################################
 
@@ -44,17 +45,17 @@ data    = File('data/example.csv','data')
 parse   = File('scripts/io/parse_employees.py','parse')
 dev,log = [File('dbgen_files/%s.json'%x,x) for x in ['dev','log']]
 
-files = [sch,ginit,default,man,io,parse,dev,log]
+files = [sch,ginit,default,man,io,data,parse,dev,log]
 inits = ['','scripts/','scripts/io/']
-dirs  = ['generators','scripts','dbgen_files','scripts/io',
+dirs  = ['generators','scripts','data','dbgen_files','scripts/io',
         'dbgen_files/storage','dbgen_files/tmp']
 
 
 ################################################################################
 parser = ArgumentParser(description  = 'Initialize a dbGen model', allow_abbrev = True)
-parser.add_argument('pth',type  = str, help = 'Root folder')
-parser.add_argument('name',type = str, help = 'Name of model')
-parser.add_argument('env',default='.env/bin/activate',type = str, help = 'Name of model')
+parser.add_argument('--pth',type  = str, help = 'Root folder')
+parser.add_argument('--name',type = str, help = 'Name of model')
+parser.add_argument('--env',default='.env/bin/activate',type = str, help = 'Name of model')
 ################################################################################
 envvars = dict(
     MODEL_TEMP    = 'dbgen_files/tmp',
@@ -80,7 +81,7 @@ def main(pth : str, name : str, env : str) -> None:
     copyfile(reqs,join(pth,'requirements.txt'))
     with open(env,'a') as f:
         for k,v in envvars.items():
-            f.write('\n\nexport {}={}/{}'.format(k,pth,v))
+            f.write('\n\nexport {}={}/{}'.format(k,abspath(pth),v))
 
 
 if __name__ == '__main__':
