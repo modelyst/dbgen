@@ -487,6 +487,17 @@ class PathAttr(Expr):
                 assert not stack # only the last element should be a list
                 stack = flatten(curr)
         return rels
+##############################################################################
+class PK(Expr):
+    '''Special Expr type for providing PK + UID info'''
+    def __init__(self,pk:'PathAttr',uid:'PathAttr')->None:
+        self.pk = pk; self.uid = uid
+    @property
+    def name(self) -> str: return 'PK'
+    def show(self,f:Fn)->str:
+        return "CONCAT({},' ',{})".format(f(self.pk),f(self.uid))
+    def fields(self) -> list:
+        return [self.pk,self.uid]
 
 ############################
 # Specific Exprs and Funcs #

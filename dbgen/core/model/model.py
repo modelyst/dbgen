@@ -12,7 +12,7 @@ from dbgen.core.model.run       import run, check_patheq,validate_name
 from dbgen.core.model.metatable import make_meta
 
 from dbgen.core.gen        import Gen
-from dbgen.core.action2     import Action
+from dbgen.core.action     import Action
 from dbgen.core.funclike   import PyBlock
 from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup
 from dbgen.core.schemaclass import Schema
@@ -289,10 +289,9 @@ class Model(Schema):
         '''
         # Check all identifying relationships are covered
         if not a.pk: # don't have a PK, so need identifying info
-            for fk in self._obj_fks(a.obj):
-                if fk.id:
-                    err = '%s missing identifying relation %s'
-                    assert fk.name in a.fks, err%(a, fk)
+            for fk in self[a.obj].id_fks():
+                err = '%s missing identifying relation %s'
+                assert fk in a.fks, err%(a, fk)
 
         # Recursively validate sub-actions
         for act in a.fks.values():

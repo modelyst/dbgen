@@ -15,9 +15,9 @@ if TYPE_CHECKING:
     Model,Query,Schema
 
 from dbgen.core.sqltypes   import SQLType, Int
-from dbgen.core.action2     import Action
+from dbgen.core.action     import Action
 from dbgen.core.misc       import Dep
-from dbgen.core.expr       import PathAttr, Expr, CONCAT, Literal as Lit
+from dbgen.core.expr       import PathAttr, Expr,  PK, Literal as Lit
 from dbgen.core.pathconstraint import Path as AP
 from dbgen.core.funclike   import Arg, PyBlock
 from dbgen.utils.misc      import Base
@@ -281,10 +281,10 @@ class Obj(Base):
         sqls          = [cmd,tabdesc]+coldescs
         return sqls
 
-    def id(self, path : AP = None) -> Expr:
+    def id(self, path : AP = None) -> PK:
         '''Main use case: GROUP BY an object, rather than a particular column'''
-        return CONCAT(PathAttr(path,attr=AttrTup(self._id,self.name)),Lit(" "),
-                      PathAttr(path,attr=AttrTup('uid',self.name)))
+        return PK(PathAttr(path,AttrTup(self._id,self.name)),
+                  PathAttr(path,AttrTup('uid',   self.name)))
 
     def ids(self) -> L[str]:
         '''Names of all the identifying (top-level) attributes '''

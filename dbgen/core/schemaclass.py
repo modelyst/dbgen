@@ -13,7 +13,9 @@ from dbgen.core.schema import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawVie
 from dbgen.core.misc   import ConnectInfo as ConnI
 from dbgen.core.pathconstraint import Path as JPath, Constraint
 from dbgen.utils.sql   import sqlexecute, sqlselect, Error
+
 ############################################################################
+
 class Schema(Base):
     '''Unnamed collection of Objects, Views, Relations, Path Equations'''
     def __init__(self,
@@ -149,7 +151,7 @@ class Schema(Base):
 
         attr_stmts = ["ALTER TABLE {0} ADD {1}".format(obj.name,c.create_col(obj.name))
                      for c in obj.attrs.values()]
-        rel_stmts  = [self._create_fk(rel) for rel in self._obj_fks(obj.name)]
+        rel_stmts  = [self._create_fk(rel) for rel in obj.fks.values()]
 
         return attr_stmts + rel_stmts
 
@@ -185,16 +187,7 @@ class Schema(Base):
         ''' Relations that start OR end on a given object '''
         inward = set.union(*[d['fks'] for _,_,d in
                                         self._fks.in_edges(o.name,data=True)])
-        return self._obj_fks(o.name) | inward
-
-    def _obj_fks(self, o : str) -> S[Rel]:
-        '''Relations that start from a given object'''
-        sets = [d['fks'] for _,_,d in
-                  self._fks.edges(o,data=True)]
-        if sets:
-            return set.union(*sets)
-        else:
-            return set()
+        return set(o.fks.values()) | inward
 
     def get_rel(self, r : U[Rel,RelTup]) -> Rel:
         '''
@@ -202,12 +195,7 @@ class Schema(Base):
         (but identifying) info
         '''
         if isinstance(r,Rel): return r
-
-        for fk in self._obj_fks(r.obj):
-            if fk.name == r.rel:
-                return fk
-        import pdb;pdb.set_trace()
-        raise ValueError('Invalid RelTup %s'%r)
+        else: return self[r.obj].fks[r.rel]
 
     def _info_graph(self, links : L[U[Rel,RelTup]]) -> DiGraph:
         '''Natural paths of information propagation, which includes the normal
@@ -221,7 +209,7 @@ class Schema(Base):
         G    = self._fks.copy()
 
         for name,o in self.objs.items():
-            pars = [fk for fk in self._obj_fks(o.name) if fk.id]
+            pars = [fk for fk in o.fks.values() if fk.id]
             # only if it's a 1-1 table
             if len(pars)==1 and len(o.ids())==0:
                 p   = pars[0] # identifying foreign key
