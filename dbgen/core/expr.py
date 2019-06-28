@@ -490,14 +490,14 @@ class PathAttr(Expr):
 ##############################################################################
 class PK(Expr):
     '''Special Expr type for providing PK + UID info'''
-    def __init__(self,pk:'PathAttr',uid:'PathAttr')->None:
-        self.pk = pk; self.uid = uid
+    def __init__(self,pk:'PathAttr')->None:
+        self.pk = pk
     @property
     def name(self) -> str: return 'PK'
     def show(self,f:Fn)->str:
-        return "CONCAT({},' ',{})".format(f(self.pk),f(self.uid))
+        return f(self.pk)
     def fields(self) -> list:
-        return [self.pk,self.uid]
+        return [self.pk]
 
 ############################
 # Specific Exprs and Funcs #

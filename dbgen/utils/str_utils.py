@@ -1,12 +1,14 @@
 from typing import Any
-from hashlib import sha512
+from hashlib import sha256
 Any
 ################################################################################
-def hash_(x:'Any')->str:
+def hash_(x:'Any')->int:
     """
-    Creates a 128 Byte hash value
+    OLD VERSION: Creates a 128 Byte hash value #return sha512(str(x).encode()).hexdigest()
+    NEW: Take a list of showable things and generate a unique hash value in
+       longint range (-9223372036854775808 to +9223372036854775807)
     """
-    return sha512(str(x).encode()).hexdigest()
+    return (int(sha256(str(x).encode('utf-8')).hexdigest(), 16) % 18446744073709551616) - 9223372036854775808
 
 
 def abbreviate(x:'Any')->'Any':

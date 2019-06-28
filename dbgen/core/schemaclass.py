@@ -171,7 +171,7 @@ class Schema(Base):
     def _create_fk(self,fk:Rel)->str:
         '''create SQL FK statement'''
         args = [fk.o1,fk.name,fk.o2,self[fk.o2]._id]
-        s ='''ALTER TABLE "{0}" ADD "{1}" INT;
+        s ='''ALTER TABLE "{0}" ADD "{1}" BIGINT;
            ALTER TABLE "{0}" ADD FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}")'''
         return s.format(*args)
 

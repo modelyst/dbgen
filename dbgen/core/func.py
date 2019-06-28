@@ -207,7 +207,7 @@ class Func(Base):
         '''
         Execute source code to get a callable
         '''
-        pth  = join(environ['DBGEN_TEMP'],hash_(self.file())+'.py')
+        pth  = join(environ['DBGEN_TEMP'],str(hash_(self.file()))+'.py')
 
         if not exists(pth):
             with open(pth,'w') as t:

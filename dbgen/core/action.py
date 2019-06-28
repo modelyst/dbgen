@@ -3,6 +3,7 @@ from typing import (Any, TYPE_CHECKING,
                     List     as L,
                     Union    as U,
                     Dict     as D,
+                    Tuple    as T,
                     Union    as U)
 from collections import OrderedDict
 from networkx    import DiGraph               # type: ignore
@@ -81,10 +82,9 @@ class Action(Base):
         always insert or update, never just a select)
         '''
         if self.insert:
-            self._insert(cxn=cxn,objs=objs,row=row)
+            self._insert(cxn,objs,row)
         else:
-            self._update(cxn=cxn,objs=objs,row=row)
-        return None
+            self._update(cxn,objs,row)
 
     def rename_object(self, o : 'Obj', n :str) -> 'Action':
         '''Replaces all references to a given object to one having a new name'''
@@ -98,89 +98,77 @@ class Action(Base):
     ###################
     # Private methods #
     ###################
-    def _gethash(self,
-                 objs : D[str,'Obj'],
-                 row  : dict
-                 ) -> L[str]:
-        '''
-        Get a broadcasted list of hashes for an object, given Pyblock+Query
-        output
-        '''
-
-        if self.pk: # OPTION 1: we have a direct reference to the hash
-            pk = self.pk.arg_get(row)
-            if isinstance(pk,str): # this came from a Query in the form of: "PK HASH"
-                return [pk.split()[1]] # take the second space-separated element
-            elif isinstance(pk,list): # UNUSUAL: these values were provided manually
-                for pk0,pk1 in pk:
-                    assert isinstance(pk0,int) and isinstance(pk1,str)
-                return [pk1 for _,pk1 in pk]
-            else:
-                raise TypeError(pk)
-        else: # OPTION 2: we have data for all ID attrs and fks
-            obj   = objs[self.obj]
-            # Assemble all attribute info for the uid hash
-            inits = [self.attrs[i].arg_get(row) for i in obj.ids()] + \
-                    [self.fks[i]._gethash(objs,row) for i in obj.id_fks()]
-
-            return [hash_(x) for x in broadcast(inits)]
 
     def _getvals(self,
-                 objs : D[str,'Obj'],
                  cxn  : Conn,
-                 row  : dict
-                 ) -> L[list]:
+                 objs : D[str,'Obj'],
+                 row  : dict,
+                 ) -> T[L[int],L[list]]:
         '''
         Get a broadcasted list of INSERT/UPDATE values for an object, given
         Pyblock+Query output
         '''
+        idattr,allattr = [],[]
         obj = objs[self.obj]
-        vals = [v.arg_get(row) for v in self.attrs.values()]
-        for v in self.fks.values():
-            if v.insert:
-                vals.append(v._insert(objs,cxn,row))
+        for k,v in self.attrs.items():
+            val = v.arg_get(row)
+            allattr.append(val)
+            if k in obj.ids():
+                idattr.append(val)
+
+        for kk,vv in self.fks.items():
+            if vv.insert:
+                val = vv._insert(cxn,objs,row)
             else:
-                assert v.pk
-                val = v.pk.arg_get(row)
-                if isinstance(val,str): # came from query in form "PK HASH"
-                    vals.append(val.split()[0])
-                elif isinstance(val,list):# UNUSUAL: these values were provided manually
-                    vals.append([pk0 for pk0,_ in val])
-                else:
-                    raise ValueError()
-        return broadcast(vals)
+                assert vv.pk
+                val = vv.pk.arg_get(row)
+
+            allattr.append(val)
+            if kk in obj.id_fks():
+                idattr.append(val)
+
+        idata,adata = broadcast(idattr),broadcast(allattr)
+
+        if self.pk is not None:
+            assert not idata, 'Cannot provide a PK *and* identifying info'
+            pkdata = self.pk.arg_get(row)
+            if isinstance(pkdata,int):
+                idata = [[pkdata]]
+            elif isinstance(pkdata,list) and isinstance(pkdata[0],int):
+                idata = [pkdata]
+            else:
+                raise TypeError('PK should either receive an int or a list of ints',vars(self))
+
+        if len(idata) == 1: idata*= len(adata) # broadcast
+
+        lenerr = 'Cannot match IDs to data: %d!=%d'
+        assert len(idata) == len(adata), lenerr%(len(idata),len(adata))
+        return list(map(hash_,idata)), adata
 
     def _insert(self,
-                objs : D[str,'Obj'],
                 cxn  : Conn,
-                row  : dict
+                objs : D[str,'Obj'],
+                row  : dict,
                ) -> L[int]:
         '''
-        Needs enough information to construct the uid of current object
-        Needs the DB primary key and uids pointed to by ID FKs.
+        Helpful docstring
         '''
 
         obj = objs[self.obj]
+        pk,data = self._getvals(cxn,objs,row)
+        if not data: return []
 
-        # Get hashes of current object using the ID ATTRIBUTES from all identifying relations
-        uid = self._gethash(objs,row)
-
-
-        gv = self._getvals(objs,cxn,row)
-        if not gv:
-            return []
-        assert len(uid)==len(gv), '{}!={}'.format(len(uid),len(gv))
-        binds = [list(x)+[u]+list(x) for x,u in zip(self._getvals(objs,cxn,row),uid)] # double the binds
+        binds = [list(x)+[u]+list(x) for x,u in zip(data,pk)] # double the binds
 
         # Prepare insertion query
         #------------------------
-        cols        = list(self.attrs.keys()) + list(self.fks.keys()) + ['uid']
+        cols        = list(self.attrs.keys()) + list(self.fks.keys()) + [obj._id]
         insert_cols = ','.join(['"%s"'%x for x in cols])
         qmarks      = ','.join(['%s']*len(cols))
         dups        = addQs(['"%s"'%x for x in cols[:-1]],', ')
         fmt_args    = [self.obj, insert_cols, qmarks, dups, obj._id]
         query       = """INSERT INTO {0} ({1}) VALUES ({2})
-                         ON CONFLICT (uid) DO UPDATE SET {3}
+                         ON CONFLICT ({4}) DO UPDATE SET {3}
                          RETURNING {4}""".format(*fmt_args)
 
         ids = [sqlexecute(cxn,query,b)[0][0] for b in binds]
@@ -193,26 +181,20 @@ class Action(Base):
                 ) -> None:
         '''
         Update but we don't have a PK
+        # Can't this validation be done once before anything is run?
+        # for a in self.attrs:
+        #     if a in obj.ids():  raise ValueError('Cannot update an identifying attribute: ',a)
+        # for f in self.fks:
+        #     if f in obj.id_fks(): raise ValueError('Cannot update an identifying FK',f)
         '''
         obj = objs[self.obj]
-        # Validate
-        for a in self.attrs:
-            if a in obj.ids():
-                raise ValueError('Cannot update an identifying attribute: ',a)
-        for f in self.fks:
-            if f in obj.id_fks():
-                raise ValueError('Cannot update an identifying FK',f)
+        pk,data = self._getvals(cxn,objs,row)
+        if not data: return None
 
-        assert self.pk is not None
-        valstr = self.pk.arg_get(row) #row['query'][self.pk]
-        assert isinstance(valstr,str), 'UPDATE PK SHOULD BE PROVIDED BY QUERY'
-        val= valstr.split()[0]
-        bindlists = self._getvals(objs,cxn,row)
-        assert len(bindlists)==1
-        binds = list(bindlists[0]) + [val]#[list(x)+[val] for x in bindlists]
+        binds = [list(x)+[u] for x,u in zip(data,pk)]
         cols  = list(self.attrs.keys()) + list(self.fks.keys())
         set_  = addQs(['"%s"'%x for x in cols],',\n\t\t\t')
         objid = objs[self.obj]._id
         query = 'UPDATE {0} SET {1} WHERE {2} = %s'.format(self.obj,set_,objid)
 
-        sqlexecute(cxn,query,binds)
+        for b in binds: sqlexecute(cxn,query,b)

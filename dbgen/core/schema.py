@@ -107,14 +107,14 @@ class View(Base,metaclass=ABCMeta):
     def add(self,cxn:Conn)->int:
         '''add view to metadb, return PK'''
         # Try to find an Object with an equivalent hash in the existing table
-        get_v = mkSelectCmd('view',['view_id'],['uid'])
+        get_v = mkSelectCmd('view',['view_id'],['view_id'])
         v_id  = sqlselect(cxn,get_v,[self.hash])
 
         if v_id:
             return v_id[0][0] # already there
         else:
             # Create a new record in the View table and get its ID
-            cmd  = mkInsCmd('view',['uid','name','query'])
+            cmd  = mkInsCmd('view',['view_id','name','query'])
             sqlexecute(cxn,cmd,[self.hash,self.name,self.qstr()])
             return sqlselect(cxn,get_v,[self.hash])[0][0]
 class QView(View):
@@ -184,7 +184,7 @@ class Obj(Base):
         self.fks   = {r.name:r.to_rel(self.name) for r in fks or []}
         self._id   = id if id else self.name + '_id'
         # Validate
-        self.forbidden = [self._id,'uid','deleted'] # RESERVED
+        self.forbidden = [self._id,'deleted'] # RESERVED
         assert not any([a in self.forbidden for a in self.attrs])
 
     def __str__(self) -> str:
@@ -270,10 +270,9 @@ class Obj(Base):
 
         colcoldescs   = [a.create_col(self.name) for a in self.attrs.values()]
         cols,coldescs = [x[0] for x in colcoldescs],[x[1] for x in colcoldescs]
-        pk    = self._id+' SERIAL PRIMARY KEY '
-        uid   = 'uid VARCHAR(255) NOT NULL UNIQUE'
+        pk    = self._id+' BIGINT PRIMARY KEY '
         deld  = 'deleted BOOLEAN NOT NULL DEFAULT FALSE'
-        cols  = [pk,uid,deld] + cols
+        cols  = [pk,deld] + cols
 
         tabdesc       = 'comment on table "{}" is \'{}\''.format(self.name,self.desc.replace("'","''"))
         fmt_args      = [create_str,'\n\t,'.join(cols)]
@@ -283,8 +282,7 @@ class Obj(Base):
 
     def id(self, path : AP = None) -> PK:
         '''Main use case: GROUP BY an object, rather than a particular column'''
-        return PK(PathAttr(path,AttrTup(self._id,self.name)),
-                  PathAttr(path,AttrTup('uid',   self.name)))
+        return PK(PathAttr(path,AttrTup(self._id,self.name)))
 
     def ids(self) -> L[str]:
         '''Names of all the identifying (top-level) attributes '''
@@ -300,7 +298,7 @@ class Obj(Base):
         it's not already there), and return the ID.
         '''
         # Try to find an Object with an equivalent hash in the existing table
-        get_t = mkSelectCmd('object',['object_id'],['uid'])
+        get_t = mkSelectCmd('object',['object_id'],['object_id'])
         t_id  = sqlselect(cxn,get_t,[self.hash])
 
         if t_id:
@@ -308,13 +306,13 @@ class Obj(Base):
         else:
             # Create a new record in the Object table and get its ID
             name = self.name
-            cmd  = mkInsCmd('object',['uid','name','description'])
+            cmd  = mkInsCmd('object',['object_id','name','description'])
             sqlexecute(cxn,cmd,[self.hash,name,self.desc])
             tab_id = sqlselect(cxn,get_t,[self.hash])[0][0]
 
             # Before returning ID, we have to populate Attr table
             ins_cols = ['object','name','dtype','description',
-                        'defaultval','uid']
+                        'defaultval','attr_id']
 
             for c in self.attrs.values():
                 # Insert info about an attribute

@@ -53,5 +53,5 @@ class Base(object,metaclass=ABCMeta):
         return hash(self.toJSON())
 
     @property
-    def hash(self) -> str:
+    def hash(self) -> int:
         return hash_(self.toJSON())

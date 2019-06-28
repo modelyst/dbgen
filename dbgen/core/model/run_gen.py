@@ -29,13 +29,13 @@ from dbgen.utils.sql            import (sqlexecute,sqlselect,mkSelectCmd,
 from dbgen.utils.str_utils      import hash_
 ###########################################
 rpt_select = """
-    SELECT T.ind,T.uid
+    SELECT T.ind,T.repeats_id
     FROM temp T
-        LEFT JOIN (SELECT uid
+        LEFT JOIN (SELECT repeats_id
                     FROM repeats
                     WHERE repeats.gen = %s) AS R
-        USING (uid)
-    WHERE  R.uid IS NULL;"""
+        USING (repeats_id)
+    WHERE  R.repeats_id IS NULL;"""
 
 def run_gen(self   : 'Model',
             gen    : Gen,
@@ -61,9 +61,9 @@ def run_gen(self   : 'Model',
     parallel     = (not serial) and ('parallel' in gen.tags)
     ghash        = gen.hash
 
-    def hasher( x : Any) -> str:
+    def hasher( x : Any) -> int:
         '''Unique hash function to this Generator'''
-        return hash_(ghash + str(x))
+        return hash_(str(ghash) + str(x))
 
     # Determine how to map over input rows
     #-------------------------------------
@@ -85,7 +85,7 @@ def run_gen(self   : 'Model',
                     is_rpt = [] # type: list
                 else:
                     inshash = hasher(row)
-                    rptq    = mkSelectCmd('repeats',['gen'],['gen','uid'])
+                    rptq    = mkSelectCmd('repeats',['gen'],['gen','repeats_id'])
                     is_rpt  = sqlselect(gmcxn, rptq, [a_id, inshash])
                 if len(is_rpt) == 0:
                     d = {} # type: dict
@@ -113,7 +113,7 @@ def run_gen(self   : 'Model',
                 else:
                     with tqdm(total=1,desc='repeat_checking',**bargs) as tq:
                         unfiltered_inputs = [(x,hasher(x)) for x in inputs] # type: ignore
-                        rpt_select = 'SELECT uid FROM repeats WHERE repeats.gen = %s'
+                        rpt_select = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
                         rpts = set([x[0] for x in sqlselect(gmcxn,rpt_select,[a_id])])
                         inputs = [(x,hx,cxns) for x,hx in unfiltered_inputs if hx not in rpts]
                         tq.set_description('repeat_checking (selecting non-repeats)')
@@ -151,8 +151,8 @@ def run_gen(self   : 'Model',
 #############
 # CONSTANTS #
 #############
-ins_rpt_stmt = """ INSERT INTO repeats (gen,run,uid) VALUES (%s,%s,%s)
-                    ON CONFLICT (uid) DO NOTHING"""
+ins_rpt_stmt = """ INSERT INTO repeats (gen,run,repeats_id) VALUES (%s,%s,%s)
+                    ON CONFLICT (repeats_id) DO NOTHING"""
 
 # Helper functions stored outside class so that they can be pickled by multiprocessing
 def apply_and_act(pbs    : L[PyBlock],
@@ -170,7 +170,7 @@ def apply_and_act(pbs    : L[PyBlock],
     """
     d = {'query':row}
     for pb in pbs:
-        d[pb.hash] = pb(d)
+        d[str(pb.hash)] = pb(d)
 
     for a in acts:
         a.act(cxn=cxn,objs=objs,row=d)

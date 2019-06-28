@@ -35,8 +35,8 @@ def sub(q:str,xs:list)->str:
 # Shortcuts
 ###########
 
-def mkInsCmd(tabName : str, names : List[str]) -> str:
-    dup    =  ' ON CONFLICT (uid) DO NOTHING'
+def mkInsCmd(tabName : str, names : List[str], pk : str = None) -> str:
+    dup    =  ' ON CONFLICT ({}) DO NOTHING'.format(pk or tabName +'_id')
     ins_names = ','.join(['"%s"'%(n) for n in names])
     fmt_args  = [tabName,ins_names,','.join(['%s']*len(names)),dup]
     return "INSERT INTO {} ({}) VALUES ({}) {}".format(*fmt_args)
