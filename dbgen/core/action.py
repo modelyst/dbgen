@@ -120,30 +120,33 @@ class Action(Base):
             if vv.insert:
                 val = vv._insert(cxn,objs,row)
             else:
-                assert vv.pk
-                val = vv.pk.arg_get(row)
+                if not vv.pk is None:
+                    val = vv.pk.arg_get(row)
+                else:
+                    val, fk_adata = vv._getvals(cxn, objs, row)
 
             allattr.append(val)
             if kk in obj.id_fks():
                 idattr.append(val)
 
         idata,adata = broadcast(idattr),broadcast(allattr)
-
         if self.pk is not None:
             assert not idata, 'Cannot provide a PK *and* identifying info'
             pkdata = self.pk.arg_get(row)
             if isinstance(pkdata,int):
-                idata = [[pkdata]]
-            elif isinstance(pkdata,list) and isinstance(pkdata[0],int):
-                idata = [pkdata]
+                idata_prime = [pkdata]
+            elif isinstance(pkdata,list) and isinstance(pkdata[0],int): # HACKY
+                idata_prime = pkdata
             else:
                 raise TypeError('PK should either receive an int or a list of ints',vars(self))
+        else:
+            idata_prime = list(map(hash_,idata))
 
-        if len(idata) == 1: idata*= len(adata) # broadcast
+        if len(idata_prime) == 1: idata_prime *= len(adata) # broadcast
 
         lenerr = 'Cannot match IDs to data: %d!=%d'
-        assert len(idata) == len(adata), lenerr%(len(idata),len(adata))
-        return list(map(hash_,idata)), adata
+        assert len(idata_prime) == len(adata), lenerr%(len(idata_prime),len(adata))
+        return idata_prime, adata
 
     def _insert(self,
                 cxn  : Conn,

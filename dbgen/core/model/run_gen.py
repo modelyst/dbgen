@@ -136,8 +136,8 @@ def run_gen(self   : 'Model',
         gen.update_status(gmcxn,run_id,'completed')
         tot_time = time() - start
         q = mkUpdateCmd('gens',['runtime','rate','n_inputs'],['run','name'])
-        rate    = round(tot_time/60,4)
-        runtime = round(safe_div(tot_time,tot),2)
+        runtime = round(tot_time/60,4)
+        rate    = round(safe_div(tot_time,tot),4)
         sqlexecute(gmcxn,q,[runtime,rate,tot,run_id,gen.name])
         return 0 # don't change error count
 

@@ -205,7 +205,7 @@ class Obj(Base):
         insert = kwargs.pop('insert',False)
 
         if not pk: # if we don't have a PK reference
-            err = 'Cannot modify {} without PK reference. Missing essential data: {}'
+            err = 'Cannot refer to a row in {} without a PK or essential data. Missing essential data: {}'
             missing = set(self.ids())-set(kwargs)
             assert not missing, err.format(self.name,missing)
 
