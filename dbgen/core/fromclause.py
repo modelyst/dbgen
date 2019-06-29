@@ -188,7 +188,7 @@ class Join(Base):
         out  = b64encode(m.digest()).decode('ascii')[:3]
         return self.obj+'(%s)'%out
 
-    def print(self, optional : L['Rel'] = None) -> str:
+    def print(self, optional : L['RelTup'] = None) -> str:
         '''Render JOIN statement in FROM clause'''
         conds = [self._cond(j,e) for j,e in self.conds.items()] # conditions to join on
         opts  = optional or []

@@ -49,7 +49,7 @@ def run(self      : 'Model',
     - until: stop at the generator with this name
     - serial: force all Generators to be run without parallelization
     - bar: show progress bars
-    - clean: 'cleans up' implementation detail columns (deleted and uid) for
+    - clean: 'cleans up' implementation detail columns (deleted) for
     presentation of the resulting database to others...at the cost of not being
     able to call model.run() without nuking again (unless an 'unclean' method is
     written, which is in principle possible)
@@ -178,7 +178,7 @@ def run(self      : 'Model',
 
     if clean:
         for o in self.objs:
-            for c in ['uid','deleted']:
+            for c in ['deleted']:
                 q = 'ALTER TABLE {} DROP COLUMN {}'.format(o,c)
                 sqlexecute(gcxn,q)
 

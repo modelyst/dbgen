@@ -59,15 +59,15 @@ class Gen(Base):
         q = mkUpdateCmd('gens',['status'],['run','name'])
         sqlexecute(conn,q,[status, run_id, self.name])
 
-    def get_id(self, c : Conn) -> L[tuple]:
+    def get_id(self, c : Conn) -> L[tuple]: # THIS IS OBSOLETE BC HASH IS ID?
         """ Assuming we've inserted already """
         check = self.hash
-        get_a = mkSelectCmd('gen', ['gen_id'], ['uid'])
+        get_a = mkSelectCmd('gen', ['gen_id'], ['gen_id'])
         return sqlselect(c, get_a, [check])
 
-    def hasher(self, x : Any) -> str:
+    def hasher(self, x : Any) -> int:
         '''Unique hash function to this Generator'''
-        return hash_(self.hash + str(x))
+        return hash_(str(self.hash) + str(x))
 
     def dep(self) -> Dep:
         '''
@@ -105,7 +105,7 @@ class Gen(Base):
         if a_id:
             return a_id[0][0]
         else:
-            cmd  = mkInsCmd('gen', ['uid', 'name', 'description'])
+            cmd  = mkInsCmd('gen', ['gen_id', 'name', 'description'])
             sqlexecute(cxn, cmd,[self.hash, self.name, self.desc])
             aid = self.get_id(cxn)
             return aid[0][0]
@@ -143,13 +143,13 @@ class Gen(Base):
     def _order_funcs(pbs : L[PyBlock]) -> L[PyBlock]:
         '''Make dependency graph among PyBlocks and determine execution order'''
         G = DiGraph()
-        d = {pb.hash : pb for pb in pbs}
+        d = {str(pb.hash) : pb for pb in pbs}
         G.add_nodes_from(d.keys())
         for pb in pbs:
             for a in pb.args:
                 if isinstance(a, Arg) and a.key != 'query':
                     assert a.key in d, pb.func.name
-                    G.add_edge(a.key, pb.hash)
+                    G.add_edge(a.key, str(pb.hash))
         return topsort_with_dict(G, d)
 
 # def from_sqlite(self : "Model", pth : str) -> Gen:

@@ -88,4 +88,4 @@ parser.add_argument('--serial',
 
 parser.add_argument('--clean',
                     default = False,
-                    help    = 'Clean the database of the deleted column and uid !DOESN\'t DELETE DELETED ROWS YET!')
+                    help    = 'Clean the database of the deleted column!DOESN\'t DELETE DELETED ROWS YET!')

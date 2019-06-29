@@ -2,11 +2,10 @@ from typing  import (Any, TypeVar,
                      List     as L,
                      Dict     as D,
                      Callable as C)
-from decimal import Decimal
+from decimal  import Decimal
 from datetime import datetime
 ##############################################################################
-A = TypeVar('A')
-B = TypeVar('B')
+A = TypeVar('A'); B = TypeVar('B')
 ##############################################################
 def flatten(lol: L[L[A]])->L[A]:
     """Convert list of lists to a single list via concatenation"""
@@ -37,27 +36,19 @@ def concat_map(f: C[[A], L[B]], args: L[A]) -> L[B]:
     """
     Maps a function over an input.
     We apply the function to every element in the list and concatenate result.
-
     """
     return flatten([f(arg) for arg in args])
 
 ##############################################################
-def broadcast(dic:dict,xs:L[str])->list:
+def broadcast(args : list) -> L[list]:
     """
-    Access a list of keys from a dictionary, enforcing that all non-length-1
-    elements have the same length and replicating length-1 elements to the
-    largest length list
+    Enforce that all non-length-1 elements have the same length and replicate
+    length-1 elements to the largest length list, then zip all the lists
     """
     valid_types = (int,str,tuple,float,list,bytes,datetime,Decimal,type(None))
     type_err    = "Arg (%s) BAD DATATYPE %s IN NAMESPACE "
     broad_err   = "Can't broadcast: maxlen = %d, len a = %d (%s)"
     maxlen = 1 # initialize variable
-
-    missing_keys = set(xs) - set(dic.keys())
-
-    assert not missing_keys, 'missing keys %s'%missing_keys
-
-    args = [dic[x] for x in xs]
 
     for a in args:
         assert isinstance(a,valid_types), type_err%(a,a.__class__)
@@ -79,36 +70,8 @@ def broadcast(dic:dict,xs:L[str])->list:
 
     # now all args should be lists of the same length
     broadcasted = [process_arg(x) for x in args]
-
-    binds = list(zip(*broadcasted))
-
-    return binds
-##############################################################
-
-def gcd(args: L[Any])->Any:
-    """
-    Greatest common denominator of a list
-    """
-    if len(args) == 1:
-        return args[0]
-    L = list(args)
-    while len(L) > 1:
-        a, b = L[len(L) - 2], L[len(L) - 1]
-        L = L[:len(L) - 2]
-        while a:
-            a, b = b % a, a
-        L.append(b)
-    return abs(b)
-
-def normalize_list(l: list) -> list:
-    """
-    [a,a,a,a,b,b,c,c] => [a,a,b,c]
-    """
-    if len(l) == 0:
-        return l
-    d = {x: l.count(x) for x in l}
-    div = gcd(list(d.values()))
-    norm = [[k] * (v // div) for k, v in d.items()]
-    return [item for sublist in norm for item in sublist]
-
-##############################################################
+    # if maxlen == 1:
+    #     import pdb;pdb.set_trace()
+    #     return broadcasted
+    # else:
+    return list(zip(*broadcasted))

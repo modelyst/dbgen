@@ -207,7 +207,7 @@ class Func(Base):
         '''
         Execute source code to get a callable
         '''
-        pth  = join(environ['DBGEN_TEMP'],hash_(self.file())+'.py')
+        pth  = join(environ['DBGEN_TEMP'],str(hash_(self.file()))+'.py')
 
         if not exists(pth):
             with open(pth,'w') as t:
@@ -255,7 +255,7 @@ class Func(Base):
             spec = spec_from_file_location('random',pth)
             mod  = module_from_spec(spec)
             assert spec and spec.loader, 'Spec or Spec.loader are broken'
-            spec.loader.exec_module(mod)
+            spec.loader.exec_module(mod) # type: ignore
             funcs = [o for o in getmembers(mod) if isfunction(o[1]) and getsourcefile(o[1])==pth]
             assert len(funcs)==1,"Bad input file %s has %d functions, not 1"%(pth,len(funcs))
             return funcs[0][1]

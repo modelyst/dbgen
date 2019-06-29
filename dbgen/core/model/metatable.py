@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     ConnI,Model,Gen
 
 from dbgen.core.sqltypes   import Varchar, Decimal, Text, Timestamp, Int, Boolean
-from dbgen.core.schema     import Obj, Rel, Attr
+from dbgen.core.schema     import Obj, UserRel as Rel, Attr
 from dbgen.utils.str_utils import hash_
 from dbgen.utils.sql       import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
 #############################################################################
@@ -44,13 +44,15 @@ objs = [
 
     Obj('object','All static info about a given class of entities being modeled',
         attrs=[Attr('name',         Varchar(),id=True),
-               Attr('description',  Text())]),
+               Attr('description',  Text())],
+        ),
 
     Obj('attr','Property of an object',
         attrs=[Attr('name',         Varchar(),id=True),
                Attr('dtype',        Varchar()),
                Attr('description',  Text()),
-               Attr('defaultval',   Text())]),
+               Attr('defaultval',   Text())],
+        fks = [Rel('object', id = True)]),
 
     Obj('view','SQL view',
         attrs = [Attr('name',Varchar(),id=True),
@@ -64,7 +66,8 @@ objs = [
         attrs=[Attr('name',         Varchar(),id=True),
                Attr('description',  Text())]),
 
-    Obj('pyblock','decorated python function',attrs=[]),
+    Obj('pyblock','decorated python function',attrs=[],
+        fks = [Rel('gen',  id = True),Rel('func')]),
 
     Obj('const','A constant injected into the namespace of an generator',
         attrs=[Attr('dtype',Varchar(),id=True),
@@ -73,7 +76,8 @@ objs = [
     Obj('arg','How a PyBlock refers to a namespace',
         attrs=[Attr('ind',      Int(),id=True),
                Attr('keyname',  Varchar()),
-               Attr('name',     Varchar())]),
+               Attr('name',     Varchar())],
+        fks = [Rel('const')]),
 
     Obj('run','Each time DbGen is run, a new Run instance is created',
         attrs= [Attr('starttime',Timestamp(),default='CURRENT_TIMESTAMP'),
@@ -84,7 +88,8 @@ objs = [
                 Attr('retry',   Boolean()),
                 Attr('nuke', Varchar()),
                 Attr('onlyrun', Varchar()),
-                Attr('exclude', Varchar())]),
+                Attr('exclude', Varchar())],
+        fks = [Rel('connection')]),
 
     Obj('gens','A list of Generator instances associated with a given run',
         attrs =[Attr('name',        Varchar()),
@@ -100,27 +105,18 @@ objs = [
                 Attr('coldep',      Text()),
                 Attr('newtab',      Text()),
                 Attr('newcol',      Text()),
-                Attr('basis',       Varchar())]),
+                Attr('basis',       Varchar())],
+        fks = [Rel('run',id=True),Rel('gen',id=True)]),
 
-    Obj('objs','A list of Object instances associated with a given run'),
-    Obj('views','List of View instances associated with a given run'),
-    Obj('repeats','A record of which inputs a given Action has already seen'),
-        ]
+    Obj('objs','A list of Object instances associated with a given run',
+        fks = [Rel('object',id=True),Rel('run',id=True),]),
+    Obj('views','List of View instances associated with a given run',
+        fks = [Rel('view',id=True),Rel('run', id=True)]),
+    Obj('repeats','A record of which inputs a given Action has already seen',
+        fks = [Rel('gen',id=True),Rel('run' ),]),]
 
-rels = [Rel('object',   'attr',    id = True),
-        Rel('gen',      'pyblock', id = True),
-        Rel('func',     'pyblock'),
-        Rel('connection','run'),
-        Rel('const',     'arg'),
-        Rel('run',      'gens',id=True),
-        Rel('gen',      'gens',id=True),
-        Rel('object',   'objs',id=True),
-        Rel('run',      'objs',id=True),
-        Rel('gen',      'repeats',id=True),
-        Rel('run',      'repeats'),
-        Rel('view',     'views',id=True),
-        Rel('run',      'views',id=True)
-        ]
+
+
 
 #############################################################################
 # Main function
@@ -142,7 +138,7 @@ def make_meta(self   : 'Model',
 
     NUKE_META = True # whether or not to erase metatable data if nuking DB
     meta = self._build_new('meta')
-    meta.add(objs); meta.add(rels)
+    meta.add(objs);
 
     ################################################################################
 
@@ -173,7 +169,7 @@ def make_meta(self   : 'Model',
 
     # Insert connection (if it dosn't exist already)
     #----------------------------------------------
-    cxn_cols  = ['uid','hostname','user','port','db']
+    cxn_cols  = ['connection_id','hostname','user','port','db']
     cxn_args_ = [conn.host,conn.user,conn.port,conn.db]
     cxn_args  = [hash_('$'.join(map(str,cxn_args_)))] + cxn_args_ # type: ignore
     cxn_sql   = mkInsCmd('connection',cxn_cols)
@@ -181,18 +177,19 @@ def make_meta(self   : 'Model',
 
     # Get current connection ID
     #----------------------------------------------
-    get_cxn = mkSelectCmd('connection',['connection_id'],['uid'])
+    get_cxn = mkSelectCmd('connection',['connection_id'],['connection_id'])
     cxn_id  = sqlselect(gmcxn,get_cxn,cxn_args[:1])[0][0]
 
     # Insert top level information about current run
     #----------------------------------------------
-    run_cols = ['run_id','uid','retry','onlyrun','exclude','nuke',
+    run_cols = ['run_id','retry','onlyrun','exclude','nuke',
                 'connection','start','until_']
 
-    run_args = [run_id, run_id, retry, only, xclude, nuke, cxn_id, start, until]
+    run_args = [run_id, retry, only, xclude, nuke, cxn_id, start, until]
 
     fmt_args = [','.join(run_cols), ','.join(['%s'] * len(run_args))]
     run_sql  = 'INSERT INTO run ({}) VALUES ({})'.format(*fmt_args)
+
     sqlexecute(gmcxn,run_sql,run_args)
 
     # Insert info about current DBG if it doesn't exist
@@ -200,17 +197,17 @@ def make_meta(self   : 'Model',
     od = 'Inserting Objects into MetaDB'
     ad = 'Inserting Actions into MetaDB'
     vd = 'Inserting Views into MetaDB'
-    oq = mkInsCmd('objs',['run','object','uid'])
-    vq = mkInsCmd('views',['run','view','uid'])
+    oq = mkInsCmd('objs',['run','object','objs_id'])
+    vq = mkInsCmd('views',['run','view','views_id'])
     aq = mkInsCmd('gens',['run','gen','name','status','description',
                              'query','ind','tabdep','coldep','newtab','newcol',
-                             'basis','uid'])
+                             'basis','gens_id'])
     tqargs = dict(leave=False, disable = not bar)
     for o in tqdm(self.objs.values(),desc=od,**tqargs):
-        safex(gmcxn,oq,[run_id,o.add(gmcxn),hash_(str(run_id)+o.hash)])
+        safex(gmcxn,oq,[run_id,o.add(gmcxn),hash_(str(run_id)+str(o.hash))])
 
     for vn,v in tqdm(self.views.items(),desc=vd,**tqargs):
-        safex(gmcxn,vq,[run_id,v.add(gmcxn),hash_(str(run_id)+v.hash)])
+        safex(gmcxn,vq,[run_id,v.add(gmcxn),hash_(str(run_id)+str(v.hash))])
 
     for i,u in enumerate(tqdm(self.ordered_gens(),desc=ad,**tqargs)):
         #print(i,u)
@@ -220,5 +217,5 @@ def make_meta(self   : 'Model',
         b = ','.join(v.basis) if v else ''
 
         safex(gmcxn,aq,[run_id,u.add(gmcxn),u.name,'initialized',u.desc,q,
-                             i,td,cd,nt,nc,b,hash_(str(run_id)+u.hash)])
+                             i,td,cd,nt,nc,b,hash_(str(run_id)+str(u.hash))])
     return run_id

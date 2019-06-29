@@ -13,7 +13,9 @@ from dbgen.core.schema import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawVie
 from dbgen.core.misc   import ConnectInfo as ConnI
 from dbgen.core.pathconstraint import Path as JPath, Constraint
 from dbgen.utils.sql   import sqlexecute, sqlselect, Error
+
 ############################################################################
+
 class Schema(Base):
     '''Unnamed collection of Objects, Views, Relations, Path Equations'''
     def __init__(self,
@@ -84,6 +86,9 @@ class Schema(Base):
             self.objs[o.name] = o # Add
             self._fks.add_node(o.name)
 
+        for rel in o.fks.values():
+            self._add_relation(rel)
+
 
     def _add_view(self, v : View) -> None:
         '''Add to model'''
@@ -99,6 +104,7 @@ class Schema(Base):
         '''Add to model'''
         # Validate
         #---------
+        assert isinstance(r,Rel)
         err = 'Cannot add %s: %s not found in model '
         assert r.o1 in self, err%(r, r.o1)
         assert r.o2 in self, err%(r, r.o2)
@@ -168,7 +174,7 @@ class Schema(Base):
     def _create_fk(self,fk:Rel)->str:
         '''create SQL FK statement'''
         args = [fk.o1,fk.name,fk.o2,self[fk.o2]._id]
-        s ='''ALTER TABLE "{0}" ADD "{1}" INT;
+        s ='''ALTER TABLE "{0}" ADD "{1}" BIGINT;
            ALTER TABLE "{0}" ADD FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}")'''
         return s.format(*args)
 
@@ -184,16 +190,7 @@ class Schema(Base):
         ''' Relations that start OR end on a given object '''
         inward = set.union(*[d['fks'] for _,_,d in
                                         self._fks.in_edges(o.name,data=True)])
-        return self._obj_fks(o.name) | inward
-
-    def _obj_fks(self, o : str) -> S[Rel]:
-        '''Relations that start from a given object'''
-        sets = [d['fks'] for _,_,d in
-                  self._fks.edges(o,data=True)]
-        if sets:
-            return set.union(*sets)
-        else:
-            return set()
+        return set(o.fks.values()) | inward
 
     def get_rel(self, r : U[Rel,RelTup]) -> Rel:
         '''
@@ -201,11 +198,7 @@ class Schema(Base):
         (but identifying) info
         '''
         if isinstance(r,Rel): return r
-
-        for fk in self._obj_fks(r.obj):
-            if fk.name == r.rel:
-                return fk
-        raise ValueError('Invalid RelTup %s'%r)
+        else: return self[r.obj].fks[r.rel]
 
     def _info_graph(self, links : L[U[Rel,RelTup]]) -> DiGraph:
         '''Natural paths of information propagation, which includes the normal
@@ -219,7 +212,7 @@ class Schema(Base):
         G    = self._fks.copy()
 
         for name,o in self.objs.items():
-            pars = [fk for fk in self._obj_fks(o.name) if fk.id]
+            pars = [fk for fk in o.fks.values() if fk.id]
             # only if it's a 1-1 table
             if len(pars)==1 and len(o.ids())==0:
                 p   = pars[0] # identifying foreign key

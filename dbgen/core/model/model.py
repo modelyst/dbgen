@@ -34,7 +34,7 @@ class Model(Schema):
     def __init__(self,
                  name : str,
                  objs : L[Obj]    = None,
-                 rels : L[Rel]    = None,
+                 #rels : L[Rel]    = None,
                  gens : L[Gen]    = None,
                  views: L[View]   = None,
                  pes  : L[PathEQ] = None,
@@ -46,12 +46,13 @@ class Model(Schema):
         self.views = {v.name : v for v in (views or [])}
 
         self._fks = DiGraph()
-        self._fks.add_edges_from(self.objs) # nodes are object NAMES
+        self._fks.add_nodes_from(self.objs) # nodes are object NAMES
 
         self.pe   = set(pes or []) # path equivalencies
 
-        for rel in rels or []:
-            self._add_relation(rel)
+        for o in self.objs.values():
+            for rel in o.fks.values():
+                self._add_relation(rel)
 
     def __str__(self) -> str:
         p = '%d objs' % len(self.objs)
@@ -288,10 +289,9 @@ class Model(Schema):
         '''
         # Check all identifying relationships are covered
         if not a.pk: # don't have a PK, so need identifying info
-            for fk in self._obj_fks(a.obj):
-                if fk.id:
-                    err = '%s missing identifying relation %s'
-                    assert fk.name in a.fks, err%(a, fk)
+            for fk in self[a.obj].id_fks():
+                err = '%s missing identifying relation %s'
+                assert fk in a.fks, err%(a, fk)
 
         # Recursively validate sub-actions
         for act in a.fks.values():

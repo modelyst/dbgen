@@ -1,7 +1,7 @@
 from dbgen.core.model.model import Model
 
 from dbgen.core.gen       import Gen
-from dbgen.core.schema    import Obj, Rel, Attr, PathEQ, Path, QView,RawView
+from dbgen.core.schema    import Obj, UserRel as Rel, Attr, PathEQ, Path, QView,RawView
 from dbgen.core.misc      import ConnectInfo
 
 from dbgen.core.pathconstraint import Constraint, Path as JPath
@@ -24,5 +24,5 @@ from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Tim
 
 ############################
 from dbgen.utils.sql     import sqlexecute, sqlselect
-from dbgen.utils.lists   import flatten, nub, concat_map, merge_dicts, normalize_list
+from dbgen.utils.lists   import flatten, nub, concat_map, merge_dicts
 from dbgen.utils.parsing import parser

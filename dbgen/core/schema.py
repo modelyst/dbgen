@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 from dbgen.core.sqltypes   import SQLType, Int
 from dbgen.core.action     import Action
 from dbgen.core.misc       import Dep
-from dbgen.core.expr       import PathAttr
+from dbgen.core.expr       import PathAttr, Expr,  PK, Literal as Lit
 from dbgen.core.pathconstraint import Path as AP
 from dbgen.core.funclike   import Arg, PyBlock
 from dbgen.utils.misc      import Base
@@ -107,14 +107,14 @@ class View(Base,metaclass=ABCMeta):
     def add(self,cxn:Conn)->int:
         '''add view to metadb, return PK'''
         # Try to find an Object with an equivalent hash in the existing table
-        get_v = mkSelectCmd('view',['view_id'],['uid'])
+        get_v = mkSelectCmd('view',['view_id'],['view_id'])
         v_id  = sqlselect(cxn,get_v,[self.hash])
 
         if v_id:
             return v_id[0][0] # already there
         else:
             # Create a new record in the View table and get its ID
-            cmd  = mkInsCmd('view',['uid','name','query'])
+            cmd  = mkInsCmd('view',['view_id','name','query'])
             sqlexecute(cxn,cmd,[self.hash,self.name,self.qstr()])
             return sqlselect(cxn,get_v,[self.hash])[0][0]
 class QView(View):
@@ -144,21 +144,47 @@ class RawView(View):
         nc = ['%s.%s'%(self.name,x) for x in self.new]
         return Dep(td,cd,[self.name],nc)
 
+class UserRel(Base):
+    '''
+    USER EXPOSED Relation between objects. no need to specify source, as it is
+    declared from within the UserObj constructor.
+    Can be identifying or non-identifying
+    '''
+    def __init__(self,
+                 name : str,
+                 tar   : str = None,
+                 id   : bool= False,
+                 desc : str = '<No description>'
+                ) -> None:
+        self.name = name.lower()
+        self.desc = desc
+        self.tar   = tar.lower() if tar else self.name
+        self.id   = id
+
+    def __str__(self) -> str:
+        idstr = '(id)' if self.id else ''
+        return '{}{} -> {}'.format(self.name,idstr,self.tar)
+
+    def to_rel(self,obj:str) -> 'Rel':
+        return Rel(name=self.name,o1=obj,o2=self.tar,id=self.id,desc=self.desc)
+
 class Obj(Base):
     '''Object with attributes. Basic entity of a model'''
     def __init__(self,
                  name  : str,
-                 desc  : str     = None,
-                 attrs : L[Attr] = None,
-                 id    : str     = None
+                 desc  : str        = None,
+                 attrs : L[Attr]    = None,
+                 fks   : L[UserRel] = None,
+                 id    : str        = None
                 ) -> None:
 
         self.name  = name.lower()
         self.desc  = desc  or '<No description>'
         self.attrs = {a.name : a for a in attrs or []}
+        self.fks   = {r.name:r.to_rel(self.name) for r in fks or []}
         self._id   = id if id else self.name + '_id'
         # Validate
-        self.forbidden = [self._id,'uid','deleted'] # RESERVED
+        self.forbidden = [self._id,'deleted'] # RESERVED
         assert not any([a in self.forbidden for a in self.attrs])
 
     def __str__(self) -> str:
@@ -244,10 +270,9 @@ class Obj(Base):
 
         colcoldescs   = [a.create_col(self.name) for a in self.attrs.values()]
         cols,coldescs = [x[0] for x in colcoldescs],[x[1] for x in colcoldescs]
-        pk    = self._id+' SERIAL PRIMARY KEY '
-        uid   = 'uid VARCHAR(255) NOT NULL UNIQUE'
+        pk    = self._id+' BIGINT PRIMARY KEY '
         deld  = 'deleted BOOLEAN NOT NULL DEFAULT FALSE'
-        cols  = [pk,uid,deld] + cols
+        cols  = [pk,deld] + cols
 
         tabdesc       = 'comment on table "{}" is \'{}\''.format(self.name,self.desc.replace("'","''"))
         fmt_args      = [create_str,'\n\t,'.join(cols)]
@@ -255,14 +280,17 @@ class Obj(Base):
         sqls          = [cmd,tabdesc]+coldescs
         return sqls
 
-    @property
-    def id(self) -> AttrTup:
+    def id(self, path : AP = None) -> PK:
         '''Main use case: GROUP BY an object, rather than a particular column'''
-        return AttrTup(self._id,self.name)
+        return PK(PathAttr(path,AttrTup(self._id,self.name)))
 
     def ids(self) -> L[str]:
         '''Names of all the identifying (top-level) attributes '''
         return [n for n,a in self.attrs.items() if a.id]
+
+    def id_fks(self) -> L[str]:
+        '''Names of all the identifying (top-level) FKs '''
+        return [n for n,f in self.fks.items() if f.id]
 
     def add(self, cxn : Conn) -> int:
         '''
@@ -270,7 +298,7 @@ class Obj(Base):
         it's not already there), and return the ID.
         '''
         # Try to find an Object with an equivalent hash in the existing table
-        get_t = mkSelectCmd('object',['object_id'],['uid'])
+        get_t = mkSelectCmd('object',['object_id'],['object_id'])
         t_id  = sqlselect(cxn,get_t,[self.hash])
 
         if t_id:
@@ -278,13 +306,13 @@ class Obj(Base):
         else:
             # Create a new record in the Object table and get its ID
             name = self.name
-            cmd  = mkInsCmd('object',['uid','name','description'])
+            cmd  = mkInsCmd('object',['object_id','name','description'])
             sqlexecute(cxn,cmd,[self.hash,name,self.desc])
             tab_id = sqlselect(cxn,get_t,[self.hash])[0][0]
 
             # Before returning ID, we have to populate Attr table
             ins_cols = ['object','name','dtype','description',
-                        'defaultval','uid']
+                        'defaultval','attr_id']
 
             for c in self.attrs.values():
                 # Insert info about an attribute
@@ -430,13 +458,13 @@ class Path(Base):
         '''the ID colname if we don't have a normal attribute as terminus'''
         if (not self.attr) :
             rel = m.get_rel(self.rels[-1])
-            return m[rel.o2].id
+            return AttrTup(m[rel.o2]._id,rel.o2)
         else:
             return self.attr
 
     def _path_end(self, m : 'Schema') -> str:
         '''Determine the datatype of the end of a path'''
-        if (not self.attr) or (m[self.attr.obj].id == self.attr):
+        if (not self.attr) or (AttrTup(m[self.attr.obj]._id,self.attr.obj) == self.attr):
             return 'id'
         else:
             o = m[self.attr.obj]

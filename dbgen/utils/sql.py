@@ -2,8 +2,8 @@
 from typing     import List,Any
 from time       import sleep
 from warnings   import filterwarnings
-from psycopg2   import Error  # type: ignore
-from psycopg2.extras import DictCursor               # type: ignore
+from psycopg2   import Error,ProgrammingError                         # type: ignore
+from psycopg2.extras import DictCursor,execute_batch # type: ignore
 
 """
 Tools for interacting with databases
@@ -35,8 +35,8 @@ def sub(q:str,xs:list)->str:
 # Shortcuts
 ###########
 
-def mkInsCmd(tabName : str, names : List[str]) -> str:
-    dup    =  ' ON CONFLICT (uid) DO NOTHING'
+def mkInsCmd(tabName : str, names : List[str], pk : str = None) -> str:
+    dup    =  ' ON CONFLICT ({}) DO NOTHING'.format(pk or tabName +'_id')
     ins_names = ','.join(['"%s"'%(n) for n in names])
     fmt_args  = [tabName,ins_names,','.join(['%s']*len(names)),dup]
     return "INSERT INTO {} ({}) VALUES ({}) {}".format(*fmt_args)
@@ -66,32 +66,37 @@ def sqlselect(conn : Connection, q : str, binds : list = []) -> List[tuple]:
         cxn.execute(q,vars=binds)
         return cxn.fetchall()
 
-def sqlexecute(conn : Connection, q : str, binds : list = []) -> None:
+def sqlexecute(conn : Connection, q : str, binds : list = []) -> list:
     with conn.cursor() as cxn: # type: ignore
         while True:
             try:
                 cxn.execute(q,vars=binds)
-                break
+                try:
+                    out = cxn.fetchall()
+                    return out
+                except ProgrammingError as e:
+                    if 'no results to fetch' in e.args:
+                        return []
+                    else:
+                        raise Error(e)
             except Error as e:
                 if e.args[0] in [1205,1213]: # deadlock error codes
-                    sleep(10)
+                    print('SLEEPING');sleep(10)
                 else:
                     raise Error(e)
 
-def sqlexecutemany(conn:Connection,q:str,binds:List[list]) -> None:
+def sqlexecutemany(conn : Connection, q : str, binds : List[list]) -> list:
     #print('\n\nexecutemany : \n'+q,binds)
     #print('\n\n(with substitution)\n',sub(q,binds[0]))
     with conn.cursor() as cxn: # type: ignore
-        #cxn.execute("SET SESSION auto_increment_offset = 1")
-        #cxn.execute("SET SESSION auto_increment_increment = 1")
-
         while True:
             try:
-                cxn.executemany(q,vars=binds)
+                execute_batch(cur=cxn, sql=q, argslist=binds)
+                return cxn.fetchall()
                 break
             except Error as e:
                 if  e.args[0] in [1205,1213]: # deadlock error codes
-                    sleep(10)
+                    print('SLEEPING');sleep(10)
                 else:
                     raise Error(e)
 

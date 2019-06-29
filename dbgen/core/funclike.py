@@ -129,7 +129,7 @@ class PyBlock(Base):
     def __getitem__(self, key : str) -> Arg:
         err = '%s not found in %s'
         assert key.lower() in self.outnames, err %(key,self.outnames)
-        return Arg(self.hash,key.lower())
+        return Arg(str(self.hash),key.lower())
     # Public Methods #
 
     def add(self,cxn:Conn,a_id:int,b_id:int)->None:
