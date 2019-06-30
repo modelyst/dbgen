@@ -152,6 +152,8 @@ class Func(Base):
             f = self._from_src()
             return f(*args)
 
+    def __repr__(self) -> str: return self.name
+
     # Properties #
 
     @property

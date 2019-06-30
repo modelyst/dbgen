@@ -1,0 +1,13 @@
+{{ src }}
+
+outnames = [{% for oname in outnames %}'{{ oname }}', {% endfor %}]
+
+output   = {{ name }}({% for arg in args %} {{ arg }}, {% endfor %})
+
+if isinstance(output,tuple):
+    l1,l2 = len(output),len(outnames)
+    assert l1 == l2, 'Expected %d outputs from %s, got %d'%(l2,'{{ name }}',l1)
+    return dict(zip(outnames,output))
+else:
+    assert len(outnames) == 1
+    return {outnames[0] : output}

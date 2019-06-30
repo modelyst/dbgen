@@ -15,7 +15,7 @@ from dbgen.core.func   import Func, Env
 from dbgen.core.misc   import ConnectInfo as Conn,ExternalError
 from dbgen.utils.sql   import mkInsCmd,sqlexecute
 from dbgen.utils.misc  import Base
-
+from dbgen.templates   import jinja_env
 '''
 The "T" of ETL: things that are like functions.
 
@@ -31,6 +31,7 @@ class ArgLike(Base,metaclass=ABCMeta):
     @abstractmethod
     def make_src(self, meta : bool = False) -> str:
         raise NotImplementedError
+
 class Arg(ArgLike):
     """
     How a function refers to a namespace
@@ -53,7 +54,7 @@ class Arg(ArgLike):
             val = dic[self.key][self.name]
             return val
         except KeyError as e:
-            if self.key not in dic: print('could not find hash')
+            if self.key not in dic: print('could not find hash, looking for {} at this hash {}'.format(self.name, self.key))
             else:
                 err = 'could not find \'%s\' in %s '
                 print(err %(self.name,list(dic[self.key].keys())))
@@ -111,7 +112,7 @@ class PyBlock(Base):
     def __lt__(self,other : "PyBlock") -> bool:
         return self.hash < other.hash
 
-    def __call__(self, curr_dict : D[str,D[str,Any]]) -> D[str,Any]:
+    def __call__(self, curr_dict : D[int,D[str,Any]]) -> D[str,Any]:
         """
         Take a TempFunc's function and wrap it such that it can accept a namespace
             dictionary. The information about how the function interacts with the
@@ -141,7 +142,10 @@ class PyBlock(Base):
         err = '%s not found in %s'
         assert key.lower() in self.outnames, err %(key,self.outnames)
         return Arg(self.hash,key.lower())
-    # Public Methods #
+
+    def _constargs(self) -> L[Func]:
+        """all callable constant args"""
+        return [c.val for c in self.args if isinstance(c,Const) and isinstance(c.val,Func)]
 
     def add(self,cxn:Conn,a_id:int,b_id:int)->None:
         '''Add to metaDB'''
@@ -156,13 +160,20 @@ class PyBlock(Base):
             assert self.func(*args) == target
 
     def make_src(self) -> str:
-        template = '''
-{{ src }}
+        # load the pyblock template
+        pb_template = jinja_env.get_template('pyblock.py.jinja')
 
-outnames = [{% for oname in outnames %}'{{ oname }}', {% endfor %}]
-return dict(zip(outnames,{{ name }}({% for arg in args %} {{ arg }}, {% endfor %})))
-    '''
+        # Prepare the template args
         args = [a.make_src() for a in self.args]
         name = self.func.name.replace('<lambda>','func')
         src  =('func=' if '<lambda>' in self.func.name else '')+self.func.src.replace('\t','   ')
-        return Template(template).render(src=src,outnames=self.outnames,args=args, name = name).replace('\n','\n\t')
+
+        # Set the template args
+        template_kwargs = dict(src      = src,
+                               outnames = self.outnames,
+                               args     = args,
+                               name     = name
+                               )
+        rendered_template = pb_template.render(**template_kwargs)
+        tabified_template = rendered_template.replace('\n','\n    ')
+        return tabified_template

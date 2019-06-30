@@ -126,6 +126,7 @@ def run_gen(self   : 'Model',
                             acts   = gen.actions,
                             objs   = self.objs,
                             a_id   = a_id,
+                            qhsh   = gen.query.hash if gen.query else 0,
                             run_id = run_id)
 
                 for _ in mapper(f, inputs): # type: ignore
@@ -162,15 +163,16 @@ def apply_and_act(pbs    : L[PyBlock],
                   cxn    : 'Conn',
                   row    : dict,
                   hsh    : str,
+                  qhsh   : int,
                   a_id   : int,
                   run_id : int
                  ) -> None:
     """
     The common part of parallel and serial application
     """
-    d = {'query':row}
+    d = {qhsh:row}
     for pb in pbs:
-        d[str(pb.hash)] = pb(d)
+        d[pb.hash] = pb(d)
 
     for a in acts:
         a.act(cxn=cxn,objs=objs,row=d)
@@ -183,13 +185,14 @@ def apply_parallel(inp   : T[dict, str, T['ConnI','ConnI']],
                   acts   : L[Action],
                   objs   : D[str,Obj],
                   a_id   : int,
-                  run_id : int
+                  run_id : int,
+                  qhsh   : int
                  ) -> None:
 
     r,h,(mdb,db) = inp
     open_db,open_mdb = db.connect(), mdb.connect()
     apply_and_act(pbs = f, acts = acts, objs = objs,
-                  mcxn = open_mdb, cxn = open_db, row = r, hsh = h,
+                  mcxn = open_mdb, cxn = open_db, row = r, qhsh = qhsh, hsh = h,
                   a_id = a_id, run_id = run_id)
     open_db.close(); open_mdb.close()
 
@@ -198,9 +201,10 @@ def apply_serial(inp   : T[dict,str,T['ConnI','ConnI']],
                  acts   : L[Action],
                  objs   : D[str,Obj],
                  a_id   : int,
-                 run_id : int
+                 run_id : int,
+                 qhsh   : int
                  )-> None:
     r,h,(open_mdb, open_db) = inp
     apply_and_act(pbs = f, acts = acts, objs = objs,
-                  mcxn = open_mdb, cxn = open_db, row = r, hsh = h,
+                  mcxn = open_mdb, cxn = open_db, row = r, hsh = h, qhsh = qhsh,
                   a_id = a_id, run_id = run_id)

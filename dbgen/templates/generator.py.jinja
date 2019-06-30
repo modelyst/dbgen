@@ -1,0 +1,227 @@
+##########################
+#    Check If skipped    #
+##########################
+onlyTest = Test(lambda t,o: (len(o) == 0) or (t.name in o) or any([g in t.tags for g in o]),# type: ignore
+                lambda x: "Rule not in 'Only' input specification")
+
+xTest = Test(lambda t,x:  (t.name not in x) and (not any([g in t.tags for g in x])), # type: ignore
+             lambda x: "Excluded")
+##########################
+# Initialize environment #
+##########################
+print("starting {{ genname }}")
+import time
+start = time.time()
+rows  = 0
+
+from airflow.hooks.postgres_hook import PostgresHook # type: ignore
+conn    = PostgresHook('{{ model_name }}').get_conn()
+qconn   = PostgresHook('{{ model_name }}').get_conn()
+mconn   = PostgresHook('{{ model_name }}_log').get_conn()
+updateq = mkUpdateCmd('gens',['status'],['run','name'])
+
+# To solve all the problems
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # type: ignore
+conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+
+sqlexecute(q,['running', run_id, self.name])
+
+##############################
+# Initialization for EXTRACT #
+##############################
+
+{% if query %}
+query = """ {{ query }} """
+{% endif %}
+
+################################
+# Initialization for TRANSFORM #
+################################
+
+{{ env }}
+
+{% for pyblock_name,_,pyblock_def in pyblocks %}
+def {{ pyblock_name }}(namespace : Any) -> dict:
+    {{ pyblock_def }}
+{% endfor %}
+
+{% for constfunc in constfuncs %}
+constfunc
+{% endfor %}
+
+
+# (These have been ordered deliberately)
+pyblocks = [{% for pyblock_name,pyblock_hash,_ in pyblocks %} ({{ pyblock_hash }},{{ pyblock_name }}), {% endfor %}] # type: list
+
+def TRANSFORM_{{ name }}(namespace : dict) -> dict:
+    for pyblock_hash, pyblock_func in pyblocks:
+        namespace[pyblock_hash] = pyblock_func(namespace)
+    return namespace
+
+###########################
+# Initialization for LOAD #
+###########################
+
+from hashlib import sha256
+
+def hash_(x : Any)->int:
+    return (int(sha256(str(x).encode('utf-8')).hexdigest(), 16) % 18446744073709551616) - 9223372036854775808
+
+def broadcast(args : list) -> L[list]:
+    broad_err   = "Can't broadcast: maxlen = %d, len a = %d (%s)"
+    maxlen = 1 # initialize variable
+    for a in args:
+        if isinstance(a,(list,tuple)):
+            if maxlen != 1: assert(len(a) in [1,maxlen]), broad_err%(maxlen,len(a),str(a))
+            else:   maxlen = len(a) # set variable for first (and last) time
+    def process_arg(x:Any)->list:
+        if isinstance(x,(list,tuple)) and len(x)!=maxlen:     return maxlen*list(x) # broadcast
+        elif not isinstance(x,list): return  maxlen * [x]
+        else: return x
+    return list(zip(*[process_arg(x) for x in args]))
+
+def addQs(xs:list,delim:str)->str: return delim.join(['{0} = %s'.format(x) for x in xs])
+
+def sqlexecute(q : str, binds : list = [], meta : bool = False) -> list:
+    rel_conn = mconn if meta else conn
+    with rel_conn.cursor() as cur:
+        cur.execute(q,vars=binds)
+        if 'select' in q.lower() or 'returning' in q.lower():
+            try:
+                result = cur.fetchall()
+            except Exception as e:
+                raise Exception('Query: {}\\nbinds: {}\\nerror: {}'.format(q,binds,e))
+        else:
+            result = []
+
+    return result
+
+
+objs = dict({% for obj,(pk,ids,idfks) in objs.items() %} {{ obj }} = ('{{ pk }}', {{ ids }},{{ idfks }}),\n{% endfor %}) # type: D[str,T[str,L[str],L[str]]]
+
+class Arg(object):
+    def __init__(self, key : int, name  : str) -> None: self.key = key; self.name=name
+    def arg_get(self, dic : dict) -> Any: return dic[self.key][self.name]
+class Const(object):
+    def __init__(self,val:Any) -> None: self.val = val
+    def arg_get(self, _ : dict) -> Any: return self.val
+
+class Load(object):
+    def __init__(self, obj: str, attrs : dict,fks : dict,pk : Any, insert : bool) -> None:
+        self.obj=obj;self.attrs=attrs;self.fks=fks;self.pk=pk;self.insert=insert
+
+    def act(self, row : dict) -> None:
+        self._insert(row) if self.insert else self._update(row)
+
+    def _getvals(self, row  : dict) -> T[L[int],L[list]]:
+        idattr,allattr = [],[]
+        pk,ids,id_fks = objs[self.obj]
+        for k,v in self.attrs.items():
+            val = v.arg_get(row)
+            allattr.append(val)
+            if k in ids: idattr.append(val)
+        for kk,vv in self.fks.items():
+            if vv.insert:
+                val = vv._insert(row)
+            else:
+                if not vv.pk is None:
+                    val = vv.pk.arg_get(row)
+                else:
+                    val, fk_adata = vv._getvals(row)
+
+            allattr.append(val)
+            if kk in id_fks: idattr.append(val)
+        idata,adata = broadcast(idattr),broadcast(allattr)
+        if self.pk is not None:
+            assert not idata, 'Cannot provide a PK *and* identifying info'
+            pkdata = self.pk.arg_get(row)
+            if isinstance(pkdata,int):
+                idata_prime = [pkdata]
+            elif isinstance(pkdata,list) and isinstance(pkdata[0],int): # HACKY
+                idata_prime = pkdata
+            else:
+                raise TypeError('PK should either receive an int or a list of ints',vars(self))
+        else:
+            idata_prime = list(map(hash_,idata))
+
+        if len(idata_prime) == 1: idata_prime *= len(adata) # broadcast
+
+        lenerr = 'Cannot match IDs to data: %d!=%d'
+        assert len(idata_prime) == len(adata), lenerr%(len(idata_prime),len(adata))
+        return idata_prime, adata
+
+    def _insert(self,row  : dict, ) -> L[int]:
+        objpk,_,_ = objs[self.obj]
+        pk,data = self._getvals(row)
+        if not data: return []
+        binds       = [list(x)+[u]+list(x) for x,u in zip(data,pk)] # double the binds
+        cols        = list(self.attrs.keys()) + list(self.fks.keys()) + [objpk]
+        insert_cols = ','.join(['"%s"'%x for x in cols])
+        qmarks      = ','.join(['%s']*len(cols))
+        dups        = addQs(['"%s"'%x for x in cols[:-1]],', ')
+        fmt_args    = [self.obj, insert_cols, qmarks, dups, objpk]
+        query       = """INSERT INTO {0} ({1}) VALUES ({2}) ON CONFLICT ({4}) DO UPDATE SET {3} RETURNING {4}""".format(*fmt_args)
+        ids = [sqlexecute(query,b)[0][0] for b in binds]
+        return ids
+
+    def _update(self, row  : dict ) -> list:
+        objpk,_,_ = objs[self.obj]
+        pk,data = self._getvals(row)
+        if not data: return []
+        binds = [list(x)+[u] for x,u in zip(data,pk)]
+        cols  = list(self.attrs.keys()) + list(self.fks.keys())
+        set_  = addQs(['"%s"'%x for x in cols],',')
+        query = 'UPDATE {0} SET {1} WHERE {2} = %s'.format(self.obj,set_,objpk)
+
+        for b in binds: sqlexecute(query,b)
+        return []
+
+loaders = [{% for load in loads %} {{ load }},{% endfor %}] # type: L[Load]
+
+def LOAD_{{ name }}(namespace : dict) -> None:
+    for loader in loaders:
+        loader.act(namespace)
+
+#############
+# Execution #
+#############
+
+{% if query  %}
+
+with qconn.cursor(name = '{{ name }}', cursor_factory = DictCursor) as cxn:
+    cxn.execute(query)
+    for row in cxn:
+        # To Do: repeat checking
+
+        # Do T & L on a per-row basis:
+        LOAD_{{ name }}(TRANSFORM_{{ name }}({ {{ queryhash }} : row}))
+        rows += 1
+
+{% else %}
+
+
+LOAD_{{ name }}(TRANSFORM_{{ name }}(dict(query = dict())))
+rows += 1
+
+
+{% endif %}
+
+##################################
+# Close Connections and Clean Up #
+##################################
+import time
+
+def mkUpdateCmd(tabName  : str,names   : List[str],keys    : List[str]) -> str:
+    fmt_args = [tabName,addQs(names,','),addQs(keys,' AND ')]
+    return "UPDATE {} SET {} WHERE {}".format(*fmt_args)
+
+duration = time.time() - start
+rate   = rows / duration
+
+sqlexecute(q,['completed', run_id, self.name])
+
+q = mkUpdateCmd('gens',['runtime','rate','n_inputs'],['run','name'])
+sqlexecute(finishq, [duration,rate,rows,{{ run }}, '{{ genname}}'], meta = True)
+print('finished {{ genname }}')
+
+conn.close();mconn.close();qconn.close()
