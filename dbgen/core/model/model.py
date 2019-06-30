@@ -9,6 +9,7 @@ from networkx.algorithms import simple_cycles # type: ignore
 # Internal
 from dbgen.core.model.run_gen   import run_gen
 from dbgen.core.model.run       import run, check_patheq,validate_name
+from dbgen.core.model.run_airflow       import run_airflow
 from dbgen.core.model.metatable import make_meta
 
 from dbgen.core.gen        import Gen
@@ -68,6 +69,7 @@ class Model(Schema):
     # Externally defined #
     ######################
     run              = run
+    run_airflow      = run_airflow
     _validate_name   = validate_name
     _run_gen         = run_gen
     _make_metatables = make_meta

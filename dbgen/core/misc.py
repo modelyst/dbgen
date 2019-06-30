@@ -13,7 +13,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.gen import Gen
-    Gen
+    from airflow.hooks.connections import Connection
 
 from dbgen.utils.misc import Base
 """
@@ -113,6 +113,18 @@ class ConnectInfo(Base):
         assert exists(pth), 'Error loading connection info: no file at '+pth
         with open(pth,'r') as f:
             return ConnectInfo(**load(f))
+
+    @staticmethod
+    def from_postgres_hook(airflow_connection : 'Connection') -> 'ConnectInfo':
+        """
+        Create from path to file with ConnectInfo fields in JSON format
+        """
+        kwargs = dict(host        = airflow_connection.host,
+                      port        = airflow_connection.port,
+                      user        = airflow_connection.login,
+                      passwd      = airflow_connection.get_password(),
+                      db          = airflow_connection.schema)
+        return ConnectInfo(**kwargs)
 
     def neutral(self) -> Connection:
         copy = self.copy()

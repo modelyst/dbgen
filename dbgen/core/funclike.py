@@ -8,6 +8,7 @@ from typing     import (Any,
 
 from abc        import ABCMeta, abstractmethod
 from traceback  import format_exc
+from jinja2     import Template
 
 # Internal
 from dbgen.core.func   import Func, Env
@@ -27,18 +28,20 @@ class ArgLike(Base,metaclass=ABCMeta):
     @abstractmethod
     def arg_get(self, dic : dict) -> Any:
         raise NotImplementedError
-
+    @abstractmethod
+    def make_src(self, meta : bool = False) -> str:
+        raise NotImplementedError
 class Arg(ArgLike):
     """
     How a function refers to a namespace
     """
 
-    def __init__(self, key : str, name  : str) -> None:
-        self.key  = key.lower()
+    def __init__(self, key : int, name  : str) -> None:
+        self.key  = key
         self.name = name.lower()
 
     def __str__(self) -> str:
-        return 'Arg(%s...,%s)'%(self.key[:4],self.name)
+        return 'Arg(%s...,%s)'%(str(self.key)[:4],self.name)
 
     # Public methods #
 
@@ -60,6 +63,11 @@ class Arg(ArgLike):
         q = mkInsCmd('_arg',['gen_id','block_id','hashkey','name'])
         sqlexecute(cxn,q,[act,block,self.key,self.name])
 
+    def make_src(self, meta:bool=False) -> str:
+        key = repr(self.key) if isinstance(self.key,str) else self.key
+        if meta: return "Arg(%s,'%s')"%(key,self.name)
+        else:    return 'namespace[%s]["%s"]'%(key,self.name)
+
 class Const(ArgLike):
     def __init__(self,val:Any) -> None:
         if hasattr(val,'__call__'):
@@ -70,6 +78,9 @@ class Const(ArgLike):
         return 'Const<%s>'%self.val
     def arg_get(self, _ : dict) -> Any:
         return self.val
+    def make_src(self, meta:bool=False) -> str:
+        if meta: return "Const(%s)"+repr(self.val)
+        else:    return repr(self.val)
 
 class PyBlock(Base):
     """
@@ -129,7 +140,7 @@ class PyBlock(Base):
     def __getitem__(self, key : str) -> Arg:
         err = '%s not found in %s'
         assert key.lower() in self.outnames, err %(key,self.outnames)
-        return Arg(str(self.hash),key.lower())
+        return Arg(self.hash,key.lower())
     # Public Methods #
 
     def add(self,cxn:Conn,a_id:int,b_id:int)->None:
@@ -143,3 +154,15 @@ class PyBlock(Base):
         '''Throw error if any tests are failed'''
         for args,target in self.tests:
             assert self.func(*args) == target
+
+    def make_src(self) -> str:
+        template = '''
+{{ src }}
+
+outnames = [{% for oname in outnames %}'{{ oname }}', {% endfor %}]
+return dict(zip(outnames,{{ name }}({% for arg in args %} {{ arg }}, {% endfor %})))
+    '''
+        args = [a.make_src() for a in self.args]
+        name = self.func.name.replace('<lambda>','func')
+        src  =('func=' if '<lambda>' in self.func.name else '')+self.func.src.replace('\t','   ')
+        return Template(template).render(src=src,outnames=self.outnames,args=args, name = name).replace('\n','\n\t')

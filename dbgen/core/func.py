@@ -68,6 +68,12 @@ class Import(Base):
             terms = list(self.unaliased_terms) + als
             return 'from %s import %s'%(self.lib,', '.join(terms))
 
+    def __eq__(self, other : object)->bool:
+        return False if not isinstance(other,Import) else vars(self) == vars(other)
+
+    def __hash__(self) -> int:
+        return self.hash
+
     @staticmethod
     def from_str(s : str) -> 'Import':
         '''Parse a header line (parens not supported yet)'''
@@ -100,7 +106,7 @@ class Env(Base):
         return '\n'.join(map(str,self.imports))
 
     def __add__(self, other : 'Env') -> 'Env':
-        return Env(*(self.imports + other.imports))
+        return Env(*set(self.imports + other.imports))
 
     # Public methods #
 

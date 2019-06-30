@@ -6,8 +6,8 @@ from typing import (Any, TYPE_CHECKING,
                     Tuple    as T,
                     Union    as U)
 from collections import OrderedDict
-from networkx    import DiGraph               # type: ignore
-
+from networkx import DiGraph # type: ignore
+from jinja2 import Template
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
@@ -201,3 +201,13 @@ class Action(Base):
         query = 'UPDATE {0} SET {1} WHERE {2} = %s'.format(self.obj,set_,objid)
 
         for b in binds: sqlexecute(cxn,query,b)
+
+    def make_src(self) -> str:
+        """
+        Output a stringified version of action that can be run in an Airflow PythonOperator
+        """
+        attrs    = ','.join(['%s=%s'%(k,v.make_src(meta=True)) for k,v in self.attrs.items()])
+        template = '''Load(obj= '{{ obj }}',attrs= dict({{attrs}}),fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})'''
+        fks      = ','.join(['%s=%s'%(k,v.make_src()) for k,v in self.fks.items()])
+        pk       = None if self.pk is None else self.pk.make_src(meta=True)
+        return Template(template).render(obj=self.obj,attrs=attrs,fks=fks,pk=pk,insert=self.insert)

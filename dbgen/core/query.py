@@ -79,7 +79,7 @@ class Query(Expr):
     def __getitem__(self, key : str)->Arg:
         err = '%s not found in query exprs %s'
         assert key in self.exprs, err%(key,self.exprs)
-        return Arg('query',key)
+        return Arg(self.hash,key)
 
     ####################
     # Abstract methods #

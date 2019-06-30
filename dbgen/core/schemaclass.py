@@ -69,6 +69,12 @@ class Schema(Base):
             q = 'CREATE OR REPLACE VIEW "{}" AS {};'.format(vn,self._show_view(vn))
             sqlexecute(cxn,q)
 
+    def check_schema_exists(self, conn : ConnI)->bool:
+        cxn = conn.connect()
+        q = 'SELECT table_name from information_schema.tables where table_schema = \'public\''
+        tables_in_db = [x[0] for x in sqlselect(cxn,q)]
+        return all([obj in tables_in_db for obj in self.objs])
+
     ################
     # Adding stuff #
     ################
@@ -155,7 +161,7 @@ class Schema(Base):
             stmt = "ALTER TABLE %s ADD COLUMN %s"%(obj.name,col_name)
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
-        rel_stmts  = [self._create_fk(rel) for rel in self._obj_fks(obj.name)]
+        rel_stmts  = [self._create_fk(rel) for rel in obj.fks.values()]
         return attr_stmts + rel_stmts
 
     #########

@@ -216,7 +216,6 @@ class Obj(Base):
             if not isinstance(v,Action):
                 # We OUGHT have a reference to a FK from a query
                 assert isinstance(v,Arg)
-                assert v.key == 'query', 'Is %s really a relation of %s?'%(k,self.name)
 
                 fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v)
 
