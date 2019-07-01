@@ -58,6 +58,15 @@ class Action(Base):
     ##################
     # Public methods #
     ###################
+    def tabdeps(self) -> L[str]:
+        '''All tables that are updated (they must already exist, is the logic)'''
+        deps = []
+        # Check if we are updating; if so we depend on
+        if not self.insert: deps.append(self.obj)
+        for fk in self.fks.values():
+            deps.extend(fk.tabdeps())
+        return deps
+
     def newtabs(self) -> L[str]:
         '''All tables that could be inserted into this action'''
         out = [self.obj] if self.insert else []

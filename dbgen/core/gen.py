@@ -94,6 +94,7 @@ class Gen(Base):
         newtabs,newcols = [], [] # type: T[L[str],L[str]]
 
         for a in self.actions:
+            tabdeps.extend(a.tabdeps())
             newtabs.extend(a.newtabs())
             newcols.extend(a.newcols())
 
