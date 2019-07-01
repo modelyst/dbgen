@@ -1,18 +1,48 @@
 ##########################
 #    Check If skipped    #
 ##########################
-onlyTest = Test(lambda t,o: (len(o) == 0) or (t.name in o) or any([g in t.tags for g in o]),# type: ignore
-                lambda x: "Rule not in 'Only' input specification")
-
-xTest = Test(lambda t,x:  (t.name not in x) and (not any([g in t.tags for g in x])), # type: ignore
-             lambda x: "Excluded")
+# onlyTest = Test(lambda t,o: (len(o) == 0) or (t.name in o) or any([g in t.tags for g in o]),# type: ignore
+#                 lambda x: "Rule not in 'Only' input specification")
+#
+# xTest = Test(lambda t,x:  (t.name not in x) and (not any([g in t.tags for g in x])), # type: ignore
+#              lambda x: "Excluded")
 ##########################
 # Initialize environment #
 ##########################
+# To solve all the problems
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # type: ignore
+
+
+
 print("starting {{ genname }}")
 import time
+from typing import List
 start = time.time()
 rows  = 0
+
+def addQs(xs:list,delim:str)->str: return delim.join(['{0} = %s'.format(x) for x in xs])
+
+def mkUpdateCmd(tabName  : str,names   : List[str],keys    : List[str]) -> str:
+    fmt_args = [tabName,addQs(names,','),addQs(keys,' AND ')]
+    return "UPDATE {} SET {} WHERE {}".format(*fmt_args)
+
+def update_status(status:str)->None:
+  q = mkUpdateCmd('gens',['status'],['run','name'])
+  sqlexecute(q,[status, {{ run }}, '{{ genname }}'],meta=True)
+
+def sqlexecute(q : str, binds : list = [], meta : bool = False) -> list:
+    rel_conn = mconn if meta else conn
+    with rel_conn.cursor() as cur:
+        cur.execute(q,vars=binds)
+        if 'select' in q.lower() or 'returning' in q.lower():
+            try:
+                result = cur.fetchall()
+            except Exception as e:
+                raise Exception('Query: {}binds: {}error: {}'.format(q,binds,e))
+        else:
+            result = []
+
+    return result
 
 from airflow.hooks.postgres_hook import PostgresHook # type: ignore
 conn    = PostgresHook('{{ model_name }}').get_conn()
@@ -20,12 +50,10 @@ qconn   = PostgresHook('{{ model_name }}').get_conn()
 mconn   = PostgresHook('{{ model_name }}_log').get_conn()
 updateq = mkUpdateCmd('gens',['status'],['run','name'])
 
-# To solve all the problems
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # type: ignore
 conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+mconn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
-sqlexecute(q,['running', run_id, self.name])
-
+update_status('running')
 ##############################
 # Initialization for EXTRACT #
 ##############################
@@ -80,24 +108,8 @@ def broadcast(args : list) -> L[list]:
         else: return x
     return list(zip(*[process_arg(x) for x in args]))
 
-def addQs(xs:list,delim:str)->str: return delim.join(['{0} = %s'.format(x) for x in xs])
 
-def sqlexecute(q : str, binds : list = [], meta : bool = False) -> list:
-    rel_conn = mconn if meta else conn
-    with rel_conn.cursor() as cur:
-        cur.execute(q,vars=binds)
-        if 'select' in q.lower() or 'returning' in q.lower():
-            try:
-                result = cur.fetchall()
-            except Exception as e:
-                raise Exception('Query: {}\\nbinds: {}\\nerror: {}'.format(q,binds,e))
-        else:
-            result = []
-
-    return result
-
-
-objs = dict({% for obj,(pk,ids,idfks) in objs.items() %} {{ obj }} = ('{{ pk }}', {{ ids }},{{ idfks }}),\n{% endfor %}) # type: D[str,T[str,L[str],L[str]]]
+objs = dict({% for obj,(pk,ids,idfks) in objs.items() %} {{ obj }} = ('{{ pk }}', {{ ids }},{{ idfks }}),{% endfor %}) # type: D[str,T[str,L[str],L[str]]]
 
 class Arg(object):
     def __init__(self, key : int, name  : str) -> None: self.key = key; self.name=name
@@ -211,17 +223,13 @@ rows += 1
 ##################################
 import time
 
-def mkUpdateCmd(tabName  : str,names   : List[str],keys    : List[str]) -> str:
-    fmt_args = [tabName,addQs(names,','),addQs(keys,' AND ')]
-    return "UPDATE {} SET {} WHERE {}".format(*fmt_args)
-
 duration = time.time() - start
 rate   = rows / duration
 
-sqlexecute(q,['completed', run_id, self.name])
 
-q = mkUpdateCmd('gens',['runtime','rate','n_inputs'],['run','name'])
+finishq = mkUpdateCmd('gens',['runtime','rate','n_inputs'],['run','name'])
 sqlexecute(finishq, [duration,rate,rows,{{ run }}, '{{ genname}}'], meta = True)
-print('finished {{ genname }}')
+
+update_status('completed')
 
 conn.close();mconn.close();qconn.close()

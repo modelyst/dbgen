@@ -76,7 +76,7 @@ def run_airflow(self      : 'Model',
                            schedule_interval = sched,
                            date              = datetime.date(datetime.now()))
 
-    dag_template = jinja_env.get_template('run_airflow.py.template')
+    dag_template = jinja_env.get_template('run_airflow.py.jinja')
     dag_file_contents = dag_template.render(**template_kwargs)
 
     # Write the contents of the dag file to the
