@@ -215,7 +215,10 @@ class Obj(Base):
         for k,v in fks.items():
             if not isinstance(v,Action):
                 # We OUGHT have a reference to a FK from a query
-                assert isinstance(v,Arg)
+                try:
+                    assert isinstance(v,Arg)
+                except AssertionError:
+                    import pdb; pdb.set_trace()
 
                 fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v)
 
