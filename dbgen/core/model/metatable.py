@@ -213,7 +213,7 @@ def make_meta(self   : 'Model',
         #print(i,u)
         v = u.query
         q = v.showQ() if v else ''
-        td,cd,nt,nc = u.dep().all()
+        td,cd,nt,nc = u.dep(self.objs).all()
         b = ','.join(v.basis) if v else ''
 
         safex(gmcxn,aq,[run_id,u.add(gmcxn),u.name,'initialized',u.desc,q,

@@ -77,7 +77,7 @@ class Gen(Base):
         '''Unique hash function to this Generator'''
         return hash_(str(self.hash) + str(x))
 
-    def dep(self) -> Dep:
+    def dep(self,universe:D[str,Obj]) -> Dep:
         '''
         Determine the tabs/cols that are both inputs and outputs to the Gen
         '''
@@ -96,7 +96,7 @@ class Gen(Base):
         for a in self.actions:
             tabdeps.extend(a.tabdeps())
             newtabs.extend(a.newtabs())
-            newcols.extend(a.newcols())
+            newcols.extend(a.newcols(universe))
 
         # Allow for unethical hacks
         for t in self.tags:
@@ -128,12 +128,12 @@ class Gen(Base):
             g.actions[i] = a.rename_object(o,n)
         return g
 
-    def purge(self, conn : Conn, mconn : Conn) -> None:
+    def purge(self, conn : Conn, mconn : Conn,universe:D[str,Obj]) -> None:
         '''
         If a generator is purged, then any
         tables it populates will be truncated. Any columns it populates will be set all
         to NULL'''
-        d = self.dep()
+        d = self.dep(universe)
         tabs,cols = d.tabs_yielded,d.cols_yielded
         for t in tabs:
             sqlexecute(conn,'TRUNCATE {} CASCADE'.format(t))

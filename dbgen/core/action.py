@@ -74,11 +74,14 @@ class Action(Base):
             out.extend(a.newtabs())
         return out
 
-    def newcols(self) -> L[str]:
+    def newcols(self, universe : D[str,'Obj']) -> L[str]:
         '''All attributes that could be populated by this action'''
-        out = [self.obj+'.'+a for a in self.attrs.keys()]
+        obj = universe[self.obj]
+        out = [self.obj+'.'+a for a in self.attrs.keys()
+                if (self.insert or (a not in obj.ids()))]
         for k,a in self.fks.items():
-            out.extend([self.obj+'.'+k] + a.newcols())
+            if (self.insert or (k not in obj.id_fks())):
+                out.extend([self.obj+'.'+k] + a.newcols(universe))
         return out
 
     def act(self,

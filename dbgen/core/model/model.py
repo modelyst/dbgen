@@ -246,7 +246,7 @@ class Model(Schema):
         # Remove generators that mention object
         delgen = []
         for gn,g in self.gens.items():
-            gobjs = g.dep().tabs_needed | g.dep().tabs_yielded
+            gobjs = g.dep(self.objs).tabs_needed | g.dep(self.objs).tabs_yielded
             if o.name in gobjs:
                 delgen.append(gn)
         for gn in delgen:
@@ -311,7 +311,7 @@ class Model(Schema):
             for gname in small:
                 g = self.gens[gname]
                 print('\n################\n',g.name)
-                for k,v in vars(g.dep()).items():
+                for k,v in vars(g.dep(self.objs)).items():
                     print(k,v)
             import pdb;pdb.set_trace(); assert False
 
@@ -322,7 +322,7 @@ class Model(Schema):
         ''' Make a graph out of generator dependencies '''
         G = DiGraph()
 
-        ddict = {a:g.dep() for a,g in self.gens.items()}
+        ddict = {a:g.dep(self.objs) for a,g in self.gens.items()}
         G.add_nodes_from(list(self.gens.keys()))
         for a1 in self.gens.keys():
             d1 = ddict[a1]
@@ -341,5 +341,5 @@ class Model(Schema):
             allattr.add(r.o1+'.'+r.name)
         alldone = set()
         for g in self.gens.values():
-            alldone.update(g.dep().cols_yielded)
+            alldone.update(g.dep(self.objs).cols_yielded)
         return allattr - alldone
