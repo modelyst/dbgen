@@ -83,16 +83,17 @@ def sqlexecute(conn : Connection, q : str, binds : list = []) -> list:
                 if e.args[0] in [1205,1213]: # deadlock error codes
                     print('SLEEPING');sleep(10)
                 else:
+                    print(q)
                     raise Error(e)
 
-def sqlexecutemany(conn : Connection, q : str, binds : List[list]) -> list:
+def sqlexecutemany(conn : Connection, q : str, binds : List[list]) -> None:
     #print('\n\nexecutemany : \n'+q,binds)
     #print('\n\n(with substitution)\n',sub(q,binds[0]))
     with conn.cursor() as cxn: # type: ignore
         while True:
             try:
                 execute_batch(cur=cxn, sql=q, argslist=binds)
-                return cxn.fetchall()
+                # return cxn.fetchall()
                 break
             except Error as e:
                 if  e.args[0] in [1205,1213]: # deadlock error codes

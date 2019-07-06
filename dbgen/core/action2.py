@@ -8,6 +8,7 @@ from typing import (Any, TYPE_CHECKING,
 from collections import OrderedDict
 from networkx import DiGraph # type: ignore
 from jinja2 import Template
+from io import StringIO
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
@@ -32,6 +33,47 @@ class Action(Base):
     that knows how to update the database (these methods could easily be for
     Model, but we don't want to send the entire model just to do this small thing)
     """
+    insert_template = \
+        """
+INSERT INTO {{obj}}
+({% for column in all_column_names %}{{column}}{{ ", " if not loop.last }}{% endfor %})
+SELECT
+{% for column in all_column_names %}{{column}}{{ "," if not loop.last }}
+{% endfor %}
+FROM (
+  SELECT
+    {% for column in all_column_names %}{{column}},
+    {% endfor %}
+    ROW_NUMBER() OVER (PARTITION BY {{obj_pk_name}}
+               ORDER BY auto_inc {{ "ASC" if first else "DESC"}}) AS row_number
+  FROM
+    {{temp_table_name}}) AS X
+WHERE
+  row_number = 1 ON CONFLICT ({{obj_pk_name}})
+  DO
+  UPDATE
+  SET
+  {% if not update %}
+    {{obj_pk_name}} = excluded.{{obj_pk_name}}
+  {% else %}
+    {% for column in all_column_names %}{{column}} = excluded.{{column}}{{ "," if not loop.last }}
+    {% endfor %}
+  {% endif %}
+  RETURNING
+    {{obj_pk_name}}
+        """
+    update_template = \
+        """
+UPDATE
+    {{obj}}
+SET
+    {% for column in all_column_names %}{{column}} = {{temp_table_name}}.{{column}}{{ "," if not loop.last }}
+    {% endfor %}
+FROM
+    {{temp_table_name}}
+WHERE
+    {{obj}}.{{obj_pk_name}} = {{temp_table_name}}.{{obj_pk_name}};
+        """
     def __init__(self,
                  obj    : str,
                  attrs  : D[str,ArgLike],
@@ -87,16 +129,17 @@ class Action(Base):
     def act(self,
             cxn  : Conn,
             objs : D[str,'Obj'],
-            row  : dict
+            rows  : L[dict]
            ) -> None:
         '''
         Top level call from a Generator to execute an action (top level is
         always insert or update, never just a select)
         '''
-        if self.insert:
-            self._insert(cxn,objs,row)
-        else:
-            self._update(cxn,objs,row)
+        self._load(cxn,objs,rows, insert = self.insert)
+        # if self.insert:
+        #     self._insert(cxn,objs,row)
+        # else:
+        #     self._update(cxn,objs,row)
 
     def rename_object(self, o : 'Obj', n :str) -> 'Action':
         '''Replaces all references to a given object to one having a new name'''
@@ -130,13 +173,10 @@ class Action(Base):
                 idattr.append(val)
 
         for kk,vv in self.fks.items():
-            if vv.insert:
-                val = vv._insert(cxn,objs,row)
+            if not vv.pk is None:
+                val = vv.pk.arg_get(row)
             else:
-                if not vv.pk is None:
-                    val = vv.pk.arg_get(row)
-                else:
-                    val, fk_adata = vv._getvals(cxn, objs, row)
+                val, fk_adata = vv._getvals(cxn, objs, row)
 
             allattr.append(val)
             if kk in obj.id_fks():
@@ -161,59 +201,109 @@ class Action(Base):
         assert len(idata_prime) == len(adata), lenerr%(len(idata_prime),len(adata))
         return idata_prime, adata
 
-    def _insert(self,
+    def _data_to_stringIO(self,
+                          pk   : L[int],
+                          data : L[list],
+                          obj_pk_name : str,
+                          )->StringIO:
+        """
+        Function takes in a path to a delimited file and returns a IO object
+        where the identifying columns have been hashed into a primary key in the
+        first ordinal position of the table. The hash uses the id_column_names
+        so that only ID info is hashed into the hash value
+        """
+        # All ro
+        output_file_obj = StringIO()
+        cols = list(self.attrs.keys()) + list(self.fks.keys()) + [obj_pk_name]
+        for i, (pk_curr, row_curr) in enumerate(zip(pk,data)):
+            full_row = [pk_curr]+list(row_curr)
+            output_file_obj.write('\t'.join(map(str,full_row))+'\n')
+
+        output_file_obj.seek(0)
+
+        return output_file_obj
+
+    def _load(self,
                 cxn  : Conn,
                 objs : D[str,'Obj'],
-                row  : dict,
-               ) -> L[int]:
+                rows : L[dict],
+                insert : bool
+              ) -> L[int]:
         '''
         Helpful docstring
         '''
 
+        for kk,vv in self.fks.items():
+            if vv.insert:
+                val = vv._load(cxn,objs,rows, insert=True)
+
         obj = objs[self.obj]
-        pk,data = self._getvals(cxn,objs,row)
+        pk,data = [], []
+        for row in rows:
+            pk_curr,data_curr = self._getvals(cxn,objs,row)
+            pk.extend(pk_curr)
+            data.extend(data_curr)
+        io_obj = self._data_to_stringIO(pk, data, obj._id)
         if not data: return []
 
-        binds = [list(x)+[u]+list(x) for x,u in zip(data,pk)] # double the binds
 
-        # Prepare insertion query
-        #------------------------
-        cols        = list(self.attrs.keys()) + list(self.fks.keys()) + [obj._id]
-        insert_cols = ','.join(['"%s"'%x for x in cols])
-        qmarks      = ','.join(['%s']*len(cols))
-        dups        = addQs(['"%s"'%x for x in cols[:-1]],', ')
-        fmt_args    = [self.obj, insert_cols, qmarks, dups, obj._id]
-        query       = """INSERT INTO {0} ({1}) VALUES ({2})
-                         ON CONFLICT ({4}) DO UPDATE SET {3}
-                         RETURNING {4}""".format(*fmt_args)
+        # Temporary table to copy data into
+        # Set name to be hash of input rows to ensure uniqueness for parallelization
+        temp_table_name = self.obj+'_temp_load_table_'+str(hash_(rows)).replace('-','neg')
 
-        ids = [sqlexecute(cxn,query,b)[0][0] for b in binds]
+        # Need to create a temp table to copy data into
+        # Add an auto_inc column so that data can be ordered by its insert location
+        create_temp_table = \
+        """
+        DROP TABLE IF EXISTS {temp_table_name};
+        CREATE TABLE {temp_table_name} AS
+        TABLE {obj}
+        WITH NO DATA;
+        ALTER TABLE {temp_table_name}
+        ADD COLUMN auto_inc SERIAL NOT NULL;
+        """.format(obj = self.obj, temp_table_name = temp_table_name)
+        sqlexecute(cxn,create_temp_table)
+
+        cols        = [obj._id]+list(self.attrs.keys()) + list(self.fks.keys())
+
+        if insert:
+            template = self.insert_template
+        else:
+            template = self.update_template
+
+        first = False
+        update = True
+        template_args = dict(
+            obj              = self.obj,
+            obj_pk_name      = obj._id,
+            temp_table_name  = temp_table_name,
+            all_column_names = cols,
+            first            = first,
+            update           = update
+        )
+        load_statement = Template(template).render(**template_args)
+
+        with cxn.cursor() as curs:
+            curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
+
+        sqlexecute(cxn,load_statement)
+        get_ids_statement = \
+        """
+        SELECT
+        	{obj_pk_name}
+        FROM
+        	{temp}
+        ORDER BY
+        	auto_inc ASC
+        """.format(obj_pk_name = obj._id, temp = temp_table_name)
+        ids = [x[0] for x in sqlexecute(cxn,get_ids_statement)]
+        clean_up = \
+        """
+        DROP TABLE {temp_table_name}
+        """.format(temp_table_name = temp_table_name)
+        sqlexecute(cxn, clean_up)
         return ids
 
-    def _update(self,
-                cxn  : Conn,
-                objs : D[str,'Obj'],
-                row  : dict
-                ) -> None:
-        '''
-        Update but we don't have a PK
-        # Can't this validation be done once before anything is run?
-        # for a in self.attrs:
-        #     if a in obj.ids():  raise ValueError('Cannot update an identifying attribute: ',a)
-        # for f in self.fks:
-        #     if f in obj.id_fks(): raise ValueError('Cannot update an identifying FK',f)
-        '''
-        obj = objs[self.obj]
-        pk,data = self._getvals(cxn,objs,row)
-        if not data: return None
-
-        binds = [list(x)+[u] for x,u in zip(data,pk)]
-        cols  = list(self.attrs.keys()) + list(self.fks.keys())
-        set_  = addQs(['"%s"'%x for x in cols],',\n\t\t\t')
-        objid = objs[self.obj]._id
-        query = 'UPDATE {0} SET {1} WHERE {2} = %s'.format(self.obj,set_,objid)
-
-        for b in binds: sqlexecute(cxn,query,b)
 
     def make_src(self) -> str:
         """

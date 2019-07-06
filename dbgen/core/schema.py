@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     Model,Query,Schema
 
 from dbgen.core.sqltypes   import SQLType, Int
-from dbgen.core.action     import Action
+from dbgen.core.action2     import Action
 from dbgen.core.misc       import Dep
 from dbgen.core.expr       import PathAttr, Expr,  PK, Literal as Lit
 from dbgen.core.pathconstraint import Path as AP

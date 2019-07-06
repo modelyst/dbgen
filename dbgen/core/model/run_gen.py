@@ -4,13 +4,12 @@ from typing import (TYPE_CHECKING,
                      List     as L,
                      Dict     as D,
                      Tuple    as T)
-
 from time            import time
 from multiprocessing import cpu_count,get_context
 from functools       import partial
 from tqdm            import tqdm                                    # type: ignore
 from networkx        import DiGraph               # type: ignore
-
+from math            import ceil
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
@@ -20,11 +19,12 @@ from dbgen.core.schema          import Obj
 from dbgen.core.misc            import ConnectInfo as ConnI
 from dbgen.core.gen             import Gen
 from dbgen.core.funclike        import PyBlock
-from dbgen.core.action          import Action
+from dbgen.core.action2          import Action
 from dbgen.core.misc            import ExternalError
 
+from dbgen.utils.lists          import broadcast, batch
 from dbgen.utils.numeric        import safe_div
-from dbgen.utils.sql            import (sqlexecute,sqlselect,mkSelectCmd,
+from dbgen.utils.sql            import (sqlexecutemany, sqlexecute,sqlselect,mkSelectCmd,
                                     mkUpdateCmd,select_dict, Connection as Conn)
 from dbgen.utils.str_utils      import hash_
 ###########################################
@@ -109,27 +109,29 @@ def run_gen(self   : 'Model',
 
             if len(inputs)>0:
                 if retry_: # skip repeat checking
-                    inputs = [(x,hasher(x),cxns) for x in inputs] # type: ignore
+                    inputs = [(x,hasher(x)) for x in inputs] # type: ignore
                 else:
                     with tqdm(total=1,desc='repeat_checking',**bargs) as tq:
                         unfiltered_inputs = [(x,hasher(x)) for x in inputs] # type: ignore
                         rpt_select = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
                         rpts = set([x[0] for x in sqlselect(gmcxn,rpt_select,[a_id])])
-                        inputs = [(x,hx,cxns) for x,hx in unfiltered_inputs if hx not in rpts]
+                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpts]
                         tq.set_description('repeat_checking (selecting non-repeats)')
                         tq.update()
 
             tot = len(inputs)
-            with tqdm(total=tot, desc='applying', **bargs) as tq:
-                f = partial(applyfunc,
+            batch_size = int(1e6)
+            with tqdm(total=ceil(tot/batch_size), desc='applying', **bargs) as tq:
+                f = partial(apply_batch,
                             f      = gen.funcs,
                             acts   = gen.actions,
                             objs   = self.objs,
                             a_id   = a_id,
                             qhsh   = gen.query.hash if gen.query else 0,
-                            run_id = run_id)
+                            run_id = run_id,
+                            cxns   = cxns)
 
-                for _ in mapper(f, inputs): # type: ignore
+                for _ in mapper(f, batch(inputs,n=batch_size)): # type: ignore
                     tq.update()
 
         # Closing business
@@ -175,7 +177,7 @@ def apply_and_act(pbs    : L[PyBlock],
         d[pb.hash] = pb(d)
 
     for a in acts:
-        a.act(cxn=cxn,objs=objs,row=d)
+        a.act(cxn=cxn,objs=objs,rows=[d])
 
     # If successful, store input+gen_id hash in metadb
     sqlexecute(mcxn, ins_rpt_stmt, [a_id, run_id, hsh])
@@ -208,3 +210,37 @@ def apply_serial(inp   : T[dict,str,T['ConnI','ConnI']],
     apply_and_act(pbs = f, acts = acts, objs = objs,
                   mcxn = open_mdb, cxn = open_db, row = r, hsh = h, qhsh = qhsh,
                   a_id = a_id, run_id = run_id)
+
+
+def apply_batch(inp     : L[T[dict,int]],
+                 f      : L[PyBlock],
+                 acts   : L[Action],
+                 objs   : D[str,Obj],
+                 a_id   : int,
+                 run_id : int,
+                 qhsh   : int,
+                 cxns   : T[Conn, Conn]
+                 )-> None:
+    open_mdb,open_db = cxns
+
+    processed_namespaces = [] # type: L[D[int,Any]]
+    processed_hashes     = [] # type: L[int]
+
+    bargs        = dict(leave = False, position = 2)
+    with tqdm(total=len(inp), desc='Transforming', **bargs ) as tq:
+        for row, hash in inp:
+            d = {qhsh:row}
+            for pb in f:
+                d[pb.hash] = pb(d)
+
+            processed_namespaces.append(d)
+            processed_hashes.append(hash)
+            tq.update()
+
+    with tqdm(total=len(acts), desc='Loading', **bargs ) as tq:
+        for a in acts:
+            a.act(cxn=open_db,objs=objs,rows=processed_namespaces)
+
+    with tqdm(total=1, desc='Storing Repeats', **bargs ) as tq:
+        repeat_values = broadcast([a_id,run_id,processed_hashes])
+        sqlexecutemany(open_mdb, ins_rpt_stmt,repeat_values)

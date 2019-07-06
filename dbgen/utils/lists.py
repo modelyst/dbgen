@@ -1,7 +1,8 @@
 from typing  import (Any, TypeVar,
                      List     as L,
                      Dict     as D,
-                     Callable as C)
+                     Callable as C,
+                     Iterable)
 from decimal  import Decimal
 from datetime import datetime
 ##############################################################################
@@ -75,3 +76,12 @@ def broadcast(args : list) -> L[list]:
     #     return broadcasted
     # else:
     return list(zip(*broadcasted))
+##############################################################
+def batch(iterable : list, n : int = 1)->Iterable:
+    """
+    returns an iterable that where every iteration
+    returns n of items from the original list
+    """
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
