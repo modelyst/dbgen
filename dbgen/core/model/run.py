@@ -28,7 +28,8 @@ def run(self      : 'Model',
         until     : str = '',
         serial    : bool = False,
         bar       : bool = True,
-        clean     : bool = False
+        clean     : bool = False,
+        batch     : int  = 1000000
        ) -> None:
     '''
     This method is point of the model: to run and generate a database according
@@ -159,7 +160,8 @@ def run(self      : 'Model',
                 gen.update_status(gmcxn,run_id,'running')
                 err_tot += self._run_gen(gen=gen,gmcxn=gmcxn,gcxn=gcxn,
                                       mconn=meta_conn,conn=conn,run_id=run_id,
-                                      retry=retry,serial=serial,bar=bar)
+                                      retry=retry,serial=serial,bar=bar,
+                                      batch = batch)
 
             tq.update()
 
