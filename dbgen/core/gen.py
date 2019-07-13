@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from dbgen.core.func     import Env, Import, defaultEnv, Func
 from dbgen.core.funclike import PyBlock, Arg
-from dbgen.core.action   import Action
+from dbgen.core.action2   import Action
 from dbgen.core.query    import Query
 from dbgen.core.misc     import Dep
 from dbgen.core.schema   import Obj

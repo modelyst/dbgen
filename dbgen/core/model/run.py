@@ -161,7 +161,7 @@ def run(self      : 'Model',
                 err_tot += self._run_gen(gen=gen,gmcxn=gmcxn,gcxn=gcxn,
                                       mconn=meta_conn,conn=conn,run_id=run_id,
                                       retry=retry,serial=serial,bar=bar,
-                                      batch = batch)
+                                      batch_size = batch)
 
             tq.update()
 

@@ -47,7 +47,7 @@ def run_gen(self   : 'Model',
             retry  : bool = False,
             serial : bool = False,
             bar    : bool = False,
-            batch  : int = 1000000
+            batch_size  : int = 1000000
            ) -> int:
     """
     Executes a SQL query, then maps each output over a processing function.
@@ -121,8 +121,7 @@ def run_gen(self   : 'Model',
                         tq.update()
 
             tot = len(inputs)
-            batch_size = int(1e10)
-            with tqdm(total=ceil(tot/batch), desc='applying', **bargs) as tq:
+            with tqdm(total=ceil(tot/batch_size), desc='applying', **bargs) as tq:
                 f = partial(apply_batch,
                             f      = gen.funcs,
                             acts   = gen.actions,
@@ -132,7 +131,7 @@ def run_gen(self   : 'Model',
                             run_id = run_id,
                             cxns   = cxns)
 
-                for _ in mapper(f, batch(inputs,n=batch)): # type: ignore
+                for _ in mapper(f, batch(inputs,n=batch_size)): # type: ignore
                     tq.update()
 
         # Closing business
