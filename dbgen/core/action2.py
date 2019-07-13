@@ -9,6 +9,7 @@ from collections import OrderedDict
 from networkx import DiGraph # type: ignore
 from jinja2 import Template
 from io import StringIO
+from random import getrandbits
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
@@ -249,7 +250,7 @@ WHERE
 
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
-        temp_table_name = self.obj+'_temp_load_table_'+str(hash_(rows)).replace('-','neg')
+        temp_table_name = self.obj+'_temp_load_table_'+str(getrandbits(64))
 
         # Need to create a temp table to copy data into
         # Add an auto_inc column so that data can be ordered by its insert location

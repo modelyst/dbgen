@@ -20,7 +20,7 @@ from dbgen.core.misc            import ConnectInfo as ConnI
 from dbgen.core.gen             import Gen
 from dbgen.core.funclike        import PyBlock
 from dbgen.core.action2          import Action
-from dbgen.core.misc            import ExternalError
+from dbgen.core.misc            import ExternalError, SkipException
 
 from dbgen.utils.lists          import broadcast, batch
 from dbgen.utils.numeric        import safe_div
@@ -225,16 +225,21 @@ def apply_batch(inp     : L[T[dict,int]],
 
     processed_namespaces = [] # type: L[D[int,Any]]
     processed_hashes     = [] # type: L[int]
-
-    bargs        = dict(leave = False, position = 2)
+    failed_rows          = 0
+    bargs                = dict(leave = False, position = 2)
     with tqdm(total=len(inp), desc='Transforming', **bargs ) as tq:
         for row, hash in inp:
-            d = {qhsh:row}
-            for pb in f:
-                d[pb.hash] = pb(d)
+            try:
+                d = {qhsh:row}
+                for pb in f:
+                    d[pb.hash] = pb(d)
 
-            processed_namespaces.append(d)
-            processed_hashes.append(hash)
+                processed_namespaces.append(d)
+                processed_hashes.append(hash)
+            except SkipException:
+                print('Skipping row: {}'.format(inp))
+                failed_rows += 1
+
             tq.update()
 
     with tqdm(total=len(acts), desc='Loading', **bargs ) as tq:
