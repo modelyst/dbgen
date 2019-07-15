@@ -1,0 +1,26 @@
+INSERT INTO {{obj}}
+({% for column in all_column_names %}{{column}}{{ ", " if not loop.last }}{% endfor %})
+SELECT
+{% for column in all_column_names %}{{column}}{{ "," if not loop.last }}
+{% endfor %}
+FROM (
+  SELECT
+    {% for column in all_column_names %}{{column}},
+    {% endfor %}
+    ROW_NUMBER() OVER (PARTITION BY {{obj_pk_name}}
+               ORDER BY auto_inc {{ "ASC" if first else "DESC"}}) AS row_number
+  FROM
+    {{temp_table_name}}) AS X
+WHERE
+  row_number = 1 ON CONFLICT ({{obj_pk_name}})
+  DO
+  UPDATE
+  SET
+  {% if not update %}
+    {{obj_pk_name}} = excluded.{{obj_pk_name}}
+  {% else %}
+    {% for column in all_column_names %}{{column}} = excluded.{{column}}{{ "," if not loop.last }}
+    {% endfor %}
+  {% endif %}
+  RETURNING
+    {{obj_pk_name}}

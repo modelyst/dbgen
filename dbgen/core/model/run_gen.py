@@ -24,7 +24,7 @@ from dbgen.core.misc            import ExternalError, SkipException
 
 from dbgen.utils.lists          import broadcast, batch
 from dbgen.utils.numeric        import safe_div
-from dbgen.utils.sql            import (sqlexecutemany, sqlexecute,sqlselect,mkSelectCmd,
+from dbgen.utils.sql            import (fast_load,sqlexecutemany, sqlexecute,sqlselect,mkSelectCmd,
                                     mkUpdateCmd,select_dict, Connection as Conn)
 from dbgen.utils.str_utils      import hash_
 ###########################################
@@ -248,4 +248,7 @@ def apply_batch(inp     : L[T[dict,int]],
 
     with tqdm(total=1, desc='Storing Repeats', **bargs ) as tq:
         repeat_values = broadcast([a_id,run_id,processed_hashes])
-        sqlexecutemany(open_mdb, ins_rpt_stmt,repeat_values)
+        table_name    = 'repeats'
+        col_names     = ['gen','run','repeats_id']
+        obj_pk_name   = 'repeats_id'
+        fast_load(open_mdb, repeat_values, table_name, col_names, obj_pk_name)

@@ -2,9 +2,12 @@
 from typing     import List,Any
 from time       import sleep
 from warnings   import filterwarnings
+from io import StringIO
 from psycopg2   import Error,ProgrammingError                         # type: ignore
 from psycopg2.extras import DictCursor,execute_batch # type: ignore
+from random import getrandbits
 
+from dbgen.templates import jinja_env
 """
 Tools for interacting with databases
 """
@@ -107,3 +110,46 @@ def addQs(xs:list,delim:str)->str:
     Ex: ['a','b','c'] + ',' ==> 'a = %s, b = %s, c = %s'
     """
     return delim.join(['{0} = %s'.format(x) for x in xs])
+
+def fast_load(conn        : Connection,
+              rows        : List[List[Any]],
+              table_name  : str,
+              col_names   : List[str],
+              obj_pk_name : str
+             )->None:
+
+        # write rows to string io object to allow copy_from to be used
+        io_obj = StringIO()
+        for row in rows:
+            io_obj.write('\t'.join(map(str,row))+'\n')
+
+        # Temporary table to copy data into
+        # Set name to be hash of input rows to ensure uniqueness for parallelization
+        temp_table_name = table_name+'_temp_load_table_'+str(getrandbits(64))
+
+        # Need to create a temp table to copy data into
+        # Add an auto_inc column so that data can be ordered by its insert location
+        create_temp_table = \
+        """
+        DROP TABLE IF EXISTS {temp_table_name};
+        CREATE TEMPORARY TABLE {temp_table_name} AS
+        TABLE {obj}
+        WITH NO DATA;
+        ALTER TABLE {temp_table_name}
+        ADD COLUMN auto_inc SERIAL NOT NULL;
+        """.format(obj = table_name, temp_table_name = temp_table_name)
+
+        insert_template = jinja_env.get_template('insert.sql.jinja')
+        template_args = dict(
+            obj              = table_name,
+            obj_pk_name      = obj_pk_name,
+            temp_table_name  = temp_table_name,
+            all_column_names = col_names,
+            first            = False,
+            update           = True
+        )
+        insert_statement = insert_template.render(**template_args)
+        with conn.cursor() as curs:
+            curs.execute(create_temp_table)
+            curs.copy_from(io_obj,temp_table_name,null='None',columns = col_names)
+            curs.execute(insert_statement)

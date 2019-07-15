@@ -20,7 +20,7 @@ from dbgen.utils.misc   import hash_, Base
 from dbgen.utils.lists  import broadcast
 from dbgen.utils.sql    import (Connection as Conn, sqlselect, addQs,
                                  sqlexecute,sqlexecutemany)
-
+from dbgen.templates import jinja_env
 '''
 Defines the class of modifications to a database
 
@@ -34,47 +34,6 @@ class Action(Base):
     that knows how to update the database (these methods could easily be for
     Model, but we don't want to send the entire model just to do this small thing)
     """
-    insert_template = \
-        """
-INSERT INTO {{obj}}
-({% for column in all_column_names %}{{column}}{{ ", " if not loop.last }}{% endfor %})
-SELECT
-{% for column in all_column_names %}{{column}}{{ "," if not loop.last }}
-{% endfor %}
-FROM (
-  SELECT
-    {% for column in all_column_names %}{{column}},
-    {% endfor %}
-    ROW_NUMBER() OVER (PARTITION BY {{obj_pk_name}}
-               ORDER BY auto_inc {{ "ASC" if first else "DESC"}}) AS row_number
-  FROM
-    {{temp_table_name}}) AS X
-WHERE
-  row_number = 1 ON CONFLICT ({{obj_pk_name}})
-  DO
-  UPDATE
-  SET
-  {% if not update %}
-    {{obj_pk_name}} = excluded.{{obj_pk_name}}
-  {% else %}
-    {% for column in all_column_names %}{{column}} = excluded.{{column}}{{ "," if not loop.last }}
-    {% endfor %}
-  {% endif %}
-  RETURNING
-    {{obj_pk_name}}
-        """
-    update_template = \
-        """
-UPDATE
-    {{obj}}
-SET
-    {% for column in all_column_names %}{{column}} = {{temp_table_name}}.{{column}}{{ "," if not loop.last }}
-    {% endfor %}
-FROM
-    {{temp_table_name}}
-WHERE
-    {{obj}}.{{obj_pk_name}} = {{temp_table_name}}.{{obj_pk_name}};
-        """
     def __init__(self,
                  obj    : str,
                  attrs  : D[str,ArgLike],
@@ -268,21 +227,23 @@ WHERE
         cols        = [obj._id]+list(self.attrs.keys()) + list(self.fks.keys())
 
         if insert:
-            template = self.insert_template
+            template = jinja_env.get_template('insert.sql.jinja')
         else:
-            template = self.update_template
+            template = jinja_env.get_template('update.sql.jinja')
 
-        first = False
-        update = True
+        first   = False
+        update  = True
+        fk_cols = self.fks.keys()
         template_args = dict(
             obj              = self.obj,
             obj_pk_name      = obj._id,
             temp_table_name  = temp_table_name,
             all_column_names = cols,
+            fk_cols          = fk_cols,
             first            = first,
             update           = update
         )
-        load_statement = Template(template).render(**template_args)
+        load_statement = template.render(**template_args)
 
         with cxn.cursor() as curs:
             curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
