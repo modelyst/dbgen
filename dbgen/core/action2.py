@@ -7,6 +7,8 @@ from typing import (Any, TYPE_CHECKING,
                     Union    as U)
 from collections import OrderedDict
 from networkx import DiGraph # type: ignore
+import psycopg2
+import re
 from jinja2 import Template
 from io import StringIO
 from random import getrandbits
@@ -126,13 +128,13 @@ class Action(Base):
 
         idattr,allattr = [],[]
         obj = objs[self.obj]
-        for k,v in self.attrs.items():
+        for k,v in sorted(self.attrs.items(), reverse=False):
             val = v.arg_get(row)
             allattr.append(val)
             if k in obj.ids():
                 idattr.append(val)
 
-        for kk,vv in self.fks.items():
+        for kk,vv in sorted(self.fks.items(),reverse=False):
             if not vv.pk is None:
                 val = vv.pk.arg_get(row)
             else:
@@ -216,15 +218,14 @@ class Action(Base):
         create_temp_table = \
         """
         DROP TABLE IF EXISTS {temp_table_name};
-        CREATE TABLE {temp_table_name} AS
+        CREATE TEMPORARY TABLE {temp_table_name} AS
         TABLE {obj}
         WITH NO DATA;
         ALTER TABLE {temp_table_name}
         ADD COLUMN auto_inc SERIAL NOT NULL;
         """.format(obj = self.obj, temp_table_name = temp_table_name)
-        sqlexecute(cxn,create_temp_table)
 
-        cols        = [obj._id]+list(self.attrs.keys()) + list(self.fks.keys())
+        cols        = [obj._id]+list(sorted(self.attrs.keys(),reverse=False)) + list(sorted(self.fks.keys(),reverse=False))
 
         if insert:
             template = jinja_env.get_template('insert.sql.jinja')
@@ -245,10 +246,6 @@ class Action(Base):
         )
         load_statement = template.render(**template_args)
 
-        with cxn.cursor() as curs:
-            curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
-
-        sqlexecute(cxn,load_statement)
         get_ids_statement = \
         """
         SELECT
@@ -258,12 +255,38 @@ class Action(Base):
         ORDER BY
         	auto_inc ASC
         """.format(obj_pk_name = obj._id, temp = temp_table_name)
-        ids = [x[0] for x in sqlexecute(cxn,get_ids_statement)]
-        clean_up = \
-        """
-        DROP TABLE {temp_table_name}
-        """.format(temp_table_name = temp_table_name)
-        sqlexecute(cxn, clean_up)
+
+        with cxn.cursor() as curs:
+            curs.execute(create_temp_table)
+            curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
+            # Try to insert everything from the temp table into the real table
+            # If a foreign_key violation is hit, we delete those rows in the
+            # temp table and move on
+            fk_fail_count = 0
+            while True:
+                if fk_fail_count>10:
+                    if input('FK\'s have been violated 10 unique times, please confirm you want to continue (Y/y): ').lower() == 'y':
+                        raise ValueError('User Canceled due to large number of FK violations')
+                    else:
+                        print('Continuing')
+                # check for ForeignKeyViolation error
+                try:
+                    curs.execute(load_statement)
+                    break
+                except psycopg2.errors.ForeignKeyViolation as exc:
+                    pattern ='Key \((\w+)\)=\(([\-\d]+)\) is not present in table \"(\w+)\"'
+                    fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
+                    delete_statement = f'delete from {temp_table_name} where {fk_name} = {fk_pk}'
+                    curs.execute(delete_statement)
+                    print(f"ForeignKeyViolation: tried to insert {fk_pk} into FK column {fk_name} of {self.obj}. But {fk_pk} doesn\'t exist in {fk_obj}.")
+                    print(f"Moving on without inserting any rows with this {fk_pk}")
+                    fk_fail_count += 1
+                    continue
+
+            # Get ids
+            curs.execute(get_ids_statement)
+            ids = [x[0] for x in curs.fetchall()]
+
         return ids
 
 

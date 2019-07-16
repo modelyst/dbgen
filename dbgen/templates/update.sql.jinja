@@ -7,7 +7,3 @@ FROM
     {{temp_table_name}}
 WHERE
     {{obj}}.{{obj_pk_name}} = {{temp_table_name}}.{{obj_pk_name}};
-{% for fk_col in fk_cols %}
-ON CONFLICT ({{obj}}_{{fk_col}}_fkey)
-DO NO ACTION
-{% endfor %}

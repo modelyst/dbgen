@@ -251,4 +251,5 @@ def apply_batch(inp     : L[T[dict,int]],
         table_name    = 'repeats'
         col_names     = ['gen','run','repeats_id']
         obj_pk_name   = 'repeats_id'
+        import pdb; pdb.set_trace()
         fast_load(open_mdb, repeat_values, table_name, col_names, obj_pk_name)

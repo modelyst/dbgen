@@ -122,7 +122,8 @@ def fast_load(conn        : Connection,
         io_obj = StringIO()
         for row in rows:
             io_obj.write('\t'.join(map(str,row))+'\n')
-
+            
+        io_obj.seek(0)
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
         temp_table_name = table_name+'_temp_load_table_'+str(getrandbits(64))
