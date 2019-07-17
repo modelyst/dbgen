@@ -29,7 +29,7 @@ def run(self      : 'Model',
         serial    : bool = False,
         bar       : bool = True,
         clean     : bool = False,
-        batch     : int  = 1000000
+        batch     : int  = None
        ) -> None:
     '''
     This method is point of the model: to run and generate a database according
@@ -161,7 +161,7 @@ def run(self      : 'Model',
                 err_tot += self._run_gen(gen=gen,gmcxn=gmcxn,gcxn=gcxn,
                                       mconn=meta_conn,conn=conn,run_id=run_id,
                                       retry=retry,serial=serial,bar=bar,
-                                      batch_size = batch)
+                                      user_batch_size = batch)
 
             tq.update()
 

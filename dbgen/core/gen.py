@@ -5,6 +5,7 @@ from typing import (Any, TYPE_CHECKING,
                     Tuple    as T)
 
 from networkx        import DiGraph # type: ignore
+from jsonpickle import encode, decode # type: ignore
 
 # Internal
 if TYPE_CHECKING:
@@ -35,24 +36,26 @@ class Gen(Base):
     '''Generator: populates database with data'''
 
     def __init__(self,
-                 name    : str,
-                 desc    : str        = None,
-                 query   : Query      = None,
-                 funcs   : L[PyBlock] = None,
-                 actions : L[Action]  = None,
-                 tags    : L[str]     = None,
-                 env     : Env        = None,
+                 name       : str,
+                 desc       : str        = None,
+                 query      : Query      = None,
+                 funcs      : L[PyBlock] = None,
+                 actions    : L[Action]  = None,
+                 tags       : L[str]     = None,
+                 env        : Env        = None,
+                 batch_size : int        = None,
                 ) -> None:
 
         assert actions, 'Cannot have generator which does nothing'
 
-        self.name    = name.lower()
-        self.desc    = desc    or '<no description>'
-        self.query   = query
-        self.funcs   = self._order_funcs(funcs or [], query)
-        self.actions = actions or []
-        self.tags    = [t.lower() for t in tags or []]
-        self.env     = env or defaultEnv
+        self.name       = name.lower()
+        self.desc       = desc or '<no description>'
+        self.query      = query
+        self.funcs      = self._order_funcs(funcs or [], query)
+        self.actions    = actions or []
+        self.tags       = [t.lower() for t in tags or []]
+        self.env        = env or defaultEnv
+        self.batch_size = batch_size
         for func in self.funcs:
             self.env += func.func.env
 

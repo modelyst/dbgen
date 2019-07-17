@@ -91,6 +91,6 @@ parser.add_argument('--clean',
                     help    = 'Clean the database of the deleted column!DOESN\'t DELETE DELETED ROWS YET!')
 
 parser.add_argument('--batch',
-                    default = 1000000,
+                    default = None,
                     type    = lambda x:int(float(x)),
                     help    = 'Set default batch_size')

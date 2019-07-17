@@ -7,7 +7,7 @@ from typing import (Any, TYPE_CHECKING,
                     Union    as U)
 from collections import OrderedDict
 from networkx import DiGraph # type: ignore
-import psycopg2
+import psycopg2 # type: ignore
 import re
 from jinja2 import Template
 from io import StringIO
@@ -128,13 +128,13 @@ class Action(Base):
 
         idattr,allattr = [],[]
         obj = objs[self.obj]
-        for k,v in sorted(self.attrs.items(), reverse=False):
+        for k,v in sorted(self.attrs.items(),):
             val = v.arg_get(row)
             allattr.append(val)
             if k in obj.ids():
                 idattr.append(val)
 
-        for kk,vv in sorted(self.fks.items(),reverse=False):
+        for kk,vv in sorted(self.fks.items()):
             if not vv.pk is None:
                 val = vv.pk.arg_get(row)
             else:
@@ -225,7 +225,7 @@ class Action(Base):
         ADD COLUMN auto_inc SERIAL NOT NULL;
         """.format(obj = self.obj, temp_table_name = temp_table_name)
 
-        cols        = [obj._id]+list(sorted(self.attrs.keys(),reverse=False)) + list(sorted(self.fks.keys(),reverse=False))
+        cols        = [obj._id]+list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
 
         if insert:
             template = jinja_env.get_template('insert.sql.jinja')
