@@ -62,17 +62,6 @@ def run_gen(self   : 'Model',
     bargs_inner = dict(leave = False, position = 2)
     parallel    = (not serial) and ('parallel' in gen.tags)
 
-
-    # If user supplies a runtime batch_size it is used
-    if user_batch_size is not None:
-        batch_size = user_batch_size
-    # If generator has the batch_size set then that will be used next
-    elif gen.batch_size is not None:
-        batch_size = gen.batch_size
-    # Finally if nothing is the default of 100 is used
-    else:
-        batch_size = 100
-
     # Set the hasher for checking repeats
     ghash        = gen.hash
     def hasher( x : Any) -> int:
@@ -90,12 +79,23 @@ def run_gen(self   : 'Model',
         else:
             num_inputs = 1
 
+        # If user supplies a runtime batch_size it is used
+        if user_batch_size is not None:
+            batch_size = user_batch_size
+        # If generator has the batch_size set then that will be used next
+        elif gen.batch_size is not None:
+            batch_size = gen.batch_size
+        # Finally if nothing is the default is set to batchify the inputs into
+        # 100 batches 
+        else:
+            batch_size = ceil(num_inputs/100)
+
         try:
             for _ in tqdm(range(ceil(num_inputs/batch_size)), desc = 'Applying', **bargs):
                 if gen.query:
                     inputs = cursor.fetchmany(batch_size)
                 else:
-                    inputs = []
+                    inputs = [None]
 
                 if retry_:
                     inputs = [(x,hasher(x)) for x in inputs] # type: ignore
