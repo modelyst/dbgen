@@ -72,23 +72,26 @@ def run_gen(self   : 'Model',
     #-------------------------------------
     cxns      = (gmcxn,gcxn)
     try:
-        cursor      = conn.connect().cursor(cursor_factory = DictCursor)
-        if gen.query:
-            cursor.execute(gen.query.showQ())
-            num_inputs = cursor.rowcount
-        else:
-            num_inputs = 1
+        with tqdm(total=1, desc='Initializing Query', **bargs ) as tq:
+            cursor      = conn.connect().cursor(cursor_factory = DictCursor)
+            if gen.query:
+                cursor.execute(gen.query.showQ())
+                num_inputs = cursor.rowcount
+            else:
+                num_inputs = 1
 
-        # If user supplies a runtime batch_size it is used
-        if user_batch_size is not None:
-            batch_size = user_batch_size
-        # If generator has the batch_size set then that will be used next
-        elif gen.batch_size is not None:
-            batch_size = gen.batch_size
-        # Finally if nothing is the default is set to batchify the inputs into
-        # 100 batches 
-        else:
-            batch_size = ceil(num_inputs/100)
+            # If user supplies a runtime batch_size it is used
+            if user_batch_size is not None:
+                batch_size = user_batch_size
+            # If generator has the batch_size set then that will be used next
+            elif gen.batch_size is not None:
+                batch_size = gen.batch_size
+            # Finally if nothing is the default is set to batchify the inputs into
+            # 100 batches
+            else:
+                batch_size = ceil(num_inputs/100)
+
+            tq.update()
 
         try:
             for _ in tqdm(range(ceil(num_inputs/batch_size)), desc = 'Applying', **bargs):
