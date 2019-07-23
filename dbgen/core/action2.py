@@ -264,8 +264,8 @@ class Action(Base):
             # temp table and move on
             fk_fail_count = 0
             while True:
-                if fk_fail_count>10:
-                    if input('FK\'s have been violated 10 unique times, please confirm you want to continue (Y/y): ').lower() == 'y':
+                if fk_fail_count==10:
+                    if input('FK\'s have been violated 10 unique times, please confirm you want to continue (Y/y): ').lower() != 'y':
                         raise ValueError('User Canceled due to large number of FK violations')
                     else:
                         print('Continuing')
@@ -278,7 +278,7 @@ class Action(Base):
                     fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
                     delete_statement = f'delete from {temp_table_name} where {fk_name} = {fk_pk}'
                     curs.execute(delete_statement)
-                    print(f"ForeignKeyViolation: tried to insert {fk_pk} into FK column {fk_name} of {self.obj}. But {fk_pk} doesn\'t exist in {fk_obj}.")
+                    print(f"ForeignKeyViolation: tried to insert {fk_pk} into FK column {fk_name} of {self.obj}. But no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}.")
                     print(f"Moving on without inserting any rows with this {fk_pk}")
                     fk_fail_count += 1
                     continue

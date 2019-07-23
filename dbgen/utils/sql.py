@@ -85,8 +85,9 @@ def sqlexecute(conn : Connection, q : str, binds : list = []) -> list:
             except Error as e:
                 if e.args[0] in [1205,1213]: # deadlock error codes
                     print('SLEEPING');sleep(10)
+                elif e.pgcode in ['42701']:
+                    raise e
                 else:
-                    print(q)
                     raise Error(e)
 
 def sqlexecutemany(conn : Connection, q : str, binds : List[list]) -> None:
@@ -111,6 +112,15 @@ def addQs(xs:list,delim:str)->str:
     """
     return delim.join(['{0} = %s'.format(x) for x in xs])
 
+def batched_cursor(cursor : Any, arraysize : int = 1000)->Any:
+    'An iterator that uses fetchmany to keep memory usage down'
+    while True:
+        results = cursor.fetchmany(arraysize)
+        if not results:
+            break
+        for result in results:
+            yield result
+
 def fast_load(conn        : Connection,
               rows        : List[List[Any]],
               table_name  : str,
@@ -122,7 +132,7 @@ def fast_load(conn        : Connection,
         io_obj = StringIO()
         for row in rows:
             io_obj.write('\t'.join(map(str,row))+'\n')
-            
+
         io_obj.seek(0)
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization

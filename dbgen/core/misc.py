@@ -89,7 +89,7 @@ class ConnectInfo(Base):
                 remote_bind_address=(self.remote_bind_address, self.remote_bind_port),
                 ) if self.ssh else suppress()
 
-    def connect(self, attempt : int  = 3) -> Connection:
+    def connect(self, attempt : int  = 3, auto_commit : bool = True) -> Connection:
         e = ''
         for _ in range(attempt):
             try:
@@ -100,7 +100,8 @@ class ConnectInfo(Base):
                                    password    = self.passwd,
                                    dbname      = self.db,
                                    connect_timeout = 28800)
-                    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    if auto_commit:
+                        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
                     return conn
             except Error as e:
                 print(e)

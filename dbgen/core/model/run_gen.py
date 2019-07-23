@@ -28,15 +28,6 @@ from dbgen.utils.sql            import (fast_load,sqlexecutemany, sqlexecute,sql
                                     mkUpdateCmd,select_dict, Connection as Conn, DictCursor)
 from dbgen.utils.str_utils      import hash_
 ###########################################
-rpt_select = """
-    SELECT T.ind,T.repeats_id
-    FROM temp T
-        LEFT JOIN (SELECT repeats_id
-                    FROM repeats
-                    WHERE repeats.gen = %s) AS R
-        USING (repeats_id)
-    WHERE  R.repeats_id IS NULL;"""
-
 def run_gen(self   : 'Model',
             gen             : Gen,
             gmcxn           : Conn,
@@ -59,7 +50,7 @@ def run_gen(self   : 'Model',
     retry_      = retry or ('io' in gen.tags)
     a_id        = gen.get_id(gmcxn)[0][0]
     bargs       = dict(leave = False, position = 1, disable = not bar)
-    bargs_inner = dict(leave = False, position = 2)
+    bargs_inner = dict(leave = False, position = 2, disable = not bar)
     parallel    = (not serial) and ('parallel' in gen.tags)
 
     # Set the hasher for checking repeats
@@ -71,13 +62,19 @@ def run_gen(self   : 'Model',
     # Determine how to map over input rows
     #-------------------------------------
     cxns      = (gmcxn,gcxn)
+
+    # Wrap everything in try loop to catch errors
     try:
+        # First setup query, get num_inputs and set batch size
         with tqdm(total=1, desc='Initializing Query', **bargs ) as tq:
-            cursor      = conn.connect().cursor(cursor_factory = DictCursor)
+            # Name the cursor for server side processing, need to turn off auto_commit
+            cursor      = conn.connect(auto_commit = False).cursor(f'{run_id}-{a_id}',cursor_factory = DictCursor)
+
+            # If there is a query get the row count and execute it
             if gen.query:
-                cursor.execute(gen.query.row_count())
-                num_count = cursor.fetchone()[0]
+                num_inputs = gen.query.get_row_count(gcxn)
                 cursor.execute(gen.query.showQ())
+            # No query gens have 1 input
             else:
                 num_inputs = 1
 
@@ -88,29 +85,41 @@ def run_gen(self   : 'Model',
             elif gen.batch_size is not None:
                 batch_size = gen.batch_size
             # Finally if nothing is the default is set to batchify the inputs into
-            # 100 batches
+            # 20 batches
             else:
-                batch_size = ceil(num_inputs/100)
+                batch_size = ceil(num_inputs/20) if num_inputs>0 else 1
 
             tq.update()
 
+        # Wrap batch processing in try loop to close the curosr on errors
         try:
+            # Iterate over the batches
             for _ in tqdm(range(ceil(num_inputs/batch_size)), desc = 'Applying', **bargs):
+                # fetch the current batch of inputs
                 if gen.query:
                     inputs = cursor.fetchmany(batch_size)
                 else:
-                    inputs = [None]
+                    # if there is no query set the inputs to be length 1 with
+                    # empty dict as input
+                    inputs = [{}]
 
+                # If retry is true don't check for repeats
                 if retry_:
                     inputs = [(x,hasher(x)) for x in inputs] # type: ignore
+                # Check for repeats
                 elif inputs:
                     with tqdm(total=1, desc='Repeat Checking', **bargs_inner ) as tq:
+                        # pair each input row with its hash
                         unfiltered_inputs = [(x,hasher(x)) for x in inputs] # type: ignore
-                        rpt_select = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
-                        rpts = set([x[0] for x in sqlselect(gmcxn,rpt_select,[a_id])])
-                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpts]
+                        # Get the already processed input hashes from the metadb
+                        rpt_select        = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
+                        rpt_select_output = sqlselect(gmcxn,rpt_select,[a_id])
+                        rpt_hashes        = set([x[0] for x in rpt_select_output])
+                        # remove the hashes that are already in the processed_hashes
+                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpt_hashes]
                         tq.update()
 
+                # If we have no query or if we have any inputs we apply the ETL to the batch
                 if gen.query is None or len(inputs)>0:
                     apply_batch(inputs    = inputs,
                                 f         = gen.funcs,
@@ -201,6 +210,7 @@ def run_gen(self   : 'Model',
 #     apply_and_act(pbs = f, acts = acts, objs = objs,
 #                   mcxn = open_mdb, cxn = open_db, row = r, hsh = h, qhsh = qhsh,
 #                   a_id = a_id, run_id = run_id)
+
 def transform_func(input: T[dict,int],
                    qhsh : int,
                    pbs : L[PyBlock]
@@ -227,7 +237,7 @@ def apply_batch(inputs     : L[T[dict,int]],
                  )-> None:
 
     # Initialize variables
-    open_mdb,open_db = cxns
+    open_mdb,open_db     = cxns
     processed_namespaces = [] # type: L[D[int,Any]]
     processed_hashes     = [] # type: L[int]
     skipped_rows         = 0

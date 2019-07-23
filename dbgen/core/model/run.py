@@ -106,10 +106,46 @@ def run(self      : 'Model',
                 if gen.name in delgens:
                     gen.purge(conn.connect(),meta_conn.connect())
     elif add:
+        msg = """
+#######################################################################
+!!!WARNING!!!!
+Add is an extremely experimental feature. Existing rows in
+modified tables are not deleted. If you added ID info to a table then
+you need to manually truncate that table (and cascade to linked tables)
+or else those tables will contain rows with missing ID info in their PKs.
+
+Add should really only be used to add attributes to existing tables
+or add new empty tables. Adding identifying FKs from existing tables to new tables
+is very dangerous and manual truncation will be necessary
+
+I hope you know what you are doing!!!
+!!!WARNING!!!!
+#######################################################################
+        """
+        print(msg)
+        for ta in tqdm(self.objs.values(),desc='Adding new tables', leave=False):
+            if not getattr(ta,'_is_view',False):
+                for sqlexpr in ta.create():
+                    try:
+                        sqlexecute(conn.connect(),sqlexpr)
+                    except Error as e:
+                        # Error code for duplicate table
+                        if e.pgcode == '42701':
+                            print('dup')
+                            pass
+                        else:
+                            raise Error(e)
+
         for ta in tqdm(self.objs.values(),desc='Adding new columns',leave=False):
             for sqlexpr in self.add_cols(ta):
-                try:                     sqlexecute(conn.connect(),sqlexpr)
-                except Error: pass
+                try:
+                    sqlexecute(conn.connect(),sqlexpr)
+                except Error as e:
+                    # Error code for duplicate column
+                    if e.pgcode == '42701':
+                        pass
+                    else:
+                        raise Error(e)
 
 
     # Make 'global' database connections (active throughout whole process)
