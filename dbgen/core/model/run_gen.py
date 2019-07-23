@@ -75,8 +75,9 @@ def run_gen(self   : 'Model',
         with tqdm(total=1, desc='Initializing Query', **bargs ) as tq:
             cursor      = conn.connect().cursor(cursor_factory = DictCursor)
             if gen.query:
+                cursor.execute(gen.query.row_count())
+                num_count = cursor.fetchone()[0]
                 cursor.execute(gen.query.showQ())
-                num_inputs = cursor.rowcount
             else:
                 num_inputs = 1
 

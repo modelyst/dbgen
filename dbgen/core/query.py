@@ -179,6 +179,12 @@ class Query(Expr):
 
         return output
 
+    def row_count(self)->str:
+        prepend   = """SELECT\n\tCOUNT(*)\nFROM ("""
+        append    = """\n) AS X"""
+        statement = prepend+self.showQ()+append
+        return statement
+
     def exec_query(self, db : ConnI) -> L[dict]:
         '''Execute a query object in a giving model using a database connection'''
         return select_dict(db, self.showQ())
