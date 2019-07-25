@@ -152,3 +152,11 @@ class Double(SQLType):
     def rand(cls) -> Any :
         '''Random instance (for testing purposes)'''
         return uniform(-100,100)
+
+class JSON(SQLType):
+    def __str__(self) -> str:
+        return "JSON"
+
+    def rand(cls) -> Any :
+        '''Random instance (for testing purposes)'''
+        return {'a':2,'b':'test'}

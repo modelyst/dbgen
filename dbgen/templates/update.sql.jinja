@@ -1,7 +1,7 @@
 UPDATE
-    {{obj}}
+    "{{obj}}"
 SET
-    {% for column in all_column_names %}{{column}} = {{temp_table_name}}.{{column}}{{ "," if not loop.last }}
+    {% for column in all_column_names %}"{{column}}" = "{{temp_table_name}}"."{{column}}"{{ "," if not loop.last }}
     {% endfor %}
 FROM
     {{temp_table_name}}

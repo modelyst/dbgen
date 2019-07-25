@@ -170,6 +170,29 @@ class Gen(Base):
                     G.add_edge(a.key, pb.hash)
         return topsort_with_dict(G, d)
 
+    def _get_all_saved_key_dict(self)->D[int,S[str]]:
+        saved_keys = {} # type: D[int,S[str]]
+        for act in self.actions:
+            saved_keys.update(self._get_saved_key_dict(act))
+
+        return saved_keys
+
+    def _get_saved_key_dict(self,action : Action)->D[int,S[str]]:
+        saved_keys = {} # type: D[int,S[str]]
+        if action.pk:
+            hash_loc = action.pk.key
+            arg_name = action.pk.name
+            saved_keys.update({hash_loc: set([arg_name,*saved_keys.get(hash_loc,set())])})
+
+        for val in action.attrs.values():
+            saved_keys.update({val.key: set([val.name,*saved_keys.get(val.key,set())])})
+
+        for fk_action in action.fks.values():
+            for hash_loc, name_set in self._get_saved_key_dict(fk_action).items():
+                saved_keys.update({hash_loc:set([*name_set,*saved_keys.get(hash_loc,set())])})
+
+        return saved_keys
+
     # ######################
     # # Airflow Operator Exports
     # # --------------------

@@ -90,8 +90,8 @@ class Action(Base):
 
     def act(self,
             cxn  : Conn,
-            objs : D[str,'Obj'],
-            rows  : L[dict]
+            objs : D[str,T[str,L[str],L[str]]],
+            rows : L[dict]
            ) -> None:
         '''
         Top level call from a Generator to execute an action (top level is
@@ -118,7 +118,7 @@ class Action(Base):
 
     def _getvals(self,
                  cxn  : Conn,
-                 objs : D[str,'Obj'],
+                 objs : D[str,T[str,L[str],L[str]]],
                  row  : dict,
                  ) -> T[L[int],L[list]]:
         '''
@@ -127,11 +127,11 @@ class Action(Base):
         '''
 
         idattr,allattr = [],[]
-        obj = objs[self.obj]
+        obj_pk_name,ids,id_fks = objs[self.obj]
         for k,v in sorted(self.attrs.items(),):
             val = v.arg_get(row)
             allattr.append(val)
-            if k in obj.ids():
+            if k in ids:
                 idattr.append(val)
 
         for kk,vv in sorted(self.fks.items()):
@@ -141,7 +141,7 @@ class Action(Base):
                 val, fk_adata = vv._getvals(cxn, objs, row)
 
             allattr.append(val)
-            if kk in obj.id_fks():
+            if kk in id_fks:
                 idattr.append(val)
 
         idata,adata = broadcast(idattr),broadcast(allattr)
@@ -178,8 +178,10 @@ class Action(Base):
         output_file_obj = StringIO()
         cols = list(self.attrs.keys()) + list(self.fks.keys()) + [obj_pk_name]
         for i, (pk_curr, row_curr) in enumerate(zip(pk,data)):
-            full_row = [pk_curr]+list(row_curr)
-            output_file_obj.write('\t'.join(map(str,full_row))+'\n')
+            full_row         = [pk_curr]+list(row_curr)
+            str_full_row     = map(str,full_row)
+            str_full_row_esc = map(lambda x: x.replace("\t","\\t").replace('\n','\\n').replace('\r','\\r').replace('\\','\\\\'),str_full_row)
+            output_file_obj.write('\t'.join(str_full_row_esc)+'\n')
 
         output_file_obj.seek(0)
 
@@ -187,7 +189,7 @@ class Action(Base):
 
     def _load(self,
                 cxn  : Conn,
-                objs : D[str,'Obj'],
+                objs : D[str,T[str,L[str],L[str]]],
                 rows : L[dict],
                 insert : bool
               ) -> L[int]:
@@ -199,15 +201,16 @@ class Action(Base):
             if vv.insert:
                 val = vv._load(cxn,objs,rows, insert=True)
 
-        obj = objs[self.obj]
+        obj_pk_name,ids,id_fks = objs[self.obj]
         pk,data = [], []
         for row in rows:
             pk_curr,data_curr = self._getvals(cxn,objs,row)
             pk.extend(pk_curr)
             data.extend(data_curr)
-        io_obj = self._data_to_stringIO(pk, data, obj._id)
-        if not data: return []
 
+
+        io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
+        if not data: return []
 
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
@@ -225,8 +228,8 @@ class Action(Base):
         ADD COLUMN auto_inc SERIAL NOT NULL;
         """.format(obj = self.obj, temp_table_name = temp_table_name)
 
-        cols        = [obj._id]+list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
-
+        cols         = [obj_pk_name]+list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
+        escaped_cols = ['"'+col+'"' for col in cols]
         if insert:
             template = jinja_env.get_template('insert.sql.jinja')
         else:
@@ -237,7 +240,7 @@ class Action(Base):
         fk_cols = self.fks.keys()
         template_args = dict(
             obj              = self.obj,
-            obj_pk_name      = obj._id,
+            obj_pk_name      = obj_pk_name,
             temp_table_name  = temp_table_name,
             all_column_names = cols,
             fk_cols          = fk_cols,
@@ -254,11 +257,15 @@ class Action(Base):
         	{temp}
         ORDER BY
         	auto_inc ASC
-        """.format(obj_pk_name = obj._id, temp = temp_table_name)
+        """.format(obj_pk_name = obj_pk_name, temp = temp_table_name)
 
         with cxn.cursor() as curs:
             curs.execute(create_temp_table)
-            curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
+            try:
+                curs.copy_from(io_obj,temp_table_name,sep='\t',null='None',columns = escaped_cols)
+            except psycopg2.errors.SyntaxError as exc:
+                import pdb; pdb.set_trace()
+                print('test')
             # Try to insert everything from the temp table into the real table
             # If a foreign_key violation is hit, we delete those rows in the
             # temp table and move on

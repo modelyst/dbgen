@@ -3,6 +3,7 @@ from typing import (TYPE_CHECKING,
                      Any,
                      List     as L,
                      Dict     as D,
+                     Set      as S,
                      Tuple    as T)
 from time            import time
 from multiprocessing import cpu_count,get_context
@@ -28,17 +29,19 @@ from dbgen.utils.sql            import (fast_load,sqlexecutemany, sqlexecute,sql
                                     mkUpdateCmd,select_dict, Connection as Conn, DictCursor)
 from dbgen.utils.str_utils      import hash_
 ###########################################
-def run_gen(self   : 'Model',
+def run_gen(self            : 'Model',
+            objs            : D[str,Any],
             gen             : Gen,
             gmcxn           : Conn,
             gcxn            : Conn,
-            mconn           : ConnI,
-            conn            : ConnI,
+            mconn_info      : ConnI,
+            conn_info       : ConnI,
             run_id          : int,
             retry           : bool = False,
             serial          : bool = False,
             bar             : bool = False,
-            user_batch_size : int = None
+            user_batch_size : int = None,
+            gen_hash        : int = None,
            ) -> int:
     """
     Executes a SQL query, then maps each output over a processing function.
@@ -46,12 +49,17 @@ def run_gen(self   : 'Model',
     """
     # Initialize Variables
     #--------------------
+    gen.update_status(gmcxn,run_id,'running')
     start       = time()
     retry_      = retry or ('io' in gen.tags)
-    a_id        = gen.get_id(gmcxn)[0][0]
-    bargs       = dict(leave = False, position = 1, disable = not bar)
-    bargs_inner = dict(leave = False, position = 2, disable = not bar)
-    parallel    = (not serial) and ('parallel' in gen.tags)
+    if gen_hash:
+        a_id = gen_hash
+    else:
+        a_id = gen.hash
+    keys_to_save = gen._get_all_saved_key_dict()
+    bargs        = dict(leave = False, position = 1, disable = not bar)
+    bargs_inner  = dict(leave = False, position = 2, disable = not bar)
+    parallel     = (not serial) and ('parallel' in gen.tags)
 
     # Set the hasher for checking repeats
     ghash        = gen.hash
@@ -63,16 +71,22 @@ def run_gen(self   : 'Model',
     #-------------------------------------
     cxns      = (gmcxn,gcxn)
 
+    cpus      = cpu_count()-1 or 1 # play safe, leave one free
+    ctx       = get_context('forkserver') # addresses problem due to parallelization of numpy not playing with multiprocessing
+    mapper    = partial(ctx.Pool(cpus).imap_unordered,chunksize = 5) if parallel else map
+
     # Wrap everything in try loop to catch errors
     try:
         # First setup query, get num_inputs and set batch size
         with tqdm(total=1, desc='Initializing Query', **bargs ) as tq:
             # Name the cursor for server side processing, need to turn off auto_commit
-            cursor      = conn.connect(auto_commit = False).cursor(f'{run_id}-{a_id}',cursor_factory = DictCursor)
+            cursor      = conn_info.connect(auto_commit = False).cursor(f'{run_id}-{a_id}',cursor_factory = DictCursor)
 
             # If there is a query get the row count and execute it
             if gen.query:
+                tq.set_description('Getting row count...')
                 num_inputs = gen.query.get_row_count(gcxn)
+                tq.set_description('Executing query...')
                 cursor.execute(gen.query.showQ())
             # No query gens have 1 input
             else:
@@ -114,9 +128,10 @@ def run_gen(self   : 'Model',
                         # Get the already processed input hashes from the metadb
                         rpt_select        = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
                         rpt_select_output = sqlselect(gmcxn,rpt_select,[a_id])
-                        rpt_hashes        = set([x[0] for x in rpt_select_output])
+                        rpt_select_output = [x[0] for x in rpt_select_output]
+                        rpt_select_output = set(rpt_select_output)
                         # remove the hashes that are already in the processed_hashes
-                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpt_hashes]
+                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpt_select_output]
                         tq.update()
 
                 # If we have no query or if we have any inputs we apply the ETL to the batch
@@ -124,11 +139,13 @@ def run_gen(self   : 'Model',
                     apply_batch(inputs    = inputs,
                                 f         = gen.funcs,
                                 acts      = gen.actions,
-                                objs      = self.objs,
+                                objs      = objs,
                                 a_id      = a_id,
                                 qhsh      = gen.query.hash if gen.query else 0,
                                 run_id    = run_id,
                                 parallel  = parallel,
+                                mapper    = mapper,
+                                keys_to_save = keys_to_save,
                                 cxns      = cxns)
         finally:
             cursor.close()
@@ -225,15 +242,27 @@ def transform_func(input: T[dict,int],
         return None, None
     return d, hash
 
-def apply_batch(inputs     : L[T[dict,int]],
-                 f      : L[PyBlock],
-                 acts   : L[Action],
-                 objs   : D[str,Obj],
-                 a_id   : int,
-                 run_id : int,
-                 qhsh   : int,
-                 parallel : bool,
-                 cxns   : T[Conn, Conn]
+def delete_unused_keys(namespace : D[int,Any],
+                       keys_to_save : D[int,S[str]]
+                      )->D[int,Any]:
+    new_namespace = {}
+    for hash_loc, names in keys_to_save.items():
+        names_space_dict = namespace[hash_loc]
+        pruned_dict = {key: val for key, val in names_space_dict.items() if key in names}
+        new_namespace[hash_loc] = pruned_dict
+    return new_namespace
+
+def apply_batch(inputs        : L[T[dict,int]],
+                 f            : L[PyBlock],
+                 acts         : L[Action],
+                 objs         : D[str,T[L[str],L[int],L[int]]],
+                 a_id         : int,
+                 run_id       : int,
+                 qhsh         : int,
+                 parallel     : bool,
+                 mapper       : Any,
+                 keys_to_save : D[int,S[str]],
+                 cxns         : T[Conn, Conn]
                  )-> None:
 
     # Initialize variables
@@ -243,16 +272,12 @@ def apply_batch(inputs     : L[T[dict,int]],
     skipped_rows         = 0
     bargs                = dict(leave = False, position = 2)
 
-    cpus      = cpu_count()-1 or 1 # play safe, leave one free
-    ctx       = get_context('forkserver') # addresses problem due to parallelization of numpy not playing with multiprocessing
-    mapper    = partial(ctx.Pool(cpus).imap_unordered,chunksize = 5) if parallel else map
-
     # Transform the data
     with tqdm(total=len(inputs), desc='Transforming', **bargs ) as tq:
         transform_func_curr = partial(transform_func,pbs = f, qhsh = qhsh)
         for output_dict, output_hash in mapper(transform_func_curr, inputs):
             if output_dict:
-                processed_namespaces.append(output_dict)
+                processed_namespaces.append(delete_unused_keys(output_dict,keys_to_save))
                 processed_hashes.append(output_hash)
             tq.update()
 

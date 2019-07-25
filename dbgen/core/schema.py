@@ -184,7 +184,7 @@ class Obj(Base):
         self.fks   = {r.name:r.to_rel(self.name) for r in fks or []}
         self._id   = id if id else self.name + '_id'
         # Validate
-        self.forbidden = [self._id,'deleted'] # RESERVED
+        self.forbidden = [self._id,'deleted',name] # RESERVED
         assert not any([a in self.forbidden for a in self.attrs])
 
     def __str__(self) -> str:
@@ -210,6 +210,7 @@ class Obj(Base):
             assert not missing, err.format(self.name,missing)
 
         attrs = {k:v for k,v in kwargs.items() if k in self.attrnames()}
+
         fks   = {k:v for k,v in kwargs.items() if k not in attrs}
 
         for k,v in fks.items():
@@ -219,8 +220,12 @@ class Obj(Base):
                     assert isinstance(v,Arg)
                 except AssertionError:
                     import pdb; pdb.set_trace()
-
-                fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v)
+                rel = self.fks[k]
+                # Check for relations with names that are different from table_names
+                if rel.o2 != k:
+                    fks[k] = Action(obj = rel.o2, attrs = {}, fks = {}, pk = v)
+                else:
+                    fks[k] = Action(obj = k, attrs = {}, fks = {}, pk = v)
 
         return Action(self.name, attrs = attrs, fks = fks, pk = pk, insert = insert)
 

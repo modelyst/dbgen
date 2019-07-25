@@ -64,7 +64,8 @@ objs = [
 
     Obj('gen','Method for generating concrete data',
         attrs=[Attr('name',         Varchar(),id=True),
-               Attr('description',  Text())]),
+               Attr('description',  Text()),
+               Attr('gen_json',  Text())]),
 
     Obj('pyblock','decorated python function',attrs=[],
         fks = [Rel('gen',  id = True),Rel('func')]),

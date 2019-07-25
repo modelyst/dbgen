@@ -19,7 +19,7 @@ from dbgen.core.expr      import (Expr, AND, IF, ELSE, Literal, MAX, One, LT, GT
                                  JSON_EXTRACT, REPLACE, CONVERT, R2, STD, AVG,
                                  PathAttr, SUBSELECT, LEFT, RIGHT, CASE, Tup)
 
-from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Timestamp, Double, Boolean
+from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Timestamp, Double, Boolean, JSON
 
 
 ############################

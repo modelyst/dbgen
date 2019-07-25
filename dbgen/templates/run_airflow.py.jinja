@@ -1,19 +1,16 @@
 # External imports
 from typing import Any
 from airflow import DAG # type: ignore
-from airflow.operators.python_operator import PythonOperator # type: ignore
+
 from datetime import datetime
 
 # Internal Imports
-
+from dbgen import Gen
+from dbgen.core.airflow_plugin import GenOperator # type: ignore
 
 # Written by {{ user }}
 
-# Define Callables for operators
-{% for operator,operator_def in operators.items() %}
-def f_{{ operator }}() -> None:
-    {{ operator_def }}
-{% endfor %}
+objs = dict({% for obj,(pk,ids,idfks) in objs.items() %} {{ obj }} = ('{{ pk }}', {{ ids }},{{ idfks }}),{% endfor %}) # type: D[str,T[str,L[str],L[str]]]
 
 # Define DAG
 default_args ={
@@ -26,8 +23,19 @@ default_args ={
 
 default_args.update({{ dag_args }})
 with DAG('{{ modelname }}',schedule_interval = '{{ schedule_interval }}', default_args = default_args) as dag:
-    {% for operator in operators.keys() %}
-    {{operator}} = PythonOperator(task_id = '{{operator}}', python_callable = f_{{ operator }})
+    {% for gen_name, gen_hash in gen_hash_dict.items() %}
+    {{gen_name}}  = GenOperator(
+                               objs            = objs,
+                               gen_name        = '{{gen_name}}',
+                               gen_hash        = {{gen_hash}},
+                               run_id          = {{run_id}},
+                               db_conn_id      = '{{modelname}}',
+                               mdb_conn_id     = '{{modelname}}_log',
+                               retry           = {{retry}},
+                               serial          = {{serial}},
+                               bar             = {{bar}},
+                               user_batch_size = {% if batch %}{{batch}}{% else %}None{%endif %}
+                              )
     {% endfor %}
 
 # Add dependencies
@@ -36,6 +44,6 @@ with DAG('{{ modelname }}',schedule_interval = '{{ schedule_interval }}', defaul
 {% endfor %}
 
 if __name__ == '__main__':
-{% for operator in operators.keys() %}
-    f_{{ operator }}()
+{% for gen_name in gen_hash_dict.keys() %}
+    {{ gen_name }}.execute({})
 {% endfor %}

@@ -7,7 +7,7 @@ from os      import environ
 from os.path import join, abspath, dirname, exists
 from datetime import datetime
 from airflow.hooks.postgres_hook import PostgresHook # type: ignore
-
+from dbgen.core.airflow_plugin import GenOperator # type: ignore
 # Internal Imports
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
@@ -23,6 +23,11 @@ def run_airflow(self      : 'Model',
                 until     : str = '',
                 xclude    : str = '',
                 only      : str = '',
+                retry     : bool = False,
+                serial    : bool = False,
+                bar       : bool = True,
+                clean     : bool = False,
+                batch     : int  = None,
                 **kwargs  : Any
                 ) -> None:
     '''
@@ -41,9 +46,9 @@ def run_airflow(self      : 'Model',
 
     # ping the database and check if we need to add Objs and Relations
     connection  = PostgresHook.get_connection(self.name)
-    connI = ConnectInfo.from_postgres_hook(connection)
+    connI       = ConnectInfo.from_postgres_hook(connection)
     mconnection = PostgresHook.get_connection(self.name+'_log')
-    mconnI = ConnectInfo.from_postgres_hook(mconnection)
+    mconnI      = ConnectInfo.from_postgres_hook(mconnection)
 
 
     if nuke:
@@ -66,12 +71,19 @@ def run_airflow(self      : 'Model',
                                    bar    = False)
 
 
-    operators     = {gn:g.operator(self.name, run_id, self.objs).replace('\n','\n    ')
-                            for gn,g in self.gens.items()}
-    deps          = list(self._gen_graph().edges())
+
+    gen_hash_dict   = {gen_name: gen.hash for gen_name, gen in self.gens.items()}
+    objs            = {oname   : (o._id, repr(o.ids()),repr(o.id_fks())) for oname, o in self.objs.items()}
+    deps            = list(self._gen_graph().edges())
     template_kwargs = dict(user              = environ['USER'],
+                           objs              = objs,
                            modelname         = self.name,
-                           operators         = operators,
+                           run_id            = run_id,
+                           retry             = retry,
+                           serial            = serial,
+                           bar               = bar,
+                           user_batch_size   = batch,
+                           gen_hash_dict     = gen_hash_dict,
                            deps              = deps,
                            schedule_interval = sched,
                            date              = datetime.date(datetime.now()))

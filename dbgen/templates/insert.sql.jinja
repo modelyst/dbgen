@@ -1,11 +1,11 @@
 INSERT INTO {{obj}}
-({% for column in all_column_names %}{{column}}{{ ", " if not loop.last }}{% endfor %})
+({% for column in all_column_names %}"{{column}}"{{ ", " if not loop.last }}{% endfor %})
 SELECT
-{% for column in all_column_names %}{{column}}{{ "," if not loop.last }}
+{% for column in all_column_names %}"{{column}}"{{ "," if not loop.last }}
 {% endfor %}
 FROM (
   SELECT
-    {% for column in all_column_names %}{{column}},
+    {% for column in all_column_names %}"{{column}}",
     {% endfor %}
     ROW_NUMBER() OVER (PARTITION BY {{obj_pk_name}}
                ORDER BY auto_inc {{ "ASC" if first else "DESC"}}) AS row_number

@@ -39,11 +39,11 @@ class Base(object,metaclass=ABCMeta):
     def copy(self : T) -> T:
         return deepcopy(self)
 
-    def toJSON(self) -> str:
+    def toJSON(self,max_depth :int = -2) -> str:
         for v in vars(self).values():
             if ' at 0x' in str(v):  # HACK
                 raise ValueError('serializing an object with reference to memory:'+ str(vars(self)))
-        return encode(self,make_refs=False)
+        return encode(self,make_refs=False, max_depth=max_depth, warn=True)
 
     @staticmethod
     def fromJSON(s : str) -> 'Base':

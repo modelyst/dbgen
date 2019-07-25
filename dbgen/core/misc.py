@@ -35,6 +35,15 @@ class ExternalError(Exception,Base):
     def __str__(self) -> str:
         return super().__str__()
     # Add custom stuff here?
+class GeneratorError(Exception,Base):
+    """
+    Custom class for catching errors that occur in code external to dbgen
+    """
+    def __init__(self, message : str) -> None:
+        super().__init__(message)
+    def __str__(self) -> str:
+        return super().__str__()
+    # Add custom stuff here?
 class SkipException(Exception,Base):
     """
     Custom class for catching errors that occur in code external to dbgen
