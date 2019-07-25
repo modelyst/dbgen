@@ -272,7 +272,7 @@ class REPLACE(Named,Ternary): pass
 class COALESCE(Named,Nary):   pass
 
 
-@pipe_infix
+# @pipe_infix
 class LIKE(Named,Binary):   pass
 
 # Ones that need a field defined
@@ -288,26 +288,26 @@ class LEFT(Named,Binary):         infix = False
 class RIGHT(Named,Binary):        infix = False
 class JSON_EXTRACT(Named,Binary): infix = False
 
-@pipe_infix
+# @pipe_infix
 class EQ(Binary): name = '='
-@pipe_infix
+# @pipe_infix
 class NE(Binary): name = '!='
-@pipe_infix
+# @pipe_infix
 class LT(Binary): name = '<'
-@pipe_infix
+# @pipe_infix
 class GT(Binary): name = '>'
-@pipe_infix
+# @pipe_infix
 class LE(Binary): name = '<='
-@pipe_infix
+# @pipe_infix
 class GE(Binary): name = '>='
 
-@pipe_infix
+# @pipe_infix
 class OR(Nary):
     """ Can be used as a binary operator (|OR|) or as a function OR(a,b,...)"""
     name  = ''
     delim = 'OR'
 
-@pipe_infix
+# @pipe_infix
 class AND(Nary):
     name  = ''
     delim = 'AND'
@@ -342,7 +342,7 @@ class Literal(Expr):
             x = f(self.x)
             return '(%s)' % x
 
-@pipe_infix
+# @pipe_infix
 class IN(Named):
     def __init__(self,x:Expr,xs:L[Expr])->None:
         self.x   = x
@@ -382,11 +382,11 @@ class IF_ELSE(Expr):
         c,i,e = map(f,self.fields())
         return 'CASE WHEN (%s) THEN (%s) ELSE (%s) END'%(c,i,e)
 
-@pipe_infix
+# @pipe_infix
 def IF(outcome:Expr,condition:Expr)->T[Expr,Expr]:
     return (outcome,condition)
 
-@pipe_infix
+# @pipe_infix
 def ELSE(ifpair : T[Expr,Expr], other : Expr) -> IF_ELSE:
     return IF_ELSE(ifpair[1],ifpair[0],other)
 

@@ -2,6 +2,7 @@ from typing import (Any, TYPE_CHECKING,
                     List     as L,
                     Dict     as D,
                     Optional as O,
+                    Set      as S,
                     Tuple    as T)
 
 from networkx        import DiGraph # type: ignore
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 
 
 from dbgen.core.func     import Env, Import, defaultEnv, Func
-from dbgen.core.funclike import PyBlock, Arg
+from dbgen.core.funclike import PyBlock, Arg, ArgLike
 from dbgen.core.action2   import Action
 from dbgen.core.query    import Query
 from dbgen.core.misc     import Dep
@@ -46,7 +47,7 @@ class Gen(Base):
                  batch_size : int        = None,
                 ) -> None:
 
-        assert actions, 'Cannot have generator which does nothing'
+        # assert actions, 'Cannot have generator which does nothing'
 
         self.name       = name.lower()
         self.desc       = desc or '<no description>'
@@ -117,8 +118,8 @@ class Gen(Base):
         if a_id:
             return a_id[0][0]
         else:
-            cmd  = mkInsCmd('gen', ['gen_id', 'name', 'description'])
-            sqlexecute(cxn, cmd,[self.hash, self.name, self.desc])
+            cmd  = mkInsCmd('gen', ['gen_id', 'name', 'description','gen_json'])
+            sqlexecute(cxn, cmd,[self.hash, self.name, self.desc, self.toJSON()])
             aid = self.get_id(cxn)
             return aid[0][0]
 
@@ -131,7 +132,7 @@ class Gen(Base):
             g.actions[i] = a.rename_object(o,n)
         return g
 
-    def purge(self, conn : Conn, mconn : Conn,universe:D[str,Obj]) -> None:
+    def purge(self, conn : Conn, mconn : Conn, universe:D[str,Obj]) -> None:
         '''
         If a generator is purged, then any
         tables it populates will be truncated. Any columns it populates will be set all

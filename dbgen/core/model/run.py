@@ -116,7 +116,7 @@ or else those tables will contain rows with missing ID info in their PKs.
 
 Add should really only be used to add attributes to existing tables
 or add new empty tables. Adding identifying FKs from existing tables to new tables
-is very dangerous and manual truncation will be necessary
+is very dangerous and manual truncation will be necessary.
 
 I hope you know what you are doing!!!
 !!!WARNING!!!!
@@ -166,7 +166,7 @@ I hope you know what you are doing!!!
     testdict = {xTest      : [xclude_],
                 start_test : [None],
                 until_test : [None]}
-
+    objs            = {oname   : (o._id, repr(o.ids()),repr(o.id_fks())) for oname, o in self.objs.items()}
     with tqdm(total=len(self.gens), position = 0, disable = not bar) as tq:
         for gen in self.ordered_gens():
 
@@ -193,9 +193,8 @@ I hope you know what you are doing!!!
                         run = False
                         break
             if run:
-                gen.update_status(gmcxn,run_id,'running')
-                err_tot += self._run_gen(gen=gen,gmcxn=gmcxn,gcxn=gcxn,
-                                      mconn=meta_conn,conn=conn,run_id=run_id,
+                err_tot += self._run_gen(objs = objs,gen=gen,gmcxn=gmcxn,gcxn=gcxn,
+                                      mconn_info=meta_conn,conn_info=conn,run_id=run_id,
                                       retry=retry,serial=serial,bar=bar,
                                       user_batch_size = batch)
 

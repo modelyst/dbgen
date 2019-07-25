@@ -45,8 +45,8 @@ def analysis(m : Model) -> None:
                                    step = History['step'](),
                                    h    = History.id()),
                      basis  = ['history'],
-                     constr = LEN(Procedures['procedure_name'](ppath)) |GT| Literal(3))
-
+                     constr = GT(LEN(Procedures['procedure_name'](ppath)) , Literal(3))
+)
     ssnpb = PyBlock(lambda ssn,step: ssn % step == 0,
                     args     = [ssnquery['ssn'],ssnquery['step']],
                     outnames = ['answer'])
@@ -71,7 +71,7 @@ def analysis(m : Model) -> None:
 
     pp = JPath("procedures", [history__expt_type, history__sample, electrode__sample, anode__electrode, fuel_cell__anode])
 
-    calcined_anode = proc_name(pp) |EQ| Literal('Calcination')
+    calcined_anode = EQ(proc_name(pp) , Literal('Calcination'))
 
     def bool_to_tinyint(x : Expr) -> Expr:
         '''Useful utility function to generate SQL Expression'''

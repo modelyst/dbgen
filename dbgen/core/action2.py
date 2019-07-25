@@ -12,6 +12,7 @@ import re
 from jinja2 import Template
 from io import StringIO
 from random import getrandbits
+from json import loads, dumps
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
@@ -85,7 +86,10 @@ class Action(Base):
                 if (self.insert or (a not in obj.ids()))]
         for k,a in self.fks.items():
             if (self.insert or (k not in obj.id_fks())):
-                out.extend([self.obj+'.'+k] + a.newcols(universe))
+                try:
+                    out.extend([self.obj+'.'+k] + a.newcols(universe))
+                except KeyError as e:
+                    import pdb; pdb.set_trace()
         return out
 
     def act(self,
