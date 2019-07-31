@@ -147,9 +147,10 @@ class Schema(Base):
         a,b = (r.o1,r.o2)
         if not forward: a,b = b,a
         if G.has_edge(a, b):
-            G[a][b]['fks'].add(r)
+            G[a][b]['fks'].append(r)
+            G[a][b]['fks'] = sorted(G[a][b]['fks'],key=lambda x: repr(x))
         else:
-            G.add_edge(a, b, fks=set([r]))
+            G.add_edge(a, b, fks=list([r]))
     ###########
     # Objects #
     ###########
