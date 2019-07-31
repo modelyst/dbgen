@@ -83,7 +83,8 @@ parser.add_argument('--retry',
                     help    = 'Ignore repeat checking')
 
 parser.add_argument('--serial',
-                    default = '',
+                    default = False,
+                    type    = lambda x:bool(strtobool(x)),
                     help    = 'Ignore any "parallel" flags')
 
 parser.add_argument('--clean',
