@@ -13,7 +13,7 @@ from dbgen.core.model.run_airflow       import run_airflow
 from dbgen.core.model.metatable import make_meta
 
 from dbgen.core.gen        import Gen
-from dbgen.core.action     import Action
+from dbgen.core.action2     import Action
 from dbgen.core.funclike   import PyBlock
 from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup
 from dbgen.core.schemaclass import Schema
