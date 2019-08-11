@@ -12,22 +12,17 @@ from airflow.hooks.postgres_hook import PostgresHook # type: ignore
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT # type: ignore
 
 # Internal Imports
-from ..gen import Gen
-from ..model.run_gen import run_gen
-from ..misc import ConnectInfo as ConnI, GeneratorError
+from ..misc import ConnectInfo as ConnI
 from dbgen.utils.sql import mkSelectCmd, sqlselect
 
 
-class GenOperator(BaseOperator):
-    """A custom airflow operator for the generator object"""
+class RunOperator(BaseOperator):
+    """A custom airflow operator for starting runs and validating the inputs"""
     template_fields = ()
     ui_color        = '#b3cde0'
 
     @apply_defaults
     def __init__(self,
-                 objs            : D[str,T[L[str],L[int],L[int]]],
-                 gen_name        : str,
-                 gen_hash        : int,
                  run_id          : int,
                  db_conn_id      : str,
                  mdb_conn_id     : str,
@@ -37,11 +32,8 @@ class GenOperator(BaseOperator):
                  user_batch_size : int = None,
                  **kwargs        : dict
                 )->None:
-        super(GenOperator, self).__init__(task_id = gen_name, **kwargs)
+        super(RunOperator, self).__init__(task_id = 'Start Run', **kwargs)
         # Initialize variables
-        self.objs            = objs
-        self.gen_name        = gen_name
-        self.gen_hash        = gen_hash
         self.run_id          = run_id
         self.retry           = retry
         self.serial          = serial
@@ -50,11 +42,9 @@ class GenOperator(BaseOperator):
         self.db_conn_id      = db_conn_id
         self.mdb_conn_id     = mdb_conn_id
 
-    def _get_gen(self, mcxn : 'Conn')->Gen:
-        get_a    = mkSelectCmd('gen', ['gen_json'], ['gen_id'])
-        gen_json = sqlselect(mcxn, get_a, [self.gen_hash])[0][0]
-        gen      = Gen.fromJSON(gen_json) # type: ignore
-        return gen # type: ignore
+    def _get_run_variable(self, mcxn : 'Conn')->Gen:
+
+        return gen
 
     def execute(self,
                 context : Any
@@ -70,7 +60,6 @@ class GenOperator(BaseOperator):
         conn_info  = ConnI.from_postgres_hook(PostgresHook.get_connection(self.db_conn_id))
         mconn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.mdb_conn_id))
 
-        gen = self._get_gen(mgcxn)
         assert gen.hash == self.gen_hash, 'Serialization error, The gen hash doesn\'t has changed!'
 
         run_gen_args = dict(

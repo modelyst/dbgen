@@ -30,6 +30,10 @@ Defines the class of modifications to a database
 There is a horrific amount of duplicated code in this file...... oughta fixit
 '''
 ################################################################################
+# ######################
+# # Constants
+# # --------------------
+NUM_QUERY_TRIES = 3
 
 class Action(Base):
     """
@@ -264,22 +268,29 @@ class Action(Base):
         """.format(obj_pk_name = obj_pk_name, temp = temp_table_name)
 
         with cxn.cursor() as curs:
+            # Create the temp table
             curs.execute(create_temp_table)
-            try:
-                curs.copy_from(io_obj,temp_table_name,sep='\t',null='None',columns = escaped_cols)
-            except psycopg2.errors.SyntaxError as exc:
-                import pdb; pdb.set_trace()
-                print('test')
+            # Attempt the loading step 3 times
+            query_fail_count = 0
+            while True:
+                if query_fail_count==NUM_QUERY_TRIES:
+                    raise ValueError('Query Cancel fail max reached')
+                try:
+                    curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
+                    break
+                except psycopg2.errors.QueryCanceled as exc:
+                    print('Query cancel failed')
+                    query_fail_count += 1
+                    continue
+
             # Try to insert everything from the temp table into the real table
             # If a foreign_key violation is hit, we delete those rows in the
             # temp table and move on
-            fk_fail_count = 0
+            fk_fail_count    = 0
+
             while True:
                 if fk_fail_count==10:
-                    if input('FK\'s have been violated 10 unique times, please confirm you want to continue (Y/y): ').lower() != 'y':
-                        raise ValueError('User Canceled due to large number of FK violations')
-                    else:
-                        print('Continuing')
+                    raise ValueError('User Canceled due to large number of FK violations')
                 # check for ForeignKeyViolation error
                 try:
                     curs.execute(load_statement)
@@ -296,9 +307,9 @@ class Action(Base):
 
             # Get ids
             curs.execute(get_ids_statement)
-            ids = [x[0] for x in curs.fetchall()]
+            pk_values = [x[0] for x in curs.fetchall()]
 
-        return ids
+        return pk_values
 
 
     def make_src(self) -> str:

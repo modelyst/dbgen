@@ -184,7 +184,7 @@ class Obj(Base):
         self.fks   = {r.name:r.to_rel(self.name) for r in fks or []}
         self._id   = id if id else self.name + '_id'
         # Validate
-        self.forbidden = [self._id,'deleted',name] # RESERVED
+        self.forbidden = [self._id,'deleted',self.name] # RESERVED
         assert not any([a in self.forbidden for a in self.attrs])
 
     def __str__(self) -> str:
