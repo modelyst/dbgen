@@ -160,3 +160,11 @@ class JSON(SQLType):
     def rand(cls) -> Any :
         '''Random instance (for testing purposes)'''
         return {'a':2,'b':'test'}
+
+class JSONB(SQLType):
+    def __str__(self) -> str:
+        return "JSONB"
+
+    def rand(cls) -> Any :
+        '''Random instance (for testing purposes)'''
+        return {'a':2,'b':'test'}
