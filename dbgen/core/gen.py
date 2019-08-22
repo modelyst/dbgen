@@ -186,7 +186,8 @@ class Gen(Base):
             saved_keys.update({hash_loc: set([arg_name,*saved_keys.get(hash_loc,set())])})
 
         for val in action.attrs.values():
-            saved_keys.update({val.key: set([val.name,*saved_keys.get(val.key,set())])})
+            if isinstance(val, Arg):
+                saved_keys.update({val.key: set([val.name,*saved_keys.get(val.key,set())])})
 
         for fk_action in action.fks.values():
             for hash_loc, name_set in self._get_saved_key_dict(fk_action).items():
