@@ -174,7 +174,8 @@ class Gen(Base):
     def _get_all_saved_key_dict(self)->D[int,S[str]]:
         saved_keys = {} # type: D[int,S[str]]
         for act in self.actions:
-            saved_keys.update(self._get_saved_key_dict(act))
+            for hash_loc, name_set in self._get_saved_key_dict(act).items():
+                saved_keys.update({hash_loc:set([*name_set,*saved_keys.get(hash_loc,set())])})
 
         return saved_keys
 
