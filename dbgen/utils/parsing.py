@@ -91,6 +91,11 @@ parser.add_argument('--clean',
                     default = False,
                     help    = 'Clean the database of the deleted column!DOESN\'t DELETE DELETED ROWS YET!')
 
+parser.add_argument('--skip-row-count',
+                    default = False,
+                    type    = lambda x:bool(strtobool(x)),
+                    help    = 'Skip Row count for large queries')
+
 parser.add_argument('--batch',
                     default = None,
                     type    = lambda x:int(float(x)),

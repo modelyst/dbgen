@@ -5,6 +5,7 @@ from os              import environ
 from os.path         import exists
 from json            import load, dump
 from pprint          import pformat
+import logging
 from contextlib      import suppress
 from sshtunnel       import SSHTunnelForwarder # type: ignore
 from psycopg2        import connect,Error                   # type: ignore
@@ -59,11 +60,12 @@ class ConnectInfo(Base):
     PostGreSQL connection info
     """
     def __init__(self,
-                 host   : str = '127.0.0.1',
-                 port   : int = 5432,
-                 user   : str = None,
-                 passwd : str = None,
-                 db     : str = '',
+                 host                : str = '127.0.0.1',
+                 port                : int = 5432,
+                 user                : str = None,
+                 passwd              : str = None,
+                 db                  : str = '',
+                 schema              : str = 'public',
                  ssh                 : str = '',
                  ssh_port            : int = 22,
                  ssh_username        : str = '',
@@ -75,11 +77,12 @@ class ConnectInfo(Base):
         if not user:
             user = passwd = environ["USER"]
 
-        self.host   = host
-        self.port   = port
-        self.user   = user
-        self.passwd = passwd
-        self.db     = db
+        self.host                = host
+        self.port                = port
+        self.user                = user
+        self.passwd              = passwd
+        self.db                  = db
+        self.schema              = schema
         self.ssh                 = ssh
         self.ssh_port            = ssh_port
         self.ssh_username        = ssh_username
@@ -108,9 +111,13 @@ class ConnectInfo(Base):
                                    user        = self.user,
                                    password    = self.passwd,
                                    dbname      = self.db,
-                                   connect_timeout = 28800)
+                                   connect_timeout = 28800
+                                   )
                     if auto_commit:
                         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    if self.schema != 'public':
+                        cur = conn.cursor()
+                        cur.execute(f'SET search_path TO \"{self.schema}\"')
                     return conn
             except Error as e:
                 print(e)

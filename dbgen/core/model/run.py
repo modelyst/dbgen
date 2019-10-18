@@ -17,19 +17,20 @@ from dbgen.utils.lists     import concat_map
 ########################################################
 
 def run(self      : 'Model',
-        conn      : ConnI,
-        meta_conn : ConnI,
-        nuke      : str  = '',
-        add       : bool = False,
-        retry     : bool = False,
-        only      : str = '',
-        xclude    : str = '',
-        start     : str = '',
-        until     : str = '',
-        serial    : bool = False,
-        bar       : bool = True,
-        clean     : bool = False,
-        batch     : int  = None
+        conn           : ConnI,
+        meta_conn      : ConnI,
+        nuke           : str = '',
+        add            : bool = False,
+        retry          : bool = False,
+        only           : str = '',
+        xclude         : str = '',
+        start          : str = '',
+        until          : str = '',
+        serial         : bool = False,
+        bar            : bool = True,
+        clean          : bool = False,
+        skip_row_count : bool = False,
+        batch          : int = None
        ) -> None:
     '''
     This method is point of the model: to run and generate a database according
@@ -50,6 +51,7 @@ def run(self      : 'Model',
     - until: stop at the generator with this name
     - serial: force all Generators to be run without parallelization
     - bar: show progress bars
+    - skip_row_count: Skip the select count(1) for all gens (good for large queries)
     - clean: 'cleans up' implementation detail columns (deleted) for
     presentation of the resulting database to others...at the cost of not being
     able to call model.run() without nuking again (unless an 'unclean' method is
@@ -97,6 +99,7 @@ def run(self      : 'Model',
         if nuke.lower() in ['t','true']:
             self.make_schema(conn=conn,nuke=nuke,bar=bar) # FULL NUKE
         else:
+            raise NotImplementedError('Selective nuking is not working yet')
             deltags = set(nuke.split())
             delgens = set()
             for gen in self.ordered_gens():
@@ -166,7 +169,9 @@ I hope you know what you are doing!!!
     testdict = {xTest      : [xclude_],
                 start_test : [None],
                 until_test : [None]}
-    objs            = {oname   : (o._id, repr(o.ids()),repr(o.id_fks())) for oname, o in self.objs.items()}
+
+    objs            = {oname   : (o._id, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
+
     with tqdm(total=len(self.gens), position = 0, disable = not bar) as tq:
         for gen in self.ordered_gens():
 
@@ -193,10 +198,20 @@ I hope you know what you are doing!!!
                         run = False
                         break
             if run:
-                err_tot += self._run_gen(objs = objs,gen=gen,gmcxn=gmcxn,gcxn=gcxn,
-                                      mconn_info=meta_conn,conn_info=conn,run_id=run_id,
-                                      retry=retry,serial=serial,bar=bar,
-                                      user_batch_size = batch)
+                err_tot += self._run_gen(
+                    objs            = objs,
+                    gen             = gen,
+                    gmcxn           = gmcxn,
+                    gcxn            = gcxn,
+                    mconn_info      = meta_conn,
+                    conn_info       = conn,
+                    run_id          = run_id,
+                    retry           = retry,
+                    serial          = serial,
+                    bar             = bar,
+                    user_batch_size = batch,
+                    skip_row_count  = skip_row_count
+                )
 
             tq.update()
 

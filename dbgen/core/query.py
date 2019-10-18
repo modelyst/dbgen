@@ -58,6 +58,7 @@ class Query(Expr):
         for k,v in exprs.items():
             assert isinstance(k,str), err%('str',k,type(k))
             assert isinstance(v,Expr),err%('Expr',v,type(v))
+
         self.exprs   = exprs
         self.aggcols = aggcols  or []
         self.constr  = constr   or true
@@ -71,6 +72,12 @@ class Query(Expr):
             self.basis   = [x if isinstance(x,str) else x.name for x in basis]
 
         self.option   = option   or []
+
+        if opt_attr:
+            for a in opt_attr:
+                if isinstance(a,PK):
+                    raise ValueError('You can\' have an optional ID attrs currently')
+                assert isinstance(a,PathAttr), err%('PathAttr',a,type(a))
         self.opt_attr = opt_attr or []
 
     def __str__(self) -> str:

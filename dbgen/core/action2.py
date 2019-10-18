@@ -276,12 +276,15 @@ class Action(Base):
                 if query_fail_count==NUM_QUERY_TRIES:
                     raise ValueError('Query Cancel fail max reached')
                 try:
-                    curs.copy_from(io_obj,temp_table_name,null='None',columns = cols)
+                    curs.copy_from(io_obj,temp_table_name,null='None',columns = escaped_cols)
                     break
                 except psycopg2.errors.QueryCanceled as exc:
                     print('Query cancel failed')
                     query_fail_count += 1
                     continue
+                except psycopg2.errors.SyntaxError as exc:
+                    import pdb; pdb.set_trace()
+                    print(exc)
 
             # Try to insert everything from the temp table into the real table
             # If a foreign_key violation is hit, we delete those rows in the
@@ -304,7 +307,8 @@ class Action(Base):
                     print(f"Moving on without inserting any rows with this {fk_pk}")
                     fk_fail_count += 1
                     continue
-
+            if fk_fail_count:
+                print('Fail count = {}'.format(fk_fail_count))
             # Get ids
             curs.execute(get_ids_statement)
             pk_values = [x[0] for x in curs.fetchall()]
