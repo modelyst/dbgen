@@ -3,12 +3,12 @@ from abc    import abstractmethod,ABCMeta
 from typing import (Any, TYPE_CHECKING,
                     Set      as S,
                     Dict     as D,
+                    Union    as U,
                     List     as L,
                     Tuple    as T,
                     Callable as C,
                     Optional as O)
 
-from infix  import or_infix as pipe_infix # type: ignore
 from copy   import deepcopy
 from functools  import reduce
 from operator   import add
@@ -272,7 +272,6 @@ class REPLACE(Named,Ternary): pass
 class COALESCE(Named,Nary):   pass
 
 
-# @pipe_infix
 class LIKE(Named,Binary):   pass
 
 # Ones that need a field defined
@@ -288,26 +287,18 @@ class LEFT(Named,Binary):         infix = False
 class RIGHT(Named,Binary):        infix = False
 class JSON_EXTRACT(Named,Binary): infix = False
 
-# @pipe_infix
 class EQ(Binary): name = '='
-# @pipe_infix
 class NE(Binary): name = '!='
-# @pipe_infix
 class LT(Binary): name = '<'
-# @pipe_infix
 class GT(Binary): name = '>'
-# @pipe_infix
 class LE(Binary): name = '<='
-# @pipe_infix
 class GE(Binary): name = '>='
 
-# @pipe_infix
 class OR(Nary):
     """ Can be used as a binary operator (|OR|) or as a function OR(a,b,...)"""
     name  = ''
     delim = 'OR'
 
-# @pipe_infix
 class AND(Nary):
     name  = ''
     delim = 'AND'
@@ -342,9 +333,8 @@ class Literal(Expr):
             x = f(self.x)
             return '(%s)' % x
 
-# @pipe_infix
 class IN(Named):
-    def __init__(self,x:Expr,xs:L[Expr])->None:
+    def __init__(self,x:Expr,xs:U[L[Expr],L[Literal]])->None:
         self.x   = x
         self.xs  = xs
 
@@ -382,11 +372,9 @@ class IF_ELSE(Expr):
         c,i,e = map(f,self.fields())
         return 'CASE WHEN (%s) THEN (%s) ELSE (%s) END'%(c,i,e)
 
-# @pipe_infix
 def IF(outcome:Expr,condition:Expr)->T[Expr,Expr]:
     return (outcome,condition)
 
-# @pipe_infix
 def ELSE(ifpair : T[Expr,Expr], other : Expr) -> IF_ELSE:
     return IF_ELSE(ifpair[1],ifpair[0],other)
 
@@ -450,7 +438,7 @@ class PathAttr(Expr):
         return '"%s"."%s"'%(self.path,self.attr.name)
 
     def __repr__(self) -> str:
-        return 'Attr<%s.%s>'%(self.path,self.attr)
+        return 'PathAttr<%s.%s>'%(self.path,self.attr)
 
     ####################
     # Abstract methods #

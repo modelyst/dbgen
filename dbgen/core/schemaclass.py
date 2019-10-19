@@ -52,11 +52,12 @@ class Schema(Base):
         Create empty schema
         '''
         if nuke.lower() in ['t','true']:
-            safe_conn    = deepcopy(conn)
-            safe_conn.db = 'postgres'
+            safe_conn        = deepcopy(conn)
+            # safe_conn.db     = 'postgres'
+            # safe_conn.schema = 'public'
             safe_cxn = safe_conn.connect()
-            sqlexecute(safe_cxn,'DROP DATABASE IF EXISTS '+conn.db)
-            sqlexecute(safe_cxn,'CREATE DATABASE '+conn.db)
+            sqlexecute(safe_cxn,f'DROP SCHEMA IF EXISTS \"{conn.schema}\" CASCADE')
+            sqlexecute(safe_cxn,f'CREATE SCHEMA \"{conn.schema}\"')
         cxn = conn.connect()
         tqargs = dict(leave=False,disable=not bar)
         for ta in tqdm(self.objs.values(),desc='adding tables',**tqargs):

@@ -11,7 +11,7 @@ from dbgen.utils.str_utils import hash_
 T = TypeVar('T')
 
 def identity(x : T) -> T:
-    return x # type: ignore
+    return x
 
 # ######################
 # # Validate Json for security
@@ -51,9 +51,9 @@ def validate_json_obj(json_obj : json_types)->bool:
         if any(key in json_obj for key in tags.RESERVED):
             validate_dict(json_obj)
         for key, val in json_obj.items():
-            if type(val) in [dict, list]:
+            if isinstance(val,(dict, list)):
                  validate_json_obj(val)
-    elif type(json_obj) in [list, tuple]:
+    elif isinstance(json_obj,(list,tuple)):
         for val in json_obj:
             validate_json_obj(val)
     elif isinstance(json_obj,str):

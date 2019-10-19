@@ -3,6 +3,7 @@ from typing import (TYPE_CHECKING,
                      Any,
                      List     as L,
                      Dict     as D,
+                     Union    as U,
                      Set      as S,
                      Tuple    as T)
 from time            import time
@@ -20,7 +21,7 @@ from dbgen.core.schema          import Obj
 from dbgen.core.misc            import ConnectInfo as ConnI
 from dbgen.core.gen             import Gen
 from dbgen.core.funclike        import PyBlock
-from dbgen.core.action2          import Action
+from dbgen.core.action2         import Action
 from dbgen.core.misc            import ExternalError, SkipException
 
 from dbgen.utils.lists          import broadcast, batch
@@ -40,8 +41,9 @@ def run_gen(self            : 'Model',
             retry           : bool = False,
             serial          : bool = False,
             bar             : bool = False,
-            user_batch_size : int = None,
-            gen_hash        : int = None,
+            user_batch_size : int  = None,
+            skip_row_count  : bool = False,
+            gen_hash        : int  = None,
            ) -> int:
     """
     Executes a SQL query, then maps each output over a processing function.
@@ -85,7 +87,10 @@ def run_gen(self            : 'Model',
             # If there is a query get the row count and execute it
             if gen.query:
                 tq.set_description('Getting row count...')
-                num_inputs = gen.query.get_row_count(gcxn)
+                if not skip_row_count:
+                    num_inputs = gen.query.get_row_count(gcxn)
+                else:
+                    num_inputs = int(10e8)
                 tq.set_description('Executing query...')
                 cursor.execute(gen.query.showQ())
             # No query gens have 1 input
@@ -119,19 +124,19 @@ def run_gen(self            : 'Model',
 
                 # If retry is true don't check for repeats
                 if retry_:
-                    inputs = [(x,hasher(x)) for x in inputs] # type: ignore
+                    inputs = [(x,hasher(x)) for x in inputs]
                 # Check for repeats
                 elif inputs:
                     with tqdm(total=1, desc='Repeat Checking', **bargs_inner ) as tq:
                         # pair each input row with its hash
-                        unfiltered_inputs = [(x,hasher(x)) for x in inputs] # type: ignore
+                        unfiltered_inputs = [(x,hasher(x)) for x in inputs]
                         # Get the already processed input hashes from the metadb
                         rpt_select        = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
                         rpt_select_output = sqlselect(gmcxn,rpt_select,[a_id])
                         rpt_select_output = [x[0] for x in rpt_select_output]
-                        rpt_select_output = set(rpt_select_output)
+                        rpt_select_output = set(rpt_select_output) # type: ignore
                         # remove the hashes that are already in the processed_hashes
-                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpt_select_output]
+                        inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpt_select_output] # type: ignore
                         tq.update()
 
                 # If we have no query or if we have any inputs we apply the ETL to the batch
@@ -231,7 +236,7 @@ def run_gen(self            : 'Model',
 def transform_func(input: T[dict,int],
                    qhsh : int,
                    pbs : L[PyBlock]
-                  )->T[dict,int]:
+                  )->U[T[dict,int],T[None,None]]:
     row, hash = input
     try:
         d = {qhsh:row}
@@ -255,7 +260,7 @@ def delete_unused_keys(namespace : D[int,Any],
 def apply_batch(inputs        : L[T[dict,int]],
                  f            : L[PyBlock],
                  acts         : L[Action],
-                 objs         : D[str,T[L[str],L[int],L[int]]],
+                 objs         : D[str,T[str,L[str],L[str]]],
                  a_id         : int,
                  run_id       : int,
                  qhsh         : int,
