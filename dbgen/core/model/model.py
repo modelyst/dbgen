@@ -35,7 +35,6 @@ class Model(Schema):
     def __init__(self,
                  name : str,
                  objs : L[Obj]    = None,
-                 #rels : L[Rel]    = None,
                  gens : L[Gen]    = None,
                  views: L[View]   = None,
                  pes  : L[PathEQ] = None,

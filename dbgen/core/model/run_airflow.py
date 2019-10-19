@@ -49,7 +49,6 @@ def run_airflow(self      : 'Model',
     mconnection = PostgresHook.get_connection(self.name+'_log')
     mconnI      = ConnectInfo.from_postgres_hook(mconnection)
 
-
     if nuke:
         self.make_schema(conn=connI,nuke=nuke) # FULL NUKE
 

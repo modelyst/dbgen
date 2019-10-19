@@ -154,7 +154,10 @@ class Action(Base):
 
         idata,adata = broadcast(idattr),broadcast(allattr)
         if self.pk is not None:
-            assert not idata, 'Cannot provide a PK *and* identifying info'
+            try:
+                assert not idata, 'Cannot provide a PK *and* identifying info'
+            except AssertionError as exc:
+                import pdb; pdb.set_trace()
             pkdata = self.pk.arg_get(row)
             if isinstance(pkdata,int):
                 idata_prime = [pkdata]
@@ -305,6 +308,7 @@ class Action(Base):
                     curs.execute(delete_statement)
                     print(f"ForeignKeyViolation: tried to insert {fk_pk} into FK column {fk_name} of {self.obj}. But no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}.")
                     print(f"Moving on without inserting any rows with this {fk_pk}")
+                    import pdb; pdb.set_trace()
                     fk_fail_count += 1
                     continue
             if fk_fail_count:
