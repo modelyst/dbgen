@@ -1,6 +1,6 @@
 # External Modules
 from abc    import abstractmethod,ABCMeta
-from typing import (Any, TYPE_CHECKING,
+from typing import (Any, TYPE_CHECKING, Type,
                     Set      as S,
                     Dict     as D,
                     Union    as U,
@@ -12,29 +12,32 @@ from typing import (Any, TYPE_CHECKING,
 from copy   import deepcopy
 from functools  import reduce
 from operator   import add
+from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just, recursive # type: ignore
 
 # Internal Modules
 if TYPE_CHECKING:
-    from dbgen.core.schema import AttrTup,RelTup
+    from dbgen.core.expr.pathattr import PathAttr
+    PathAttr
 
-from dbgen.core.pathconstraint  import Path
-from dbgen.core.sqltypes        import SQLType,Decimal,Varchar,Text,Int
+from dbgen.core.expr.sqltypes        import SQLType,Decimal,Varchar,Text,Int
 from dbgen.utils.lists          import concat_map
-from dbgen.utils.misc           import Base
+from dbgen.utils.misc           import Base, anystrat
 from dbgen.utils.lists          import flatten
 
 """
-Python-sql interface
+Python-sql interface.
 """
+
 ###############################################################################
 Fn = C[[Any],str] # type shortcut
 
-class Expr(Base,metaclass = ABCMeta):
+
+class Expr(Base, metaclass = ABCMeta):
 
     # Constants
     #----------
     @property
-    def agg(self)->bool: return False # by default, we assume not an Aggregation
+    def agg(self) -> bool: return False # by default, we assume not an Aggregation
 
     # Abstract methods
     #-----------------
@@ -46,16 +49,23 @@ class Expr(Base,metaclass = ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def show(self,f:Fn)->str:
+    def show(self, f: Fn) -> str:
         """
         Apply function recursively to fields
         """
         raise NotImplementedError
 
+    @classmethod
+    @abstractmethod
+    def strat(cls) -> SearchStrategy:
+        abc = Literal('abc')
+        exprs : L[Expr] = [One, LT(One,One), GT(One,Zero), LEN(abc), EQ(One,One),
+                           LEFT(abc,One), RIGHT(abc,One)]
+        return one_of(*[just(x) for x in exprs])
     #--------------------------#
     # Representing expressions #
     #--------------------------#
-    def __str__(self)->str:
+    def __str__(self) -> str:
         """
         Default string representation: all fields run through str()
         """
@@ -70,7 +80,7 @@ class Expr(Base,metaclass = ABCMeta):
     #--------------------#
     # Overloaded methods #
     #--------------------#
-    def __abs__(self)->'ABS':              return ABS(self)
+    def __abs__(self)->'ABS':                 return ABS(self)
     def __add__(self, other:'Expr')->'PLUS':  return PLUS(self,other)
     def __mul__(self, other:'Expr')->'MUL':   return MUL(self,other)
     def __pow__(self, other:'Expr')->'POW':   return POW(self,other)
@@ -78,23 +88,6 @@ class Expr(Base,metaclass = ABCMeta):
     def __or__(self,other : Any)->'Expr':     raise NotImplementedError
     del __or__  # tricking the type checker to use |Infix|
     def __truediv__(self, other:'Expr')->'DIV':   return DIV(self,other)
-
-    #----------------#
-    # Public methods #
-    #----------------#
-
-    def attrs(self)->L['PathAttr']:
-        """
-        Recursively search for any Path (Expr) mentions in the Expr
-        """
-        out = [] # type: L['PathAttr']
-        for field in self.fields():
-            if isinstance(field,PathAttr):
-                out.append(field)
-            elif hasattr(field,'attrs'):
-                out.extend(field.attrs())
-
-        return out
 
     #-----------------#
     # Private Methods #
@@ -141,9 +134,15 @@ class Unary(Expr):
 
     # Class-specific init
     #-------------------
-    def __init__(self,x:Expr)->None:
-        assert isinstance(x,Expr)
+    def __init__(self, x: Expr) -> None:
+        assert isinstance(x,Expr), (x,type(x))
         self.x = x
+
+    @classmethod
+    def strat(cls,strat:SearchStrategy=None) -> SearchStrategy:
+        from dbgen.core.expr.exprstrat import exprstrat
+        x = exprstrat if strat is None else strat
+        return builds(cls,x=x)
 
 class Binary(Expr):
     """
@@ -172,9 +171,13 @@ class Binary(Expr):
 
     # Class-specific init
     #-------------------
-    def __init__(self,x:Expr,y:Expr)->None:
+    def __init__(self, x: Expr, y: Expr) -> None:
         assert all([isinstance(a,Expr) for a in [x,y]]), [x,type(x),y,type(y)]
         self.x,self.y = x,y
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 class Ternary(Expr):
     """
@@ -198,7 +201,11 @@ class Ternary(Expr):
     #-------------------
     def __init__(self,x:Expr,y:Expr,z:Expr)->None:
         assert all([isinstance(a,Expr) for a in [x,y,z]])
-        self.x,self.y,self.z = x,y,z
+        self.x, self.y, self.z = x, y, z
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 class Nary(Expr):
     """
@@ -224,6 +231,10 @@ class Nary(Expr):
         xs = map(f,self.xs)
         d  = ' %s '%self.delim
         return '%s(%s)'%(self.name,d.join(xs))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, xs=lists(Expr.strat(),min_size=1,max_size=2))
 
 class Named(Expr):
     """
@@ -332,6 +343,9 @@ class Literal(Expr):
         else:
             x = f(self.x)
             return '(%s)' % x
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, x = anystrat)
 
 class IN(Named):
     def __init__(self,x:Expr,xs:U[L[Expr],L[Literal]])->None:
@@ -339,11 +353,15 @@ class IN(Named):
         self.xs  = xs
 
     def fields(self)->L[Expr]:
-        return [self.x]+self.xs
+        return [self.x]+self.xs # type: ignore
 
     def show(self,f:Fn)->str:
         xs = map(f,self.xs)
         return '%s IN (%s)'%(f(self.x),','.join(xs))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 ##########
 class CASE(Expr):
@@ -358,8 +376,11 @@ class CASE(Expr):
         end = ' ELSE (%s) END'%(f(self.else_))
         return 'CASE  '+body + end
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
-# IF_ELSE is *not* for public use; rather:  <Ex1> |IF| <Ex2> |ELSE| <Ex3>
+
 class IF_ELSE(Expr):
     def __init__(self,cond:Expr,_if:Expr,other:Expr)->None:
         self.cond = cond
@@ -372,11 +393,9 @@ class IF_ELSE(Expr):
         c,i,e = map(f,self.fields())
         return 'CASE WHEN (%s) THEN (%s) ELSE (%s) END'%(c,i,e)
 
-def IF(outcome:Expr,condition:Expr)->T[Expr,Expr]:
-    return (outcome,condition)
-
-def ELSE(ifpair : T[Expr,Expr], other : Expr) -> IF_ELSE:
-    return IF_ELSE(ifpair[1],ifpair[0],other)
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 class CONVERT(Expr):
     def __init__(self, expr : Expr, dtype : SQLType) -> None:
@@ -393,6 +412,10 @@ class CONVERT(Expr):
         e = f(self.expr)
         return 'CAST(%s AS %s)'%(e,self.dtype)
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 class SUBSELECT(Expr):
     '''Hacky way of getting in subselect .... will not automatically detect
         dependencies'''
@@ -407,6 +430,10 @@ class SUBSELECT(Expr):
     def show(self,f:Fn) -> str:
         e = f(self.expr)
         return '(SELECT %s FROM %s WHERE %s )'%(e,self.tab,self.where)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 class GROUP_CONCAT(Agg):
     def __init__(self,expr : Expr, delim : str = None, order : Expr = None) -> None:
@@ -424,57 +451,14 @@ class GROUP_CONCAT(Agg):
 
         return 'string_agg(%s :: TEXT,\'%s\' %s)'%(f(self.expr),self.delim,ord)
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 class STD(Agg,Unary):
     name = 'stddev_pop'
 
 ##############################################################################
-class PathAttr(Expr):
-    def __init__(self, path : Path = None, attr : 'AttrTup' = None) -> None:
-        assert attr
-        self.path  = path or Path(attr.obj)
-        self.attr  = attr
-
-    def __str__(self) -> str:
-        return '"%s"."%s"'%(self.path,self.attr.name)
-
-    def __repr__(self) -> str:
-        return 'PathAttr<%s.%s>'%(self.path,self.attr)
-
-    ####################
-    # Abstract methods #
-    ####################
-    def attrs(self) -> L['PathAttr']:
-        return [self]
-
-    def fields(self)->list:
-        """
-        List of immediate substructures of the expression (not recursive)
-        """
-        return []
-
-    def show(self, f : Fn) -> str:
-        """
-        Apply function recursively to fields
-        """
-        return f(self)
-
-    @property
-    def name(self) -> str: return self.attr.name
-
-    @property
-    def obj(self)  -> str: return self.attr.obj
-
-    def allrels(self) -> S['RelTup']:
-        stack = list(self.path.fks)
-        rels  = set()
-        while stack:
-            curr = stack.pop(0)
-            if not isinstance(curr,list):
-                rels.add(curr.tup())
-            else:
-                assert not stack # only the last element should be a list
-                stack = flatten(curr)
-        return rels
 ##############################################################################
 class PK(Expr):
     '''Special Expr type for providing PK + UID info'''
@@ -486,6 +470,9 @@ class PK(Expr):
         return f(self.pk)
     def fields(self) -> list:
         return [self.pk]
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 ############################
 # Specific Exprs and Funcs #

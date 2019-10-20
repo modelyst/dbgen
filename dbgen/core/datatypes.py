@@ -4,6 +4,7 @@ from typing  import List as L,Type
 from abc     import abstractmethod,ABCMeta
 from ast     import literal_eval
 from inspect import _empty  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just # type: ignore
 
 # Internal modules
 from dbgen.utils.misc import Base
@@ -22,9 +23,20 @@ class DataType(Base, metaclass = ABCMeta):
 
     This class is meant to be extended as new cases appear
     """
+    def __init__(self) -> None:
+        super().__init__()
+
     def __len__(self) -> int:
-        '''Default length, ONLY Tuple has a non-one length'''
+        '''Default length, ONLY Tuple has a non-one length.'''
         return 1
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        dts = [AnyType(), NoneType(),BaseType('x'),TypeVar('x'),
+               Callable([AnyType()],NoneType()),Union([AnyType(),BaseType('x')]),
+               Tuple([AnyType(),BaseType('x')]), List(NoneType()),
+               Dict(BaseType('x'),BaseType('y'))] # type: L[DataType]
+        return one_of(*[just(x) for x in dts])
 
     @abstractmethod
     def __str__(self) -> str:
@@ -100,56 +112,87 @@ class DataType(Base, metaclass = ABCMeta):
 class AnyType(DataType):
     def __str__(self)->str:
         return 'Any'
+        super().__init__()
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 ################################################################################
 
 class NoneType(DataType):
     def __str__(self)->str:
         return 'None'
+        super().__init__()
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
 ################################################################################
 
 class BaseType(DataType):
     def __init__(self,unBase:str)->None:
         self.unBase = unBase
+        super().__init__()
 
     def __str__(self)->str:
         return '"%s"'%self.unBase
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 ################################################################################
 
 class TypeVar(DataType):
-    def __init__(self,name:str)->None:
+    def __init__(self, name:str)->None:
         self.name = name
+        super().__init__()
 
     def __str__(self)->str:
         return '"%s"'%self.name
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 ################################################################################
 
 class Callable(DataType):
-    def __init__(self, args : L[DataType], out : DataType) -> None:
-        self.c_args = args
+    def __init__(self, c_args : L[DataType], out : DataType) -> None:
+        self.c_args = c_args
         self.out    = out
+        super().__init__()
 
     def __str__(self) -> str:
         ar = ' -> '
         return ar.join(map(str,self.c_args)) + ar + str(self.out)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, out=DataType.strat(),
+                      c_args=lists(DataType.strat(), min_size=1, max_size=2))
 
 ################################################################################
 
 class Union(DataType):
     def __init__(self, args : L[DataType]) -> None:
         self.args = args
+        super().__init__()
 
     def __str__(self) -> str:
         return '{%s}'%(','.join(sorted(map(str,self.args))))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, args=lists(DataType.strat(), min_size=1, max_size=2))
 
 ################################################################################
 
 class Tuple(DataType):
     def __init__(self, args : L[DataType]) -> None:
         self.args= args
+        super().__init__()
 
     def __str__(self) -> str:
         return '(%s)'%(','.join(map(str,self.args)))
@@ -157,21 +200,35 @@ class Tuple(DataType):
     def __len__(self) -> int:
         return len(self.args)
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, args=lists(DataType.strat(), min_size=1, max_size=2))
+
 ################################################################################
 
 class List(DataType):
     def __init__(self, content : DataType) -> None:
         self.content = content
+        super().__init__()
 
     def __str__(self) -> str:
         return '[%s]'%(str(self.content))
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 ################################################################################
 
 class Dict(DataType):
-    def __init__(self, fromT : DataType, toT : DataType) -> None:
-        self.key = fromT
-        self.val = toT
+    def __init__(self, key : DataType, val : DataType) -> None:
+        self.key = key
+        self.val = val
+        super().__init__()
 
     def __str__(self) -> str:
         return '{ %s : %s }'%(str(self.key),str(self.val))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)

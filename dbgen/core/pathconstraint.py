@@ -46,6 +46,8 @@ class Constraint(Base):
             err = 'All branches must start from same table %s'
             tabs = {b.tab for b in self.branch}
             assert len(tabs)==1, err % tabs
+        super().__init__()
+
 
     def __str__(self) -> str:
        return 'Constraint<%s>'%self.tab

@@ -12,14 +12,16 @@ from dbgen.core.func      import Import, Env, defaultEnv, Func
 
 from dbgen.core.funclike  import (PyBlock, Const, Arg)
 
-from dbgen.core.expr      import (Expr, AND, IF, ELSE, Literal, MAX, One, LT, GT, LE, GE,
+from dbgen.core.expr.expr      import (Expr, AND, IF_ELSE, Literal, MAX, One, LT, GT, LE, GE,
                                  COUNT, LEN, IN, GROUP_CONCAT, CONCAT, Literal,
                                  ABS, SUM, NOT,REGEXP, BINARY, Sum, toDecimal,
                                  NULL, MIN,COALESCE, LIKE, OR, EQ, NE, Zero, true, false,
                                  JSON_EXTRACT, REPLACE, CONVERT, R2, STD, AVG,
-                                 PathAttr, SUBSELECT, LEFT, RIGHT, CASE, Tup)
+                                 SUBSELECT, LEFT, RIGHT, CASE, Tup)
 
-from dbgen.core.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Timestamp, Double, Boolean, JSON, JSONB
+from dbgen.core.expr.pathattr import PathAttr
+
+from dbgen.core.expr.sqltypes  import SQLType, Int, Varchar, Decimal, Text, Date, Timestamp, Double, Boolean, JSON, JSONB
 
 
 ############################

@@ -1,5 +1,5 @@
 from dbgen.core.schema import Obj, Attr, Rel
-from dbgen.core.sqltypes import Varchar, Int, Decimal, Text, Boolean
+from dbgen.core.expr.sqltypes import Varchar, Int, Decimal, Text, Boolean
 
 
 

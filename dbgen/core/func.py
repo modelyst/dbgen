@@ -11,6 +11,7 @@ from os.path               import join, exists
 from sys                   import version_info
 from inspect               import getdoc,signature,getsourcefile, getsourcelines,getmembers,isfunction # type: ignore
 from importlib.util        import spec_from_file_location, module_from_spec
+from hypothesis.strategies import SearchStrategy, builds # type: ignore
 
 # Iternal Modules
 from dbgen.core.datatypes   import DataType, Tuple
@@ -58,6 +59,7 @@ class Import(Base):
         self.alias            = alias
         self.unaliased_terms  = unaliased
         self.aliased_terms    = aliased
+        super().__init__()
 
     def __str__(self) -> str:
         if not (self.unaliased_terms or self.aliased_terms):
@@ -73,6 +75,10 @@ class Import(Base):
 
     def __hash__(self) -> int:
         return self.hash
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
     @staticmethod
     def from_str(s : str) -> 'Import':
@@ -101,12 +107,17 @@ class Env(Base):
     '''
     def __init__(self, *imports : Import) -> None:
         self.imports = list(imports)
+        super().__init__()
 
     def __str__(self) -> str:
         return '\n'.join(map(str,self.imports))
 
     def __add__(self, other : 'Env') -> 'Env':
         return Env(*set(self.imports + other.imports))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
     # Public methods #
 
@@ -139,6 +150,8 @@ class Func(Base):
             self.env  = env
         else:
             self.env  = Env.from_file(environ['DEFAULT_ENV'])
+        super().__init__()
+
 
     def __str__(self) -> str:
         n = self.src.count('\n')
@@ -153,6 +166,10 @@ class Func(Base):
             return f(*args)
 
     def __repr__(self) -> str: return self.name
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
     # Properties #
 

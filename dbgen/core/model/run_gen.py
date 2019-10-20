@@ -21,7 +21,7 @@ from dbgen.core.schema          import Obj
 from dbgen.core.misc            import ConnectInfo as ConnI
 from dbgen.core.gen             import Gen
 from dbgen.core.funclike        import PyBlock
-from dbgen.core.action2         import Action
+from dbgen.core.action         import Action
 from dbgen.core.misc            import ExternalError, SkipException
 
 from dbgen.utils.lists          import broadcast, batch

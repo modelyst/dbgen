@@ -9,12 +9,13 @@ from typing     import (Any,
 from abc        import ABCMeta, abstractmethod
 from traceback  import format_exc
 from jinja2     import Template
+from hypothesis.strategies import SearchStrategy, builds, one_of, just # type: ignore
 
 # Internal
 from dbgen.core.func   import Func, Env
 from dbgen.core.misc   import ConnectInfo as Conn,ExternalError
 from dbgen.utils.sql   import mkInsCmd,sqlexecute
-from dbgen.utils.misc  import Base
+from dbgen.utils.misc  import Base, anystrat, nonempty
 from dbgen.templates   import jinja_env
 '''
 The "T" of ETL: things that are like functions.
@@ -24,13 +25,16 @@ A generalization of a function is a computational graph (where nodes are functio
 These nodes (PyBlocks) have Args which refer to other PyBlocks (or a query)
 '''
 ####################################################################################
-class ArgLike(Base,metaclass=ABCMeta):
+class ArgLike(Base, metaclass=ABCMeta):
     @abstractmethod
     def arg_get(self, dic : dict) -> Any:
         raise NotImplementedError
     @abstractmethod
     def make_src(self, meta : bool = False) -> str:
         raise NotImplementedError
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return one_of(Arg.strat(),Const.strat())
 
 class Arg(ArgLike):
     """
@@ -45,6 +49,10 @@ class Arg(ArgLike):
         return 'Arg(%s...,%s)'%(str(self.key)[:4],self.name)
 
     # Public methods #
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
     def arg_get(self, dic : dict) -> Any:
         '''
@@ -70,7 +78,7 @@ class Arg(ArgLike):
         else:    return 'namespace[%s]["%s"]'%(key,self.name)
 
 class Const(ArgLike):
-    def __init__(self,val:Any) -> None:
+    def __init__(self, val:Any) -> None:
         if hasattr(val,'__call__'):
             try: val = Func.from_callable(val)
             except: pass
@@ -82,6 +90,9 @@ class Const(ArgLike):
     def make_src(self, meta:bool=False) -> str:
         if meta: return "Const(%s)"+repr(self.val)
         else:    return repr(self.val)
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, val=anystrat)
 
 class PyBlock(Base):
     """
@@ -96,6 +107,7 @@ class PyBlock(Base):
                 ) -> None:
         # Store fields
         self.func     = Func.from_callable(func,env = env)
+        self.env      = env
         self.args     = args or []
         self.outnames = [o.lower() for o in outnames or ['out']]
         self.tests    = tests or []
@@ -105,6 +117,11 @@ class PyBlock(Base):
             dups = [o for o in outnames if outnames.count(o) > 1]
             err  = 'No duplicates in outnames for func %s: %s'
             assert not dups, err%(self.func.name, set(dups))
+        super().__init__()
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return just(cls(func=lambda x:x+1,args=[Const(1)],outnames=['x'],))
 
     def __str__(self)->str:
         return 'PyBlock<%d args>'%(len(self.args))

@@ -6,22 +6,21 @@ from typing import (Any, TYPE_CHECKING,
                     Tuple    as T)
 
 from networkx        import DiGraph # type: ignore
-from jsonpickle import encode, decode # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, lists # type: ignore
 
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
-
-
+    Model
 from dbgen.core.func     import Env, Import, defaultEnv, Func
 from dbgen.core.funclike import PyBlock, Arg, ArgLike
-from dbgen.core.action2   import Action
+from dbgen.core.action   import Action
 from dbgen.core.query    import Query
 from dbgen.core.misc     import Dep
 from dbgen.core.schema   import Obj
 
 from dbgen.utils.graphs    import topsort_with_dict
-from dbgen.utils.misc      import Base
+from dbgen.utils.misc      import Base, nonempty
 from dbgen.utils.lists      import concat_map
 from dbgen.utils.str_utils import hash_
 from dbgen.utils.sql       import (Connection as Conn,sqlexecute,mkSelectCmd,
@@ -48,21 +47,30 @@ class Gen(Base):
                 ) -> None:
 
         # assert actions, 'Cannot have generator which does nothing'
-
+        assert name
         self.name       = name.lower()
         self.desc       = desc or '<no description>'
         self.query      = query
-        self.funcs      = self._order_funcs(funcs or [], query)
+        self.funcs = self._order_funcs(funcs or [], query)
         self.actions    = actions or []
         self.tags       = [t.lower() for t in tags or []]
         self.env        = env or defaultEnv
         self.batch_size = batch_size
         for func in self.funcs:
             self.env += func.func.env
+        super().__init__()
+
 
     def __str__(self) -> str:
         return 'Gen<%s>'%self.name
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        """A hypothesis strategy for generating random examples."""
+        return builds(cls, name=nonempty, desc=nonempty,query=Query.strat(),
+                      funcs=lists(PyBlock.strat(),max_size=2),
+                      actions=lists(Action.strat(),min_size=1,max_size=2),
+                      tags=lists(nonempty,max_size=3))
     ##################
     # Public Methods #
     ##################
