@@ -1,10 +1,12 @@
  # External
 from typing import (Set    as S,
                     List   as L,
+                    Dict   as D,
                     Union  as U,
                     Tuple  as T)
 from networkx            import DiGraph       # type: ignore
 from networkx.algorithms import simple_cycles # type: ignore
+from hypothesis.strategies import SearchStrategy, just # type: ignore
 
 # Internal
 from dbgen.core.model.run_gen   import run_gen
@@ -13,9 +15,9 @@ from dbgen.core.model.run_airflow       import run_airflow
 from dbgen.core.model.metatable import make_meta
 
 from dbgen.core.gen        import Gen
-from dbgen.core.action2     import Action
+from dbgen.core.action     import Action
 from dbgen.core.funclike   import PyBlock
-from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup
+from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup, UserRel
 from dbgen.core.schemaclass import Schema
 from dbgen.core.misc       import ConnectInfo as ConnI
 from dbgen.utils.misc      import Base
@@ -34,35 +36,48 @@ class Model(Schema):
     '''
     def __init__(self,
                  name : str,
-                 objs : L[Obj]    = None,
-                 gens : L[Gen]    = None,
-                 views: L[View]   = None,
+                 objlist : L[Obj]    = None,
+                 genlist : L[Gen]    = None,
+                 viewlist: L[View]   = None,
                  pes  : L[PathEQ] = None,
                 ) -> None:
 
         self.name = name
-        self.objs = {o.name : o for o in (objs or [])}
-        self.gens = {g.name : g for g in (gens or [])}
-        self.views = {v.name : v for v in (views or [])}
+        self.objlist = objlist or []
+        self.genlist = genlist or []
+        self.viewlist = viewlist or []
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objs) # nodes are object NAMES
 
-        self.pe   = set(pes or []) # path equivalencies
+        self.pes = set(pes or []) # path equivalencies
 
         for o in self.objs.values():
-            for rel in o.fks.values():
-                self._add_relation(rel)
+            for rel in o.fks:
+                self._add_relation(rel.to_rel(o.name))
+        super(Schema, self).__init__()
+
+    @property
+    def gens(self) -> D[str, Gen]:
+        return {g.name:g for g in self.genlist}
 
     def __str__(self) -> str:
         p = '%d objs' % len(self.objs)
         n = self._fks.number_of_edges()
         r = '%d rels' % n if n else ''
         m = '%d gens' % len(self.gens) if self.gens else ''
-        e = '%d PathEQs'%len(self.pe) if self.pe else ''
+        e = '%d PathEQs'%len(self.pes) if self.pes else ''
 
         things = ', '.join(filter(None,[p,r,m,e]))
         return 'Model<%s,%s>'%(self.name,things)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        """A hypothesis strategy for generating random examples."""
+        objs=[Obj('a',attrs=[Attr('aa')],fks=[UserRel('ab','b')]),
+              Obj('b',attrs=[Attr('bb')])]
+        gens=[Gen(name='pop_a',funcs=[],actions=[],tags=['io'])]
+        return just(cls(name='model',objlist=objs,genlist=gens))
 
     ######################
     # Externally defined #
@@ -85,7 +100,7 @@ class Model(Schema):
 
     def check_paths(self, db : ConnI) -> None:
         '''Use ASSERT statements to verify one's path equalities are upheld'''
-        for pe in self.pe:
+        for pe in self.pes:
             self._check_patheq(pe, db)
 
     def get(self, objname : str) -> Obj:
@@ -230,11 +245,11 @@ class Model(Schema):
 
         # Remove any path equivalencies that use this relation
         remove = set()
-        for pe in self.pe:
+        for pe in self.pes:
             for p in pe:
                 if r.tup() in p.rels:
                     remove.add(pe)
-        self.pe -= remove
+        self.pes -= remove
 
     def _del_object(self, o : Obj) -> None:
         '''Need to also remove all Generators that mention it?'''
@@ -253,16 +268,16 @@ class Model(Schema):
 
         # Remove path equivalencies that mention object
         remove = set()
-        for pe in self.pe:
+        for pe in self.pes:
             for p in pe:
                 pobjs = set([getattr(p.attr,'obj')] + [r.obj for r in p.rels])
                 if o.name in pobjs:
                     remove.add(pe)
 
-        self.pe -= remove
+        self.pes -= remove
 
     def _del_patheq(self, peq : PathEQ) -> None:
-        self.pe.remove(peq)
+        self.pes.remove(peq)
 
     def _add_gen(self, g : Gen) -> None:
         '''Add to model'''
@@ -275,7 +290,7 @@ class Model(Schema):
         for a in g.actions:
             self._validate_action(a)
 
-        self.gens[g.name] = g
+        self.genlist.append(g)
 
     ###################
     ### Gen related ###

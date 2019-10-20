@@ -6,26 +6,25 @@ from typing import (Any, TYPE_CHECKING,
                     Union    as U,
                     Tuple    as T,
                     Callable as C)
+from hypothesis.strategies import SearchStrategy, builds, lists, dictionaries # type: ignore
 
 # Internal
-if TYPE_CHECKING:
-    from dbgen.core.schemaclass import Schema
-    Schema
-
 from dbgen.core.fromclause import From
-from dbgen.core.expr       import Expr, PathAttr, Agg, true, PK
+from dbgen.core.expr.expr       import Expr, Agg, true, PK
+from dbgen.core.expr.pathattr   import PathAttr, expr_attrs
 from dbgen.core.funclike   import Arg
 from dbgen.core.pathconstraint import Path
-from dbgen.core.schema       import RelTup, Obj
-from dbgen.core.misc       import ConnectInfo as ConnI
-from dbgen.utils.lists     import flatten, nub
+from dbgen.core.schema      import RelTup, Obj, AttrTup
+from dbgen.core.misc        import ConnectInfo as ConnI
+from dbgen.utils.lists      import flatten, nub
 from dbgen.utils.sql        import select_dict
+from dbgen.utils.misc       import nonempty
 
 '''
 The Query class, as well as Ref (used to indirectly refer to an object in a
 query without knowing the exact join path)
 
-Furthermore some Model methods that are highly related to queries are defined
+Furthermore some Model methods that are highly related to queries are defined.
 '''
 
 Fn = C[[Any],str] # type shortcut
@@ -98,6 +97,16 @@ class Query(Expr):
     def fields(self) -> L[Expr]:
         '''Might be missing a few things here .... '''
         return list(self.exprs.values())
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(
+            cls, exprs=dictionaries(keys=nonempty, values=Expr.strat()),
+            basis = lists(nonempty, min_size=1,max_size=2), constr=Expr.strat(),
+            aggcols=lists(Expr.strat(), max_size=2), aconstr=Expr.strat(),
+            option=lists(RelTup.strat(), max_size=2),
+            opt_attr=lists(PathAttr.strat(), max_size=2))
+
     ####################
     # Public methods #
     ####################
@@ -113,10 +122,10 @@ class Query(Expr):
 
     def allattr(self) -> S[PathAttr]:
         '''All path+attributes that are mentioned in query'''
-        agg_x = [ac.attrs() for ac in self.aggcols] # type: L[L[PathAttr]]
+        agg_x = [expr_attrs(ac) for ac in self.aggcols] # type: L[L[PathAttr]]
         es    = list(self.exprs.values()) + [self.constr ,self.aconstr or true]
-        return set(flatten([expr.attrs() for expr in es]+agg_x))
-
+        out = set(flatten([expr_attrs(expr) for expr in es]+agg_x))
+        return out
     def allrels(self) -> S[RelTup]:
         '''All relations EXPLICITLY mentioned in the query'''
         out = set(self.option)

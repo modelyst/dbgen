@@ -1,25 +1,25 @@
 from typing import Any
+from json import dumps
 from hashlib import sha256
 Any
 ################################################################################
-def hash_(x:'Any')->int:
+def hash_(x: 'Any') -> int:
     """
-    OLD VERSION: Creates a 128 Byte hash value #return sha512(str(x).encode()).hexdigest()
     NEW: Take a list of showable things and generate a unique hash value in
        longint range (-9223372036854775808 to +9223372036854775807)
     """
-    return (int(sha256(str(x).encode('utf-8')).hexdigest(), 16) % 18446744073709551616) - 9223372036854775808
+    return (int(sha256(dumps(x).encode('utf-8')).hexdigest(), 16) % 18446744073709551616) - 9223372036854775808
 
 
-def abbreviate(x:'Any')->'Any':
-    '''Truncate super long messages'''
+def abbreviate(x:'Any') -> 'Any':
+    '''Truncate super long messages.'''
     if isinstance(x,str) and len(x) > 1000:
         return x[:1000]+'...\n\t'
     else:
         return x
 
-def cap(x:str)->str:
-    '''Capitalize'''
+def cap(x:str) -> str:
+    '''Capitalize a string.'''
     return x[0].upper() + x[1:]
 
 def levenshteinDistance(s1 : str, s2 : str) -> int:

@@ -7,24 +7,36 @@ from typing import (Any, TYPE_CHECKING,
                     Union    as U)
 from collections import OrderedDict
 from networkx import DiGraph # type: ignore
+import psycopg2 # type: ignore
+import re
 from jinja2 import Template
+from io import StringIO
+from random import getrandbits
+from json import loads, dumps
+from hypothesis.strategies import (SearchStrategy, builds, just, one_of,  # type: ignore
+                                   dictionaries)
+
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
     Obj,Rel
 
 from dbgen.core.funclike import ArgLike,Arg
-from dbgen.utils.misc   import hash_, Base
+from dbgen.utils.misc   import hash_, Base, nonempty
 from dbgen.utils.lists  import broadcast
 from dbgen.utils.sql    import (Connection as Conn, sqlselect, addQs,
                                  sqlexecute,sqlexecutemany)
-
+from dbgen.templates import jinja_env
 '''
 Defines the class of modifications to a database
 
 There is a horrific amount of duplicated code in this file...... oughta fixit
 '''
 ################################################################################
+# ######################
+# # Constants
+# # --------------------
+NUM_QUERY_TRIES = 3
 
 class Action(Base):
     """
@@ -49,6 +61,7 @@ class Action(Base):
         err = 'Cant insert %s if we already have PK %s'
         assert (pk is None) or (not insert), err%(obj,pk)
         assert isinstance(pk,(Arg,type(None))), (obj,attrs,fks,pk,insert)
+        super().__init__()
 
     def __str__(self) -> str:
         n = len(self.attrs)
@@ -81,22 +94,22 @@ class Action(Base):
                 if (self.insert or (a not in obj.ids()))]
         for k,a in self.fks.items():
             if (self.insert or (k not in obj.id_fks())):
-                out.extend([self.obj+'.'+k] + a.newcols(universe))
+                try:
+                    out.extend([self.obj+'.'+k] + a.newcols(universe))
+                except KeyError as e:
+                    import pdb; pdb.set_trace()
         return out
 
     def act(self,
             cxn  : Conn,
-            objs : D[str,'Obj'],
-            row  : dict
+            objs : D[str,T[str,L[str],L[str]]],
+            rows : L[dict]
            ) -> None:
         '''
         Top level call from a Generator to execute an action (top level is
         always insert or update, never just a select)
         '''
-        if self.insert:
-            self._insert(cxn,objs,row)
-        else:
-            self._update(cxn,objs,row)
+        self._load(cxn,objs,rows, insert = self.insert)
 
     def rename_object(self, o : 'Obj', n :str) -> 'Action':
         '''Replaces all references to a given object to one having a new name'''
@@ -107,13 +120,27 @@ class Action(Base):
             a.fks[k] = v.rename_object(o,n)
         return a
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        """A hypothesis strategy for generating random examples."""
+
+        common_action_kwargs = dict(obj=nonempty,
+                                    attrs=dictionaries(keys=nonempty,values=ArgLike.strat()),)
+        action_ = builds(cls, fks=just(dict()),pk=Arg.strat(),insert=just(False),
+                         **common_action_kwargs)
+        action0 = builds(cls, fks=dictionaries(keys=nonempty,values=action_),
+                         pk=Arg.strat(),insert=just(False),**common_action_kwargs)
+        action1 = builds(cls, fks=dictionaries(keys=nonempty,values=action_),
+                         pk=just(None),insert=just(True),**common_action_kwargs)
+        return one_of(action_,action0,action1)
+
     ###################
     # Private methods #
     ###################
 
     def _getvals(self,
                  cxn  : Conn,
-                 objs : D[str,'Obj'],
+                 objs : D[str,T[str,L[str],L[str]]],
                  row  : dict,
                  ) -> T[L[int],L[list]]:
         '''
@@ -122,24 +149,21 @@ class Action(Base):
         '''
 
         idattr,allattr = [],[]
-        obj = objs[self.obj]
-        for k,v in self.attrs.items():
+        obj_pk_name,ids,id_fks = objs[self.obj]
+        for k,v in sorted(self.attrs.items(),):
             val = v.arg_get(row)
             allattr.append(val)
-            if k in obj.ids():
+            if k in ids:
                 idattr.append(val)
 
-        for kk,vv in self.fks.items():
-            if vv.insert:
-                val = vv._insert(cxn,objs,row)
+        for kk,vv in sorted(self.fks.items()):
+            if not vv.pk is None:
+                val = vv.pk.arg_get(row)
             else:
-                if not vv.pk is None:
-                    val = vv.pk.arg_get(row)
-                else:
-                    val, fk_adata = vv._getvals(cxn, objs, row)
+                val, fk_adata = vv._getvals(cxn, objs, row)
 
             allattr.append(val)
-            if kk in obj.id_fks():
+            if kk in id_fks:
                 idattr.append(val)
 
         idata,adata = broadcast(idattr),broadcast(allattr)
@@ -161,59 +185,150 @@ class Action(Base):
         assert len(idata_prime) == len(adata), lenerr%(len(idata_prime),len(adata))
         return idata_prime, adata
 
-    def _insert(self,
+    def _data_to_stringIO(self,
+                          pk   : L[int],
+                          data : L[list],
+                          obj_pk_name : str,
+                          )->StringIO:
+        """
+        Function takes in a path to a delimited file and returns a IO object
+        where the identifying columns have been hashed into a primary key in the
+        first ordinal position of the table. The hash uses the id_column_names
+        so that only ID info is hashed into the hash value
+        """
+        # All ro
+        output_file_obj = StringIO()
+        cols = list(self.attrs.keys()) + list(self.fks.keys()) + [obj_pk_name]
+        for i, (pk_curr, row_curr) in enumerate(zip(pk,data)):
+            full_row         = [pk_curr]+list(row_curr)
+            str_full_row     = map(str,full_row)
+            str_full_row_esc = map(lambda x: x.replace("\t","\\t").replace('\n','\\n').replace('\r','\\r').replace('\\','\\\\'),str_full_row)
+            output_file_obj.write('\t'.join(str_full_row_esc)+'\n')
+
+        output_file_obj.seek(0)
+
+        return output_file_obj
+
+    def _load(self,
                 cxn  : Conn,
-                objs : D[str,'Obj'],
-                row  : dict,
-               ) -> L[int]:
+                objs : D[str,T[str,L[str],L[str]]],
+                rows : L[dict],
+                insert : bool
+              ) -> L[int]:
         '''
         Helpful docstring
         '''
 
-        obj = objs[self.obj]
-        pk,data = self._getvals(cxn,objs,row)
+        for kk,vv in self.fks.items():
+            if vv.insert:
+                val = vv._load(cxn,objs,rows, insert=True)
+
+        obj_pk_name,ids,id_fks = objs[self.obj]
+        pk,data = [], []
+        for row in rows:
+            pk_curr,data_curr = self._getvals(cxn,objs,row)
+            pk.extend(pk_curr)
+            data.extend(data_curr)
+
+
+        io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
         if not data: return []
 
-        binds = [list(x)+[u]+list(x) for x,u in zip(data,pk)] # double the binds
+        # Temporary table to copy data into
+        # Set name to be hash of input rows to ensure uniqueness for parallelization
+        temp_table_name = self.obj+'_temp_load_table_'+str(getrandbits(64))
 
-        # Prepare insertion query
-        #------------------------
-        cols        = list(self.attrs.keys()) + list(self.fks.keys()) + [obj._id]
-        insert_cols = ','.join(['"%s"'%x for x in cols])
-        qmarks      = ','.join(['%s']*len(cols))
-        dups        = addQs(['"%s"'%x for x in cols[:-1]],', ')
-        fmt_args    = [self.obj, insert_cols, qmarks, dups, obj._id]
-        query       = """INSERT INTO {0} ({1}) VALUES ({2})
-                         ON CONFLICT ({4}) DO UPDATE SET {3}
-                         RETURNING {4}""".format(*fmt_args)
+        # Need to create a temp table to copy data into
+        # Add an auto_inc column so that data can be ordered by its insert location
+        create_temp_table = \
+        """
+        DROP TABLE IF EXISTS {temp_table_name};
+        CREATE TEMPORARY TABLE {temp_table_name} AS
+        TABLE {obj}
+        WITH NO DATA;
+        ALTER TABLE {temp_table_name}
+        ADD COLUMN auto_inc SERIAL NOT NULL;
+        """.format(obj = self.obj, temp_table_name = temp_table_name)
 
-        ids = [sqlexecute(cxn,query,b)[0][0] for b in binds]
-        return ids
+        cols         = [obj_pk_name]+list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
+        escaped_cols = ['"'+col+'"' for col in cols]
+        if insert:
+            template = jinja_env.get_template('insert.sql.jinja')
+        else:
+            template = jinja_env.get_template('update.sql.jinja')
 
-    def _update(self,
-                cxn  : Conn,
-                objs : D[str,'Obj'],
-                row  : dict
-                ) -> None:
-        '''
-        Update but we don't have a PK
-        # Can't this validation be done once before anything is run?
-        # for a in self.attrs:
-        #     if a in obj.ids():  raise ValueError('Cannot update an identifying attribute: ',a)
-        # for f in self.fks:
-        #     if f in obj.id_fks(): raise ValueError('Cannot update an identifying FK',f)
-        '''
-        obj = objs[self.obj]
-        pk,data = self._getvals(cxn,objs,row)
-        if not data: return None
+        first   = False
+        update  = True
+        fk_cols = self.fks.keys()
+        template_args = dict(
+            obj              = self.obj,
+            obj_pk_name      = obj_pk_name,
+            temp_table_name  = temp_table_name,
+            all_column_names = cols,
+            fk_cols          = fk_cols,
+            first            = first,
+            update           = update
+        )
+        load_statement = template.render(**template_args)
 
-        binds = [list(x)+[u] for x,u in zip(data,pk)]
-        cols  = list(self.attrs.keys()) + list(self.fks.keys())
-        set_  = addQs(['"%s"'%x for x in cols],',\n\t\t\t')
-        objid = objs[self.obj]._id
-        query = 'UPDATE {0} SET {1} WHERE {2} = %s'.format(self.obj,set_,objid)
+        get_ids_statement = \
+        """
+        SELECT
+        	{obj_pk_name}
+        FROM
+        	{temp}
+        ORDER BY
+        	auto_inc ASC
+        """.format(obj_pk_name = obj_pk_name, temp = temp_table_name)
 
-        for b in binds: sqlexecute(cxn,query,b)
+        with cxn.cursor() as curs:
+            # Create the temp table
+            curs.execute(create_temp_table)
+            # Attempt the loading step 3 times
+            query_fail_count = 0
+            while True:
+                if query_fail_count==NUM_QUERY_TRIES:
+                    raise ValueError('Query Cancel fail max reached')
+                try:
+                    curs.copy_from(io_obj,temp_table_name,null='None',columns = escaped_cols)
+                    break
+                except psycopg2.errors.QueryCanceled as exc:
+                    print('Query cancel failed')
+                    query_fail_count += 1
+                    continue
+                except psycopg2.errors.SyntaxError as exc:
+                    import pdb; pdb.set_trace()
+                    print(exc)
+
+            # Try to insert everything from the temp table into the real table
+            # If a foreign_key violation is hit, we delete those rows in the
+            # temp table and move on
+            fk_fail_count    = 0
+
+            while True:
+                if fk_fail_count==10:
+                    raise ValueError('User Canceled due to large number of FK violations')
+                # check for ForeignKeyViolation error
+                try:
+                    curs.execute(load_statement)
+                    break
+                except psycopg2.errors.ForeignKeyViolation as exc:
+                    pattern ='Key \((\w+)\)=\(([\-\d]+)\) is not present in table \"(\w+)\"'
+                    fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
+                    delete_statement = f'delete from {temp_table_name} where {fk_name} = {fk_pk}'
+                    curs.execute(delete_statement)
+                    print(f"ForeignKeyViolation: tried to insert {fk_pk} into FK column {fk_name} of {self.obj}. But no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}.")
+                    print(f"Moving on without inserting any rows with this {fk_pk}")
+                    fk_fail_count += 1
+                    continue
+            if fk_fail_count:
+                print('Fail count = {}'.format(fk_fail_count))
+            # Get ids
+            curs.execute(get_ids_statement)
+            pk_values = [x[0] for x in curs.fetchall()]
+
+        return pk_values
+
 
     def make_src(self) -> str:
         """

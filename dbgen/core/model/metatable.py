@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from dbgen.core.gen         import Gen
     ConnI,Model,Gen
 
-from dbgen.core.sqltypes   import Varchar, Decimal, Text, Timestamp, Int, Boolean
+from dbgen.core.expr.sqltypes   import Varchar, Decimal, Text, Timestamp, Int, Boolean
 from dbgen.core.schema     import Obj, UserRel as Rel, Attr
 from dbgen.utils.str_utils import hash_
 from dbgen.utils.sql       import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect

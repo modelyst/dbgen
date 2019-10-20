@@ -5,6 +5,7 @@ from re       import split
 from random   import uniform, randrange, choice
 from datetime import datetime
 from string   import ascii_lowercase,ascii_uppercase,digits
+from hypothesis.strategies import SearchStrategy, from_type # type: ignore
 
 from dbgen.utils.misc import Base
 """
@@ -19,6 +20,10 @@ class SQLType(Base,metaclass=ABCMeta):
     """
 
     data = {} # type: dict
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return from_type(cls)
 
     @abstractmethod
     def __str__(self) -> str:
@@ -80,6 +85,7 @@ class Decimal(SQLType):
     def rand(cls) -> Any :
         '''Random instance (for testing purposes)'''
         return uniform(-100,100)
+
 class Boolean(SQLType):
     def __init__(self)->None: pass
     def __str__(self)->str: return 'Boolean'

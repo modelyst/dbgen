@@ -11,10 +11,12 @@ from sshtunnel       import SSHTunnelForwarder # type: ignore
 from psycopg2        import connect,Error                   # type: ignore
 from psycopg2.extras import DictCursor                      # type: ignore
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds # type: ignore
+
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.gen import Gen
-    from airflow.hooks.connections import Connection
+    # from air flow.hooks.connections import Connection
 
 from dbgen.utils.misc import Base
 """
@@ -35,7 +37,9 @@ class ExternalError(Exception,Base):
         super().__init__(message)
     def __str__(self) -> str:
         return super().__str__()
-    # Add custom stuff here?
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 class GeneratorError(Exception,Base):
     """
     Custom class for catching errors that occur in code external to dbgen
@@ -89,9 +93,15 @@ class ConnectInfo(Base):
         self.ssh_pkey            = ssh_pkey
         self.remote_bind_address = remote_bind_address
         self.remote_bind_port    = remote_bind_port
+        super().__init__()
+
 
     def __str__(self) -> str:
         return pformat(self.__dict__)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
     def tunnel(self)->SSHTunnelForwarder:
         return SSHTunnelForwarder(
@@ -200,6 +210,11 @@ class Dep(Base):
         self.cols_needed  = set(cols_needed)
         self.tabs_yielded = set(tabs_yielded)
         self.cols_yielded = set(cols_yielded)
+        super().__init__()
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
 
     def all(self) -> T[str,str,str,str]:
         a,b,c,d = tuple(map(lambda x: ','.join(sorted(x)),

@@ -7,7 +7,7 @@ from networkx.algorithms import (lexicographical_topological_sort,simple_cycles,
 
 # Graph
 #--------
-def topsort_with_dict(G:DiGraph,d:dict)->List:
+def topsort_with_dict(G:DiGraph, d:dict) -> List:
     """
     Assuming a graph with object names and dict mapping names to objects,
     perform a topsort and return the list of objects.
@@ -19,7 +19,7 @@ def topsort_with_dict(G:DiGraph,d:dict)->List:
         cycles = pformat(list(simple_cycles(G)))
         raise ValueError("Cycles found: %s"%cycles)
 
-def make_acyclic(G:DiGraph)->DiGraph:
+def make_acyclic(G: DiGraph) -> DiGraph:
     stack = list(simple_cycles(G))
     while stack:
         cyc = stack.pop()

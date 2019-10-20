@@ -1,14 +1,19 @@
  # External
 from typing import (Set    as S,
                     List   as L,
+                    Dict   as D,
                     Union  as U,
-                    Tuple  as T)
+                    Tuple  as T,
+                    Callable as C)
 from copy     import deepcopy
 from networkx import DiGraph     # type: ignore
 from tqdm     import tqdm        # type: ignore
+from hypothesis.strategies import (SearchStrategy, builds, lists, composite, # type: ignore
+                                   just, sampled_from)
+from hypothesis import infer, assume # type: ignore
 
 # Internal
-from dbgen.utils.misc  import Base
+from dbgen.utils.misc  import Base, nonempty,letters
 from dbgen.core.schema import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView,AttrTup
 from dbgen.core.misc   import ConnectInfo as ConnI
 from dbgen.core.pathconstraint import Path as JPath, Constraint
@@ -19,23 +24,27 @@ from dbgen.utils.sql   import sqlexecute, sqlselect, Error
 class Schema(Base):
     '''Unnamed collection of Objects, Views, Relations, Path Equations'''
     def __init__(self,
-                 objs : L[Obj]    = None,
-                 rels : L[Rel]    = None,
-                 views: L[View]   = None,
-                 pes  : L[PathEQ] = None,
+                 objlist  : L[Obj]    = None,
+                 viewlist : L[View]   = None,
+                 pes      : L[PathEQ] = None,
                 ) -> None:
 
-        self.objs = {o.name : o for o in (objs or [])}
-        self.views = {v.name : v for v in (views or [])}
+        self.objlist = objlist or []
+        self.viewlist = viewlist = []
 
         self._fks = DiGraph()
-        self._fks.add_edges_from(self.objs) # nodes are object NAMES
+        self._fks.add_nodes_from(self.objlist) # nodes are object NAMES
 
-        self.pe   = set(pes or []) # path equivalencies
+        self.pes   = set(pes or []) # path equivalencies
 
-        for rel in rels or []:
-            self._add_relation(rel)
+        for o in self.objlist:
+            for rel in o.fks:
+                self._add_relation(rel.to_rel(o.name))
 
+        super().__init__()
+
+    def __str__(self) -> str:
+        return 'Schema<%d objs, %d rels>'%(len(self.objlist), len(self._fks))
 
     def __getitem__(self, key : str) -> Obj:
         return self.objs[key.lower()]
@@ -43,14 +52,35 @@ class Schema(Base):
     def __contains__(self,key : str)->bool:
         return key.lower() in self.objs
 
+    @property
+    def objs(self) -> D[str, Obj]:
+        return {o.name.lower():o for o in self.objlist}
+
+    @property
+    def views(self) -> D[str, View]:
+        return {o.name.lower():o for o in self.viewlist}
+
+    @classmethod
+    @composite
+    def strat(draw:C, cls:'Schema') -> SearchStrategy:
+        MAX_OBJ = 2
+        MAX_FK  = 2
+        objnames = draw(lists(letters, min_size=1,max_size=MAX_OBJ, unique=True))
+        objlist = [] # type: L[Obj]
+        for o in objnames:
+            fktargets = draw(lists(sampled_from(objnames), min_size=1, max_size=MAX_FK))
+            n = len(fktargets)
+            fknames = draw(lists(letters, min_size=n,max_size=n,unique=True
+                                ).filter(lambda fkn: o not in fkn))
+            objlist.append(draw(Obj.strat(name=o,fks=list(zip(fknames,fktargets)))))
+        return draw(builds(cls, objlist=just(objlist)))
+
     def make_schema(self,
                     conn : ConnI,
                     nuke : str  = '',
                     bar  : bool = True
                     ) -> None:
-        '''
-        Create empty schema
-        '''
+        '''Create empty schema.'''
         if nuke.lower() in ['t','true']:
             safe_conn        = deepcopy(conn)
             # safe_conn.db     = 'postgres'
@@ -82,7 +112,7 @@ class Schema(Base):
 
     def _add_attr(self, oname : str, a : Attr) -> None:
         '''Add to model'''
-        self[oname].attrs[a.name]=a
+        self[oname].attrs.append(a)
 
     def _add_object(self, o : Obj) -> None:
         '''Add to model'''
@@ -90,10 +120,10 @@ class Schema(Base):
         if o.name in self: # Validate
             raise ValueError('Cannot add %s, name is already taken!'%o)
         else:
-            self.objs[o.name] = o # Add
+            self.objlist.append(o) # Add
             self._fks.add_node(o.name)
 
-        for rel in o.fks.values():
+        for rel in o.fkdict.values():
             self._add_relation(rel)
 
 
@@ -105,16 +135,16 @@ class Schema(Base):
             raise ValueError('Cannot add %s, name already taken!' % v)
         # Add
         #----
-        self.views[v.name] = v
+        self.viewlist.append(v)
 
     def _add_relation(self, r : Rel) -> None:
         '''Add to model'''
         # Validate
         #---------
         assert isinstance(r,Rel)
-        err = 'Cannot add %s: %s not found in model '
-        assert r.o1 in self, err%(r, r.o1)
-        assert r.o2 in self, err%(r, r.o2)
+        err = 'Cannot add %s: %s not found in model %s'
+        assert r.o1 in self, err%(r, r.o1, self.objlist)
+        assert r.o2 in self, err%(r, r.o2, self.objlist)
 
         notfound = 'Cannot add %s, %s already has a %s with that name '
 
@@ -140,7 +170,7 @@ class Schema(Base):
             assert p.start() == start
             assert p._path_end(self)   == end
 
-        self.pe.add(peq)
+        self.pes.add(peq)
 
     @staticmethod
     def add_fk(G : DiGraph, r : Rel, forward : bool = True) -> None:
@@ -157,13 +187,13 @@ class Schema(Base):
     ###########
     def add_cols(self, obj : Obj) -> L[str]:
         attr_stmts = []
-        for c in obj.attrs.values():
+        for c in obj.attrs:
             obj_name = obj.name
             col_name, col_desc = c.create_col(obj.name)
             stmt = "ALTER TABLE %s ADD COLUMN %s"%(obj.name,col_name)
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
-        rel_stmts  = [self._create_fk(rel) for rel in obj.fks.values()]
+        rel_stmts  = [self._create_fk(rel) for rel in obj.fkdict.values()]
         return attr_stmts + rel_stmts
 
     #########
@@ -198,7 +228,7 @@ class Schema(Base):
         ''' Relations that start OR end on a given object '''
         inward = set.union(*[d['fks'] for _,_,d in
                                         self._fks.in_edges(o.name,data=True)])
-        return set(o.fks.values()) | inward
+        return set(o.fkdict.values()) | inward
 
     def get_rel(self, r : U[Rel,RelTup]) -> Rel:
         '''
@@ -206,7 +236,7 @@ class Schema(Base):
         (but identifying) info
         '''
         if isinstance(r,Rel): return r
-        else: return self[r.obj].fks[r.rel]
+        else: return self[r.obj].fkdict[r.rel]
 
     def _info_graph(self, links : L[U[Rel,RelTup]]) -> DiGraph:
         '''Natural paths of information propagation, which includes the normal
@@ -220,7 +250,7 @@ class Schema(Base):
         G    = self._fks.copy()
 
         for name,o in self.objs.items():
-            pars = [fk for fk in o.fks.values() if fk.id]
+            pars = [fk for fk in o.fkdict.values() if fk.id]
             # only if it's a 1-1 table
             if len(pars)==1 and len(o.ids())==0:
                 p   = pars[0] # identifying foreign key

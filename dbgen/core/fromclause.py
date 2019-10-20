@@ -10,11 +10,13 @@ from hashlib import md5
 from base64 import b64encode
 from networkx    import DiGraph               # type: ignore
 from collections import defaultdict
+from hypothesis.strategies import SearchStrategy, builds, dictionaries, lists, sets # type: ignore
+
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.schema   import Rel, RelTup, Obj
 
-from dbgen.utils.misc    import Base
+from dbgen.utils.misc    import Base, nonempty
 from dbgen.utils.graphs  import topsort_with_dict
 from dbgen.utils.lists   import flatten
 ################################################################################
@@ -42,6 +44,7 @@ class Path(Base):
                     assert self.end in fk[0].objs,err.format(self.end, fk[0].objs,fk[0],self.fks)
             else:
                 assert self.end in fks[0].objs, err.format(self.end, fks[0].objs,fks[0],self.fks)
+        super().__init__()
 
     def __str__(self) -> str:
         return str(self.join())
@@ -70,6 +73,10 @@ class Path(Base):
         err = 'Cannot take path difference: latter path is not subset of first'
         assert self.fks[-l2:] == other.fks, err
         return Path(self.end, self.fks[:l2])
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, end=nonempty)
 
     @property
     def linear(self) -> bool:
@@ -113,7 +120,7 @@ class Path(Base):
         return c
 
     def join(self) -> 'Join':
-        '''Get top-level join that is implied by this path'''
+        '''Get top-level join that is implied by this path.'''
         j = Join(self.end)
         if self.fks:
             nextfk = self.fks[0]
@@ -154,6 +161,7 @@ class Join(Base):
         assert isinstance(obj,str)
         self.obj   = obj
         self.conds = conds or {}
+        super().__init__()
 
     def __str__(self) -> str:
         return self.alias
@@ -163,6 +171,11 @@ class Join(Base):
 
     def __lt__(self, other : 'Join') -> bool:
         return str(self) < str(other)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, obj=nonempty,
+                      conds=dictionaries(Join.strat(),Rel.strat()))
 
     ### Public Methods ###
     def add(self,j:'Join',e:'Rel')->None:
@@ -234,16 +247,23 @@ class From(Base):
     '''
     def __init__(self, basis : L[str] = None, joins: S[Join] = None) -> None:
         self.joins = {Join(b) for b in basis or []} | (joins or set())
+        self.basis = {j.obj for j in self.joins if not j.conds}
+        super().__init__()
 
-    @property
-    def basis(self) -> S[str]:
-        return {j.obj for j in self.joins if not j.conds}
+    #@property --- IS THIS GOING TO BREAK STUFF NOW THAT IT'S A FIELD
+    #def basis(self) -> S[str]: return {j.obj for j in self.joins if not j.conds}
+
     # Public methods #
     def __str__(self)->str:
         return 'From(basis=%s,%d joins)' %(self.basis,len(self.joins))
 
     def __or__(self,f : 'From') -> 'From':
         return From(joins=self.joins | f.joins)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, basis=lists(nonempty,min_size=1,max_size=2),
+                      conds=sets(Join.strat(),min_size=1,max_size=2))
 
     def print(self,optional : L['RelTup'] = None ) -> str:
         d = {j.alias:j for j in self.joins}
