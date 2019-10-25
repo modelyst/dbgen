@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, List as L
 from copy   import deepcopy
 
 from tqdm        import tqdm        # type: ignore
+import logging
 
 # Internal
 if TYPE_CHECKING:
@@ -14,7 +15,9 @@ from dbgen.core.schema   import Path, PathEQ
 from dbgen.utils.sql       import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
 from dbgen.utils.lists     import concat_map
+from dbgen.utils.logging import setup_logger
 ########################################################
+
 
 def run(self      : 'Model',
         conn           : ConnI,
@@ -30,7 +33,8 @@ def run(self      : 'Model',
         bar            : bool = True,
         clean          : bool = False,
         skip_row_count : bool = False,
-        batch          : int = None
+        batch          : int = None,
+        log_level      : int = logging.INFO
        ) -> None:
     '''
     This method is point of the model: to run and generate a database according
@@ -64,11 +68,16 @@ def run(self      : 'Model',
     #----------------------
     self.test_funcs()
 
+
+    # # Setup logger
+    # # --------------------
+    logger = setup_logger('run', log_level)
+
     # Print to-do list for the model
     #---------------------------------------
     todo = self._todo()
     if todo:
-        print("WARNING: the following attributes do not have any generator "
+        logger.warning("WARNING: the following attributes do not have any generator "
               "to populate them: \n\t-"+'\n\t-'.join(sorted(todo)))
 
     # Validate input
@@ -125,8 +134,8 @@ I hope you know what you are doing!!!
 !!!WARNING!!!!
 #######################################################################
         """
-        print(msg)
-        for ta in tqdm(self.objs.values(),desc='Adding new tables', leave=False):
+        logger.warning(msg)
+        for ta in tqdm(self.objs.values(), desc='Adding new tables', leave=False):
             if not getattr(ta,'_is_view',False):
                 for sqlexpr in ta.create():
                     try:
@@ -134,12 +143,12 @@ I hope you know what you are doing!!!
                     except Error as e:
                         # Error code for duplicate table
                         if e.pgcode == '42701':
-                            print('dup')
+                            logger.debug('dup')
                             pass
                         else:
                             raise Error(e)
 
-        for ta in tqdm(self.objs.values(),desc='Adding new columns',leave=False):
+        for ta in tqdm(self.objs.values(),desc='Adding new columns', leave=False):
             for sqlexpr in self.add_cols(ta):
                 try:
                     sqlexecute(conn.connect(),sqlexpr)
@@ -179,6 +188,7 @@ I hope you know what you are doing!!!
             #---------------------
             name = gen.name
             tq.set_description(name)
+            logger.info(f'Running {gen.name}...')
 
             # Set flags
             #--------------------------------
@@ -237,7 +247,7 @@ I hope you know what you are doing!!!
 
     gcxn.close(); gmcxn.close()
     if bar:
-        print('\nFinished.\n\t' +
+        logger.info('\nFinished.\n\t' +
               ('did not run %s'%not_run if not_run else 'Ran all Rules'))
 
 def validate_name(self : 'Model', w : str) -> None:

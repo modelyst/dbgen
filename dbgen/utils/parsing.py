@@ -2,7 +2,7 @@ from typing         import Optional, Tuple
 from re             import finditer, MULTILINE, search, DOTALL,sub
 from distutils.util import strtobool
 from argparse       import ArgumentParser
-
+import logging
 ################################################################################
 def parse_line(string: str, substr: str, index: int = 0) -> Optional[str]:
     """
@@ -44,6 +44,18 @@ def condense_qe(x:str)->str:
     y = sub('(bands \(ev\)).*?(Fermi)','',a, flags=DOTALL)
     z = sub('(iteration #  1).*?(End of)','',y, flags=DOTALL)
     return z
+
+def input_to_level(logging_level : str)->int:
+    log_map = {
+        'INFO' : logging.INFO,
+        'DEBUG': logging.DEBUG,
+        'WARNING': logging.WARNING,
+        'CRITICAL':logging.CRITICAL
+    }
+    if logging_level in log_map:
+        return log_map[logging_level]
+    raise ValueError('Please provide a valid logging level')
+
 
 ########
 # Command line parsing
@@ -99,4 +111,9 @@ parser.add_argument('--skip-row-count',
 parser.add_argument('--batch',
                     default = None,
                     type    = lambda x:int(float(x)),
+                    help    = 'Set default batch_size')
+
+parser.add_argument('--log-level',
+                    default = logging.INFO,
+                    type    = input_to_level,
                     help    = 'Set default batch_size')

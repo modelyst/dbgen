@@ -12,6 +12,7 @@ from functools       import partial
 from tqdm            import tqdm                                    # type: ignore
 from networkx        import DiGraph               # type: ignore
 from math            import ceil
+import logging
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
@@ -29,7 +30,9 @@ from dbgen.utils.numeric        import safe_div
 from dbgen.utils.sql            import (fast_load,sqlexecutemany, sqlexecute,sqlselect,mkSelectCmd,
                                     mkUpdateCmd,select_dict, Connection as Conn, DictCursor)
 from dbgen.utils.str_utils      import hash_
+from dbgen.utils.logging import TqdmToLogger
 ###########################################
+
 def run_gen(self            : 'Model',
             objs            : D[str,Any],
             gen             : Gen,
@@ -51,6 +54,9 @@ def run_gen(self            : 'Model',
     """
     # Initialize Variables
     #--------------------
+    logger = logging.getLogger(f'run.{gen.name}')
+    logger.setLevel(logging.DEBUG)
+
     gen.update_status(gmcxn,run_id,'running')
     start       = time()
     retry_      = retry or ('io' in gen.tags)
@@ -81,16 +87,20 @@ def run_gen(self            : 'Model',
     try:
         # First setup query, get num_inputs and set batch size
         with tqdm(total=1, desc='Initializing Query', **bargs ) as tq:
+            logger.debug('Initializing Query')
             # Name the cursor for server side processing, need to turn off auto_commit
             cursor      = conn_info.connect(auto_commit = False).cursor(f'{run_id}-{a_id}',cursor_factory = DictCursor)
 
             # If there is a query get the row count and execute it
             if gen.query:
                 tq.set_description('Getting row count...')
+                logger.info('Getting row count...')
                 if not skip_row_count:
                     num_inputs = gen.query.get_row_count(gcxn)
                 else:
                     num_inputs = int(10e8)
+                logger.info(f'Number of inputs = {num_inputs}')
+                logger.info('Executing query...')
                 tq.set_description('Executing query...')
                 cursor.execute(gen.query.showQ())
             # No query gens have 1 input
@@ -100,22 +110,28 @@ def run_gen(self            : 'Model',
             # If user supplies a runtime batch_size it is used
             if user_batch_size is not None:
                 batch_size = user_batch_size
+                logger.info(f'Using user defined batch size: {user_batch_size}')
             # If generator has the batch_size set then that will be used next
             elif gen.batch_size is not None:
                 batch_size = gen.batch_size
+                logger.info(f'Using the {gen.name} specified batch size: {gen.batch_size}')
             # Finally if nothing is the default is set to batchify the inputs into
             # 20 batches
             else:
                 batch_size = ceil(num_inputs/20) if num_inputs>0 else 1
+                logger.info(f'Using the default batch size to get 20 batches: {batch_size}')
+
 
             tq.update()
 
+        logger.info('Applying...')
         # Wrap batch processing in try loop to close the curosr on errors
         try:
             # Iterate over the batches
             for _ in tqdm(range(ceil(num_inputs/batch_size)), desc = 'Applying', **bargs):
                 # fetch the current batch of inputs
                 if gen.query:
+                    logger.debug(f'Fetching batch')
                     inputs = cursor.fetchmany(batch_size)
                 else:
                     # if there is no query set the inputs to be length 1 with
@@ -128,6 +144,7 @@ def run_gen(self            : 'Model',
                 # Check for repeats
                 elif inputs:
                     with tqdm(total=1, desc='Repeat Checking', **bargs_inner ) as tq:
+                        logger.debug(f'Repeat Checking')
                         # pair each input row with its hash
                         unfiltered_inputs = [(x,hasher(x)) for x in inputs]
                         # Get the already processed input hashes from the metadb
@@ -151,7 +168,8 @@ def run_gen(self            : 'Model',
                                 parallel  = parallel,
                                 mapper    = mapper,
                                 keys_to_save = keys_to_save,
-                                cxns      = cxns)
+                                cxns      = cxns,
+                                gen_name = gen.name)
         finally:
             cursor.close()
 
@@ -168,7 +186,7 @@ def run_gen(self            : 'Model',
 
     except ExternalError as e:
         msg = '\n\nError when running generator %s\n'%gen.name
-        print(msg)
+        logger.error(msg)
         q = mkUpdateCmd('gens',['error','status'],['run','name'])
         sqlexecute(gmcxn,q,[str(e),'failed',run_id,gen.name])
         return 1 # increment error count
@@ -243,7 +261,6 @@ def transform_func(input: T[dict,int],
         for pb in pbs:
             d[pb.hash] = pb(d)
     except SkipException:
-        print('Skipping row: {}'.format(row))
         return None, None
     return d, hash
 
@@ -267,32 +284,43 @@ def apply_batch(inputs        : L[T[dict,int]],
                  parallel     : bool,
                  mapper       : Any,
                  keys_to_save : D[int,S[str]],
-                 cxns         : T[Conn, Conn]
+                 cxns         : T[Conn, Conn],
+                 gen_name         : str
                  )-> None:
 
     # Initialize variables
+    logger               = logging.getLogger(f'run.{gen_name}.apply_batch')
+    logger.setLevel(logging.DEBUG)
+
     open_mdb,open_db     = cxns
+    n_inputs             = len(inputs)
+    n_actions            = len(acts)
     processed_namespaces = [] # type: L[D[int,Any]]
     processed_hashes     = [] # type: L[int]
     skipped_rows         = 0
     bargs                = dict(leave = False, position = 2)
 
+    logger.info('Transforming...')
     # Transform the data
-    with tqdm(total=len(inputs), desc='Transforming', **bargs ) as tq:
+    with tqdm(total=n_inputs, desc='Transforming', **bargs ) as tq:
         transform_func_curr = partial(transform_func,pbs = f, qhsh = qhsh)
-        for output_dict, output_hash in mapper(transform_func_curr, inputs):
+        for i, (output_dict, output_hash) in enumerate(mapper(transform_func_curr, inputs)):
             if output_dict:
                 processed_namespaces.append(delete_unused_keys(output_dict,keys_to_save))
                 processed_hashes.append(output_hash)
+            logger.debug(f'Transformed {i}/{n_inputs}')
             tq.update()
 
+    logger.info('Loading...')
     # Load the data
     with tqdm(total=len(acts), desc='Loading', **bargs ) as tq:
-        for a in acts:
+        for i, a in enumerate(acts):
             a.act(cxn=open_db,objs=objs,rows=processed_namespaces)
+            logger.debug(f'Loaded {i}/{n_actions}')
             tq.update()
 
     # Store the repeats
+    logger.info('Storing Repeats')
     with tqdm(total=1, desc='Storing Repeats', **bargs ) as tq:
         repeat_values = broadcast([a_id,run_id,processed_hashes])
         table_name    = 'repeats'
