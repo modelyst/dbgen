@@ -176,8 +176,10 @@ class Binary(Expr):
         self.x,self.y = x,y
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls)
+    def strat(cls, strat:SearchStrategy=None) -> SearchStrategy:
+        from dbgen.core.expr.exprstrat import exprstrat
+        x = exprstrat() if strat is None else strat
+        return builds(cls, x=x, y=x)
 
 class Ternary(Expr):
     """
@@ -204,8 +206,10 @@ class Ternary(Expr):
         self.x, self.y, self.z = x, y, z
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls)
+    def strat(cls, strat:SearchStrategy=None) -> SearchStrategy:
+        from dbgen.core.expr.exprstrat import exprstrat
+        x = exprstrat() if strat is None else strat
+        return builds(cls, x=x, y=x, z=x)
 
 class Nary(Expr):
     """
@@ -224,8 +228,9 @@ class Nary(Expr):
     def fields(self) -> list:
         return self.xs
 
-    def __init__(self, *xs : Expr) -> None:
-        self.xs  = list(xs)
+    def __init__(self, xs : L[Expr]) -> None:
+        self.xs  = xs
+        assert all([isinstance(x,Expr) for x in xs])
 
     def show(self, f : Fn) -> str:
         xs = map(f,self.xs)
@@ -233,8 +238,10 @@ class Nary(Expr):
         return '%s(%s)'%(self.name,d.join(xs))
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls, xs=lists(Expr.strat(),min_size=1,max_size=2))
+    def strat(cls, strat:SearchStrategy=None) -> SearchStrategy:
+        from dbgen.core.expr.exprstrat import exprstrat
+        x = exprstrat() if strat is None else strat
+        return builds(cls, xs=lists(x,min_size=1,max_size=2))
 
 class Named(Expr):
     """
@@ -365,14 +372,17 @@ class IN(Named):
 
 ##########
 class CASE(Expr):
-    def __init__(self,cases:D[Expr,Expr],else_:Expr)->None:
+    def __init__(self, cases:L[T[Expr, Expr]], else_:Expr) -> None:
         self.cases = cases
         self.else_  = else_
-    def fields(self)->L[Expr]:
-        return list(self.cases.keys())+list(self.cases.values())+[self.else_]
-    def show(self,f:Fn)->str:
+
+    def fields(self) -> L[Expr]:
+        k, v = map(list, zip(*self.cases))
+        return k+v+[self.else_] # type: ignore
+
+    def show(self,f:Fn) -> str:
         body = ' '.join(['WHEN (%s) THEN (%s)'%(f(k),f(v))
-                        for k,v in self.cases.items()])
+                        for k,v in self.cases])
         end = ' ELSE (%s) END'%(f(self.else_))
         return 'CASE  '+body + end
 
@@ -382,16 +392,17 @@ class CASE(Expr):
 
 
 class IF_ELSE(Expr):
-    def __init__(self,cond:Expr,_if:Expr,other:Expr)->None:
+    def __init__(self, cond:Expr, _if:Expr, other:Expr)->None:
         self.cond = cond
         self._if = _if
         self._else = other
 
-    def fields(self)->L[Expr]:
+    def fields(self) -> L[Expr]:
         return [self.cond,self._if,self._else]
-    def show(self,f:Fn)->str:
-        c,i,e = map(f,self.fields())
-        return 'CASE WHEN (%s) THEN (%s) ELSE (%s) END'%(c,i,e)
+
+    def show(self, f:Fn) -> str:
+        c, i, e = map(f, self.fields())
+        return 'CASE WHEN (%s) THEN (%s) ELSE (%s) END'%(c, i, e)
 
     @classmethod
     def strat(cls) -> SearchStrategy:
@@ -418,7 +429,8 @@ class CONVERT(Expr):
 
 class SUBSELECT(Expr):
     '''Hacky way of getting in subselect .... will not automatically detect
-        dependencies'''
+        dependencies.'''
+
     def __init__(self,expr : Expr, tab : str, where : str = '1') -> None:
         self.expr = expr
         self.tab  = tab

@@ -30,11 +30,6 @@ class SQLType(Base,metaclass=ABCMeta):
         '''String representation to be used in raw SQL expression'''
         raise NotImplementedError
 
-    @abstractmethod
-    def rand(self) -> Any:
-        '''Random Python value for this datatype (for testing purposes)'''
-        raise NotImplementedError
-
     def __init__(self) -> None: pass
 
     @staticmethod
@@ -70,10 +65,6 @@ class Varchar(SQLType):
     def __str__(self) -> str:
         return "VARCHAR(%d)" % self.mem
 
-    def rand(self) -> Any :
-        '''Random instance (for testing purposes)'''
-        return ''.join(choice(chars) for _ in range(10))
-
 class Decimal(SQLType):
     def __init__(self,prec:int=15,scale:int=6) -> None:
         self.prec  = prec
@@ -81,10 +72,6 @@ class Decimal(SQLType):
 
     def __str__(self) -> str:
         return "DECIMAL(%d,%d)"%(self.prec,self.scale)
-
-    def rand(cls) -> Any :
-        '''Random instance (for testing purposes)'''
-        return uniform(-100,100)
 
 class Boolean(SQLType):
     def __init__(self)->None: pass
@@ -108,69 +95,30 @@ class Int(SQLType):
             raise ValueError(err%(self.kind,options))
         return core + ("" if self.signed else " UNSIGNED")
 
-    def rand(self) -> Any :
-        '''Random instance (for testing purposes)'''
-        lb = 0 if self.kind == 'tiny' else -1000
-        ub = 2 if self.kind == 'tiny' else 1000
-        return randrange(lb,ub)
-
 class Text(SQLType):
     def __init__(self,kind:str='') -> None:
         self.kind = kind
 
     def __str__(self) -> str:
         return 'TEXT'
-        # if   self.kind == 'tiny':   return "TINYTEXT"
-        # elif self.kind == '':       return "TEXT"
-        # elif self.kind == 'medium': return "MEDIUMTEXT"
-        # elif self.kind == 'long' :  return "LONGTEXT"
-        # else:
-        #     raise ValueError('unknown TEXT kind: '+self.kind)
-
-    def rand(self) -> Any :
-        '''Random instance (for testing purposes)'''
-        return ''.join(choice(chars) for _ in range(100))
 
 class Date(SQLType):
     def __str__(self) -> str:
         return "DATE"
 
-    def rand(cls) -> Any :
-        '''Random instance (for testing purposes)'''
-        return datetime(year  = randrange(2000,2020),
-                        month = randrange(1,12),
-                        day   = randrange(1,30))
-
 class Timestamp(SQLType):
     def __str__(self) -> str:
         return "TIMESTAMP"
-
-    def rand(cls) -> Any :
-        '''Random instance (for testing purposes)'''
-        return datetime(year  = randrange(2000,2020),
-                        month = randrange(1,12),
-                        day   = randrange(1,30))
 
 class Double(SQLType):
     def __str__(self) -> str:
         return "DOUBLE"
 
-    def rand(cls) -> Any :
-        '''Random instance (for testing purposes)'''
-        return uniform(-100,100)
-
 class JSON(SQLType):
     def __str__(self) -> str:
         return "JSON"
 
-    def rand(cls) -> Any :
-        '''Random instance (for testing purposes)'''
-        return {'a':2,'b':'test'}
 
 class JSONB(SQLType):
     def __str__(self) -> str:
         return "JSONB"
-
-    def rand(cls) -> Any :
-        '''Random instance (for testing purposes)'''
-        return {'a':2,'b':'test'}

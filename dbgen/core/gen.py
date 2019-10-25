@@ -215,7 +215,7 @@ class Gen(Base):
         # Prepare the rendered arguments
         pbs = [('pb'+str(pb.hash).replace('-','neg'),pb.hash,pb.make_src()) for pb in self.funcs]
         loaders = [loader.make_src() for loader in self.actions]
-        objs = {oname : (o._id, repr(o.ids()),repr(o.id_fks())) for oname, o in universe.items()}
+        objs = {oname : (o.id_str, repr(o.ids()),repr(o.id_fks())) for oname, o in universe.items()}
         constfuncs = [cf.src for cf in self._constargs()]
 
         # Set the template arguements

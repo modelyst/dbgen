@@ -144,7 +144,7 @@ class Path(Base):
             curr = stack.pop()
             if curr not in joins:
                 joins.add(curr)
-                stack.extend(list(curr.conds.keys()))
+                stack.extend(list(curr.conddict.keys()))
         return joins
 
     def _from(self) -> 'From':
@@ -157,10 +157,10 @@ class Join(Base):
     Represents a table plus a unique set of JOINs that led to that table
         (accounting for multiple linear paths)
     '''
-    def __init__(self, obj:str, conds : D['Join',S['Rel']] = None) -> None:
+    def __init__(self, obj:str, conds : L[T['Join',S['Rel']]] = None) -> None:
         assert isinstance(obj,str)
         self.obj   = obj
-        self.conds = conds or {}
+        self.conds = conds or []
         super().__init__()
 
     def __str__(self) -> str:
@@ -172,6 +172,10 @@ class Join(Base):
     def __lt__(self, other : 'Join') -> bool:
         return str(self) < str(other)
 
+    @property
+    def conddict(self) -> D['Join',S['Rel']]:
+        return dict(self.conds)
+
     @classmethod
     def strat(cls) -> SearchStrategy:
         return builds(cls, obj=nonempty,
@@ -179,10 +183,12 @@ class Join(Base):
 
     ### Public Methods ###
     def add(self,j:'Join',e:'Rel')->None:
-        if j in self.conds:
-            self.conds[j].add(e)
+        if j in self.conddict:
+            d = dict(self.conddict)
+            d[j].add(e)
+            self.conds = list(d.items()) # overwrite
         else:
-            self.conds[j] = {e}
+            self.conds.append((j, {e}))
 
     @property
     def alias(self) -> str:
@@ -192,7 +198,7 @@ class Join(Base):
             return self.obj
 
         s = ''
-        for j,fks in sorted(self.conds.items()):
+        for j,fks in sorted(self.conds):
             fkstr = '|'.join([fk.print() for fk in sorted(fks)])
             s += '[(%s)#(%s)]'%(fkstr,j.alias)
 
@@ -203,14 +209,14 @@ class Join(Base):
 
     def print(self, optional : L['RelTup'] = None) -> str:
         '''Render JOIN statement in FROM clause'''
-        conds = [self._cond(j,e) for j,e in self.conds.items()] # conditions to join on
+        conds = [self._cond(j,e) for j,e in self.conds] # conditions to join on
         opts  = optional or []
         if not bool(conds):
             jointype = ' CROSS '
         else:
             left = True
             # Assume a left join. if any FKs in current edge are NOT in "optional", then set to Inner join
-            for e in self.conds.values():
+            for e in self.conddict.values():
                 for fk in e: # type: ignore
                     if fk.tup() not in opts:
                         left = False
@@ -270,7 +276,7 @@ class From(Base):
         G = DiGraph()
         G.add_nodes_from(d.keys())
         for j in self.joins:
-            for j2 in j.conds.keys():
+            for j2 in j.conddict.keys():
                 G.add_edge(j.alias,j2.alias)
         sort = list(reversed(topsort_with_dict(G,d)))
         start = sort[0].obj

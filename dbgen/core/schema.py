@@ -80,7 +80,7 @@ class Attr(Base):
     def __init__(self,
                  name    : str,
                  dtype   : SQLType = None,
-                 id      : bool    = False,
+                 identifying      : bool    = False,
                  default : Any     = None,
                  desc    : str     = '<No description>'
                  ) -> None:
@@ -88,7 +88,7 @@ class Attr(Base):
         self.name    = name.lower()
         self.desc    = desc
         self.dtype   = dtype or Int()
-        self.id      = id
+        self.identifying = identifying
         self.default = default
         super().__init__()
 
@@ -98,7 +98,7 @@ class Attr(Base):
 
     @classmethod
     def strat(cls) -> SearchStrategy:
-        return builds(Attr, name=letters, id=infer, desc=infer, dtype=infer)
+        return builds(Attr, name=letters, identifying=infer, desc=infer, dtype=infer)
     ####################
     # Public methods #
     ####################
@@ -186,23 +186,23 @@ class UserRel(Base):
     '''
     def __init__(self,
                  name : str,
-                 tar   : str = None,
-                 id   : bool= False,
+                 tar  : str = None,
+                 identifying   : bool= False,
                  desc : str = '<No description>'
                 ) -> None:
         self.name = name.lower()
         self.desc = desc
         self.tar  = tar.lower() if tar else self.name
-        self.id   = id
+        self.identifying   = identifying
         super().__init__()
 
 
     def __str__(self) -> str:
-        idstr = '(id)' if self.id else ''
+        idstr = '(id)' if self.identifying else ''
         return '{}{} -> {}'.format(self.name,idstr,self.tar)
 
     def to_rel(self,obj:str) -> 'Rel':
-        return Rel(name=self.name,o1=obj,o2=self.tar,id=self.id,desc=self.desc)
+        return Rel(name=self.name,o1=obj,o2=self.tar,identifying=self.identifying,desc=self.desc)
 
     @classmethod
     def strat(cls) -> SearchStrategy:
@@ -215,18 +215,18 @@ class Obj(Base):
                  desc  : str        = None,
                  attrs : L[Attr]    = None,
                  fks   : L[UserRel] = None,
-                 _id   : str        = None
+                 id_str    : str    = None
                 ) -> None:
 
         self.name  = name.lower()
         self.desc  = desc  or '<No description>'
         self.attrs = attrs or []
         self.fks   = fks or []
-        self._id   = _id if _id else self.name + '_id'
+        self.id_str   = id_str if id_str else self.name + '_id'
         # Validate
-        self.forbidden = [self._id,'deleted',self.name] # RESERVED
+        self.forbidden = [self.id_str,'deleted',self.name] # RESERVED
         assert not any([a.name in self.forbidden for a in self.attrs]), (self.attrs, self.forbidden)
-        assert all([isinstance(x, str) for x in [self.name, self.desc, self._id]])
+        assert all([isinstance(x, str) for x in [self.name, self.desc, self.id_str]])
         super().__init__()
 
     @property
@@ -242,7 +242,7 @@ class Obj(Base):
     def strat(draw:C, cls:'Obj', name: str=None, attrs: L[str] = None,
               fks: L[T[str,str]]= None) -> SearchStrategy:
         MIN_ATTR, MAX_ATTR = [0, 2] if attrs is None else [len(attrs)]*2
-        MIN_FK, MAX_FK     = [0, 2] if fks   is None else [len(fks)]*2
+        MIN_FK,   MAX_FK   = [0, 2] if fks   is None else [len(fks)]*2
         size = 1 + MAX_ATTR + MAX_FK
 
         xx = draw(lists(letters,min_size=size,max_size=size,unique=True
@@ -332,9 +332,9 @@ class Obj(Base):
         '''
         return RelTup(self.name, relname)
 
-    def attrnames(self,init : bool = False) -> L[str]:
+    def attrnames(self, init : bool = False) -> L[str]:
         '''Names of all (top-level) attributes'''
-        return [a.name for a in self.attrs if a.id or not init]
+        return [a.name for a in self.attrs if a.identifying or not init]
 
     def create(self) -> L[str]:
         '''
@@ -344,7 +344,7 @@ class Obj(Base):
 
         colcoldescs   = [a.create_col(self.name) for a in self.attrs]
         cols,coldescs = [x[0] for x in colcoldescs],[x[1] for x in colcoldescs]
-        pk    = self._id+' BIGINT PRIMARY KEY '
+        pk    = self.id_str+' BIGINT PRIMARY KEY '
         deld  = 'deleted BOOLEAN NOT NULL DEFAULT FALSE'
         cols  = [pk,deld] + cols
 
@@ -357,15 +357,15 @@ class Obj(Base):
     def id(self, path : AP = None) -> PK:
         '''Main use case: GROUP BY an object, rather than a particular column'''
         from dbgen.core.expr.pathattr import PathAttr
-        return PK(PathAttr(path,AttrTup(self._id,self.name)))
+        return PK(PathAttr(path,AttrTup(self.id_str,self.name)))
 
     def ids(self) -> L[str]:
         '''Names of all the identifying (top-level) attributes.'''
-        return [a.name for a in self.attrs if a.id]
+        return [a.name for a in self.attrs if a.identifying]
 
     def id_fks(self) -> L[str]:
         '''Names of all the identifying (top-level) FKs '''
-        return [f.name for f in self.fks if f.id]
+        return [f.name for f in self.fks if f.identifying]
 
     def add(self, cxn : Conn) -> int:
         '''
@@ -425,26 +425,26 @@ class Rel(Base):
                  name : str,
                  o1   : str,
                  o2   : str = None,
-                 id   : bool= False,
+                 identifying : bool= False,
                  desc : str = '<No description>'
                 ) -> None:
         self.name = name.lower()
         self.desc = desc
         self.o1   = o1.lower()
         self.o2   = o2.lower() if o2 else self.name
-        self.id   = id
+        self.identifying   = identifying
         super().__init__()
 
 
     def __str__(self) -> str:
-        return 'Rel<%s%s,%s -> %s>'%(self.name,'(id)' if self.id else '',
+        return 'Rel<%s%s,%s -> %s>'%(self.name,'(id)' if self.identifying else '',
                                       self.o1,self.o2)
     def __repr__(self) -> str:
         return '%s__%s'%(self.o1,self.name)
 
     @classmethod
     def strat(cls) -> SearchStrategy:
-        return builds(cls, o2=infer, id=infer, desc=infer)
+        return builds(cls, o2=infer, identifying=infer, desc=infer)
 
     # Public methods #
 
@@ -544,13 +544,13 @@ class Path(Base):
         '''the ID colname if we don't have a normal attribute as terminus'''
         if (not self.attr) :
             rel = m.get_rel(self.rels[-1])
-            return AttrTup(m[rel.o2]._id,rel.o2)
+            return AttrTup(m[rel.o2].id_str,rel.o2)
         else:
             return self.attr
 
     def _path_end(self, m : 'Schema') -> str:
         '''Determine the datatype of the end of a path.'''
-        if (not self.attr) or (AttrTup(m[self.attr.obj]._id,self.attr.obj) == self.attr):
+        if (not self.attr) or (AttrTup(m[self.attr.obj].id_str,self.attr.obj) == self.attr):
             return 'id'
         else:
             o = m[self.attr.obj]
