@@ -1,6 +1,7 @@
 # External Modules
 from typing import (Any,
                     List     as L,
+                    Dict     as D,
                     Tuple    as T,
                     Union    as U,
                     Callable as C)
@@ -45,20 +46,20 @@ class Import(Base):
                             "alias" using an alias
     '''
     def __init__(self,
-                 lib        : str,
-                 *unaliased : str,
-                 alias      : str = '',
-                 **aliased  : str
+                 lib              : str,
+                 unaliased_terms  : L[str]=None,
+                 alias            : str = '',
+                 aliased_terms    : D[str,str] = None,
         ) -> None:
 
         err = "Can't import %s as %s AND import specific terms (%s,%s) at once"
-        terms = unaliased or aliased
-        assert not (alias and terms), err%(lib,alias,unaliased,aliased)
+        terms = unaliased_terms or aliased_terms
+        assert not (alias and terms), err%(lib,alias,unaliased_terms,aliased_terms)
 
         self.lib              = lib
         self.alias            = alias
-        self.unaliased_terms  = unaliased
-        self.aliased_terms    = aliased
+        self.unaliased_terms  = unaliased_terms or []
+        self.aliased_terms    = aliased_terms or {}
         super().__init__()
 
     def __str__(self) -> str:
@@ -99,21 +100,21 @@ class Import(Base):
             unalias = [x[0] for x in objs if len(x) == 1]
             aliased = {x[0]:x[1] for x in objs if len(x) == 2}
 
-            return Import(lib, *unalias, **aliased)
+            return Import(lib, unaliased_terms=unalias, aliased_terms=aliased)
 
 class Env(Base):
     '''
     Environment in which a python statement gets executed
     '''
-    def __init__(self, *imports : Import) -> None:
-        self.imports = list(imports)
+    def __init__(self, imports : L[Import] = None) -> None:
+        self.imports = imports or []
         super().__init__()
 
     def __str__(self) -> str:
         return '\n'.join(map(str,self.imports))
 
     def __add__(self, other : 'Env') -> 'Env':
-        return Env(*set(self.imports + other.imports))
+        return Env(list(set(self.imports + other.imports)))
 
     @classmethod
     def strat(cls) -> SearchStrategy:
@@ -124,7 +125,7 @@ class Env(Base):
     @staticmethod
     def from_str(strs : L[str]) -> 'Env':
         '''Parse a header'''
-        return Env(*[Import.from_str(s) for s in strs])
+        return Env([Import.from_str(s) for s in strs])
 
     @classmethod
     def from_file(cls,pth:str)->'Env':
