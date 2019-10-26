@@ -13,6 +13,7 @@ from dbgen.core.action import Action
 from dbgen.core.datatypes import DataType
 from dbgen.core.schema import AttrTup
 from dbgen.core.schemaclass import Schema
+from dbgen.core.expr.exprstrat import exprstrat
 
 """
 Test that fromJSON . toJSON = identity for various DbGen objects.
@@ -21,7 +22,7 @@ Test that fromJSON . toJSON = identity for various DbGen objects.
 def serialtest(x):
     return x == x.fromJSON(x.toJSON())
 
-class TestClass:
+class TestSerialization:
 
     @given(Varchar.strat())
     def test_varchar(self, x): serialtest(x)
@@ -30,7 +31,9 @@ class TestClass:
     def test_sqltype(self, x): serialtest(x)
 
     @given(DataType.strat())
-    def test_datatype(self, x): serialtest(x)
+    def test_datatype(self, x):
+        print(vars(x), x.toJSON())
+        serialtest(x)
 
     @given(Attr.strat())
     def test_attr(self, x): serialtest(x)
@@ -38,7 +41,7 @@ class TestClass:
     @given(Action.strat())
     def test_act(self, x): serialtest(x)
 
-    @given(Expr.strat())
+    @given(exprstrat())
     def test_expr(self, x): serialtest(x)
 
     @given(PyBlock.strat())

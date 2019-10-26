@@ -179,7 +179,7 @@ I hope you know what you are doing!!!
                 start_test : [None],
                 until_test : [None]}
 
-    objs            = {oname   : (o._id, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
+    objs            = {oname   : (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
 
     with tqdm(total=len(self.gens), position = 0, disable = not bar) as tq:
         for gen in self.ordered_gens():
@@ -276,12 +276,12 @@ def check_patheq(self : 'Model', p : PathEQ, db : ConnI) -> None:
     Check whether a given database enforces the a path equality specification
     '''
     paths = list(p)
-    ids   = {n:o._id for n,o in self.objs.items()}
+    ids   = {n:o.id_str for n,o in self.objs.items()}
     p1,p2 = paths
     sels  = p1.select(self),p2.select(self)
     joins = map('\n\t'.join,(p1.joins(ids,self),p2.joins(ids,self)))
     start = p1.start()
-    st_id = self[start]._id
+    st_id = self[start].id_str
 
     q = '''
         SELECT "{0}"."{1}",

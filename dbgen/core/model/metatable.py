@@ -34,48 +34,48 @@ CREATE OR REPLACE VIEW curr_run AS
 '''
 objs = [
     Obj('connection',"Info required to connect to a PostGres DB",
-        attrs = [Attr('hostname',   Varchar(),id=True),
-                  Attr('user',      Varchar(),id=True),
-                  Attr('port',                id=True),
-                  Attr('db',        Varchar(),id=True)]),
+        attrs = [Attr('hostname',   Varchar(),identifying=True),
+                  Attr('user',      Varchar(),identifying=True),
+                  Attr('port',                identifying=True),
+                  Attr('db',        Varchar(),identifying=True)]),
     Obj('temp',
         desc = 'Temporary table that is populated and truncated after checking for repeat values',
-        attrs = [Attr('ind',id=True,desc='Index to a list of query-generated inputs')]),
+        attrs = [Attr('ind',identifying=True,desc='Index to a list of query-generated inputs')]),
 
     Obj('object','All static info about a given class of entities being modeled',
-        attrs=[Attr('name',         Varchar(),id=True),
+        attrs=[Attr('name',         Varchar(),identifying=True),
                Attr('description',  Text())],
         ),
 
     Obj('attr','Property of an object',
-        attrs=[Attr('name',         Varchar(),id=True),
+        attrs=[Attr('name',         Varchar(),identifying=True),
                Attr('dtype',        Varchar()),
                Attr('description',  Text()),
                Attr('defaultval',   Text())],
-        fks = [Rel('object', id = True)]),
+        fks = [Rel('object', identifying= True)]),
 
     Obj('view','SQL view',
-        attrs = [Attr('name',Varchar(),id=True),
+        attrs = [Attr('name',Varchar(),identifying=True),
                  Attr('query',Text('long'))]),
 
     Obj('func','Python functions that get used during generation of Objects/Attributes',
-        attrs=[Attr('source',   Text(),id=True),
+        attrs=[Attr('source',   Text(),identifying=True),
                Attr('name',     Varchar())]),
 
     Obj('gen','Method for generating concrete data',
-        attrs=[Attr('name',         Varchar(),id=True),
+        attrs=[Attr('name',         Varchar(),identifying=True),
                Attr('description',  Text()),
                Attr('gen_json',  Text())]),
 
     Obj('pyblock','decorated python function',attrs=[],
-        fks = [Rel('gen',  id = True),Rel('func')]),
+        fks = [Rel('gen',  identifying= True),Rel('func')]),
 
     Obj('const','A constant injected into the namespace of an generator',
-        attrs=[Attr('dtype',Varchar(),id=True),
-               Attr('val',  Text(),   id=True)]),
+        attrs=[Attr('dtype',Varchar(),identifying=True),
+               Attr('val',  Text(),   identifying=True)]),
 
     Obj('arg','How a PyBlock refers to a namespace',
-        attrs=[Attr('ind',      Int(),id=True),
+        attrs=[Attr('ind',      Int(),identifying=True),
                Attr('keyname',  Varchar()),
                Attr('name',     Varchar())],
         fks = [Rel('const')]),
@@ -107,14 +107,14 @@ objs = [
                 Attr('newtab',      Text()),
                 Attr('newcol',      Text()),
                 Attr('basis',       Varchar())],
-        fks = [Rel('run',id=True),Rel('gen',id=True)]),
+        fks = [Rel('run',identifying=True),Rel('gen',identifying=True)]),
 
     Obj('objs','A list of Object instances associated with a given run',
-        fks = [Rel('object',id=True),Rel('run',id=True),]),
+        fks = [Rel('object',identifying=True),Rel('run',identifying=True),]),
     Obj('views','List of View instances associated with a given run',
-        fks = [Rel('view',id=True),Rel('run', id=True)]),
+        fks = [Rel('view',identifying=True),Rel('run', identifying=True)]),
     Obj('repeats','A record of which inputs a given Action has already seen',
-        fks = [Rel('gen',id=True),Rel('run' ),]),]
+        fks = [Rel('gen',identifying=True),Rel('run' ),]),]
 
 
 
@@ -166,7 +166,7 @@ def make_meta(self   : 'Model',
 
     # Create new run instance
     #-------------------------
-    run_id = sqlselect(gmcxn,'SELECT MAX(run_id)+1 FROM run')[0][0] or 1
+    run_id= sqlselect(gmcxn,'SELECT MAX(run_id)+1 FROM run')[0][0] or 1
 
     # Insert connection (if it dosn't exist already)
     #----------------------------------------------
@@ -179,7 +179,7 @@ def make_meta(self   : 'Model',
     # Get current connection ID
     #----------------------------------------------
     get_cxn = mkSelectCmd('connection',['connection_id'],['connection_id'])
-    cxn_id  = sqlselect(gmcxn,get_cxn,cxn_args[:1])[0][0]
+    cxn_id = sqlselect(gmcxn,get_cxn,cxn_args[:1])[0][0]
 
     # Insert top level information about current run
     #----------------------------------------------
