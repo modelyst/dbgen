@@ -30,7 +30,7 @@ from dbgen.utils.numeric        import safe_div
 from dbgen.utils.sql            import (fast_load,sqlexecutemany, sqlexecute,sqlselect,mkSelectCmd,
                                     mkUpdateCmd,select_dict, Connection as Conn, DictCursor)
 from dbgen.utils.str_utils      import hash_
-from dbgen.utils.logging import TqdmToLogger
+from dbgen.utils.log import TqdmToLogger
 ###########################################
 
 def run_gen(self            : 'Model',

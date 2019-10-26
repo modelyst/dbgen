@@ -15,7 +15,7 @@ from dbgen.core.schema   import Path, PathEQ
 from dbgen.utils.sql       import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
 from dbgen.utils.lists     import concat_map
-from dbgen.utils.logging import setup_logger
+from dbgen.utils.log import setup_logger
 ########################################################
 
 

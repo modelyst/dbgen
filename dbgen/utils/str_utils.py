@@ -3,12 +3,22 @@ from json import dumps
 from hashlib import sha256
 Any
 ################################################################################
+# Number of hash values
+HASH_COUNT = 18446744073709551616
 def hash_(x: 'Any') -> int:
     """
     NEW: Take a list of showable things and generate a unique hash value in
        longint range (-9223372036854775808 to +9223372036854775807)
     """
-    return (int(sha256(dumps(x).encode('utf-8')).hexdigest(), 16) % 18446744073709551616) - 9223372036854775808
+
+    json_string = dumps(x, sort_keys=True, indent=4, separators=(',', ': '))
+    # print(x)
+    # print("JSON STRING FOR HASH:\n",json_string)
+    encoded_json_string = json_string.encode('utf-8')
+    hex_hash = sha256(encoded_json_string).hexdigest()
+    int_hash = int(hex_hash, 16)
+    converted_val = ( int_hash % HASH_COUNT) - int(HASH_COUNT/2)
+    return converted_val
 
 
 def abbreviate(x:'Any') -> 'Any':
@@ -37,3 +47,8 @@ def levenshteinDistance(s1 : str, s2 : str) -> int:
                 distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
         distances = distances_
     return distances[-1]
+
+if __name__ == '__main__':
+    from dbgen.core.expr.sqltypes import Decimal
+    test = Decimal().hash
+    print(test)

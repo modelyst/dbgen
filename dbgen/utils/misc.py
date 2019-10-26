@@ -5,8 +5,8 @@ from string  import ascii_lowercase
 from importlib import import_module
 from inspect import getfullargspec
 
-from hypothesis import infer # type: ignore
-from hypothesis.strategies import (SearchStrategy, one_of, booleans, # type: ignore
+from hypothesis import infer
+from hypothesis.strategies import (SearchStrategy, one_of, booleans,
                                    integers, just, text, builds, none, floats,
                                    dictionaries, lists, recursive)
 
@@ -49,9 +49,9 @@ def to_dict(x: Any, id_only: bool = False) -> U[L, int, float, str, D[str, Any],
     elif module == 'builtins' and ptype in complex:
         if ptype == 'dict':
             assert all([isinstance(k,str) for k in x.keys()]), x
-            return {k:to_dict(v, id_only) for k,v in x.items()}
+            return {k:to_dict(v, id_only) for k,v in x.items() if not (k == '_uid' and id_only)}
         elif ptype == 'list':
-            return [to_dict(xx, id_only) for xx in x] # type: ignore
+            return [to_dict(xx, id_only) for xx in x]
         elif ptype in ['tuple','set']:
             return dict(**metadata, _value=[to_dict(xx, id_only) for xx in x])
         else:
@@ -64,7 +64,7 @@ def to_dict(x: Any, id_only: bool = False) -> U[L, int, float, str, D[str, Any],
         if not id_only:
             hashdict = {**metadata,**{k:to_dict(data[k],id_only=True)
                                       for k in sorted(kwargs(x))}}
-            metadata['_uid'] = hash_(dumps(hashdict,indent=4,sort_keys=True))
+            metadata['_uid'] = hash_(hashdict)
         return {**metadata,**data}
 
 def from_dict(x:Any) -> Any:
@@ -143,14 +143,12 @@ class Base(object,metaclass=ABCMeta):
 
     @property
     def hash(self) -> int:
-        dic = to_dict(self)
-        assert isinstance(dic, dict)
-        return dic['_uid']
+        return hash_(to_dict(self,id_only=True))
 
 
 if __name__ == '__main__':
     from dbgen import Obj, Rel, Attr, Int
     obj = Obj('Table1', attrs=[Attr('mike',Int('big'))], fks=[Rel('sample')])
-    print(dumps(to_dict(obj,id_only=True),indent=4,sort_keys=True))
-    print(obj.toJSON())
-    print(obj.hash)
+    print(dumps(to_dict(obj,id_only=True),indent=2,sort_keys=True))
+    # print(obj.toJSON())
+    # print(obj.hash)
