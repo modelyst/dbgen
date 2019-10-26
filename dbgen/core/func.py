@@ -296,14 +296,12 @@ class Func(Base):
         """
         Generate a func from a variety of possible input data types.
         """
-
-        if env:
-            return Func(src = cls.get_source(f), env=env)
-        elif isinstance(f, Func):
+        if isinstance(f,Func):
+            assert not getattr(env,'imports',False)
             return f
         else:
             assert callable(f), 'tried to instantiate Func, but not callable %s'%(type(f))
-            return Func(src = cls.get_source(f))
+            return Func(src = cls.get_source(f), env=env)
 
     @staticmethod
     def get_source(f : C) -> str:
