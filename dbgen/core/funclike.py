@@ -9,7 +9,7 @@ from typing     import (Any,
 from abc        import ABCMeta, abstractmethod
 from traceback  import format_exc
 from jinja2     import Template
-from hypothesis.strategies import SearchStrategy, builds, one_of, just # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, one_of, just
 
 # Internal
 from dbgen.core.func   import Func, Env
@@ -41,8 +41,8 @@ class Arg(ArgLike):
     How a function refers to a namespace
     """
 
-    def __init__(self, key : int, name  : str) -> None:
-        self.key  = key
+    def __init__(self, key : str, name  : str) -> None:
+        self.key  = str(key)
         self.name = name.lower()
 
     def __str__(self) -> str:

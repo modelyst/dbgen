@@ -47,28 +47,28 @@ class Import(Base):
     '''
     def __init__(self,
                  lib              : str,
-                 unaliased_terms  : L[str]=None,
-                 alias            : str = '',
-                 aliased_terms    : D[str,str] = None,
+                 unaliased_imports  : L[str]=None,
+                 lib_alias            : str = '',
+                 aliased_imports    : D[str,str] = None,
         ) -> None:
 
         err = "Can't import %s as %s AND import specific terms (%s,%s) at once"
-        terms = unaliased_terms or aliased_terms
-        assert not (alias and terms), err%(lib,alias,unaliased_terms,aliased_terms)
+        terms = unaliased_imports or aliased_imports
+        assert not (lib_alias and terms), err%(lib,lib_alias,unaliased_imports,aliased_imports)
 
-        self.lib              = lib
-        self.alias            = alias
-        self.unaliased_terms  = unaliased_terms or []
-        self.aliased_terms    = aliased_terms or {}
+        self.lib             = lib
+        self.lib_alias       = lib_alias
+        self.unaliased_imports = unaliased_imports or []
+        self.aliased_imports = aliased_imports or {}
         super().__init__()
 
     def __str__(self) -> str:
-        if not (self.unaliased_terms or self.aliased_terms):
-            alias = (' as %s' % self.alias) if self.alias else ''
+        if not (self.unaliased_imports or self.aliased_imports):
+            alias = (' as %s' % self.lib_alias) if self.lib_alias else ''
             return 'import %s %s'%(self.lib, alias)
         else:
-            als   = ['%s as %s'%(k,v) for k,v in self.aliased_terms.items()]
-            terms = list(self.unaliased_terms) + als
+            als   = ['%s as %s'%(k,v) for k,v in self.aliased_imports.items()]
+            terms = list(self.unaliased_imports) + als
             return 'from %s import %s'%(self.lib,', '.join(terms))
 
     def __eq__(self, other : object)->bool:
@@ -86,8 +86,8 @@ class Import(Base):
         '''Parse a header line (parens not supported yet)'''
         if s[:6] == 'import':
             if ' as ' in s[7:]:
-                lib,alias = [s[7:].split('as')[i].strip() for i in range(2)]
-                return Import(lib,alias=alias)
+                lib,lib_alias = [s[7:].split('as')[i].strip() for i in range(2)]
+                return Import(lib,lib_alias=lib_alias)
             return Import(s.split()[1].strip())
         else:
             i =  s.find('import')
@@ -100,7 +100,7 @@ class Import(Base):
             unalias = [x[0] for x in objs if len(x) == 1]
             aliased = {x[0]:x[1] for x in objs if len(x) == 2}
 
-            return Import(lib, unaliased_terms=unalias, aliased_terms=aliased)
+            return Import(lib, unaliased_imports=unalias, aliased_imports=aliased)
 
 class Env(Base):
     '''
@@ -161,7 +161,7 @@ class Func(Base):
 
     def __call__(self,*args:Any) -> Any:
         if hasattr(self,'_func'):
-            return self._func(*args) # type: ignore
+            return self._func(*args)
         else:
             f = self._from_src()
             return f(*args)
@@ -188,7 +188,7 @@ class Func(Base):
 
     @property
     def sig(self) -> Any:
-        return signature(self._from_src()) # type: ignore
+        return signature(self._from_src()) 
 
     @property
     def argnames(self) -> L[str]:
