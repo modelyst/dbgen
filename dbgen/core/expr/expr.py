@@ -392,10 +392,10 @@ class CASE(Expr):
 
 
 class IF_ELSE(Expr):
-    def __init__(self, cond:Expr, _if:Expr, other:Expr)->None:
+    def __init__(self, cond:Expr, if_:Expr,else_:Expr)->None:
         self.cond = cond
-        self._if = _if
-        self._else = other
+        self.if_ = if_
+        self.else_ = else_
 
     def fields(self) -> L[Expr]:
         return [self.cond,self._if,self._else]
