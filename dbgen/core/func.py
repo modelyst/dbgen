@@ -47,7 +47,7 @@ class Import(Base):
     '''
     def __init__(self,
                  lib              : str,
-                 unaliased_imports  : L[str]=None,
+                 unaliased_imports  : U[L[str],str]=None,
                  lib_alias            : str = '',
                  aliased_imports    : D[str,str] = None,
         ) -> None:
@@ -58,7 +58,11 @@ class Import(Base):
 
         self.lib             = lib
         self.lib_alias       = lib_alias
-        self.unaliased_imports = unaliased_imports or []
+
+        if isinstance(unaliased_imports,str):
+            self.unaliased_imports = [unaliased_imports]
+        else:
+            self.unaliased_imports = unaliased_imports or []
         self.aliased_imports = aliased_imports or {}
         super().__init__()
 
@@ -75,7 +79,7 @@ class Import(Base):
         return False if not isinstance(other,Import) else vars(self) == vars(other)
 
     def __hash__(self) -> int:
-        return self.hash
+        return int(self.hash)
 
     @classmethod
     def strat(cls) -> SearchStrategy:
@@ -107,6 +111,9 @@ class Env(Base):
     Environment in which a python statement gets executed
     '''
     def __init__(self, imports : L[Import] = None) -> None:
+        
+        if imports:
+            assert isinstance(imports,list), 'Env takes in a list of imports. If there is 1 import wrap it in a list'
         self.imports = imports or []
         super().__init__()
 
@@ -188,7 +195,7 @@ class Func(Base):
 
     @property
     def sig(self) -> Any:
-        return signature(self._from_src()) 
+        return signature(self._from_src())
 
     @property
     def argnames(self) -> L[str]:
