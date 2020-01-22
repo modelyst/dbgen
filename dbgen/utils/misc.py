@@ -62,9 +62,10 @@ def to_dict(x: Any, id_only: bool = False) -> U[L, int, float, str, D[str, Any],
                 (k in kwargs(x)) or (not id_only and k[0]!='_')}
         #if ' at 0x' in str(v):  raise ValueError('serializing an object with reference to memory:'+ str(vars(self)))
         if not id_only:
-            hashdict = {**metadata,**{k:to_dict(data[k],id_only=True)
-                                      for k in sorted(kwargs(x))}}
+            hashdict = {**metadata,**{k:to_dict(v, True) for k,v in sorted(vars(x).items()) if
+                    (k in kwargs(x))}}
             metadata['_uid'] = hash_(hashdict)
+
         return {**metadata,**data}
 
 def from_dict(x:Any) -> Any:
@@ -127,8 +128,8 @@ class Base(object,metaclass=ABCMeta):
     def copy(self : T) -> T:
         return deepcopy(self)
 
-    def toJSON(self) -> str:
-        return dumps(to_dict(self),indent=4,sort_keys=True)
+    def toJSON(self, id_only = False) -> str:
+        return dumps(to_dict(self,id_only),indent=4,sort_keys=True)
 
     @staticmethod
     def fromJSON(s : str) -> 'Base':
@@ -139,7 +140,7 @@ class Base(object,metaclass=ABCMeta):
         return val
 
     def __hash__(self)->int:
-        return self.hash
+        return int(self.hash)
 
     @property
     def hash(self) -> int:

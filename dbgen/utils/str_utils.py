@@ -17,7 +17,7 @@ def hash_(x: 'Any') -> int:
     encoded_json_string = json_string.encode('utf-8')
     hex_hash = sha256(encoded_json_string).hexdigest()
     int_hash = int(hex_hash, 16)
-    converted_val = ( int_hash % HASH_COUNT) - int(HASH_COUNT/2)
+    converted_val = str(( int_hash % HASH_COUNT) - int(HASH_COUNT/2))
     return converted_val
 
 
