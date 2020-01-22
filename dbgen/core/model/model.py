@@ -11,7 +11,6 @@ from hypothesis.strategies import SearchStrategy, just # type: ignore
 # Internal
 from dbgen.core.model.run_gen   import run_gen
 from dbgen.core.model.run       import run, check_patheq,validate_name
-from dbgen.core.model.run_airflow       import run_airflow
 from dbgen.core.model.metatable import make_meta
 
 from dbgen.core.gen        import Gen
@@ -83,12 +82,14 @@ class Model(Schema):
     # Externally defined #
     ######################
     run              = run
-    run_airflow      = run_airflow
+
     _validate_name   = validate_name
     _run_gen         = run_gen
     _make_metatables = make_meta
     _check_patheq    = check_patheq
-
+    def run_airflow(self,*args,**kwargs):
+        from dbgen.core.model.run_airflow       import run_airflow
+        run_airflow(*args,**kwargs)
     ##################
     # Public methods #
     ##################
@@ -162,21 +163,6 @@ class Model(Schema):
             elif isinstance(x,PathEQ):    self._del_patheq(x)
             else:
                 raise TypeError('A %s (%s) was passed to remove' % (type(x),x))
-
-    # def randGenObj(self, o : Obj, n : int) -> T[PyBlock,L[Action]]:
-    #     '''PyBlock to generate a random instance of an object from data'''
-    #     raise NotImplementedError
-        # aa = o.initattr() # get initial attributes L[Attr]
-        # outputs = [[a.dtype.rand() for _ in range(n)] for a in aa]
-        # data =  tuple(outputs) if len(outputs)>1 else outputs[0] # type: ignore
-        # fname = 'randgen_' + o.name
-        # src = 'def %s():\n\treturn '%fname+str(data)
-        # pth = join(environ['DBGEN_TEMP'],fname+'.py')
-        # with open(pth,'w') as f: f.write(src)
-        # fun = Func.path_to_func(pth)
-        # actions = [] # type: L[Action]
-        # # IMPORTANT TO NOT DELETE THE PATH SO THAT GETSOURCE WORKS
-        # return PyBlock(fun, outnames = [a.name for a in aa]),actions
 
     ###################
     # Private Methods #

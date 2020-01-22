@@ -17,7 +17,7 @@ from dbgen.core.expr.expr      import (Expr, AND, IF_ELSE, Literal, MAX, One, LT
                                  ABS, SUM, NOT,REGEXP, BINARY, Sum, toDecimal,
                                  NULL, MIN,COALESCE, LIKE, OR, EQ, NE, Zero, true, false,
                                  JSON_EXTRACT, REPLACE, CONVERT, R2, STD, AVG,
-                                 SUBSELECT, LEFT, RIGHT, CASE, Tup)
+                                 SUBSELECT, LEFT, RIGHT, CASE, Tup, POSITION)
 
 from dbgen.core.expr.pathattr import PathAttr
 

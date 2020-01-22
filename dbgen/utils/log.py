@@ -7,7 +7,8 @@ from logging.handlers import RotatingFileHandler
 # Internal Imports
 
 
-def setup_logger(logger_name : str ='', level : int = logging.INFO)->Logger:
+def setup_logger(logger_name : str ='', level : int = logging.INFO,
+                 write_logs: bool = False)->Logger:
     format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     custom_logger = logging.getLogger(logger_name)
@@ -16,11 +17,11 @@ def setup_logger(logger_name : str ='', level : int = logging.INFO)->Logger:
     console_handler.setFormatter(format)
     console_handler.setLevel(logging.WARNING)
     custom_logger.addHandler(console_handler)
-
-    info_handler  = RotatingFileHandler('./dbgen.log',maxBytes=10000, backupCount = 20)
-    info_handler.setLevel(level)
-    info_handler.setFormatter(format)
-    custom_logger.addHandler(info_handler)
+    if write_logs:
+        info_handler  = RotatingFileHandler('./dbgen.log',maxBytes=10000, backupCount = 20)
+        info_handler.setLevel(level)
+        info_handler.setFormatter(format)
+        custom_logger.addHandler(info_handler)
 
     return custom_logger
 

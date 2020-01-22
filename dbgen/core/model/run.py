@@ -71,7 +71,7 @@ def run(self      : 'Model',
 
     # # Setup logger
     # # --------------------
-    logger = setup_logger('run', log_level)
+    logger = setup_logger('run', log_level, write_logs=False)
 
     # Print to-do list for the model
     #---------------------------------------
@@ -136,17 +136,26 @@ I hope you know what you are doing!!!
         """
         logger.warning(msg)
         for ta in tqdm(self.objs.values(), desc='Adding new tables', leave=False):
-            if not getattr(ta,'_is_view',False):
-                for sqlexpr in ta.create():
-                    try:
-                        sqlexecute(conn.connect(),sqlexpr)
-                    except Error as e:
-                        # Error code for duplicate table
-                        if e.pgcode == '42701':
-                            logger.debug('dup')
-                            pass
-                        else:
-                            raise Error(e)
+            for sqlexpr in ta.create():
+                try:
+                    sqlexecute(conn.connect(),sqlexpr)
+                except Error as e:
+                    # Error code for duplicate table
+                    if e.pgcode == '42701':
+                        logger.debug('dup')
+                        pass
+                    else:
+                        raise Error(e)
+        for v in tqdm(self.viewlist, desc='Adding new views', leave=False):
+            try:
+                sqlexecute(conn.connect(),v.create())
+            except Error as e:
+                # Error code for duplicate table
+                if 'already exists' in str(e):
+                    logger.debug('dup')
+                    pass
+                else:
+                    raise Error(e)
 
         for ta in tqdm(self.objs.values(),desc='Adding new columns', leave=False):
             for sqlexpr in self.add_cols(ta):

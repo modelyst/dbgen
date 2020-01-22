@@ -470,6 +470,10 @@ class GROUP_CONCAT(Agg):
 class STD(Agg,Unary):
     name = 'stddev_pop'
 
+class POSITION(Named, Binary):
+    def show(self,f:Fn) -> str:
+        return 'POSITION(%s in %s)' % (f(self.x), f(self.y))
+
 ##############################################################################
 ##############################################################################
 class PK(Expr):

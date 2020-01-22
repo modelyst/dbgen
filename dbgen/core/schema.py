@@ -144,6 +144,13 @@ class View(Base,metaclass=ABCMeta):
     def strat(cls) -> SearchStrategy:
         raise NotImplementedError
 
+    def create(self) -> str:
+        '''
+        Generate SQL necessary to create an object's corresponding table
+        '''
+        return 'CREATE VIEW {} AS {}'.format(self.name, self.qstr())
+
+
 class QView(View):
     def __init__(self, name : str,  q : 'Query' ) -> None:
         self.name = name
