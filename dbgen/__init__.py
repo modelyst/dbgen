@@ -4,7 +4,8 @@ from dbgen.core.gen       import Gen
 from dbgen.core.schema    import Obj, UserRel as Rel, Attr, PathEQ, Path, QView,RawView
 from dbgen.core.misc      import ConnectInfo
 
-from dbgen.core.pathconstraint import Constraint, Path as JPath
+from dbgen.core.pathconstraint import Constraint
+from dbgen.core.fromclause import Path as JPath
 
 from dbgen.core.query     import Query
 

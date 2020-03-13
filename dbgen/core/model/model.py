@@ -16,9 +16,10 @@ from dbgen.core.model.metatable import make_meta
 from dbgen.core.gen        import Gen
 from dbgen.core.action     import Action
 from dbgen.core.funclike   import PyBlock
-from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup, UserRel
+from dbgen.core.schema     import Obj, Rel, RelTup, Path, PathEQ, Attr, View, RawView, QView, AttrTup, UserRel, SuperRel
 from dbgen.core.schemaclass import Schema
 from dbgen.core.misc       import ConnectInfo as ConnI
+from dbgen.core.fromclause import Path as JPath
 from dbgen.utils.misc      import Base
 from dbgen.utils.sql       import select_dict
 from dbgen.utils.graphs    import topsort_with_dict
@@ -103,6 +104,29 @@ class Model(Schema):
         '''Use ASSERT statements to verify one's path equalities are upheld'''
         for pe in self.pes:
             self._check_patheq(pe, db)
+
+    def make_path(self, end: U[str, "Obj"], rels: list = None)->JPath:
+        # Upgrade End
+        # Change end into object if it is a string
+        if isinstance(end, str):
+            upgraded_end = self[end]
+        else:
+            assert isinstance(end, Obj)
+            upgraded_end = end
+
+        # UPGRADE FKS
+        def upgrade_rels(fs: list):
+            res = []
+            for rel_or_list in fs:
+                if isinstance(rel_or_list,Rel):
+                    res.append(SuperRel(rel_or_list.name,rel_or_list.o1,rel_or_list.o2,self[rel_or_list.o2].id_str))
+                else:
+                    res.append(upgrade_rels(rel_or_list))
+            return res
+
+        upgraded_fks = upgrade_rels(rels) if rels else []
+
+        return JPath(upgraded_end, upgraded_fks)
 
     def get(self, objname : str) -> Obj:
         '''Get an object by name'''

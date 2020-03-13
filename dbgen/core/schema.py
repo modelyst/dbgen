@@ -486,6 +486,79 @@ class Rel(Base):
     # Private Methods #
     #...
 
+class SuperRel(Base):
+    '''
+    Contains information about source table name, relation name,
+    and target table ID column name.
+
+    Example:
+    SuperRel: Person.favorite_book <-> book.title
+        name: favorite_book
+        source: Person
+        book: target
+        target_id_str: Title
+    '''
+    def __init__(self,
+                 name : str,
+                 source   : str,
+                 target   : str,
+                 target_id_str : str,
+                 identifying : bool= False,
+                 desc : str = '<No description>'
+                ) -> None:
+        self.name = name.lower()
+        self.source = source.lower()
+        self.target = target.lower()
+        self.target_id_str = target_id_str
+        self.identifying = identifying
+        self.desc = desc
+
+        super().__init__()
+
+    def __str__(self) -> str:
+        return 'SuperRel<%s,%s -> %s.%s>'%(self.name,self.source,self.target,self.target_id_str)
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+    # Public methods #
+
+    def print(self) -> str:
+        return '%s.%s'%(self.source, self.name)
+
+    def tup(self) -> RelTup:
+        '''Throw away info to make a RelTup'''
+        return RelTup(self.source, self.name)
+
+    @property
+    def default(self)->bool:
+        '''Whether or not this Relation is the 'default' one'''
+        return self.name == self.target
+
+    @property
+    def objs(self) -> S[str]:
+        return set([self.source, self.target])
+
+    def other(self, obj : str) -> str:
+        '''
+        Often we don't know which direction we are traversing on a FK
+        We know which end we're coming from and simply want the other end
+        '''
+        assert obj in self.objs, '%s not found in %s'%(obj,self)
+
+        out =  [o for o in self.objs if o != obj]
+
+        if out: return out[0] # normal case
+        else:   return obj    # both to and from are the same table!
+    def to_rel(self)->Rel:
+        return Rel(self.name, self.source, self.target, self.identifying, self.desc)
+    # Private Methods #
+    #...
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 class Path(Base):
     '''
     Some list of foreign keys (possibly empty), possibly followed by attribute

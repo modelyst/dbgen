@@ -22,7 +22,7 @@ from hypothesis.strategies import (
 
 # Internal
 if TYPE_CHECKING:
-    from dbgen.core.schema import Rel, RelTup, Obj
+    from dbgen.core.schema import Rel, SuperRel, RelTup, Obj
 
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.graphs import topsort_with_dict
@@ -49,6 +49,7 @@ class Path(Base):
         self.end = end if isinstance(end, str) else end.name
         self.fks = fks or []
         err = "expected {} in {} (objs of {})\nall fks: {}"
+
         if fks and fks[0]:
             if isinstance(fks[0], list):
                 for fk in fks[0]:
@@ -112,7 +113,7 @@ class Path(Base):
         stack = self.fks
         out = set()
         self.newmethod257(stack, out)
-        return out
+        return {o.to_rel() for o in out}
 
     def newmethod257(self, stack, out):
         while stack:
@@ -181,7 +182,7 @@ class Join(Base):
         (accounting for multiple linear paths)
     """
 
-    def __init__(self, obj: str, conds: L[T["Join", S["Rel"]]] = None) -> None:
+    def __init__(self, obj: str, conds: L[T["Join", S["SuperRel"]]] = None) -> None:
         assert isinstance(obj, str)
         self.obj = obj
         self.conds = conds or []
@@ -197,7 +198,7 @@ class Join(Base):
         return str(self) < str(other)
 
     @property
-    def conddict(self) -> D["Join", S["Rel"]]:
+    def conddict(self) -> D["Join", S["SuperRel"]]:
         return dict(self.conds)
 
     @classmethod
@@ -205,7 +206,7 @@ class Join(Base):
         return builds(cls, obj=nonempty, conds=dictionaries(Join.strat(), Rel.strat()))
 
     ### Public Methods ###
-    def add(self, j: "Join", e: "Rel") -> None:
+    def add(self, j: "Join", e: "SuperRel") -> None:
         if j in self.conddict:
             d = dict(self.conddict)
             d[j].add(e)
@@ -253,7 +254,7 @@ class Join(Base):
 
     ## Private Methods ###
 
-    def _cond(self, j: "Join", rels: S["Rel"]) -> str:
+    def _cond(self, j: "Join", rels: S["SuperRel"]) -> str:
         """Assume the alias defined by the arg's Join has already been defined
             in the FROM statement. Write a SQL JOIN condition that will be used
             to define the current Join object's alias
@@ -265,10 +266,10 @@ class Join(Base):
         for fk in rels:
             o = fk.other(self.obj)
             forward = (
-                o == fk.o1
+                o == fk.source
             )  # Rel in forward direction. Self.obj is the 'old table'
             aliases = [j.alias, self.alias]
-            cols = [fk.name, self.obj + "_id"] if forward else [o + "_id", fk.name]
+            cols = [fk.name, fk.target_id_str] if forward else [fk.target_id_str, fk.name]
             args = [aliases[0], cols[0], aliases[1], cols[1]]
             new = ' "{}"."{}" = "{}"."{}" '.format(*args)
             conds.append(new)
