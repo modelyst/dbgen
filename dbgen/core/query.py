@@ -190,8 +190,8 @@ class Query(Expr):
 
         # Put everything together to make query string
         #----------------------------------------------------
-        fmt_args = [f.pks(agg=bool(groupby)),cols,f_str,consts,groupby,haves]
-        output = 'SELECT \n\t{1}\n{2}\n{3}{4}{5}'.format(*fmt_args)
+        fmt_args = [cols,f_str,consts,groupby,haves]
+        output = 'SELECT \n\t{0}\n{1}\n{2}{3}{4}'.format(*fmt_args)
 
         return output
 
