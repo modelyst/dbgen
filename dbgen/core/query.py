@@ -157,7 +157,7 @@ class Query(Expr):
         #-------------------
         cols   = ',\n\t'.join(['%s AS "%s"'%(e,k) # .show(shower)
                                 for k,e in self.exprs.items()])
-        cols = ','+cols if cols else ''
+        cols = ''+cols if cols else ''
         # WHERE and HAVING clauses
         #---------------------------------
         # Aggregations refered to in WHERE are treated specially
@@ -191,7 +191,7 @@ class Query(Expr):
         # Put everything together to make query string
         #----------------------------------------------------
         fmt_args = [f.pks(agg=bool(groupby)),cols,f_str,consts,groupby,haves]
-        output = 'SELECT {0}\n\t{1}\n{2}\n{3}{4}{5}'.format(*fmt_args)
+        output = 'SELECT \n\t{1}\n{2}\n{3}{4}{5}'.format(*fmt_args)
 
         return output
 
