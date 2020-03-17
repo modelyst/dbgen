@@ -199,7 +199,7 @@ class Action(Base):
         # All ro
         output_file_obj = StringIO()
         cols = list(self.attrs.keys()) + list(self.fks.keys()) + [obj_pk_name]
-        for i, (pk_curr, row_curr) in enumerate(zip(pk,data)):
+        for i, (pk_curr, row_curr) in enumerate(set(zip(pk,data))):
             new_line         = [pk_curr]+list(row_curr) # type: ignore
             new_line         = map(str,new_line) # type: ignore
             new_line         = map(lambda x: x.replace("\t","\\t").replace('\n','\\n').replace('\r','\\r').replace('\\','\\\\'),new_line) # type: ignore
@@ -229,7 +229,6 @@ class Action(Base):
             pk_curr,data_curr = self._getvals(cxn,objs,row)
             pk.extend(pk_curr)
             data.extend(data_curr)
-
 
         io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
         if not data: return []
@@ -271,15 +270,6 @@ class Action(Base):
         )
         load_statement = template.render(**template_args)
 
-        get_ids_statement = \
-        """
-        SELECT
-        	{obj_pk_name}
-        FROM
-        	{temp}
-        ORDER BY
-        	auto_inc ASC
-        """.format(obj_pk_name = obj_pk_name, temp = temp_table_name)
 
         with cxn.cursor() as curs:
             # Create the temp table
@@ -323,11 +313,9 @@ class Action(Base):
                     continue
             if fk_fail_count:
                 print('Fail count = {}'.format(fk_fail_count))
-            # Get ids
-            curs.execute(get_ids_statement)
-            pk_values = [x[0] for x in curs.fetchall()]
-
-        return pk_values
+        
+        io_obj.close()
+        return [int(x) for x in pk]
 
 
     def make_src(self) -> str:
