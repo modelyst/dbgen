@@ -200,10 +200,10 @@ class Action(Base):
         output_file_obj = StringIO()
         cols = list(self.attrs.keys()) + list(self.fks.keys()) + [obj_pk_name]
         for i, (pk_curr, row_curr) in enumerate(zip(pk,data)):
-            full_row         = [pk_curr]+list(row_curr)
-            str_full_row     = map(str,full_row)
-            str_full_row_esc = map(lambda x: x.replace("\t","\\t").replace('\n','\\n').replace('\r','\\r').replace('\\','\\\\'),str_full_row)
-            output_file_obj.write('\t'.join(str_full_row_esc)+'\n')
+            new_line         = [pk_curr]+list(row_curr) # type: ignore
+            new_line         = map(str,new_line) # type: ignore
+            new_line         = map(lambda x: x.replace("\t","\\t").replace('\n','\\n').replace('\r','\\r').replace('\\','\\\\'),new_line) # type: ignore
+            output_file_obj.write('\t'.join(new_line)+'\n') # type: ignore
 
         output_file_obj.seek(0)
 
