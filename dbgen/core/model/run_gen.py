@@ -150,7 +150,7 @@ def run_gen(self            : 'Model',
                         # Get the already processed input hashes from the metadb
                         rpt_select        = 'SELECT repeats_id FROM repeats WHERE repeats.gen = %s'
                         rpt_select_output = sqlselect(gmcxn,rpt_select,[a_id])
-                        rpt_select_output = [x[0] for x in rpt_select_output]
+                        rpt_select_output = [str(x[0]) for x in rpt_select_output] # type: ignore
                         rpt_select_output = set(rpt_select_output) # type: ignore
                         # remove the hashes that are already in the processed_hashes
                         inputs = [(x,hx) for x,hx in unfiltered_inputs if hx not in rpt_select_output] # type: ignore

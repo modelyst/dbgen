@@ -5,7 +5,7 @@ Any
 ################################################################################
 # Number of hash values
 HASH_COUNT = 18446744073709551616
-def hash_(x: 'Any') -> int:
+def hash_(x: 'Any') -> str:
     """
     NEW: Take a list of showable things and generate a unique hash value in
        longint range (-9223372036854775808 to +9223372036854775807)

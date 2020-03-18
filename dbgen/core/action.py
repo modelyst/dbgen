@@ -142,7 +142,7 @@ class Action(Base):
                  cxn  : Conn,
                  objs : D[str,T[str,L[str],L[str]]],
                  row  : dict,
-                 ) -> T[L[int],L[list]]:
+                 ) -> T[L[str],L[tuple]]:
         '''
         Get a broadcasted list of INSERT/UPDATE values for an object, given
         Pyblock+Query output
@@ -166,18 +166,32 @@ class Action(Base):
             if kk in id_fks:
                 idattr.append(val)
 
-        idata,adata = broadcast(idattr),broadcast(allattr)
+        idata : L[tuple] = broadcast(idattr) 
+        adata : L[tuple] = broadcast(allattr)
         if self.pk is not None:
             assert not idata, 'Cannot provide a PK *and* identifying info'
             pkdata = self.pk.arg_get(row)
             if isinstance(pkdata,int):
-                idata_prime = [pkdata]
+                raise ValueError("PK should not be an int anymore!!!")
+                # idata_prime = [pkdata]
             elif isinstance(pkdata,list) and isinstance(pkdata[0],int): # HACKY
+                raise ValueError("PK should not be an int anymore!!!")
+                # idata_prime = pkdata
+            elif isinstance(pkdata,str):
+                idata_prime = [pkdata]
+            elif isinstance(pkdata,list) and isinstance(pkdata[0],str): # HACKY
+
                 idata_prime = pkdata
             else:
                 raise TypeError('PK should either receive an int or a list of ints',vars(self))
         else:
-            idata_prime = list(map(hash_,idata))
+            idata_prime = []
+            idata_dict  = {} #type: D[tuple,str]
+            # Iterate through the identifying data and cache the hashed result for speed
+            for idata_curr in idata:
+                if idata_dict.get(idata_curr) is None:
+                    idata_dict[idata_curr] = hash_(idata_curr)
+                idata_prime.append(idata_dict[idata_curr])
 
         if len(idata_prime) == 1: idata_prime *= len(adata) # broadcast
 

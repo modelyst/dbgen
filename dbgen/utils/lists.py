@@ -1,5 +1,6 @@
 from typing  import (Any, TypeVar,
                      List     as L,
+                     Union    as U,
                      Dict     as D,
                      Callable as C,
                      Iterable)
@@ -41,7 +42,7 @@ def concat_map(f: C[[A], L[B]], args: L[A]) -> L[B]:
     return flatten([f(arg) for arg in args])
 
 ##############################################################
-def broadcast(args : list) -> L[list]:
+def broadcast(args : L[U[list,A]]) -> L[A]:
     """
     Enforce that all non-length-1 elements have the same length and replicate
     length-1 elements to the largest length list, then zip all the lists
