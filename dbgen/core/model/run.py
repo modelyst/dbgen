@@ -34,6 +34,7 @@ def run(self      : 'Model',
         clean          : bool = False,
         skip_row_count : bool = False,
         batch          : int = None,
+        write_logs     : bool = False,
         log_level      : int = logging.INFO
        ) -> None:
     '''
@@ -71,7 +72,7 @@ def run(self      : 'Model',
 
     # # Setup logger
     # # --------------------
-    logger = setup_logger('run', log_level, write_logs=False)
+    logger = setup_logger('run', log_level, write_logs=write_logs)
 
     # Print to-do list for the model
     #---------------------------------------

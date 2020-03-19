@@ -172,11 +172,9 @@ class Action(Base):
             assert not idata, 'Cannot provide a PK *and* identifying info'
             pkdata = self.pk.arg_get(row)
             if isinstance(pkdata,int):
-                raise ValueError("PK should not be an int anymore!!!")
-                # idata_prime = [pkdata]
+                idata_prime = [str(pkdata)]
             elif isinstance(pkdata,list) and isinstance(pkdata[0],int): # HACKY
-                raise ValueError("PK should not be an int anymore!!!")
-                # idata_prime = pkdata
+                idata_prime = pkdata
             elif isinstance(pkdata,str):
                 idata_prime = [pkdata]
             elif isinstance(pkdata,list) and isinstance(pkdata[0],str): # HACKY
