@@ -6,6 +6,7 @@ from typing import (Any, TYPE_CHECKING,
                     Tuple    as T,
                     Union    as U)
 from collections import OrderedDict
+import logging
 from networkx import DiGraph # type: ignore
 import psycopg2 # type: ignore
 import re
@@ -103,12 +104,16 @@ class Action(Base):
     def act(self,
             cxn  : Conn,
             objs : D[str,T[str,L[str],L[str]]],
-            rows : L[dict]
+            rows : L[dict],
+            gen_name : str
            ) -> None:
         '''
         Top level call from a Generator to execute an action (top level is
         always insert or update, never just a select)
         '''
+        # Initialize logger
+        logger               = logging.getLogger(f'run.{gen_name}.apply_batch.loading.{self.obj}')
+        logger.setLevel(logging.DEBUG)
         self._load(cxn,objs,rows, insert = self.insert)
 
     def rename_object(self, o : 'Obj', n :str) -> 'Action':
@@ -198,8 +203,8 @@ class Action(Base):
         return idata_prime, adata
 
     def _data_to_stringIO(self,
-                          pk   : L[int],
-                          data : L[list],
+                          pk   : L[str],
+                          data : L[tuple],
                           obj_pk_name : str,
                           )->StringIO:
         """
@@ -230,11 +235,12 @@ class Action(Base):
         '''
         Helpful docstring
         '''
-
+        self.logger.debug("recursively loading foreign keys")
         for kk,vv in self.fks.items():
             if vv.insert:
                 val = vv._load(cxn,objs,rows, insert=True)
 
+        self.logger.debug("Getting attributes and generating hashes")
         obj_pk_name,ids,id_fks = objs[self.obj]
         pk,data = [], []
         for row in rows:
@@ -242,6 +248,7 @@ class Action(Base):
             pk.extend(pk_curr)
             data.extend(data_curr)
 
+        self.logger.debug("writing data to stringio object")
         io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
         if not data: return []
 
@@ -287,6 +294,7 @@ class Action(Base):
             # Create the temp table
             curs.execute(create_temp_table)
             # Attempt the loading step 3 times
+            self.logger.debug("load into temporary table")
             query_fail_count = 0
             while True:
                 if query_fail_count==NUM_QUERY_TRIES:
@@ -306,7 +314,7 @@ class Action(Base):
             # If a foreign_key violation is hit, we delete those rows in the
             # temp table and move on
             fk_fail_count    = 0
-
+            self.logger.debug("transfer from temp table to main table")
             while True:
                 if fk_fail_count==10:
                     raise ValueError('User Canceled due to large number of FK violations')
@@ -327,6 +335,7 @@ class Action(Base):
                 print('Fail count = {}'.format(fk_fail_count))
         
         io_obj.close()
+        self.logger.debug("loading finished")
         return [int(x) for x in pk]
 
 

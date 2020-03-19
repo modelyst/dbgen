@@ -30,7 +30,6 @@ from dbgen.utils.numeric        import safe_div
 from dbgen.utils.sql            import (fast_load,sqlexecutemany, sqlexecute,sqlselect,mkSelectCmd,
                                     mkUpdateCmd,select_dict, Connection as Conn, DictCursor)
 from dbgen.utils.str_utils      import hash_
-from dbgen.utils.log import TqdmToLogger
 ###########################################
 
 def run_gen(self            : 'Model',
@@ -191,66 +190,6 @@ def run_gen(self            : 'Model',
         sqlexecute(gmcxn,q,[str(e),'failed',run_id,gen.name])
         return 1 # increment error count
 
-#############
-# CONSTANTS #
-#############
-# ins_rpt_stmt = """ INSERT INTO repeats (gen,run,repeats_id) VALUES (%s,%s,%s)
-#                     ON CONFLICT (repeats_id) DO NOTHING"""
-#
-# # Helper functions stored outside class so that they can be pickled by multiprocessing
-# def apply_and_act(pbs    : L[PyBlock],
-#                   acts   : L[Action],
-#                   objs   : D[str,Obj],
-#                   mcxn   : 'Conn',
-#                   cxn    : 'Conn',
-#                   row    : dict,
-#                   hsh    : str,
-#                   qhsh   : int,
-#                   a_id   : int,
-#                   run_id : int
-#                  ) -> None:
-#     """
-#     The common part of parallel and serial application
-#     """
-#     d = {qhsh:row}
-#     for pb in pbs:
-#         d[pb.hash] = pb(d)
-#
-#     for a in acts:
-#         a.act(cxn=cxn,objs=objs,rows=[d])
-#
-#     # If successful, store input+gen_id hash in metadb
-#     sqlexecute(mcxn, ins_rpt_stmt, [a_id, run_id, hsh])
-#
-# def apply_parallel(inp   : T[dict, str, T['ConnI','ConnI']],
-#                   f      : L[PyBlock],
-#                   acts   : L[Action],
-#                   objs   : D[str,Obj],
-#                   a_id   : int,
-#                   run_id : int,
-#                   qhsh   : int
-#                  ) -> None:
-#
-#     r,h,(mdb,db) = inp
-#     open_db,open_mdb = db.connect(), mdb.connect()
-#     apply_and_act(pbs = f, acts = acts, objs = objs,
-#                   mcxn = open_mdb, cxn = open_db, row = r, qhsh = qhsh, hsh = h,
-#                   a_id = a_id, run_id = run_id)
-#     open_db.close(); open_mdb.close()
-#
-# def apply_serial(inp   : T[dict,str,T['ConnI','ConnI']],
-#                  f      : L[PyBlock],
-#                  acts   : L[Action],
-#                  objs   : D[str,Obj],
-#                  a_id   : int,
-#                  run_id : int,
-#                  qhsh   : int
-#                  )-> None:
-#     r,h,(open_mdb, open_db) = inp
-#     apply_and_act(pbs = f, acts = acts, objs = objs,
-#                   mcxn = open_mdb, cxn = open_db, row = r, hsh = h, qhsh = qhsh,
-#                   a_id = a_id, run_id = run_id)
-
 def transform_func(input: T[dict,int],
                    qhsh : int,
                    pbs : L[PyBlock]
@@ -315,7 +254,7 @@ def apply_batch(inputs        : L[T[dict,int]],
     # Load the data
     with tqdm(total=len(acts), desc='Loading', **bargs ) as tq:
         for i, a in enumerate(acts):
-            a.act(cxn=open_db,objs=objs,rows=processed_namespaces)
+            a.act(cxn=open_db,objs=objs,rows=processed_namespaces, gen_name = gen_name)
             logger.debug(f'Loaded {i}/{n_actions}')
             tq.update()
 
