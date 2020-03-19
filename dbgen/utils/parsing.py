@@ -113,6 +113,11 @@ parser.add_argument('--batch',
                     type    = lambda x:int(float(x)),
                     help    = 'Set default batch_size')
 
+parser.add_argument('--write-logs',
+                    default = False,
+                    type    = lambda x:bool(strtobool(x)),
+                    help    = 'write logs to local file')
+
 parser.add_argument('--log-level',
                     default = logging.INFO,
                     type    = input_to_level,

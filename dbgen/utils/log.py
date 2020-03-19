@@ -18,7 +18,7 @@ def setup_logger(logger_name : str ='', level : int = logging.INFO,
     console_handler.setLevel(logging.WARNING)
     custom_logger.addHandler(console_handler)
     if write_logs:
-        info_handler  = RotatingFileHandler('./dbgen.log',maxBytes=10000, backupCount = 20)
+        info_handler  = RotatingFileHandler('./dbgen.log',maxBytes=100000, backupCount = 1)
         info_handler.setLevel(level)
         info_handler.setFormatter(format)
         custom_logger.addHandler(info_handler)
