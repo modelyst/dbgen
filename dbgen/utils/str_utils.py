@@ -14,12 +14,19 @@ def hash_(x: 'Any') -> str:
     json_string = dumps(x, sort_keys=True, indent=4, separators=(',', ': '))
     # print(x)
     # print("JSON STRING FOR HASH:\n",json_string)
-    encoded_json_string = json_string.encode('utf-8')
-    hex_hash = sha256(encoded_json_string).hexdigest()
+    return hashdata_(json_string)
+
+def hashdata_(input_data:'Any')->str:
+    """
+    OLD VERSION: Creates a 128 Byte hash value #return sha512(str(x).encode()).hexdigest()
+    NEW: Take a list of showable things and generate a unique hash value in
+       longint range (-9223372036854775808 to +9223372036854775807)
+    """
+    encoded_string = str(input_data).encode('utf-8')
+    hex_hash = sha256(encoded_string).hexdigest()
     int_hash = int(hex_hash, 16)
     converted_val = str(( int_hash % HASH_COUNT) - int(HASH_COUNT/2))
     return converted_val
-
 
 def abbreviate(x:'Any') -> 'Any':
     '''Truncate super long messages.'''

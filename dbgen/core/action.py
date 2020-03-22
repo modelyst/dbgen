@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     Obj, Rel
 
 from dbgen.core.funclike import ArgLike, Arg
-from dbgen.utils.misc import hash_, Base, nonempty
+from dbgen.utils.misc import hashdata_, Base, nonempty
 from dbgen.utils.lists import broadcast
 from dbgen.utils.sql import (
     Connection as Conn,
@@ -76,7 +76,7 @@ class Action(Base):
         self.fks = {k.lower(): v for k, v in fks.items()}
         self.pk = pk
         self.insert = insert
-        self._logger = logging.getLogger(f"loading.{self.obj}")
+        self._logger = logging.getLogger(f"run.loading.{self.obj}")
         self._logger.setLevel(logging.DEBUG)
         err = "Cant insert %s if we already have PK %s"
         assert (pk is None) or (not insert), err % (obj, pk)
@@ -184,7 +184,7 @@ class Action(Base):
     ###################
 
     def _getvals(
-        self, cxn: Conn, objs: D[str, T[str, L[str], L[str]]], row: dict,
+        self, objs: D[str, T[str, L[str], L[str]]], row: dict,
     ) -> T[L[str], L[tuple]]:
         """
         Get a broadcasted list of INSERT/UPDATE values for an object, given
@@ -203,7 +203,7 @@ class Action(Base):
             if not vv.pk is None:
                 val = vv.pk.arg_get(row)
             else:
-                val, fk_adata = vv._getvals(cxn, objs, row)
+                val, fk_adata = vv._getvals(objs, row)
 
             allattr.append(val)
             if kk in id_fks:
@@ -233,7 +233,7 @@ class Action(Base):
             # Iterate through the identifying data and cache the hashed result for speed
             for idata_curr in idata:
                 if idata_dict.get(idata_curr) is None:
-                    idata_dict[idata_curr] = hash_(idata_curr)
+                    idata_dict[idata_curr] = hashdata_(idata_curr)
                 idata_prime.append(idata_dict[idata_curr])
 
         if len(idata_prime) == 1:
@@ -284,7 +284,7 @@ class Action(Base):
         obj_pk_name, ids, id_fks = objs[self.obj]
         pk, data = [], []
         for row in rows:
-            pk_curr, data_curr = self._getvals(cxn, objs, row)
+            pk_curr, data_curr = self._getvals(objs, row)
             pk.extend(pk_curr)
             data.extend(data_curr)
 

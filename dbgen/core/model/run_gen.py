@@ -192,12 +192,14 @@ def run_gen(self            : 'Model',
 
 def transform_func(input: T[dict,int],
                    qhsh : int,
-                   pbs : L[PyBlock]
+                   pbs : L[PyBlock],
+                   logger : logging.Logger
                   )->U[T[dict,int],T[None,None]]:
     row, hash = input
     try:
         d = {qhsh:row}
         for pb in pbs:
+            logger.debug(f"running {pb.func.name}")
             d[pb.hash] = pb(d)
     except SkipException:
         return None, None
@@ -242,7 +244,7 @@ def apply_batch(inputs        : L[T[dict,int]],
     logger.info('Transforming...')
     # Transform the data
     with tqdm(total=n_inputs, desc='Transforming', **bargs ) as tq:
-        transform_func_curr = partial(transform_func,pbs = f, qhsh = qhsh)
+        transform_func_curr = partial(transform_func,pbs = f, qhsh = qhsh, logger = logger)
         for i, (output_dict, output_hash) in enumerate(mapper(transform_func_curr, inputs)):
             if output_dict:
                 processed_namespaces.append(delete_unused_keys(output_dict,keys_to_save))
@@ -255,7 +257,7 @@ def apply_batch(inputs        : L[T[dict,int]],
     with tqdm(total=len(acts), desc='Loading', **bargs ) as tq:
         for i, a in enumerate(acts):
             a.act(cxn=open_db,objs=objs,rows=processed_namespaces, gen_name = gen_name)
-            logger.debug(f'Loaded {i}/{n_actions}')
+            logger.debug(f'Loaded {i+1}/{n_actions}')
             tq.update()
 
     # Store the repeats

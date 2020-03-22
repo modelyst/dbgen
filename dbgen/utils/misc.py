@@ -12,7 +12,7 @@ from hypothesis.strategies import (SearchStrategy, one_of, booleans,
 
 from json import loads, dumps
 
-from dbgen.utils.str_utils import hash_
+from dbgen.utils.str_utils import hash_, hashdata_
 
 NoneType = type(None)
 
