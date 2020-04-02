@@ -28,8 +28,7 @@ from dbgen.core.schema import (
     AttrTup,
 )
 from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.core.pathconstraint import Path as JPath, Constraint
-from dbgen.utils.sql import sqlexecute, sqlselect, Error
+from dbgen.utils.sql import sqlexecute, sqlselect
 
 ############################################################################
 
@@ -42,7 +41,7 @@ class Schema(Base):
     ) -> None:
 
         self.objlist = objlist or []
-        self.viewlist = viewlist = []
+        self.viewlist = viewlist or []
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objlist)  # nodes are object NAMES
@@ -94,13 +93,14 @@ class Schema(Base):
         """Create empty schema."""
         if nuke.lower() in ["t", "true"]:
             safe_conn = deepcopy(conn)
-            # safe_conn.db     = 'postgres'
-            # safe_conn.schema = 'public'
             safe_cxn = safe_conn.connect()
             sqlexecute(safe_cxn, f'DROP SCHEMA IF EXISTS "{conn.schema}" CASCADE')
             sqlexecute(safe_cxn, f'CREATE SCHEMA "{conn.schema}"')
         cxn = conn.connect()
         tqargs = dict(leave=False, disable=not bar)
+        # Add the functions
+        self.add_functions(conn)
+
         for ta in tqdm(self.objs.values(), desc="adding tables", **tqargs):
             if not getattr(ta, "_is_view", False):
                 for sql in ta.create():
@@ -114,9 +114,31 @@ class Schema(Base):
 
     def check_schema_exists(self, conn: ConnI) -> bool:
         cxn = conn.connect()
-        q = "SELECT table_name from information_schema.tables where table_schema = 'public'"
+        q = f"SELECT table_name from information_schema.tables where \
+        table_schema = '{conn.schema}'"
         tables_in_db = [x[0] for x in sqlselect(cxn, q)]
         return all([obj in tables_in_db for obj in self.objs])
+
+    def add_functions(self, conn: ConnI) -> bool:
+        statement = """
+        CREATE OR REPLACE FUNCTION create_constraint_if_not_exists (t_name text, c_name text, constraint_sql text)
+  RETURNS void
+AS
+$BODY$
+  begin
+    -- Look for our constraint
+    if not exists (select constraint_name
+                   from information_schema.constraint_column_usage
+                   where table_name = t_name  and constraint_name = c_name) then
+        execute 'ALTER TABLE ' || t_name || ' ADD CONSTRAINT ' || c_name || ' ' || constraint_sql;
+    end if;
+end;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+        """
+        cxn = conn.connect()
+        sqlexecute(cxn, statement)
+        return True
 
     ################
     # Adding stuff #
@@ -203,7 +225,7 @@ class Schema(Base):
         for c in obj.attrs:
             obj_name = obj.name
             col_name, col_desc = c.create_col(obj.name)
-            stmt = "ALTER TABLE %s ADD COLUMN %s" % (obj.name, col_name)
+            stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name)
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
         rel_stmts = [self._create_fk(rel) for rel in obj.fkdict.values()]
@@ -225,10 +247,11 @@ class Schema(Base):
     def _create_fk(self, fk: Rel) -> str:
         """create SQL FK statement"""
         args = [fk.o1, fk.name, fk.o2, self[fk.o2].id_str]
-        s = """ALTER TABLE "{0}" ADD COLUMN IF NOT EXISTS "{1}" BIGINT;
-           ALTER TABLE "{0}" ADD FOREIGN KEY IF NOT EXISTS ("{1}") REFERENCES "{2}"("{3}");
-           CREATE INDEX IF NOT EXISTS "{1}_{2}_idx" ON "{0}"("{1}");"""
-        return s.format(*args)
+        stmt = 'ALTER TABLE "{0}" ADD COLUMN IF NOT EXISTS "{1}" BIGINT;'
+        stmt += 'SELECT create_constraint_if_not_exists("{0}","{1}_{2}_fkey",\
+        \'ALTER TABLE "{0}" ADD FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}");\');'
+        stmt += 'CREATE INDEX IF NOT EXISTS "{1}_{2}_idx" ON "{0}"("{1}");'
+        return stmt.format(*args)
 
     def _rels(self) -> S[Rel]:
         """ ALL relations between any objects, in some order """

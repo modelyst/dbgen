@@ -1,43 +1,46 @@
 from typing import TYPE_CHECKING, List as L
-from copy   import deepcopy
+from copy import deepcopy
 
-from tqdm        import tqdm        # type: ignore
+from tqdm import tqdm  # type: ignore
 import logging
 
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
-    Model
-from dbgen.core.misc     import ConnectInfo as ConnI,Test,onlyTest,xTest
-from dbgen.core.gen      import Gen
-from dbgen.core.schema   import Path, PathEQ
 
-from dbgen.utils.sql       import sqlexecute, sqlselect, Error
+    Model
+from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
+from dbgen.core.gen import Gen
+from dbgen.core.schema import Path, PathEQ
+
+from dbgen.utils.sql import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
-from dbgen.utils.lists     import concat_map
+from dbgen.utils.lists import concat_map
 from dbgen.utils.log import setup_logger
+
 ########################################################
 
 
-def run(self      : 'Model',
-        conn           : ConnI,
-        meta_conn      : ConnI,
-        nuke           : str = '',
-        add            : bool = False,
-        retry          : bool = False,
-        only           : str = '',
-        xclude         : str = '',
-        start          : str = '',
-        until          : str = '',
-        serial         : bool = False,
-        bar            : bool = True,
-        clean          : bool = False,
-        skip_row_count : bool = False,
-        batch          : int = None,
-        write_logs     : bool = False,
-        log_level      : int = logging.INFO
-       ) -> None:
-    '''
+def run(
+    self: "Model",
+    conn: ConnI,
+    meta_conn: ConnI,
+    nuke: str = "",
+    add: bool = False,
+    retry: bool = False,
+    only: str = "",
+    xclude: str = "",
+    start: str = "",
+    until: str = "",
+    serial: bool = False,
+    bar: bool = True,
+    clean: bool = False,
+    skip_row_count: bool = False,
+    batch: int = None,
+    write_logs: bool = False,
+    log_level: int = logging.INFO,
+) -> None:
+    """
     This method is point of the model: to run and generate a database according
     to the model's specified rules.
 
@@ -62,62 +65,69 @@ def run(self      : 'Model',
     able to call model.run() without nuking again (unless an 'unclean' method is
     written, which is in principle possible)
 
-    '''
-
+    """
 
     # Run tests on pyblocks
-    #----------------------
+    # ----------------------
     self.test_funcs()
-
 
     # # Setup logger
     # # --------------------
-    logger = setup_logger('run', log_level, write_logs=write_logs)
+    logger = setup_logger("run", log_level, write_logs=write_logs)
 
     # Print to-do list for the model
-    #---------------------------------------
+    # ---------------------------------------
     todo = self._todo()
     if todo:
-        logger.warning("WARNING: the following attributes do not have any generator "
-              "to populate them: \n\t-"+'\n\t-'.join(sorted(todo)))
+        logger.warning(
+            "WARNING: the following attributes do not have any generator "
+            "to populate them: \n\t-" + "\n\t-".join(sorted(todo))
+        )
 
     # Validate input
-    #----------------
-    assert conn != meta_conn, 'Main DB cannot be in same schema as logging DB'
+    # ----------------
+    assert conn != meta_conn, "Main DB cannot be in same schema as logging DB"
     startErr = 'Starting generator ("start") must be a Generator name'
     assert not start or start in self.gens, startErr
     xclude_ = set(xclude.split())
-    only_   = set(only.split())
-    for w in (only_ | xclude_):
+    only_ = set(only.split())
+    for w in only_ | xclude_:
         self._validate_name(w)
 
-
-    # Make sure no existing cxns to database
-    #---------------------------------------
-    conn.kill(); meta_conn.kill()
+    # # Make sure no existing cxns to database
+    # # ---------------------------------------
+    # conn.kill()
+    # meta_conn.kill()
 
     # Make metatables
-    #----------------
-    run_id = self._make_metatables(mconn=meta_conn,conn=conn,nuke=nuke,
-                                  retry=retry,only=' '.join(sorted(only_)),
-                                  xclude=' '.join(sorted(xclude_)),
-                                  start=start,until=until,bar=bar)
+    # ----------------
+    run_id = self._make_metatables(
+        mconn=meta_conn,
+        conn=conn,
+        nuke=nuke,
+        retry=retry,
+        only=" ".join(sorted(only_)),
+        xclude=" ".join(sorted(xclude_)),
+        start=start,
+        until=until,
+        bar=bar,
+    )
 
     # Clean up database
-    #-----------------
+    # -----------------
     if nuke:
-        if nuke.lower() in ['t','true']:
-            self.make_schema(conn=conn,nuke=nuke,bar=bar) # FULL NUKE
+        if nuke.lower() in ["t", "true"]:
+            self.make_schema(conn=conn, nuke=nuke, bar=bar)  # FULL NUKE
         else:
-            raise NotImplementedError('Selective nuking is not working yet')
+            raise NotImplementedError("Selective nuking is not working yet")
             deltags = set(nuke.split())
             delgens = set()
             for gen in self.ordered_gens():
-                if set([gen.name]+gen.tags).intersection(deltags):
+                if set([gen.name] + gen.tags).intersection(deltags):
                     delgens.add(gen.name)
             for gen in self.ordered_gens():
                 if gen.name in delgens:
-                    gen.purge(conn.connect(),meta_conn.connect())
+                    gen.purge(conn.connect(), meta_conn.connect())
     elif add:
         msg = """
 #######################################################################
@@ -136,107 +146,102 @@ I hope you know what you are doing!!!
 #######################################################################
         """
         logger.warning(msg)
-        for ta in tqdm(self.objs.values(), desc='Adding new tables', leave=False):
+        for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False):
             for sqlexpr in ta.create():
                 try:
-                    sqlexecute(conn.connect(),sqlexpr)
+                    sqlexecute(conn.connect(), sqlexpr)
                 except Error as e:
                     # Error code for duplicate table
-                    if e.pgcode == '42701':
-                        logger.debug('dup')
+                    if e.pgcode == "42701":
+                        logger.debug("dup")
                         pass
                     else:
                         raise Error(e)
-        for v in tqdm(self.viewlist, desc='Adding new views', leave=False):
+        for v in tqdm(self.viewlist, desc="Adding new views", leave=False):
             try:
-                sqlexecute(conn.connect(),v.create())
+                sqlexecute(conn.connect(), v.create())
             except Error as e:
                 # Error code for duplicate table
-                if 'already exists' in str(e):
-                    logger.debug('dup')
+                if "already exists" in str(e):
+                    logger.debug("dup")
                     pass
                 else:
                     raise Error(e)
 
-        for ta in tqdm(self.objs.values(),desc='Adding new columns', leave=False):
+        for ta in tqdm(self.objs.values(), desc="Adding new columns", leave=False):
             for sqlexpr in self.add_cols(ta):
                 try:
-                    sqlexecute(conn.connect(),sqlexpr)
+                    sqlexecute(conn.connect(), sqlexpr)
                 except Error as e:
                     # Error code for duplicate column
-                    if e.pgcode == '42701':
+                    if e.pgcode == "42701":
                         pass
                     else:
                         raise Error(e)
 
-
     # Make 'global' database connections (active throughout whole process)
-    #----------------------------------------------------------------------
-    gcxn  = conn.connect()
+    # ----------------------------------------------------------------------
+    gcxn = conn.connect()
     gmcxn = meta_conn.connect()
 
     # Initialize variables
-    #---------------------
-    not_run    = []    # type: L[str] ### List of Rules that were not run
-    err_tot    = 0     # total # of failed generators
+    # ---------------------
+    not_run = []  # type: L[str] ### List of Rules that were not run
+    err_tot = 0  # total # of failed generators
     start_flag = False if start else True
     until_flag = True
-    start_test = Test(lambda _,__: start_flag,
-                      lambda _:'Excluded because of "start"')
-    until_test = Test(lambda _,__: until_flag,
-                      lambda _:'Excluded because of "until"')
-    testdict = {xTest      : [xclude_],
-                start_test : [None],
-                until_test : [None]}
+    start_test = Test(lambda _, __: start_flag, lambda _: 'Excluded because of "start"')
+    until_test = Test(lambda _, __: until_flag, lambda _: 'Excluded because of "until"')
+    testdict = {xTest: [xclude_], start_test: [None], until_test: [None]}
 
-    objs            = {oname   : (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
+    objs = {oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
 
-    with tqdm(total=len(self.gens), position = 0, disable = not bar) as tq:
+    with tqdm(total=len(self.gens), position=0, disable=not bar) as tq:
         for gen in self.ordered_gens():
 
             # Initialize Variables
-            #---------------------
+            # ---------------------
             name = gen.name
             tq.set_description(name)
-            logger.info(f'Running {gen.name}...')
+            logger.info(f"Running {gen.name}...")
 
             # Set flags
-            #--------------------------------
+            # --------------------------------
             if name == start:
                 start_flag = True
 
             # Run tests to see whether or not the Generator should be run
-            if only: # only trumps everything else, if it's defined
-                run = (onlyTest(gen,only_) is True) and (xTest(gen,xclude_) is True)
+            if only:  # only trumps everything else, if it's defined
+                run = (onlyTest(gen, only_) is True) and (xTest(gen, xclude_) is True)
             else:
                 run = True  # flag for passing all tests
-                for test,args in testdict.items():
-                    test_output = test(gen,*args) # type: ignore
+                for test, args in testdict.items():
+                    test_output = test(gen, *args)  # type: ignore
                     if test_output is not True:
                         not_run.append(name)
-                        gen.update_status(gmcxn,run_id,test_output)
+                        gen.update_status(gmcxn, run_id, test_output)
                         run = False
                         break
             if run:
                 err_tot += self._run_gen(
-                    objs            = objs,
-                    gen             = gen,
-                    gmcxn           = gmcxn,
-                    gcxn            = gcxn,
-                    mconn_info      = meta_conn,
-                    conn_info       = conn,
-                    run_id          = run_id,
-                    retry           = retry,
-                    serial          = serial,
-                    bar             = bar,
-                    user_batch_size = batch,
-                    skip_row_count  = skip_row_count
+                    objs=objs,
+                    gen=gen,
+                    gmcxn=gmcxn,
+                    gcxn=gcxn,
+                    mconn_info=meta_conn,
+                    conn_info=conn,
+                    run_id=run_id,
+                    retry=retry,
+                    serial=serial,
+                    bar=bar,
+                    user_batch_size=batch,
+                    skip_row_count=skip_row_count,
                 )
 
             tq.update()
 
             # Set flags
-            #----------
+            # ----------
             if name == until:
                 until_flag = False
 
@@ -244,69 +249,74 @@ I hope you know what you are doing!!!
                            ,errs = %s
              WHERE run_id=%s"""
 
-    sqlexecute(gmcxn,end,[err_tot,run_id])
+    sqlexecute(gmcxn, end, [err_tot, run_id])
 
     self.check_paths(conn)
 
     if clean:
         for o in self.objs:
-            for c in ['deleted']:
-                q = 'ALTER TABLE {} DROP COLUMN {}'.format(o,c)
-                sqlexecute(gcxn,q)
+            for c in ["deleted"]:
+                q = "ALTER TABLE {} DROP COLUMN {}".format(o, c)
+                sqlexecute(gcxn, q)
 
-
-    gcxn.close(); gmcxn.close()
+    gcxn.close()
+    gmcxn.close()
     if bar:
-        logger.info('\nFinished.\n\t' +
-              ('did not run %s'%not_run if not_run else 'Ran all Rules'))
+        logger.info(
+            "\nFinished.\n\t"
+            + ("did not run %s" % not_run if not_run else "Ran all Rules")
+        )
 
-def validate_name(self : 'Model', w : str) -> None:
+
+def validate_name(self: "Model", w: str) -> None:
     """
     Checks to make sure name - in an argument of model.run() - is valid,
     If not, throws error and suggests alternatives
     """
     match = False
     close = []
-    def t(u : Gen) -> L[str]: return [u.name]+u.tags
-    for n in concat_map(t,list(self.gens.values())):
-        d = levenshteinDistance(w,n)
-        upW,upN = max(len(w),5), max(len(n),5) # variables for safe indexing
+
+    def t(u: Gen) -> L[str]:
+        return [u.name] + u.tags
+
+    for n in concat_map(t, list(self.gens.values())):
+        d = levenshteinDistance(w, n)
+        upW, upN = max(len(w), 5), max(len(n), 5)  # variables for safe indexing
         if d == 0:
             match = True
             break
         elif d < 5 or w[:upW] == n[:upN]:
-            close.append(n) # keep track of near-misses
+            close.append(n)  # keep track of near-misses
     if not match:
-        did_you = "Did you mean %s"%close if close else ''
-        raise ValueError("No match found for %s\n%s"%(w,did_you))
+        did_you = "Did you mean %s" % close if close else ""
+        raise ValueError("No match found for %s\n%s" % (w, did_you))
 
 
-def check_patheq(self : 'Model', p : PathEQ, db : ConnI) -> None:
-    '''
+def check_patheq(self: "Model", p: PathEQ, db: ConnI) -> None:
+    """
     Check whether a given database enforces the a path equality specification
-    '''
+    """
     paths = list(p)
-    ids   = {n:o.id_str for n,o in self.objs.items()}
-    p1,p2 = paths
-    sels  = p1.select(self),p2.select(self)
-    joins = map('\n\t'.join,(p1.joins(ids,self),p2.joins(ids,self)))
+    ids = {n: o.id_str for n, o in self.objs.items()}
+    p1, p2 = paths
+    sels = p1.select(self), p2.select(self)
+    joins = map("\n\t".join, (p1.joins(ids, self), p2.joins(ids, self)))
     start = p1.start()
     st_id = self[start].id_str
 
-    q = '''
+    q = """
         SELECT "{0}"."{1}",
                {2},
                {3}
         FROM {0} AS "{0}"
         {4}
         {5}
-        '''
-    args  = [start,st_id,*sels,*joins]
+        """
+    args = [start, st_id, *sels, *joins]
     query = q.format(*args)
-    out   = sqlselect(db.connect(),query)
-    for id,a,b in out:
-        if a!=b:
-            err = 'Path Equality check FAILED for {} # {}'\
-                   + '\n{} -> {}'*2
-            eargs = (start,id,p1,a,p2,b)
+    out = sqlselect(db.connect(), query)
+    for id, a, b in out:
+        if a != b:
+            err = "Path Equality check FAILED for {} # {}" + "\n{} -> {}" * 2
+            eargs = (start, id, p1, a, p2, b)
             raise ValueError(err.format(*eargs))
