@@ -120,7 +120,7 @@ class Schema(Base):
         return all([obj in tables_in_db for obj in self.objs])
 
     def add_functions(self, conn: ConnI) -> bool:
-        statement = """
+        statement = f"""
         CREATE OR REPLACE FUNCTION create_constraint_if_not_exists (t_name text, c_name text, constraint_sql text)
   RETURNS void
 AS
@@ -128,8 +128,11 @@ $BODY$
   begin
     -- Look for our constraint
     if not exists (select constraint_name
-                   from information_schema.constraint_column_usage
-                   where table_name = t_name  and constraint_name = c_name) then
+                   from information_schema.table_constraints tc 
+where
+    tc.constraint_name = c_name
+    and tc.table_name = t_name
+    and tc.table_schema = '{conn.schema}') then
         execute 'ALTER TABLE ' || t_name || ' ADD CONSTRAINT ' || c_name || ' ' || constraint_sql;
     end if;
 end;
@@ -248,9 +251,10 @@ LANGUAGE plpgsql VOLATILE;
         """create SQL FK statement"""
         args = [fk.o1, fk.name, fk.o2, self[fk.o2].id_str]
         stmt = 'ALTER TABLE "{0}" ADD COLUMN IF NOT EXISTS "{1}" BIGINT;'
-        stmt += 'SELECT create_constraint_if_not_exists("{0}","{1}_{2}_fkey",\
-        \'ALTER TABLE "{0}" ADD FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}");\');'
-        stmt += 'CREATE INDEX IF NOT EXISTS "{1}_{2}_idx" ON "{0}"("{1}");'
+        stmt += 'ALTER TABLE "{0}" DROP CONSTRAINT IF EXISTS fk__{0}__{1}__{2}__{3};'
+        stmt += 'ALTER TABLE "{0}" ADD CONSTRAINT fk__{0}__{1}__{2}__{3}\
+        FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}");'
+        stmt += 'CREATE INDEX IF NOT EXISTS "{0}__{1}__fkey" ON "{0}"("{1}");'
         return stmt.format(*args)
 
     def _rels(self) -> S[Rel]:

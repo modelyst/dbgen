@@ -203,16 +203,17 @@ class ConnectInfo(Base):
 
     def drop(self) -> None:
         """Completely removes a DB"""
-        dropQ = "DROP DATABASE IF EXISTS " + self.db
-        self.kill()
-        with self.neutral() as cxn:
-            cxn.execute(dropQ, vars=[self.db])
+        drop_stmt = f"DROP SCHEMA IF EXISTS {self.schema} CASCADE"
+        conn = self.connect()
+        with conn.cursor() as cxn:
+            cxn.execute(drop_stmt)
 
     def create(self) -> None:
         """Kills connections to the DB"""
-        createQ = "CREATE DATABASE " + self.db
-        with self.neutral() as cxn:
-            cxn.execute(createQ, vars=[self.db])
+        create_stmt = f"CREATE SCHEMA IF NOT EXISTS {self.schema};"
+        conn = self.connect()
+        with conn.cursor() as cxn:
+            cxn.execute(create_stmt)
 
 
 ################################################################################
@@ -319,4 +320,3 @@ xTest = Test(
     lambda t, x: (t.name not in x) and (not any([g in t.tags for g in x])),  # type: ignore
     lambda x: "Excluded",
 )
-

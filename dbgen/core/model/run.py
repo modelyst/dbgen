@@ -96,8 +96,8 @@ def run(
 
     # # Make sure no existing cxns to database
     # # ---------------------------------------
-    # conn.kill()
-    # meta_conn.kill()
+    conn.kill()
+    meta_conn.kill()
 
     # Make metatables
     # ----------------
