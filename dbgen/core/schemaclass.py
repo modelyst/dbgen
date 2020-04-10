@@ -119,25 +119,7 @@ class Schema(Base):
         return all([obj in tables_in_db for obj in self.objs])
 
     def add_functions(self, conn: ConnI) -> bool:
-        statement = f"""
-        CREATE OR REPLACE FUNCTION create_constraint_if_not_exists (t_name text, c_name text, constraint_sql text)
-  RETURNS void
-AS
-$BODY$
-  begin
-    -- Look for our constraint
-    if not exists (select constraint_name
-                   from information_schema.table_constraints tc 
-where
-    tc.constraint_name = c_name
-    and tc.table_name = t_name
-    and tc.table_schema = '{conn.schema}') then
-        execute 'ALTER TABLE ' || t_name || ' ADD CONSTRAINT ' || c_name || ' ' || constraint_sql;
-    end if;
-end;
-$BODY$
-LANGUAGE plpgsql VOLATILE;
-        """
+        statement = f""""""
         cxn = conn.connect()
         sqlexecute(cxn, statement)
         return True
@@ -225,7 +207,6 @@ LANGUAGE plpgsql VOLATILE;
     def add_cols(self, obj: Obj) -> L[str]:
         attr_stmts = []
         for c in obj.attrs:
-            obj_name = obj.name
             col_name, col_desc = c.create_col(obj.name)
             stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name)
             attr_stmts.append(stmt)

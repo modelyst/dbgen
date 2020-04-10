@@ -1,33 +1,22 @@
 # External Modules
 from abc import abstractmethod, ABCMeta
-from typing import (
-    Any,
-    TYPE_CHECKING,
-    Type,
-    Set as S,
-    Dict as D,
-    Union as U,
-    List as L,
-    Tuple as T,
-    Callable as C,
-    Optional as O,
-)
+from typing import Any, TYPE_CHECKING, Union as U, List as L, Tuple as T, Callable as C
 
-from copy import deepcopy
 from functools import reduce
 from operator import add
-from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just, recursive  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just  # type: ignore
 
 # Internal Modules
+from dbgen.core.expr.sqltypes import SQLType, Decimal, Varchar, Text, Int
+from dbgen.utils.lists import concat_map
+from dbgen.utils.misc import Base, anystrat
+
+
 if TYPE_CHECKING:
     from dbgen.core.expr.pathattr import PathAttr
 
     PathAttr
 
-from dbgen.core.expr.sqltypes import SQLType, Decimal, Varchar, Text, Int
-from dbgen.utils.lists import concat_map
-from dbgen.utils.misc import Base, anystrat
-from dbgen.utils.lists import flatten
 
 """
 Python-sql interface.
@@ -175,6 +164,7 @@ class Unary(Expr):
         from dbgen.core.expr.exprstrat import exprstrat
 
         x = exprstrat if strat is None else strat
+        assert isinstance(x, SearchStrategy)
         return builds(cls, x=x)
 
 

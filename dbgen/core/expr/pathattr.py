@@ -1,4 +1,4 @@
-from typing import Any, Set as S, List as L, Optional as O, Callable as C
+from typing import Any, Set as S, List as L, Optional as Opt, Callable as C
 from hypothesis.strategies import SearchStrategy, builds, none, from_type  # type: ignore
 
 from dbgen.core.schema import AttrTup, RelTup
@@ -10,7 +10,7 @@ Fn = C[[Any], str]  # type shortcut
 
 ########################
 class PathAttr(Expr):
-    def __init__(self, path: O[Path], attr: AttrTup) -> None:
+    def __init__(self, path: Opt[Path], attr: AttrTup) -> None:
         assert attr
         self.path = path or Path(attr.obj)
         self.attr = attr

@@ -100,6 +100,6 @@ def batch(iterable: list, n: int = 1) -> Iterable:
     returns an iterable that where every iteration
     returns n of items from the original list
     """
-    l = len(iterable)
-    for ndx in range(0, l, n):
-        yield iterable[ndx : min(ndx + n, l)]
+    iter_length = len(iterable)
+    for ndx in range(0, iter_length, n):
+        yield iterable[ndx : min(ndx + n, iter_length)]
