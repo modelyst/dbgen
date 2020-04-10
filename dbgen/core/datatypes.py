@@ -1,18 +1,25 @@
 # External Modules
-from typing  import TypeVar as TV # type: ignore
-from typing  import List as L,Type
-from abc     import abstractmethod,ABCMeta
-from ast     import literal_eval
+from typing import TypeVar as TV  # type: ignore
+from typing import List as L, Type
+from abc import abstractmethod, ABCMeta
+from ast import literal_eval
 from inspect import _empty  # type: ignore
+from hypothesis.strategies import (
+    SearchStrategy,
+    builds,
+    lists,
+    one_of,
+    just,
+)  # type: ignore
 
 # Internal modules
 from dbgen.utils.misc import Base
 
-'''
+"""
 Defines the abstract class DataType and all classes that implement it
-'''
+"""
 ################################################################################
-class DataType(Base, metaclass = ABCMeta):
+class DataType(Base, metaclass=ABCMeta):
     """
     Internal representation of Python datatypes
 
@@ -22,156 +29,249 @@ class DataType(Base, metaclass = ABCMeta):
 
     This class is meant to be extended as new cases appear
     """
+
+    def __init__(self) -> None:
+        super().__init__()
+
     def __len__(self) -> int:
-        '''Default length, ONLY Tuple has a non-one length'''
+        """Default length, ONLY Tuple has a non-one length."""
         return 1
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        dts = [
+            AnyType(),
+            NoneType(),
+            BaseType("x"),
+            TypeVar("x"),
+            Callable([AnyType()], NoneType()),
+            Union([AnyType(), BaseType("x")]),
+            Tuple([AnyType(), BaseType("x")]),
+            List(NoneType()),
+            Dict(BaseType("x"), BaseType("y")),
+        ]  # type: L[DataType]
+        return one_of(*[just(x) for x in dts])
 
     @abstractmethod
     def __str__(self) -> str:
-        '''Need to provide a str representation'''
+        """Need to provide a str representation"""
         raise NotImplementedError
 
     @classmethod
-    def get_datatype(cls, t : Type) -> 'DataType':
+    def get_datatype(cls, t: Type) -> "DataType":
         """
         Convert a Python Type object into a simple representation
 
         This is very ad hoc and hacky
         """
-        if isinstance(t,str):
+        if isinstance(t, str):
             try:
-                t = literal_eval(t) # try to evaluate, likely will fail
+                t = literal_eval(t)  # try to evaluate, likely will fail
             except ValueError:
                 pass
 
         strt = str(t)
 
         # Python builtins
-        if   t == float:      return BaseType("Float")
-        elif t == int:        return BaseType("Int")
-        elif t == str:        return BaseType("Str")
-        elif t == bool:       return BaseType("Bool")
-        elif t == type(None): return NoneType()
+        if t == float:
+            return BaseType("Float")
+        elif t == int:
+            return BaseType("Int")
+        elif t == str:
+            return BaseType("Str")
+        elif t == bool:
+            return BaseType("Bool")
+        elif isinstance(t, type(None)):
+            return NoneType()
 
         # Special cases from chemistry libraries
-        elif 'Atoms' in strt :
+        elif "Atoms" in strt:
             return BaseType("Atoms")
-        elif strt == 'Structure':
+        elif strt == "Structure":
             return BaseType("Structure")
-        elif strt in ['BULK',"<class 'bulk_enumerator.bulk.BULK'>"]:
+        elif strt in ["BULK", "<class 'bulk_enumerator.bulk.BULK'>"]:
             return BaseType("BULK")
-        elif 'Graph' in strt:
+        elif "Graph" in strt:
             return BaseType("MultiGraph")
-        elif 'Structure' in strt:
+        elif "Structure" in strt:
             return BaseType("Structure")
 
         # Typing higher order types
-        elif str(t.__class__)==str(Union) or strt[:12]=='typing.Union':
+        elif str(t.__class__) == str(Union) or strt[:12] == "typing.Union":
             return Union([cls.get_datatype(x) for x in t.__args__])
 
-        elif 'Tuple' in strt:
+        elif "Tuple" in strt:
             return Tuple([cls.get_datatype(x) for x in t.__args__])
 
-        elif 'Callable' in strt:
+        elif "Callable" in strt:
             from_args = [cls.get_datatype(x) for x in t.__args__[:-1]]
-            to_arg    = cls.get_datatype(t.__args__[-1])
-            return Callable(from_args,to_arg)
+            to_arg = cls.get_datatype(t.__args__[-1])
+            return Callable(from_args, to_arg)
 
-        elif isinstance(t,TV): # type: ignore
+        elif isinstance(t, TV):  # type: ignore
             return TypeVar(t.__name__)
 
-        elif strt[:11]=='typing.List':
+        elif strt[:11] == "typing.List":
             return List(cls.get_datatype(t.__args__[0]))
 
-        elif strt[:11]=='typing.Dict':
-            a1,a2 = [cls.get_datatype(x) for x in t.__args__]
-            return Dict(a1,a2)
+        elif strt[:11] == "typing.Dict":
+            a1, a2 = [cls.get_datatype(x) for x in t.__args__]
+            return Dict(a1, a2)
 
-        elif strt == 'typing.Any' or t == _empty: # type: ignore
+        elif strt == "typing.Any" or t == _empty:  # type: ignore
             return AnyType()
 
         else:
-            print('NEW DATATYPE FOUND %s'%strt);
-            import pdb;pdb.set_trace()
+            print("NEW DATATYPE FOUND %s" % strt)
+            import pdb
+
+            pdb.set_trace()
             raise NotImplementedError()
 
+
 ################################################################################
+
 
 class AnyType(DataType):
-    def __str__(self)->str:
-        return 'Any'
+    def __str__(self) -> str:
+        return "Any"
+        super().__init__()
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
 ################################################################################
+
 
 class NoneType(DataType):
-    def __str__(self)->str:
-        return 'None'
+    def __str__(self) -> str:
+        return "None"
+        super().__init__()
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
 ################################################################################
+
 
 class BaseType(DataType):
-    def __init__(self,unBase:str)->None:
+    def __init__(self, unBase: str) -> None:
         self.unBase = unBase
+        super().__init__()
 
-    def __str__(self)->str:
-        return '"%s"'%self.unBase
+    def __str__(self) -> str:
+        return '"%s"' % self.unBase
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
 ################################################################################
+
 
 class TypeVar(DataType):
-    def __init__(self,name:str)->None:
+    def __init__(self, name: str) -> None:
         self.name = name
+        super().__init__()
 
-    def __str__(self)->str:
-        return '"%s"'%self.name
+    def __str__(self) -> str:
+        return '"%s"' % self.name
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
 ################################################################################
+
 
 class Callable(DataType):
-    def __init__(self, args : L[DataType], out : DataType) -> None:
-        self.c_args = args
-        self.out    = out
+    def __init__(self, c_args: L[DataType], out: DataType) -> None:
+        self.c_args = c_args
+        self.out = out
+        super().__init__()
 
     def __str__(self) -> str:
-        ar = ' -> '
-        return ar.join(map(str,self.c_args)) + ar + str(self.out)
+        ar = " -> "
+        return ar.join(map(str, self.c_args)) + ar + str(self.out)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(
+            cls,
+            out=DataType.strat(),
+            c_args=lists(DataType.strat(), min_size=1, max_size=2),
+        )
+
 
 ################################################################################
+
 
 class Union(DataType):
-    def __init__(self, args : L[DataType]) -> None:
+    def __init__(self, args: L[DataType]) -> None:
         self.args = args
+        super().__init__()
 
     def __str__(self) -> str:
-        return '{%s}'%(','.join(sorted(map(str,self.args))))
+        return "{%s}" % (",".join(sorted(map(str, self.args))))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, args=lists(DataType.strat(), min_size=1, max_size=2))
+
 
 ################################################################################
 
+
 class Tuple(DataType):
-    def __init__(self, args : L[DataType]) -> None:
-        self.args= args
+    def __init__(self, args: L[DataType]) -> None:
+        self.args = args
+        super().__init__()
 
     def __str__(self) -> str:
-        return '(%s)'%(','.join(map(str,self.args)))
+        return "(%s)" % (",".join(map(str, self.args)))
 
     def __len__(self) -> int:
         return len(self.args)
 
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls, args=lists(DataType.strat(), min_size=1, max_size=2))
+
+
 ################################################################################
+
 
 class List(DataType):
-    def __init__(self, content : DataType) -> None:
+    def __init__(self, content: DataType) -> None:
         self.content = content
+        super().__init__()
 
     def __str__(self) -> str:
-        return '[%s]'%(str(self.content))
+        return "[%s]" % (str(self.content))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
 ################################################################################
 
+
 class Dict(DataType):
-    def __init__(self, fromT : DataType, toT : DataType) -> None:
-        self.key = fromT
-        self.val = toT
+    def __init__(self, key: DataType, val: DataType) -> None:
+        self.key = key
+        self.val = val
+        super().__init__()
 
     def __str__(self) -> str:
-        return '{ %s : %s }'%(str(self.key),str(self.val))
+        return "{ %s : %s }" % (str(self.key), str(self.val))
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
