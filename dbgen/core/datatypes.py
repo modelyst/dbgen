@@ -81,7 +81,7 @@ class DataType(Base, metaclass=ABCMeta):
             return BaseType("Str")
         elif t == bool:
             return BaseType("Bool")
-        elif t == type(None):
+        elif isinstance(t, type(None)):
             return NoneType()
 
         # Special cases from chemistry libraries
@@ -275,4 +275,3 @@ class Dict(DataType):
     @classmethod
     def strat(cls) -> SearchStrategy:
         return builds(cls)
-

@@ -5,13 +5,12 @@ from os import environ
 from os.path import exists
 from json import load, dump
 from pprint import pformat
-import logging
 from contextlib import suppress
 from sshtunnel import SSHTunnelForwarder  # type: ignore
 from psycopg2 import connect, Error  # type: ignore
-from psycopg2.extras import DictCursor  # type: ignore
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
 from hypothesis.strategies import SearchStrategy, builds  # type: ignore
+from dbgen.utils.misc import Base
 
 # Internal Modules
 if TYPE_CHECKING:
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
 
     # from air flow.hooks.connections import Connection
 
-from dbgen.utils.misc import Base
 
 """
 Defines some support classes used throughout the project:
@@ -134,7 +132,6 @@ class ConnectInfo(Base):
         )
 
     def connect(self, attempt: int = 3, auto_commit: bool = True) -> Connection:
-        e = ""
         for _ in range(attempt):
             try:
                 with self.tunnel():
@@ -152,8 +149,8 @@ class ConnectInfo(Base):
                         cur = conn.cursor()
                         cur.execute(f'SET search_path TO "{self.schema}"')
                     return conn
-            except Error as e:
-                print(e)
+            except Error as exc:
+                print(exc)
                 sleep(1)
 
         raise Error()

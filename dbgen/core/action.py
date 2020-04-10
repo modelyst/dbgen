@@ -1,22 +1,11 @@
 # External Modules
-from typing import (
-    Any,
-    TYPE_CHECKING,
-    List as L,
-    Union as U,
-    Dict as D,
-    Tuple as T,
-    Union as U,
-)
-from collections import OrderedDict
+from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
-from networkx import DiGraph  # type: ignore
 import psycopg2  # type: ignore
 import re
 from jinja2 import Template
 from io import StringIO
 from random import getrandbits
-from json import loads, dumps
 from hypothesis.strategies import (
     SearchStrategy,
     builds,
@@ -25,23 +14,19 @@ from hypothesis.strategies import (
     dictionaries,
 )
 
+
+from dbgen.core.funclike import ArgLike, Arg
+from dbgen.utils.misc import Base, nonempty
+from dbgen.utils.str_utils import hashdata_
+from dbgen.utils.lists import broadcast
+from dbgen.utils.sql import Connection as Conn
+from dbgen.templates import jinja_env
+
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
 
     Obj, Rel
-
-from dbgen.core.funclike import ArgLike, Arg
-from dbgen.utils.misc import hashdata_, Base, nonempty
-from dbgen.utils.lists import broadcast
-from dbgen.utils.sql import (
-    Connection as Conn,
-    sqlselect,
-    addQs,
-    sqlexecute,
-    sqlexecutemany,
-)
-from dbgen.templates import jinja_env
 
 """
 Defines the class of modifications to a database
@@ -120,7 +105,7 @@ class Action(Base):
             if self.insert or (k not in obj.id_fks()):
                 try:
                     out.extend([self.obj + "." + k] + a.newcols(universe))
-                except KeyError as e:
+                except KeyError:
                     import pdb
 
                     pdb.set_trace()
@@ -161,21 +146,21 @@ class Action(Base):
             fks=just(dict()),
             pk=Arg.strat(),
             insert=just(False),
-            **common_action_kwargs,
+            **common_action_kwargs,  # type: ignore
         )
         action0 = builds(
             cls,
             fks=dictionaries(keys=nonempty, values=action_),
             pk=Arg.strat(),
             insert=just(False),
-            **common_action_kwargs,
+            **common_action_kwargs,  # type: ignore
         )
         action1 = builds(
             cls,
             fks=dictionaries(keys=nonempty, values=action_),
             pk=just(None),
             insert=just(True),
-            **common_action_kwargs,
+            **common_action_kwargs,  # type: ignore
         )
         return one_of(action_, action0, action1)
 
@@ -200,7 +185,7 @@ class Action(Base):
                 idattr.append(val)
 
         for kk, vv in sorted(self.fks.items()):
-            if not vv.pk is None:
+            if vv.pk is not None:
                 val = vv.pk.arg_get(row)
             else:
                 val, fk_adata = vv._getvals(objs, row)
@@ -254,11 +239,16 @@ class Action(Base):
         """
         # All ro
         output_file_obj = StringIO()
-        cols = list(self.attrs.keys()) + list(self.fks.keys()) + [obj_pk_name]
         for i, (pk_curr, row_curr) in enumerate(set(zip(pk, data))):
             new_line = [pk_curr] + list(row_curr)  # type: ignore
             new_line = map(str, new_line)  # type: ignore
-            new_line = map(lambda x: x.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r").replace("\\", "\\\\"), new_line)  # type: ignore
+            new_line = map(  # type: ignore
+                lambda x: x.replace("\t", "\\t")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\\", "\\\\"),
+                new_line,
+            )
             output_file_obj.write("\t".join(new_line) + "\n")  # type: ignore
 
         output_file_obj.seek(0)
@@ -278,7 +268,7 @@ class Action(Base):
         self._logger.debug("recursively loading foreign keys")
         for kk, vv in self.fks.items():
             if vv.insert:
-                val = vv._load(cxn, objs, rows, insert=True)
+                vv._load(cxn, objs, rows, insert=True)
 
         self._logger.debug("Getting attributes and generating hashes")
         obj_pk_name, ids, id_fks = objs[self.obj]
@@ -349,7 +339,7 @@ class Action(Base):
                         io_obj, temp_table_name, null="None", columns=escaped_cols
                     )
                     break
-                except psycopg2.errors.QueryCanceled as exc:
+                except psycopg2.errors.QueryCanceled:
                     print("Query cancel failed")
                     query_fail_count += 1
                     continue
@@ -383,7 +373,9 @@ class Action(Base):
                     )
                     curs.execute(delete_statement)
                     print(
-                        f"ForeignKeyViolation: tried to insert {fk_pk} into FK column {fk_name} of {self.obj}. But no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
+                        f"ForeignKeyViolation: tried to insert {fk_pk} into"
+                        f"FK column {fk_name} of {self.obj}."
+                        f"But no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
                     )
                     print(f"Moving on without inserting any rows with this {fk_pk}")
                     fk_fail_count += 1
@@ -402,10 +394,12 @@ class Action(Base):
         attrs = ",".join(
             ["%s=%s" % (k, v.make_src(meta=True)) for k, v in self.attrs.items()]
         )
-        template = """Load(obj= '{{ obj }}',attrs= dict({{attrs}}),fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})"""
+        template = (
+            "Load(obj= '{{ obj }}',attrs= dict({{attrs}}),"
+            "fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})"
+        )
         fks = ",".join(["%s=%s" % (k, v.make_src()) for k, v in self.fks.items()])
         pk = None if self.pk is None else self.pk.make_src(meta=True)
         return Template(template).render(
             obj=self.obj, attrs=attrs, fks=fks, pk=pk, insert=self.insert
         )
-

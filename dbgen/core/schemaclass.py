@@ -1,5 +1,5 @@
 # External
-from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T, Callable as C
+from typing import Set as S, List as L, Dict as D, Union as U, Callable as C
 from copy import deepcopy
 from networkx import DiGraph  # type: ignore
 from tqdm import tqdm  # type: ignore
@@ -11,10 +11,9 @@ from hypothesis.strategies import (
     just,
     sampled_from,
 )
-from hypothesis import infer, assume  # type: ignore
 
 # Internal
-from dbgen.utils.misc import Base, nonempty, letters
+from dbgen.utils.misc import Base, letters
 from dbgen.core.schema import (
     Obj,
     Rel,

@@ -1,33 +1,26 @@
 # External
-from typing import (
-    TYPE_CHECKING,
-    Set as S,
-    List as L,
-    Dict as D,
-    Tuple as T,
-    Union as U,
-    Iterator as I,
-)
+from typing import TYPE_CHECKING, Set as S, List as L, Dict as D, Tuple as T, Union as U
 from hashlib import md5
 from base64 import b64encode
-from networkx import DiGraph  # type: ignore
-from collections import defaultdict
+from networkx import DiGraph
 from hypothesis.strategies import (
     SearchStrategy,
     builds,
     dictionaries,
     lists,
     sets,
-)  # type: ignore
+)
 
-# Internal
-if TYPE_CHECKING:
-    from dbgen.core.schema import Rel, SuperRel, RelTup, Obj
 
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.graphs import topsort_with_dict
 from dbgen.utils.lists import flatten
 
+# Internal
+if TYPE_CHECKING:
+    from dbgen.core.schema import Rel, SuperRel, RelTup, Obj
+
+    Rel, SuperRel, RelTup, Obj
 ################################################################################
 
 
@@ -111,7 +104,7 @@ class Path(Base):
 
     def all_rels(self) -> S["Rel"]:
         stack = self.fks
-        out = set()
+        out: S["SuperRel"] = set()
         self.newmethod257(stack, out)
         return {o.to_rel() for o in out}
 
@@ -150,13 +143,7 @@ class Path(Base):
                     j.add(p.join(), nex[0])
             else:
                 nextab = nextfk.other(self.end)
-                try:
-                    nextpath = Path(nextab, self.fks[1:])
-                except:
-                    import pdb
-
-                    pdb.set_trace()
-                    assert False
+                nextpath = Path(nextab, self.fks[1:])
                 j.add(nextpath.join(), nextfk)
         return j
 
@@ -205,7 +192,7 @@ class Join(Base):
     def strat(cls) -> SearchStrategy:
         return builds(cls, obj=nonempty, conds=dictionaries(Join.strat(), Rel.strat()))
 
-    ### Public Methods ###
+    # Public Methods
     def add(self, j: "Join", e: "SuperRel") -> None:
         if j in self.conddict:
             d = dict(self.conddict)
@@ -239,7 +226,8 @@ class Join(Base):
             jointype = " CROSS "
         else:
             left = True
-            # Assume a left join. if any FKs in current edge are NOT in "optional", then set to Inner join
+            # Assume a left join. if any FKs in current edge are NOT in
+            # "optional", then set to Inner join
             for e in self.conddict.values():
                 for fk in e:  # type: ignore
                     if fk.tup() not in opts:
@@ -252,7 +240,7 @@ class Join(Base):
         args = [jointype, self.obj, self.alias, on]
         return '\n\t{}JOIN {} AS "{}" {}'.format(*args)
 
-    ## Private Methods ###
+    # Private Methods
 
     def _cond(self, j: "Join", rels: S["SuperRel"]) -> str:
         """Assume the alias defined by the arg's Join has already been defined
@@ -269,7 +257,9 @@ class Join(Base):
                 o == fk.source
             )  # Rel in forward direction. Self.obj is the 'old table'
             aliases = [j.alias, self.alias]
-            cols = [fk.name, fk.target_id_str] if forward else [fk.target_id_str, fk.name]
+            cols = (
+                [fk.name, fk.target_id_str] if forward else [fk.target_id_str, fk.name]
+            )
             args = [aliases[0], cols[0], aliases[1], cols[1]]
             new = ' "{}"."{}" = "{}"."{}" '.format(*args)
             conds.append(new)
@@ -327,4 +317,3 @@ class From(Base):
                 for a, j in sorted(zip(self.aliases(), self.joins))
             ]
         )
-

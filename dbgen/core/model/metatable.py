@@ -1,7 +1,12 @@
 # External Modules
 from typing import TYPE_CHECKING, Any
-from tqdm import tqdm  # type: ignore
-from copy import deepcopy
+from tqdm import tqdm
+
+# Internal Modules
+from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Timestamp, Int, Boolean
+from dbgen.core.schema import Obj, UserRel as Rel, Attr
+from dbgen.utils.str_utils import hash_
+from dbgen.utils.sql import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
 
 # Internal Modules
 if TYPE_CHECKING:
@@ -11,16 +16,12 @@ if TYPE_CHECKING:
 
     ConnI, Model, Gen
 
-from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Timestamp, Int, Boolean
-from dbgen.core.schema import Obj, UserRel as Rel, Attr
-from dbgen.utils.str_utils import hash_
-from dbgen.utils.sql import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
 
 #############################################################################
 def safex(conn: Any, q: str, binds: list) -> None:
     try:
         sqlexecute(conn, q, binds)
-    except Exception as e:
+    except Exception:
         import pdb
 
         pdb.set_trace()
@@ -158,7 +159,7 @@ objs = [
     Obj(
         "objs",
         "A list of Object instances associated with a given run",
-        fks=[Rel("object", identifying=True), Rel("run", identifying=True),],
+        fks=[Rel("object", identifying=True), Rel("run", identifying=True)],
     ),
     Obj(
         "views",
@@ -168,7 +169,7 @@ objs = [
     Obj(
         "repeats",
         "A record of which inputs a given Action has already seen",
-        fks=[Rel("gen", identifying=True), Rel("run"),],
+        fks=[Rel("gen", identifying=True), Rel("run")],
     ),
 ]
 

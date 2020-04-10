@@ -620,8 +620,9 @@ class STD(Agg, Unary):
 
 
 class POSITION(Named, Binary):
-    def show(self,f:Fn) -> str:
-        return 'POSITION(%s in %s)' % (f(self.x), f(self.y))
+    def show(self, f: Fn) -> str:
+        return "POSITION(%s in %s)" % (f(self.x), f(self.y))
+
 
 ##############################################################################
 ##############################################################################
@@ -669,5 +670,5 @@ def R2(e1: Expr, e2: Expr) -> Expr:
     return (AVG(e1 * e2) - (AVG(e1) * AVG(e2))) / (STD(e1) * STD(e2))
 
 
-def toDecimal(e: Expr) -> Expr: return CONVERT(e, Decimal())
-
+def toDecimal(e: Expr) -> Expr:
+    return CONVERT(e, Decimal())

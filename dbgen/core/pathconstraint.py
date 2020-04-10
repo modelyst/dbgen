@@ -1,25 +1,27 @@
-from typing            import (TYPE_CHECKING, Any,
-                               Set as S,
-                               List as L,
-                               Tuple as T,
-                               Union as U,
-                               Iterator as I,
-                               Optional as O)
+from typing import (
+    TYPE_CHECKING,
+    List as L,
+    Union as U,
+    Iterator as Iter,
+)
 
-from networkx import DiGraph # type: ignore
-from infinite import product # type: ignore
+from networkx import DiGraph  # type: ignore
+from infinite import product  # type: ignore
 
 # Internal
+from dbgen.utils.misc import Base
+from dbgen.core.fromclause import Path
+
 if TYPE_CHECKING:
-    from dbgen.core.schema import Rel,RelTup,Obj
+    from dbgen.core.schema import Rel, RelTup, Obj
     from dbgen.core.schemaclass import Schema
-    Schema,Rel,RelTup
-from dbgen.utils.misc  import Base
-from dbgen.core.fromclause import  Path
+
+    Schema, Rel, RelTup, Obj
 ##############################################################################
 
+
 class Constraint(Base):
-    '''
+    """
     A way of specifying HOW one arrives at a certain table through JOINing on
     relations. Under normal circumstances, we constrain possible JOIN paths by
     giving a sequence of relations that must be traversed in a certain order.
@@ -28,120 +30,124 @@ class Constraint(Base):
 
     It is possible that a table should be arrived at via multiple
     distinct paths, in which case "branch" should be used.
-    '''
-    def __init__(self,
-                 tab       : U[str,'Obj'],
-                 reqs      : L[U['Rel','RelTup']] = None, # constraints on final 'linear' sequence
-                 xclude    : L[U['Rel','RelTup']] = None, # Never use these
-                 backtrack : bool                 = False,# allow the
-                 branch    : L['Constraint']      = None  # any branching prior to final sequence
-                 ) -> None:
-        self.tab       = tab if isinstance(tab,str) else tab.name
-        self.reqs      = reqs  or []
-        self.xclude    = set(xclude or [])
+    """
+
+    def __init__(
+        self,
+        tab: U[str, "Obj"],
+        reqs: L[U["Rel", "RelTup"]] = None,  # constraints on final 'linear' sequence
+        xclude: L[U["Rel", "RelTup"]] = None,  # Never use these
+        backtrack: bool = False,  # allow the
+        branch: L["Constraint"] = None,  # any branching prior to final sequence
+    ) -> None:
+        self.tab = tab if isinstance(tab, str) else tab.name
+        self.reqs = reqs or []
+        self.xclude = set(xclude or [])
         self.backtrack = backtrack
-        self.branch    = set(branch) if branch else set()
+        self.branch = set(branch) if branch else set()
 
         if branch:
-            err = 'All branches must start from same table %s'
+            err = "All branches must start from same table %s"
             tabs = {b.tab for b in self.branch}
-            assert len(tabs)==1, err % tabs
+            assert len(tabs) == 1, err % tabs
         super().__init__()
 
-
     def __str__(self) -> str:
-       return 'Constraint<%s>'%self.tab
+        return "Constraint<%s>" % self.tab
 
     @property
     def branch_obj(self) -> str:
-        '''Get the branching object, if it exists'''
+        """Get the branching object, if it exists"""
         return next(iter(self.branch)).tab
 
-    def find(self,
-             m      : 'Schema',
-             basis  : U[str,'Obj',L[U[str,'Obj']]],
-             links  : L[U['Rel','RelTup']] = None,
-             quit   : bool     = True
-             ) -> None:
-        '''
+    def find(
+        self,
+        m: "Schema",
+        basis: U[str, "Obj", L[U[str, "Obj"]]],
+        links: L[U["Rel", "RelTup"]] = None,
+        quit: bool = True,
+    ) -> None:
+        """
         User interface for getting paths
-        '''
-        msg   = '''Searching for paths from %s to %s\n'''+'%s\n\t'*4
+        """
+        msg = """Searching for paths from %s to %s\n""" + "%s\n\t" * 4
 
         # Compute informatino graph in light of the 'links'
-        ig    = m._info_graph(links or []).reverse()
+        ig = m._info_graph(links or []).reverse()
 
         # Process basis data
-        if not isinstance(basis,list):
+        if not isinstance(basis, list):
             basis_ = [basis]
         else:
             basis_ = basis
-        base = [x if isinstance(x,str) else x.name for x in basis_]
-        bstr = ','.join(base)
+        base = [x if isinstance(x, str) else x.name for x in basis_]
+        bstr = ",".join(base)
 
         self._update_reltup(m)
 
         # underline important things
-        l1,l2,l3,l4 = 25, len(bstr), 4, len(self.tab)
-        under     = ' '*l1 + '#'*l2 + ' '*l3 + '#'*l4
-        constrstr = '(constraints %s)'%(self.reqs) if self.reqs else ''
-        branchstr = '(branch %s)'%(self.branch) if self.branch else ''
-        linkstr   = '(bypass chickenfeet for %s)'%links if links else ''
+        l1, l2, l3, l4 = 25, len(bstr), 4, len(self.tab)
+        under = " " * l1 + "#" * l2 + " " * l3 + "#" * l4
+        constrstr = "(constraints %s)" % (self.reqs) if self.reqs else ""
+        branchstr = "(branch %s)" % (self.branch) if self.branch else ""
+        linkstr = "(bypass chickenfeet for %s)" % links if links else ""
 
-        print(msg%(bstr,self.tab,under,constrstr,branchstr,linkstr))
-
-
-        for path in self.find_path(ig,base):
+        print(msg % (bstr, self.tab, under, constrstr, branchstr, linkstr))
+        for path in self.find_path(ig, base):
             print(repr(path))
             print(path._from().print())
-            if input('\nContinue?\n\ty/n -> ').lower() not in ['y','yes']: break
+            if input("\nContinue?\n\ty/n -> ").lower() not in ["y", "yes"]:
+                break
 
-        if quit: exit()
+        if quit:
+            exit()
 
-    def find_path(self, schema : DiGraph,basis : L[str]) -> I[Path]:
-        '''Work backwards to find a path to the target that satisfies constraints'''
+    def find_path(self, schema: DiGraph, basis: L[str]) -> Iter[Path]:
+        """Work backwards to find a path to the target that satisfies constraints"""
         # Initialize with empty FK graph, all requirements present
-        stack = [(Path(self.tab),list(self.reqs))]
+        stack = [(Path(self.tab), list(self.reqs))]
         # Explore possible states in BFS
         while stack:
             # Get current state
             path, reqs = stack.pop(0)
-            #print('\n\tnew iteration',path,reqs)
+            # print('\n\tnew iteration',path,reqs)
 
             # Enter the branching logic if we are at branchobj
-            if not reqs and self.branch and path.base==self.branch_obj:
-                branchiters = [c.find_path(schema,basis) for c in self.branch]
+            if not reqs and self.branch and path.base == self.branch_obj:
+                branchiters = [c.find_path(schema, basis) for c in self.branch]
                 for branches in product(*branchiters):
                     G = path.copy()
                     for branch in branches:
                         G = G.add_branch(branch)
                     yield G
-                print('No more paths')
+                print("No more paths")
                 return
 
             if not reqs and path.base in basis:
-                yield path # We're done!
+                yield path  # We're done!
             else:
                 # Possible FKs to join on
                 for edge in schema[path.base]:
                     seen = set() if self.backtrack else path.all_rels()
-                    fks = sorted(set(schema[path.base][edge]['fks'])-self.xclude - seen)
+                    fks = sorted(
+                        set(schema[path.base][edge]["fks"]) - self.xclude - seen
+                    )
                     for fk in fks:
 
                         if reqs:
                             rs = reqs[:-1] if reqs[-1] == fk else list(reqs)
                         else:
                             rs = []
-                        stack.append((path.add(fk),rs))
+                        stack.append((path.add(fk), rs))
 
-        print('No more paths')
+        print("No more paths")
 
-    def _update_reltup(self, m : 'Schema') -> 'None':
+    def _update_reltup(self, m: "Schema") -> "None":
         self.reqs = [m.get_rel(r) for r in self.reqs]
         self.branch = {b.__update_reltup(m) for b in self.branch}
 
-    def __update_reltup(self, m : 'Schema') -> 'Constraint':
-        '''Version of _update_reltup that returns a copy'''
+    def __update_reltup(self, m: "Schema") -> "Constraint":
+        """Version of _update_reltup that returns a copy"""
         c = self.copy()
         c._update_reltup(m)
         return c

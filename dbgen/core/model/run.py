@@ -1,22 +1,21 @@
 from typing import TYPE_CHECKING, List as L
-from copy import deepcopy
 
 from tqdm import tqdm  # type: ignore
 import logging
+from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
+from dbgen.core.gen import Gen
+from dbgen.core.schema import PathEQ
+
+from dbgen.utils.sql import sqlexecute, sqlselect, Error
+from dbgen.utils.str_utils import levenshteinDistance
+from dbgen.utils.lists import concat_map
+from dbgen.utils.log import setup_logger
 
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
 
     Model
-from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
-from dbgen.core.gen import Gen
-from dbgen.core.schema import Path, PathEQ
-
-from dbgen.utils.sql import sqlexecute, sqlselect, Error
-from dbgen.utils.str_utils import levenshteinDistance
-from dbgen.utils.lists import concat_map
-from dbgen.utils.log import setup_logger
 
 ########################################################
 

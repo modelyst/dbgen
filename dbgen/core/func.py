@@ -1,11 +1,18 @@
 # External Modules
-from typing import Any, List as L, Dict as D, Tuple as T, Union as U, Callable as C
+from typing import Any, List as L, Dict as D, Union as U, Callable as C
 
 from os import environ
 from re import findall
 from os.path import join, exists
 from sys import version_info
-from inspect import getdoc, signature, getsourcefile, getsourcelines, getmembers, isfunction  # type: ignore
+from inspect import (
+    getdoc,
+    signature,
+    getsourcefile,
+    getsourcelines,
+    getmembers,
+    isfunction,
+)
 from importlib.util import spec_from_file_location, module_from_spec
 from hypothesis.strategies import SearchStrategy, builds  # type: ignore
 
@@ -107,7 +114,7 @@ class Import(Base):
             pat = r"([a-zA-Z0-9\_]+\s*(?:as\s*[a-zA-Z0-9\_]+)?)"
             groups = findall(pat, s[i + 6 :])
             objs = [list(map(str.strip, g.split("as"))) for g in groups]
-            objs_ = [x[0] if len(x) == 1 else tuple(x) for x in objs]
+            # objs_ = [x[0] if len(x) == 1 else tuple(x) for x in objs]
             unalias = [x[0] for x in objs if len(x) == 1]
             aliased = {x[0]: x[1] for x in objs if len(x) == 2}
 
@@ -360,10 +367,8 @@ class Func(Base):
         """
         try:
             source_lines, _ = getsourcelines(f)
-        except (
-            IOError,
-            TypeError,
-        ) as e:  # functions defined in pdb / REPL / eval / some other way in which source code not clear
+        except (IOError, TypeError,) as e:
+            # functions defined in pdb / REPL / eval / some other way in which source code not clear
             import pdb
 
             pdb.set_trace()

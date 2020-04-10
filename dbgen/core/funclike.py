@@ -9,14 +9,13 @@ from typing import Tuple as T
 from typing import Union as U
 
 from hypothesis.strategies import SearchStrategy, builds, just, one_of
-from jinja2 import Template
 
 # Internal
 from dbgen.core.func import Env, Func
 from dbgen.core.misc import ConnectInfo as Conn
 from dbgen.core.misc import ExternalError
 from dbgen.templates import jinja_env
-from dbgen.utils.misc import Base, anystrat, nonempty
+from dbgen.utils.misc import Base, anystrat
 from dbgen.utils.sql import mkInsCmd, sqlexecute
 
 
@@ -96,7 +95,7 @@ class Const(ArgLike):
             try:
                 val = Func.from_callable(val)
             except:
-                pass
+                raise NotImplementedError
         self.val = val
 
     def __str__(self) -> str:
@@ -153,7 +152,7 @@ class PyBlock(Base):
     def __lt__(self, other: "PyBlock") -> bool:
         return self.hash < other.hash
 
-    def __call__(self, curr_dict: D[int, D[str, Any]]) -> D[str, Any]:
+    def __call__(self, curr_dict: D[str, D[str, Any]]) -> D[str, Any]:
         """
         Take a TempFunc's function and wrap it such that it can accept a namespace
             dictionary. The information about how the function interacts with the

@@ -5,11 +5,11 @@ from functools import reduce
 
 # Numeric functions
 # ------------------
-def lcm(a: int, b: int)->int:
+def lcm(a: int, b: int) -> int:
     return a * b // gcd(a, b)
 
 
-def common_integer(numbers: List[float])->List[int]:
+def common_integer(numbers: List[float]) -> List[int]:
     fractions = [Fraction(n).limit_denominator() for n in numbers]
     multiple = reduce(lcm, [f.denominator for f in fractions])
     ints = [f * multiple for f in fractions]
@@ -22,7 +22,7 @@ def roundfloat(x: Any) -> float:
     return abs(output) if output == 0 else output
 
 
-def safe_div(x: float, y: float)->float:
+def safe_div(x: float, y: float) -> float:
     try:
         return x / y
     except ZeroDivisionError:
