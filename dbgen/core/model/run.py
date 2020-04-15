@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
 ########################################################
 
-
 def run(
     self: "Model",
     conn: ConnI,

@@ -97,8 +97,6 @@ class Schema(Base):
             sqlexecute(safe_cxn, f'CREATE SCHEMA "{conn.schema}"')
         cxn = conn.connect()
         tqargs = dict(leave=False, disable=not bar)
-        # Add the functions
-        self.add_functions(conn)
 
         for ta in tqdm(self.objs.values(), desc="adding tables", **tqargs):
             if not getattr(ta, "_is_view", False):
@@ -117,12 +115,6 @@ class Schema(Base):
         table_schema = '{conn.schema}'"
         tables_in_db = [x[0] for x in sqlselect(cxn, q)]
         return all([obj in tables_in_db for obj in self.objs])
-
-    def add_functions(self, conn: ConnI) -> bool:
-        statement = f""""""
-        cxn = conn.connect()
-        sqlexecute(cxn, statement)
-        return True
 
     ################
     # Adding stuff #

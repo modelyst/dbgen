@@ -1,6 +1,6 @@
 # External Modules
 from typing import TYPE_CHECKING, Any
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 # Internal Modules
 from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Timestamp, Int, Boolean
@@ -212,7 +212,6 @@ def make_meta(
 
     # Create metatables if they don't exist
     # --------------------------------------
-    meta.add_functions(mconn)
     for t in meta.objs.values():
         for sql in t.create():
 

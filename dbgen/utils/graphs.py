@@ -2,9 +2,9 @@
 from typing import List
 from pprint import pformat
 from networkx import DiGraph, NetworkXUnfeasible  # type: ignore
-from networkx.algorithms import (
+from networkx.algorithms import (  # type: ignore
     lexicographical_topological_sort,
-    simple_cycles,  # type: ignore
+    simple_cycles,
 )
 
 # Graph

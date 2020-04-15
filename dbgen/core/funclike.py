@@ -180,7 +180,7 @@ class PyBlock(Base):
             else:
                 assert len(self.outnames) == 1
                 return {self.outnames[0]: output}
-        except Exception as e:
+        except Exception:
             msg = "\tApplying func %s in tempfunc:\n\t" % (self.func.name)
             raise ExternalError(msg + format_exc())
 
