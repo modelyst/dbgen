@@ -460,6 +460,13 @@ class NULL(Named, Unary):
         return "%s is NULL" % f(self.x)
 
 
+class ARRAY(Named, Nary):
+    def show(self, f: Fn) -> str:
+        xs = map(f, self.xs)
+        d = " %s " % self.delim
+        return "%s[%s]" % (self.name, d.join(xs))
+
+
 # Ones that need to be implemented from scratch
 # ----------------------------------------------
 
@@ -599,6 +606,28 @@ class GROUP_CONCAT(Agg):
         ord = "ORDER BY " + f(self.order) if self.order is not None else ""
 
         return "string_agg(%s :: TEXT,'%s' %s)" % (f(self.expr), self.delim, ord)
+
+    @classmethod
+    def strat(cls) -> SearchStrategy:
+        return builds(cls)
+
+
+class ARRAY_AGG(Agg):
+    def __init__(self, expr: Expr, order: Expr = None) -> None:
+        self.expr = expr
+        self.order = order
+
+    def fields(self) -> L[Expr]:
+        return [self.expr] + ([self.order] if self.order is not None else [])
+
+    @property
+    def name(self) -> str:
+        return "array_agg"
+
+    def show(self, f: Fn) -> str:
+        ord = "ORDER BY " + f(self.order) if self.order is not None else ""
+
+        return "array_agg(%s %s)" % (f(self.expr), ord)
 
     @classmethod
     def strat(cls) -> SearchStrategy:
