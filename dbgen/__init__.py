@@ -10,6 +10,8 @@ from dbgen.core.expr.expr import (
     COUNT,
     EQ,
     GE,
+    ARRAY_AGG,
+    ARRAY,
     GROUP_CONCAT,
     GT,
     IF_ELSE,
