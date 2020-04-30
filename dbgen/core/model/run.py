@@ -37,6 +37,7 @@ def run(
     batch: int = None,
     write_logs: bool = False,
     log_level: int = logging.INFO,
+    log_path: str = './dbgen.log'
 ) -> None:
     """
     This method is point of the model: to run and generate a database according
@@ -71,7 +72,7 @@ def run(
 
     # # Setup logger
     # # --------------------
-    logger = setup_logger("run", log_level, write_logs=write_logs)
+    logger = setup_logger("run", log_level, write_logs=write_logs, log_path=log_path)
 
     # Print to-do list for the model
     # ---------------------------------------

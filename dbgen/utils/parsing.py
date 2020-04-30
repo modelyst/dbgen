@@ -130,7 +130,11 @@ parser.add_argument(
 
 parser.add_argument(
     "--log-level",
-    default=logging.INFO,
+    default=logging.DEBUG,
     type=input_to_level,
     help="Set default batch_size",
+)
+
+parser.add_argument(
+    "--log-path", default="./dbgen.log", help="Set path of output log file",
 )
