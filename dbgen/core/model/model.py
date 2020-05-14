@@ -139,6 +139,8 @@ class Model(Schema):
         def upgrade_rels(fs: list):
             res = []
             for rel_or_list in fs:
+                if isinstance(rel_or_list, RelTup):
+                    rel_or_list = self.get_rel(rel_or_list)
                 if isinstance(rel_or_list, Rel):
                     res.append(
                         SuperRel(

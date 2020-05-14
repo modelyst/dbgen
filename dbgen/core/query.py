@@ -210,7 +210,7 @@ class Query(Expr):
                 return str(x)
 
         gb = [gbhack(x) for x in self.aggcols]
-        groupby = "\nGROUP BY %s" % (",".join(gb)) if gb else ""
+        groupby = "\nGROUP BY \n\t%s" % (",\n\t".join(gb)) if gb else ""
 
         # Compute FROM clause
         # --------------------
