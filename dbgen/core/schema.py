@@ -276,6 +276,10 @@ class Obj(Base):
             self.attrs,
             self.forbidden,
         )
+        attr_names = [a.name for a in self.attrs]
+        assert len(attr_names) == len(
+            set(attr_names)
+        ), f"No duplicate column names allowed, \nObject: {self.name}"
         assert all([isinstance(x, str) for x in [self.name, self.desc, self.id_str]])
         super().__init__()
 

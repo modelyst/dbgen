@@ -443,12 +443,12 @@ class OR(Nary):
 
 class AND(Nary):
     name = ""
-    delim = "AND"
+    delim = "\n\tAND"
 
 
 class And(Nary):
     name = ""
-    delim = "AND"
+    delim = "\n\tAND"
 
 
 class NOT(Named, Unary):

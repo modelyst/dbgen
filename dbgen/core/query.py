@@ -157,7 +157,7 @@ class Query(Expr):
             f = f | a.path._from()
         return f
 
-    def showQ(self) -> str:
+    def showQ(self, not_deleted: bool = False, not_null: bool = True) -> str:
         """
         Render a query
 
@@ -187,7 +187,11 @@ class Query(Expr):
                 if x not in self.opt_attr
             ]
         )
-        consts = "WHERE %s" % ("\n\t".join([where, notdel, notnul]))
+        where_args = [where]
+        where_args += [notdel] if not_deleted else []
+        where_args += [notnul] if not_null else []
+
+        consts = "WHERE %s" % ("\n\t".join(where_args))
 
         # HAVING aggregations are treated 'normally'
         if self.aconstr:

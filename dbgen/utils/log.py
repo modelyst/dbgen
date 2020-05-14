@@ -13,7 +13,7 @@ def setup_logger(
     write_logs: bool = False,
     log_path: str = "./dbgen.log",
 ) -> Logger:
-    format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
 
     custom_logger = logging.getLogger(logger_name)
     custom_logger.propagate = False

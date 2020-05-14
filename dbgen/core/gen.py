@@ -176,6 +176,25 @@ class Gen(Base):
         for gid in gids:
             sqlexecute(mconn, "DELETE FROM repeats WHERE gen_id = %s", [gid])
 
+    def test(self, input_rows: L[D[str, Any]], rename_dict: bool = True):
+        # Apply the
+        output_dicts = []
+        for row in input_rows:
+            result_dict = {self.query.hash: row} if self.query else {}
+            for pb in self.funcs:
+                result_dict[pb.hash] = pb(result_dict)
+
+            # Replace pyblock hashes with function names if flag is True
+            func_name_dict = {pb.hash: pb.func.name for pb in self.funcs}
+            if rename_dict:
+                result_dict = {
+                    func_name_dict.get(key, "query"): val
+                    for key, val in result_dict.items()
+                }
+            output_dicts.append(result_dict)
+
+        return output_dicts
+
     ##################
     # Private Methods #
     ##################
@@ -190,12 +209,13 @@ class Gen(Base):
         d = {pb.hash: pb for pb in pbs}
         G.add_nodes_from(d.keys())
         for pb in pbs:
-            for a in pb.args:
+            for arg_ind, a in enumerate(pb.args):
                 if isinstance(a, Arg) and (not q or a.key != q.hash):
                     if a.key not in d:
-                        import pdb
-
-                        pdb.set_trace()
+                        raise KeyError(
+                            f"Argument {arg_ind} of {pb.func.name} refers to an object with a hash key {a.key} asking for name \"{getattr(a,'name','<No Name>')}\" that does not exist in the namespace."
+                            "Did you make sure to include all PyBlocks in the func kwarg of Gen()?"
+                        )
                     assert a.key in d, pb.func.name
                     G.add_edge(a.key, pb.hash)
         return topsort_with_dict(G, d)

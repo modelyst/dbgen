@@ -235,7 +235,7 @@ class Join(Base):
                         break
             jointype = " LEFT " if left else " INNER "
         on = (
-            " ON " + "\n\t\t\tAND ".join(conds) if conds else ""
+            " ON \n\t\t\t" + "\n\t\t\tAND ".join(conds) if conds else ""
         )  # Possibly do not join on any condition
         args = [jointype, self.obj, self.alias, on]
         return '\n\t{}JOIN {} AS "{}" {}'.format(*args)

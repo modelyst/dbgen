@@ -166,6 +166,12 @@ class PyBlock(Base):
 
             pdb.set_trace()
             raise ValueError()
+        except AttributeError:
+            invalid_args = [getattr(arg, "arg_get", None) is None for arg in self.args]
+            missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
+            raise ValueError(
+                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.func.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Arguement??"
+            )
 
         try:
             output = self.func(*inputvars)

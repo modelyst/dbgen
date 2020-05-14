@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 ########################################################
 
+
 def run(
     self: "Model",
     conn: ConnI,
@@ -37,7 +38,7 @@ def run(
     batch: int = None,
     write_logs: bool = False,
     log_level: int = logging.INFO,
-    log_path: str = './dbgen.log'
+    log_path: str = "./dbgen.log",
 ) -> None:
     """
     This method is point of the model: to run and generate a database according
@@ -95,8 +96,8 @@ def run(
 
     # # Make sure no existing cxns to database
     # # ---------------------------------------
-    conn.kill()
-    meta_conn.kill()
+    # conn.kill()
+    # meta_conn.kill()
 
     # Make metatables
     # ----------------
