@@ -2,6 +2,7 @@
 from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
 import psycopg2  # type: ignore
+from psycopg2.errors import InvalidTextRepresentation, SyntaxError, QueryCanceled  # type: ignore
 import re
 from jinja2 import Template
 from io import StringIO
@@ -16,6 +17,7 @@ from hypothesis.strategies import (
 
 
 from dbgen.core.funclike import ArgLike, Arg
+from dbgen.core.misc import ExternalError
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.str_utils import hashdata_
 from dbgen.utils.lists import broadcast
@@ -339,15 +341,12 @@ class Action(Base):
                         io_obj, temp_table_name, null="None", columns=escaped_cols
                     )
                     break
-                except psycopg2.errors.QueryCanceled:
+                except QueryCanceled:
                     print("Query cancel failed")
                     query_fail_count += 1
                     continue
-                except psycopg2.errors.SyntaxError as exc:
-                    import pdb
-
-                    pdb.set_trace()
-                    print(exc)
+                except (InvalidTextRepresentation, SyntaxError) as exc:
+                    raise ExternalError(exc.pgerror)
 
             # Try to insert everything from the temp table into the real table
             # If a foreign_key violation is hit, we delete those rows in the

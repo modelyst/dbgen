@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, List as L
 
 from tqdm import tqdm  # type: ignore
+from bdb import BdbQuit
 import logging
 from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
 from dbgen.core.gen import Gen
@@ -196,6 +197,12 @@ I hope you know what you are doing!!!
 
     objs = {oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
 
+    def update_run_status(status: str) -> None:
+        update_run_status = """UPDATE run SET status=%s WHERE run_id=%s"""
+        sqlexecute(gmcxn, update_run_status, [status, run_id])
+
+    # Set status to running
+    update_run_status("running")
     with tqdm(total=len(self.gens), position=0, disable=not bar) as tq:
         for gen in self.ordered_gens():
 
@@ -223,20 +230,30 @@ I hope you know what you are doing!!!
                         run = False
                         break
             if run:
-                err_tot += self._run_gen(
-                    objs=objs,
-                    gen=gen,
-                    gmcxn=gmcxn,
-                    gcxn=gcxn,
-                    mconn_info=meta_conn,
-                    conn_info=conn,
-                    run_id=run_id,
-                    retry=retry,
-                    serial=serial,
-                    bar=bar,
-                    user_batch_size=batch,
-                    skip_row_count=skip_row_count,
-                )
+                try:
+                    err_tot += self._run_gen(
+                        objs=objs,
+                        gen=gen,
+                        gmcxn=gmcxn,
+                        gcxn=gcxn,
+                        mconn_info=meta_conn,
+                        conn_info=conn,
+                        run_id=run_id,
+                        retry=retry,
+                        serial=serial,
+                        bar=bar,
+                        user_batch_size=batch,
+                        skip_row_count=skip_row_count,
+                    )
+                except (Exception, KeyboardInterrupt, SystemExit, BdbQuit) as exc:
+                    # If a critical error is hit that doesn't raise
+                    # ExternalError() we need to clean up
+                    # Update the run
+                    update_run_status("failed")
+                    # Update the Gen
+                    error = str(exc) if str(exc) else repr(exc)
+                    gen.update_status(gmcxn, run_id, "failed", err=error)
+                    raise
 
             tq.update()
 
@@ -245,12 +262,12 @@ I hope you know what you are doing!!!
             if name == until:
                 until_flag = False
 
-    end = """UPDATE run SET delta=EXTRACT(EPOCH FROM age(CURRENT_TIMESTAMP,starttime))
-                           ,errs = %s
+    end = """UPDATE run SET delta=EXTRACT(EPOCH FROM age(CURRENT_TIMESTAMP,starttime)),
+                            status='completed',
+                            errs = %s
              WHERE run_id=%s"""
 
     sqlexecute(gmcxn, end, [err_tot, run_id])
-
     self.check_paths(conn)
 
     if clean:

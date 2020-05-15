@@ -30,14 +30,6 @@ def safex(conn: Any, q: str, binds: list) -> None:
 ###########
 # Constants
 ##########
-create_curr_run = """
-CREATE OR REPLACE VIEW curr_run AS
-    SELECT name,status,runtime,n_inputs,rate,error,query,description,
-           tabdep,coldep,newtab,newcol,basis
-    FROM gens
-    WHERE gens.run = (SELECT max(run.run_id) FROM run)
-    ORDER BY gens.ind
-"""
 objs = [
     Obj(
         "connection",
@@ -127,6 +119,7 @@ objs = [
             Attr("start", Varchar()),
             Attr("until_", Varchar()),
             Attr("delta", Decimal(), desc="Runtime in minutes"),
+            Attr("status", Varchar(), desc="Status of run"),
             Attr("errs", Int()),
             Attr("retry", Boolean()),
             Attr("nuke", Varchar()),
@@ -173,6 +166,37 @@ objs = [
     ),
 ]
 
+# Views
+create_curr_run = """
+CREATE OR REPLACE VIEW curr_run AS
+    SELECT name,status,runtime,n_inputs,rate,error,query,description,
+           tabdep,coldep,newtab,newcol,basis
+    FROM gens
+    WHERE gens.run = (SELECT max(run.run_id) FROM run)
+    ORDER BY gens.ind
+"""
+create_all_run = """
+CREATE OR REPLACE VIEW all_run AS
+select
+    run.run_id,
+    "name",
+    gens.status,
+    runtime,
+    n_inputs,
+    rate,
+    error,
+    description,
+    query,
+    ind
+from
+    gens
+join run on
+    gens.run = run.run_id
+where run_id = (select max(run_id) from run) or run.status in ('running','initialized')
+order by
+    run_id desc,
+    gens.ind
+"""
 
 #############################################################################
 # Main function
@@ -207,7 +231,7 @@ def make_meta(
     else:
         try:
             gmcxn = mconn.connect()
-        except:
+        except Exception:
             raise Exception("When making DB for first time, run with --nuke=True")
 
     # Create metatables if they don't exist
@@ -222,6 +246,7 @@ def make_meta(
             sqlexecute(gmcxn, meta._create_fk(r))
 
     sqlexecute(gmcxn, create_curr_run)
+    sqlexecute(gmcxn, create_all_run)
 
     # Create new run instance
     # -------------------------
@@ -244,6 +269,7 @@ def make_meta(
     # ----------------------------------------------
     run_cols = [
         "run_id",
+        "status",
         "retry",
         "onlyrun",
         "exclude",
@@ -252,8 +278,8 @@ def make_meta(
         "start",
         "until_",
     ]
-
-    run_args = [run_id, retry, only, xclude, nuke, cxn_id, start, until]
+    run_status = "initializing"
+    run_args = [run_id, run_status, retry, only, xclude, nuke, cxn_id, start, until]
 
     fmt_args = [",".join(run_cols), ",".join(["%s"] * len(run_args))]
     run_sql = "INSERT INTO run ({}) VALUES ({})".format(*fmt_args)

@@ -200,14 +200,14 @@ class ConnectInfo(Base):
 
     def drop(self) -> None:
         """Completely removes a DB"""
-        drop_stmt = f"DROP SCHEMA IF EXISTS {self.schema} CASCADE"
+        drop_stmt = f'DROP SCHEMA IF EXISTS "{self.schema}" CASCADE'
         conn = self.connect()
         with conn.cursor() as cxn:
             cxn.execute(drop_stmt)
 
     def create(self) -> None:
         """Kills connections to the DB"""
-        create_stmt = f"CREATE SCHEMA IF NOT EXISTS {self.schema};"
+        create_stmt = f'CREATE SCHEMA IF NOT EXISTS "{self.schema}";'
         conn = self.connect()
         with conn.cursor() as cxn:
             cxn.execute(create_stmt)

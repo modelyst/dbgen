@@ -94,9 +94,14 @@ class Gen(Base):
     # Public Methods #
     ##################
 
-    def update_status(self, conn: Conn, run_id: int, status: str) -> None:
-        q = mkUpdateCmd("gens", ["status"], ["run", "name"])
-        sqlexecute(conn, q, [status, run_id, self.name])
+    def update_status(
+        self, conn: Conn, run_id: int, status: str, err: str = ""
+    ) -> None:
+        """Update this gens status in the meta-database, also set error if provided"""
+        cols = ["status", "error"] if err else ["status"]
+        binds = [status, err, run_id, self.name] if err else [status, run_id, self.name]
+        q = mkUpdateCmd("gens", cols, ["run", "name"])
+        sqlexecute(conn, q, binds)
 
     def get_id(self, c: Conn) -> L[tuple]:  # THIS IS OBSOLETE BC HASH IS ID?
         """ Assuming we've inserted already """
