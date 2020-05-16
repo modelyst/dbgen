@@ -2,7 +2,8 @@
 from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
 import psycopg2  # type: ignore
-from psycopg2.errors import InvalidTextRepresentation, SyntaxError, QueryCanceled  # type: ignore
+from psycopg2.errors import QueryCanceled  # type: ignore
+from psycopg2 import Error # type: ignore
 import re
 from jinja2 import Template
 from io import StringIO
@@ -345,7 +346,7 @@ class Action(Base):
                     print("Query cancel failed")
                     query_fail_count += 1
                     continue
-                except (InvalidTextRepresentation, SyntaxError) as exc:
+                except Error as exc:
                     raise ExternalError(exc.pgerror)
 
             # Try to insert everything from the temp table into the real table
