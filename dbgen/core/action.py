@@ -138,23 +138,23 @@ class Action(Base):
         return a
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
 
         common_action_kwargs = dict(
-            obj=nonempty, attrs=dictionaries(keys=nonempty, values=ArgLike.strat()),
+            obj=nonempty, attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),
         )
         action_ = builds(
             cls,
             fks=just(dict()),
-            pk=Arg.strat(),
+            pk=Arg._strat(),
             insert=just(False),
             **common_action_kwargs,  # type: ignore
         )
         action0 = builds(
             cls,
             fks=dictionaries(keys=nonempty, values=action_),
-            pk=Arg.strat(),
+            pk=Arg._strat(),
             insert=just(False),
             **common_action_kwargs,  # type: ignore
         )

@@ -22,7 +22,7 @@ class PathAttr(Expr):
         return "PathAttr<%s.%s>" % (self.path, self.attr)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls, path=none(), attr=from_type(AttrTup))
 
     ####################

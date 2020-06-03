@@ -5,8 +5,7 @@ from dbgen import (
     PyBlock,
     MAX,
     LEN,
-    IF,
-    ELSE,
+    IF_ELSE,
     Literal,
     true,
     false,
@@ -16,7 +15,6 @@ from dbgen import (
     EQ,
     Constraint,
     GT,
-    JPath,
 )
 
 ################################################################################
@@ -78,16 +76,11 @@ def analysis(m: Model) -> None:
         "greater than three letter long!"
     )
 
-    c = Constraint("scientist", reqs=[history__operator])
-    c.find(m, basis=["history"], quit=False)
-    c = Constraint("sample", reqs=[fuel_cell__anode])
-    c.find(
-        m, basis=["fuel_cell"],
+    epath = m.make_path(
+        "sample", [electrode__sample, anode__electrode, fuel_cell__anode]
     )
-
-    epath = JPath("sample", [electrode__sample, anode__electrode, fuel_cell__anode])
-    spath = JPath("scientist", [history__operator])
-    ppath = JPath("procedures", [history__expt_type])
+    spath = m.make_path("scientist", [history__operator])
+    ppath = m.make_path("procedures", [history__expt_type])
 
     ssnquery = Query(
         exprs=dict(ssn=Scientist["ssn"](spath), step=History["step"](), h=History.id()),
@@ -117,7 +110,7 @@ def analysis(m: Model) -> None:
     # c.find(m,basis=['fuel_cell'],
     #          links   = [History.r('sample')], # Need to traverse a many-one relation reverse direction
 
-    pp = JPath(
+    pp = m.make_path(
         "procedures",
         [
             history__expt_type,
@@ -132,10 +125,10 @@ def analysis(m: Model) -> None:
 
     def bool_to_tinyint(x: Expr) -> Expr:
         """Useful utility function to generate SQL Expression"""
-        return One | IF | x | ELSE | Zero
+        return IF_ELSE(x, One, Zero)
 
     def int2bool(x: Expr) -> Expr:
-        return true | IF | EQ(x, One) | ELSE | false
+        return IF_ELSE(EQ(x, One), true, false)
 
     c_query = Query(
         exprs=dict(

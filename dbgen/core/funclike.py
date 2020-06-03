@@ -37,8 +37,8 @@ class ArgLike(Base, metaclass=ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return one_of(Arg.strat(), Const.strat())
+    def _strat(cls) -> SearchStrategy:
+        return one_of(Arg._strat(), Const._strat())
 
 
 class Arg(ArgLike):
@@ -55,7 +55,7 @@ class Arg(ArgLike):
 
     # Public methods #
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
     def arg_get(self, dic: dict) -> Any:
@@ -111,7 +111,7 @@ class Const(ArgLike):
             return repr(self.val)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls, val=anystrat)
 
 
@@ -143,7 +143,7 @@ class PyBlock(Base):
         super().__init__()
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return just(cls(func=lambda x: x + 1, args=[Const(1)], outnames=["x"],))
 
     def __str__(self) -> str:

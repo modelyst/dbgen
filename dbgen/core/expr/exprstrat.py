@@ -45,7 +45,7 @@ from dbgen.core.expr.expr import (
 #                       lambda children: lists(children, 1) |
 #                       dictionaries(text(), children, min_size=1))
 def nullarystrat() -> SearchStrategy:
-    return one_of(Literal.strat(), PathAttr.strat())
+    return one_of(Literal._strat(), PathAttr._strat())
 
 
 def unarystrat(x: SearchStrategy) -> SearchStrategy:
@@ -62,7 +62,7 @@ def unarystrat(x: SearchStrategy) -> SearchStrategy:
         NOT,
         NULL,
     ]  # type: L[Type[Unary]]
-    return one_of(*[u.strat(x) for u in uns])
+    return one_of(*[u._strat(x) for u in uns])
 
 
 def binarystrat(x: SearchStrategy) -> SearchStrategy:
@@ -84,12 +84,12 @@ def binarystrat(x: SearchStrategy) -> SearchStrategy:
         LE,
         GE,
     ]  # type: L[Type[Binary]]
-    return one_of(*[b.strat(x) for b in bins])
+    return one_of(*[b._strat(x) for b in bins])
 
 
 def narystrat(x: SearchStrategy) -> SearchStrategy:
     ns = [CONCAT, COALESCE, Tup, OR, AND]  # type: L[Type[Nary]]
-    return one_of(*[n.strat(x) for n in ns])
+    return one_of(*[n._strat(x) for n in ns])
 
 
 def exprstrat() -> SearchStrategy:

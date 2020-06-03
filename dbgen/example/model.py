@@ -1,34 +1,34 @@
 from dbgen.core.schema import Obj, Attr, Rel
-from dbgen.core.expr.sqltypes import Varchar, Int, Decimal, Text, Boolean
+from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Boolean
 
 
 ####
-sample = Obj("sample", attrs=[Attr("id", id=True)])
+sample = Obj("sample", attrs=[Attr("id", identifying=True)])
 ####
 science = Obj(
     "scientist",
     attrs=[
         Attr("firstname", Varchar()),
         Attr("lastname", Varchar()),
-        Attr("ssn", id=True, desc="social security"),
+        Attr("ssn", identifying=True, desc="social security"),
     ],
 )
 ####
-proced = Obj("procedures", attrs=[Attr("procedure_name", Varchar(), id=True)])
+proced = Obj("procedures", attrs=[Attr("procedure_name", Varchar(), identifying=True)])
 
 ####
 hist = Obj(
     "history",
     "mapping table",
     attrs=[
-        Attr("step", id=True, desc="order of operations"),
+        Attr("step", identifying=True, desc="order of operations"),
         Attr("timestamp", Varchar()),
         Attr("step_divides_ssn", Boolean()),
     ],
 )
 
-r1 = Rel("sample", "history", id=True)
-r2 = Rel("expt_type", "history", "procedures", id=True)
+r1 = Rel("sample", "history", identifying=True)
+r2 = Rel("expt_type", "history", "procedures", identifying=True)
 r3 = Rel("operator", "history", "scientist")
 
 ####
@@ -36,27 +36,27 @@ hd = Obj(
     "history_detail",
     "RDF triplestore",
     attrs=[
-        Attr("name", Varchar(), id=True),
+        Attr("name", Varchar(), identifying=True),
         Attr("value", Text()),
         Attr("dtype", Varchar()),
     ],
 )
 
-r4 = Rel("history", "history_detail", id=True)
+r4 = Rel("history", "history_detail", identifying=True)
 #####
 elec = Obj(
     "electrode", "Either an anode or cathode", attrs=[Attr("composition", Varchar())]
 )
-r5 = Rel("sample", "electrode", id=True)
+r5 = Rel("sample", "electrode", identifying=True)
 #####
 a, c = Obj("anode"), Obj("cathode")
-r6, r7 = [Rel("electrode", x, id=True) for x in ["anode", "cathode"]]
+r6, r7 = [Rel("electrode", x, identifying=True) for x in ["anode", "cathode"]]
 #####
 fc = Obj(
     "fuel_cell",
     "Combination of a particular anode and cathode sample during an expt",
     attrs=[
-        Attr("expt_id", id=True),
+        Attr("expt_id", identifying=True),
         Attr("electrolyte", Varchar()),
         Attr("capacity", Decimal()),
         Attr("timestamp", Varchar()),
@@ -72,7 +72,7 @@ elem = Obj(
     "element",
     "Atomic elements",
     attrs=[
-        Attr("atomic_number", id=True),
+        Attr("atomic_number", identifying=True),
         Attr("symbol", Varchar()),
         Attr("name", Varchar()),
         Attr("mass", Decimal()),

@@ -96,7 +96,7 @@ class Import(Base):
         return int(self.hash)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
     @staticmethod
@@ -142,7 +142,7 @@ class Env(Base):
         return Env(list(set(self.imports + other.imports)))
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
     # Public methods #
@@ -196,7 +196,7 @@ class Func(Base):
         return self.name
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
     # Properties #

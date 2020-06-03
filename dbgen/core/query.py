@@ -103,16 +103,16 @@ class Query(Expr):
         return list(self.exprs.values())
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(
             cls,
-            exprs=dictionaries(keys=nonempty, values=Expr.strat()),
+            exprs=dictionaries(keys=nonempty, values=Expr._strat()),
             basis=lists(nonempty, min_size=1, max_size=2),
-            constr=Expr.strat(),
-            aggcols=lists(Expr.strat(), max_size=2),
-            aconstr=Expr.strat(),
-            option=lists(RelTup.strat(), max_size=2),
-            opt_attr=lists(PathAttr.strat(), max_size=2),
+            constr=Expr._strat(),
+            aggcols=lists(Expr._strat(), max_size=2),
+            aconstr=Expr._strat(),
+            option=lists(RelTup._strat(), max_size=2),
+            opt_attr=lists(PathAttr._strat(), max_size=2),
         )
 
     ####################

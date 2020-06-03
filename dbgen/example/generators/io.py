@@ -1,9 +1,8 @@
 # External
-from os import environ
-from os.path import join
+from os.path import join, dirname
 
 # INternal
-from dbgen import Model, Gen, Const, PyBlock, Env, Import, defaultEnv
+from dbgen import Model, Gen, Const, PyBlock, Env, Import, defaultEnv, __file__
 from dbgen.example.scripts.parsers import (
     parse_ssn,
     parse_proc_csv,
@@ -15,8 +14,7 @@ from dbgen.example.scripts.parsers import (
 ############################################################################
 ############################################################################
 ########################################################################
-
-root = join(environ["DBGEN_ROOT"], "dbgen/example/data/")
+root = join(dirname(__file__), "example/data/")
 
 ################################################################################
 ############################################################################
@@ -75,7 +73,7 @@ def io(model: Model) -> None:
     ############################################################################
 
     dd_env = defaultEnv + Env(
-        Import("collections", "defaultdict"), Import("csv", "DictReader")
+        [Import("collections", "defaultdict"), Import("csv", "DictReader")]
     )
 
     ghcpb = PyBlock(
@@ -153,7 +151,7 @@ def io(model: Model) -> None:
 
     cathode, anode = ca
     ############################################################################
-    sqlite_env = defaultEnv + Env(Import("sqlite3", "connect"))
+    sqlite_env = defaultEnv + Env([Import("sqlite3", "connect")])
 
     ghd = PyBlock(
         parse_sqlite,

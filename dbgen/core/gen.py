@@ -78,15 +78,15 @@ class Gen(Base):
         return "Gen<%s>" % self.name
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
         return builds(
             cls,
             name=nonempty,
             desc=nonempty,
-            query=Query.strat(),
-            funcs=lists(PyBlock.strat(), max_size=2),
-            actions=lists(Action.strat(), min_size=1, max_size=2),
+            query=Query._strat(),
+            funcs=lists(PyBlock._strat(), max_size=2),
+            actions=lists(Action._strat(), min_size=1, max_size=2),
             tags=lists(nonempty, max_size=3),
         )
 
@@ -115,7 +115,13 @@ class Gen(Base):
 
     def dep(self, universe: D[str, Obj]) -> Dep:
         """
-        Determine the tabs/cols that are both inputs and outputs to the Gen
+        Determine the tabs/cols that are both inputs and outputs to the Gen 
+
+        Args:
+            universe (D[str, Obj])
+
+        Returns:
+            Dep
         """
         # Analyze allattr and allobj to get query dependencies
         if self.query:
@@ -168,7 +174,8 @@ class Gen(Base):
         """
         If a generator is purged, then any
         tables it populates will be truncated. Any columns it populates will be set all
-        to NULL"""
+        to NULL
+        """
         d = self.dep(universe)
         tabs, cols = d.tabs_yielded, d.cols_yielded
         for t in tabs:

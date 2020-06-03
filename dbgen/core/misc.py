@@ -16,7 +16,7 @@ from dbgen.utils.misc import Base
 if TYPE_CHECKING:
     from dbgen.core.gen import Gen
 
-    # from air flow.hooks.connections import Connection
+    from airflow.hooks.connections import Connection  # type: ignore
 
 
 """
@@ -27,7 +27,7 @@ Defines some support classes used throughout the project:
 - Dep
 
 """
-Connection = Any
+
 ################################################################################
 class ExternalError(Exception, Base):
     """
@@ -41,7 +41,7 @@ class ExternalError(Exception, Base):
         return super().__str__()
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -116,7 +116,7 @@ class ConnectInfo(Base):
         return pformat(self.__dict__)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
     def tunnel(self) -> SSHTunnelForwarder:
@@ -131,7 +131,7 @@ class ConnectInfo(Base):
             else suppress()
         )
 
-    def connect(self, attempt: int = 3, auto_commit: bool = True) -> Connection:
+    def connect(self, attempt: int = 3, auto_commit: bool = True) -> "Connection":
         for _ in range(attempt):
             try:
                 with self.tunnel():
@@ -183,7 +183,7 @@ class ConnectInfo(Base):
         )
         return ConnectInfo(**kwargs)
 
-    def neutral(self) -> Connection:
+    def neutral(self) -> "Connection":
         copy = self.copy()
         copy.db = "postgres"
         conn = copy.connect()
@@ -240,7 +240,7 @@ class Dep(Base):
         super().__init__()
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
     def all(self) -> T[str, str, str, str]:

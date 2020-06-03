@@ -25,7 +25,8 @@ if TYPE_CHECKING:
 
 
 class Path(Base):
-    """                         (loop 2x)
+    """                         
+    (loop 2x)
                  ->           ^|
             -> C -> D         |v
     A -> B            -> E -> F -> G
@@ -86,7 +87,7 @@ class Path(Base):
         return Path(self.end, self.fks[:l2])
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls, end=nonempty)
 
     @property
@@ -189,8 +190,10 @@ class Join(Base):
         return dict(self.conds)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls, obj=nonempty, conds=dictionaries(Join.strat(), Rel.strat()))
+    def _strat(cls) -> SearchStrategy:
+        return builds(
+            cls, obj=nonempty, conds=dictionaries(Join._strat(), Rel._strat())
+        )
 
     # Public Methods
     def add(self, j: "Join", e: "SuperRel") -> None:
@@ -287,11 +290,11 @@ class From(Base):
         return From(joins=self.joins | f.joins)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(
             cls,
             basis=lists(nonempty, min_size=1, max_size=2),
-            conds=sets(Join.strat(), min_size=1, max_size=2),
+            conds=sets(Join._strat(), min_size=1, max_size=2),
         )
 
     def print(self, optional: L["RelTup"] = None) -> str:

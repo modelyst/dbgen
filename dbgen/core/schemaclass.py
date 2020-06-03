@@ -72,7 +72,7 @@ class Schema(Base):
 
     @classmethod
     @composite
-    def strat(draw: C, cls: "Schema") -> SearchStrategy:
+    def _strat(draw: C, cls: "Schema") -> SearchStrategy:
         MAX_OBJ = 2
         MAX_FK = 2
         objnames = draw(lists(letters, min_size=1, max_size=MAX_OBJ, unique=True))
@@ -85,7 +85,7 @@ class Schema(Base):
                     lambda fkn: o not in fkn
                 )
             )
-            objlist.append(draw(Obj.strat(name=o, fks=list(zip(fknames, fktargets)))))
+            objlist.append(draw(Obj._strat(name=o, fks=list(zip(fknames, fktargets)))))
         return draw(builds(cls, objlist=just(objlist)))
 
     def make_schema(self, conn: ConnI, nuke: str = "", bar: bool = True) -> None:

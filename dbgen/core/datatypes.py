@@ -38,7 +38,7 @@ class DataType(Base, metaclass=ABCMeta):
         return 1
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         dts = [
             AnyType(),
             NoneType(),
@@ -138,7 +138,7 @@ class AnyType(DataType):
         super().__init__()
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -151,7 +151,7 @@ class NoneType(DataType):
         super().__init__()
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -167,7 +167,7 @@ class BaseType(DataType):
         return '"%s"' % self.unBase
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -183,7 +183,7 @@ class TypeVar(DataType):
         return '"%s"' % self.name
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -201,11 +201,11 @@ class Callable(DataType):
         return ar.join(map(str, self.c_args)) + ar + str(self.out)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(
             cls,
-            out=DataType.strat(),
-            c_args=lists(DataType.strat(), min_size=1, max_size=2),
+            out=DataType._strat(),
+            c_args=lists(DataType._strat(), min_size=1, max_size=2),
         )
 
 
@@ -221,8 +221,8 @@ class Union(DataType):
         return "{%s}" % (",".join(sorted(map(str, self.args))))
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls, args=lists(DataType.strat(), min_size=1, max_size=2))
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls, args=lists(DataType._strat(), min_size=1, max_size=2))
 
 
 ################################################################################
@@ -240,8 +240,8 @@ class Tuple(DataType):
         return len(self.args)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls, args=lists(DataType.strat(), min_size=1, max_size=2))
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls, args=lists(DataType._strat(), min_size=1, max_size=2))
 
 
 ################################################################################
@@ -256,7 +256,7 @@ class List(DataType):
         return "[%s]" % (str(self.content))
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -273,5 +273,5 @@ class Dict(DataType):
         return "{ %s : %s }" % (str(self.key), str(self.val))
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)

@@ -1,6 +1,6 @@
 from typing import Type, Any
 
-from hypothesis.strategies import (
+from hypothesis._strategies import (
     one_of,
     from_type,
     text,
@@ -9,7 +9,7 @@ from hypothesis.strategies import (
     booleans,
     dates,
     dictionaries,
-    SearchStrategy,
+    Search_Strategy,
     integers,
 )
 
@@ -46,24 +46,24 @@ def serialtest(x):
 
 
 class TestSerialization:
-    @given(Varchar.strat())
+    @given(Varchar._strat())
     def test_varchar(self, x):
         serialtest(x)
 
-    @given(SQLType.strat())
+    @given(SQLType._strat())
     def test_sqltype(self, x):
         serialtest(x)
 
-    @given(DataType.strat())
+    @given(DataType._strat())
     def test_datatype(self, x):
         print(vars(x), x.toJSON())
         serialtest(x)
 
-    @given(Attr.strat())
+    @given(Attr._strat())
     def test_attr(self, x):
         serialtest(x)
 
-    @given(Action.strat())
+    @given(Action._strat())
     def test_act(self, x):
         serialtest(x)
 
@@ -71,26 +71,26 @@ class TestSerialization:
     def test_expr(self, x):
         serialtest(x)
 
-    @given(PyBlock.strat())
+    @given(PyBlock._strat())
     def test_pyblock(self, x):
         serialtest(x)
 
-    @given(Query.strat())
+    @given(Query._strat())
     def test_query(self, x):
         serialtest(x)
 
-    @given(Gen.strat())
+    @given(Gen._strat())
     def test_gen(self, x):
         serialtest(x)
 
-    @given(Obj.strat())
+    @given(Obj._strat())
     def test_obj(self, x):
         serialtest(x)
 
-    @given(Schema.strat())
+    @given(Schema._strat())
     def test_schema(self, x):
         serialtest(x)
 
-    @given(Model.strat())
+    @given(Model._strat())
     def test_model(self, x):
         serialtest(x)

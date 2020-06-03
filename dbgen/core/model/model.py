@@ -88,7 +88,7 @@ class Model(Schema):
         return "Model<%s,%s>" % (self.name, things)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
         objs = [
             Obj("a", attrs=[Attr("aa")], fks=[UserRel("ab", "b")]),

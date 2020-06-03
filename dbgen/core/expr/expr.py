@@ -52,7 +52,7 @@ class Expr(Base, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         abc = Literal("abc")
         exprs: L[Expr] = [
             One,
@@ -160,7 +160,7 @@ class Unary(Expr):
         self.x = x
 
     @classmethod
-    def strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
+    def _strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
         from dbgen.core.expr.exprstrat import exprstrat
 
         x = exprstrat if strat is None else strat
@@ -201,7 +201,7 @@ class Binary(Expr):
         self.x, self.y = x, y
 
     @classmethod
-    def strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
+    def _strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
         from dbgen.core.expr.exprstrat import exprstrat
 
         x = exprstrat() if strat is None else strat
@@ -236,7 +236,7 @@ class Ternary(Expr):
         self.x, self.y, self.z = x, y, z
 
     @classmethod
-    def strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
+    def _strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
         from dbgen.core.expr.exprstrat import exprstrat
 
         x = exprstrat() if strat is None else strat
@@ -273,7 +273,7 @@ class Nary(Expr):
         return "%s(%s)" % (self.name, d.join(xs))
 
     @classmethod
-    def strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
+    def _strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
         from dbgen.core.expr.exprstrat import exprstrat
 
         x = exprstrat() if strat is None else strat
@@ -489,7 +489,7 @@ class Literal(Expr):
             return "(%s)" % x
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls, x=anystrat)
 
 
@@ -506,7 +506,7 @@ class IN(Named):
         return "%s IN (%s)" % (f(self.x), ",".join(xs))
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -526,7 +526,7 @@ class CASE(Expr):
         return "CASE  " + body + end
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -544,7 +544,7 @@ class IF_ELSE(Expr):
         return "CASE WHEN (%s) THEN (%s) ELSE (%s) END" % (c, i, e)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -564,7 +564,7 @@ class CONVERT(Expr):
         return "CAST(%s AS %s)" % (e, self.dtype)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -585,7 +585,7 @@ class SUBSELECT(Expr):
         return "(SELECT %s FROM %s WHERE %s )" % (e, self.tab, self.where)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -608,7 +608,7 @@ class GROUP_CONCAT(Agg):
         return "string_agg(%s :: TEXT,'%s' %s)" % (f(self.expr), self.delim, ord)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -630,7 +630,7 @@ class ARRAY_AGG(Agg):
         return "array_agg(%s %s)" % (f(self.expr), ord)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -662,7 +662,7 @@ class PK(Expr):
         return [self.pk]
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 

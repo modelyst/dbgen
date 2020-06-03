@@ -63,7 +63,7 @@ class AttrTup(Base):
         return PathAttr(x, self)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -84,7 +84,7 @@ class RelTup(Base):
         return "Rel(%s,%s)" % (self.obj, self.rel)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -112,7 +112,7 @@ class Attr(Base):
         return "Attr<%s,%s>" % (self.name, self.dtype)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(Attr, name=letters, identifying=infer, desc=infer, dtype=infer)
 
     ####################
@@ -164,7 +164,7 @@ class View(Base, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         raise NotImplementedError
 
     def create(self) -> str:
@@ -188,7 +188,7 @@ class QView(View):
         return Dep(self.q.allobj(), cd, [self.name], nc)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -211,7 +211,7 @@ class RawView(View):
         return Dep(td, cd, [self.name], nc)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -249,7 +249,7 @@ class UserRel(Base):
         )
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -293,7 +293,7 @@ class Obj(Base):
 
     @classmethod
     @composite
-    def strat(
+    def _strat(
         draw: C,
         cls: "Obj",
         name: str = None,
@@ -309,10 +309,10 @@ class Obj(Base):
                 lambda x: name not in x
             )
         )
-        attrlist = draw(lists(Attr.strat(), min_size=MIN_ATTR, max_size=MAX_ATTR))
+        attrlist = draw(lists(Attr._strat(), min_size=MIN_ATTR, max_size=MAX_ATTR))
         for i, a in enumerate(attrlist):
             a.name = attrs[i] if attrs is not None else xx[1 + i]
-        fklist = draw(lists(UserRel.strat(), min_size=MIN_FK, max_size=MAX_FK))
+        fklist = draw(lists(UserRel._strat(), min_size=MIN_FK, max_size=MAX_FK))
         for i, f, in enumerate(fklist):
             f.name, f.tar = (
                 fks[i]
@@ -538,7 +538,7 @@ class Rel(Base):
         return "%s__%s" % (self.o1, self.name)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls, o2=infer, identifying=infer, desc=infer)
 
     # Public methods #
@@ -657,7 +657,7 @@ class SuperRel(Base):
     # Private Methods #
     # ...
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
 
@@ -679,8 +679,10 @@ class Path(Base):
         return "Path(%s%s)" % (p, a)
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls, rels=lists(RelTup.strat(), max_size=2), attr=AttrTup.strat())
+    def _strat(cls) -> SearchStrategy:
+        return builds(
+            cls, rels=lists(RelTup._strat(), max_size=2), attr=AttrTup._strat()
+        )
 
     def start(self) -> str:
         """Starting point of a path, always an object (name is returned)"""
@@ -769,8 +771,8 @@ class PathEQ(Base):
             raise TypeError("add to this to support more types of searching")
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
-        return builds(cls, p1=Path.strat(), p2=Path.strat())
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls, p1=Path._strat(), p2=Path._strat())
 
     def any(self) -> Path:
         """Gives one of the paths, doesn't matter which"""

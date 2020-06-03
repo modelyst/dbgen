@@ -23,7 +23,7 @@ class SQLType(Base, metaclass=ABCMeta):
     data = {}  # type: dict
 
     @classmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         return from_type(cls)
 
     @abstractmethod

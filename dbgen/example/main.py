@@ -11,9 +11,10 @@ from dbgen.example.generators.analysis import analysis
 from dbgen.utils.parsing import parser
 
 ################################################################################
+
 root = join(environ["HOME"], "Documents/JSON/")
-db = Conn.from_file(root + "example.json")
-mdb = Conn.from_file(root + "example_log.json")
+db = lambda: Conn.from_file(root + "example.json")
+mdb = lambda: Conn.from_file(root + "example_log.json")
 
 
 def make_model() -> Model:
@@ -35,7 +36,7 @@ def main(args: dict) -> None:
 
     # Run model
     args["nuke"] = True
-    m.run(conn=db, meta_conn=mdb, **args)
+    m.run(conn=db(), meta_conn=mdb(), **args)
 
 
 if __name__ == "__main__":

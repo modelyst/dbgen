@@ -143,7 +143,7 @@ class Base(object, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def strat(cls) -> SearchStrategy:
+    def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
         raise NotImplementedError
 
