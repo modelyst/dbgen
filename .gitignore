@@ -125,3 +125,7 @@ dmypy.json
 
 .vscode
 info
+
+# Documentation related ignores
+MakeFile
+make.bat
