@@ -241,7 +241,7 @@ def delete_unused_keys(
             names_space_dict = namespace[hash_loc]
         except KeyError:
             raise Error(
-                f"Looking to delete hash for names: {names}, at location {hash_loc} but can't find it. \nKeys:{list(namespace.keys())}"
+                f"Looking for the namespace dict with keys: {names}, at location {hash_loc} but can't find it.\nDid you leave out the query?\nKeys:{list(namespace.keys())}"
             )
         pruned_dict = {
             key: val for key, val in names_space_dict.items() if key in names

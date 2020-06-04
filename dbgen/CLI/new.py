@@ -30,13 +30,16 @@ user = environ["USER"]
 
 
 class File(object):
-    def __init__(self, pth: str, template: str) -> None:
+    def __init__(self, pth: str, template: str, fill_content: bool = True) -> None:
         self.pth = pth
         self.template = template
+        self.fill_content = fill_content
 
     def content(self, kwargs: dict) -> str:
         with open(join(root, "dbgen/CLI/newfiles", self.template), "r") as f:
-            return f.read().format(**kwargs)
+            if self.fill_content:
+                return f.read().format(**kwargs)
+            return f.read()
 
     def write(self, pth: str, **kwargs: str) -> None:
         with open(join(pth, self.pth), "w") as f:
@@ -47,13 +50,14 @@ sch = File("schema.py", "schema.py")
 ginit = File("generators/__init__.py", "ginit.py")
 default = File("dbgen_files/default.py", "default.py")
 io = File("generators/io.py", "io.py")
+ana = File("generators/analysis.py", "analysis.py", fill_content=False)
 man = File("main.py", "main.py")
 data = File("data/example.csv", "data.csv")
 parse = File("scripts/io/parse_employees.py", "parse.py")
 utils = File("utils.py", "utils.py")
 dev, log = [File("dbgen_files/%s.json" % x, x) for x in ["dev", "log"]]
 
-files = [sch, ginit, default, man, io, data, parse, dev, log, utils]
+files = [sch, ginit, default, man, io, data, parse, dev, log, utils, ana]
 inits = ["", "scripts/", "scripts/io/"]
 dirs = [
     "generators",
@@ -92,14 +96,14 @@ def create_config(model_name: str, model_root: str):
 ################################################################################
 
 
-def main(pth: str, name: str, env: str, create_env: bool = True) -> None:
+def main(pth: str, name: str, env: str, create_env: bool = False) -> None:
     """
     Initialize a DbGen model
-    """
-    if exists(pth):
-        print(pth, " already exists")
-        return
-    mkdir(pth)
+    # """
+    # if exists(pth):
+    #     print(pth, " already exists")
+    #     return
+    # mkdir(pth)
 
     for dir in dirs:
         mkdir(join(pth, dir))
