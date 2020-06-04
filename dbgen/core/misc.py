@@ -1,13 +1,14 @@
 # External Modules
 from typing import Any, List as L, Callable as C, TYPE_CHECKING, Tuple as T
 from time import sleep
+import re
 from os import environ
 from os.path import exists
 from json import load, dump
 from pprint import pformat
 from contextlib import suppress
 from sshtunnel import SSHTunnelForwarder  # type: ignore
-from psycopg2 import connect, Error  # type: ignore
+from psycopg2 import connect, Error, OperationalError  # type: ignore
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
 from hypothesis.strategies import SearchStrategy, builds  # type: ignore
 from dbgen.utils.misc import Base
@@ -149,8 +150,16 @@ class ConnectInfo(Base):
                         cur = conn.cursor()
                         cur.execute(f'SET search_path TO "{self.schema}"')
                     return conn
+            except OperationalError as exc:
+                if re.findall("database.*does not exist", str(exc)):
+                    raise OperationalError(
+                        f"Database {self.db} does not exist, please check connection or create DB before running DBgen or first time"
+                    )
             except Error as exc:
                 print(exc)
+                import pdb
+
+                pdb.set_trace()
                 sleep(1)
 
         raise Error()

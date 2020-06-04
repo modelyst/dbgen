@@ -2,9 +2,11 @@
 import sys
 from venv import create  # type: ignore
 from os import mkdir, environ, system
-from os.path import join, exists, abspath
+from os.path import join, exists, dirname, abspath
 from shutil import copyfile
 from argparse import ArgumentParser
+from dbgen import __file__ as DBGEN_ROOT
+import configparser
 
 """
 Initialize a dbgen model
@@ -22,8 +24,7 @@ major_version, minor_version = sys.version_info[:2]
 if major_version < 3 or minor_version < 6:
     raise Exception("Python 3.6+ is required.")
 
-root = abspath(join(__file__, "../../../"))
-print(root)
+root = abspath(join(dirname(DBGEN_ROOT), ".."))
 user = environ["USER"]
 ################################################################################
 
@@ -42,16 +43,17 @@ class File(object):
             f.write(self.content(kwargs))
 
 
-sch = File("schema.py", "schema")
-ginit = File("generators/__init__.py", "ginit")
-default = File("dbgen_files/default.py", "default")
-io = File("generators/io.py", "io")
-man = File("main.py", "main")
-data = File("data/example.csv", "data")
-parse = File("scripts/io/parse_employees.py", "parse")
+sch = File("schema.py", "schema.py")
+ginit = File("generators/__init__.py", "ginit.py")
+default = File("dbgen_files/default.py", "default.py")
+io = File("generators/io.py", "io.py")
+man = File("main.py", "main.py")
+data = File("data/example.csv", "data.csv")
+parse = File("scripts/io/parse_employees.py", "parse.py")
+utils = File("utils.py", "utils.py")
 dev, log = [File("dbgen_files/%s.json" % x, x) for x in ["dev", "log"]]
 
-files = [sch, ginit, default, man, io, data, parse, dev, log]
+files = [sch, ginit, default, man, io, data, parse, dev, log, utils]
 inits = ["", "scripts/", "scripts/io/"]
 dirs = [
     "generators",
@@ -66,26 +68,38 @@ dirs = [
 
 ################################################################################
 parser = ArgumentParser(description="Initialize a dbGen model", allow_abbrev=True)
-parser.add_argument("--pth", type=str, help="Root folder")
-parser.add_argument("--name", type=str, help="Name of model")
+parser.add_argument("--pth", type=str, help="Root folder", required=True)
+parser.add_argument("--name", type=str, help="Name of model", required=True)
 parser.add_argument(
     "--env", default=".env/bin/activate", type=str, help="Name of model"
 )
+
 ################################################################################
-envvars = dict(
-    MODEL_TEMP="dbgen_files/tmp", MODEL_ROOT=""
-)  # THIS SHOULD BE AN EMPTY STRING!!!
+def create_config(model_name: str, model_root: str):
+    model_root = abspath(model_root)
+    envvars = dict(
+        model_name=model_name,
+        model_root=model_root,
+        model_temp="${model_root}/dbgen_files/tmp",
+        default_env="${model_root}/dbgen_files/default.py",
+    )  # THIS SHOULD BE AN EMPTY STRING!!!
+    config = configparser.ConfigParser()
+    config["dbgen_files"] = envvars
+    with open(join(model_root, "model.cfg"), "w") as f:
+        config.write(f)
+
+
 ################################################################################
 
 
-def main(pth: str, name: str, env: str) -> None:
+def main(pth: str, name: str, env: str, create_env: bool = False) -> None:
     """
     Initialize a DbGen model
     """
-    if exists(pth):
-        print(pth, " already exists")
-        return
-    mkdir(pth)
+    # if exists(pth):
+    #     print(pth, " already exists")
+    #     return
+    # mkdir(pth)
 
     for dir in dirs:
         mkdir(join(pth, dir))
@@ -97,12 +111,11 @@ def main(pth: str, name: str, env: str) -> None:
     # Create virtual environment
     env = join(pth, env)
     reqs = join(root, "requirements.txt")
-    create(join(pth, ".env"), with_pip=True, symlinks=True, clear=True)
-    system("source " + env + "; pip install -r " + reqs)
+    if create_env:
+        create(join(pth, ".env"), with_pip=True, symlinks=True, clear=True)
+        system("source " + env + "; pip install -r " + reqs)
     copyfile(reqs, join(pth, "requirements.txt"))
-    with open(env, "a") as f:
-        for k, v in envvars.items():
-            f.write("\n\nexport {}={}/{}".format(k, abspath(pth), v))
+    create_config(name, pth)
 
 
 if __name__ == "__main__":
