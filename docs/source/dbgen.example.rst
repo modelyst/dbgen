@@ -17,23 +17,23 @@ dbgen.example.main module
 -------------------------
 
 .. automodule:: dbgen.example.main
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:
 
 dbgen.example.model module
 --------------------------
 
 .. automodule:: dbgen.example.model
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:
 
 
 Module contents
 ---------------
 
 .. automodule:: dbgen.example
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:

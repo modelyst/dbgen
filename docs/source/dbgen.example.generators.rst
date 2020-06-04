@@ -8,23 +8,23 @@ dbgen.example.generators.analysis module
 ----------------------------------------
 
 .. automodule:: dbgen.example.generators.analysis
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:
 
 dbgen.example.generators.io module
 ----------------------------------
 
 .. automodule:: dbgen.example.generators.io
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:
 
 
 Module contents
 ---------------
 
 .. automodule:: dbgen.example.generators
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:

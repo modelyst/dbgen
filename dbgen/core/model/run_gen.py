@@ -19,7 +19,7 @@ from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.core.gen import Gen
 from dbgen.core.funclike import PyBlock
 from dbgen.core.action import Action
-from dbgen.core.misc import ExternalError, SkipException
+from dbgen.core.misc import ExternalError, SkipException, Error
 
 from dbgen.utils.lists import broadcast
 from dbgen.utils.numeric import safe_div
@@ -237,7 +237,12 @@ def delete_unused_keys(
 ) -> D[str, Any]:
     new_namespace = {}
     for hash_loc, names in keys_to_save.items():
-        names_space_dict = namespace[hash_loc]
+        try:
+            names_space_dict = namespace[hash_loc]
+        except KeyError:
+            raise Error(
+                f"Looking to delete hash for names: {names}, at location {hash_loc} but can't find it. \nKeys:{list(namespace.keys())}"
+            )
         pruned_dict = {
             key: val for key, val in names_space_dict.items() if key in names
         }

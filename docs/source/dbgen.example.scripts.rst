@@ -8,15 +8,15 @@ dbgen.example.scripts.parsers module
 ------------------------------------
 
 .. automodule:: dbgen.example.scripts.parsers
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:
 
 
 Module contents
 ---------------
 
 .. automodule:: dbgen.example.scripts
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:

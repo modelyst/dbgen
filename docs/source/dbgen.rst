@@ -16,6 +16,6 @@ Module contents
 ---------------
 
 .. automodule:: dbgen
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:

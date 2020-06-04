@@ -5,6 +5,6 @@ Module contents
 ---------------
 
 .. automodule:: dbgen.templates
-   :show-inheritance:
    :members:
    :undoc-members:
+   :show-inheritance:
