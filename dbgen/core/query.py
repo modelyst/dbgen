@@ -157,7 +157,9 @@ class Query(Expr):
             f = f | a.path._from()
         return f
 
-    def showQ(self, not_deleted: bool = False, not_null: bool = True) -> str:
+    def showQ(
+        self, not_deleted: bool = False, not_null: bool = True, limit: int = None
+    ) -> str:
         """
         Render a query
 
@@ -216,10 +218,13 @@ class Query(Expr):
         # --------------------
         f_str = f.print(self.option)
 
+        # Get the Limit Clause if limit is set
+        # ------------------------------------
+        limit_str = f"\nLimit {limit}" if limit is not None else ""
         # Put everything together to make query string
         # ----------------------------------------------------
-        fmt_args = [cols, f_str, consts, groupby, haves]
-        output = "SELECT \n\t{0}\n{1}\n{2}{3}{4}".format(*fmt_args)
+        fmt_args = [cols, f_str, consts, groupby, haves, limit_str]
+        output = "SELECT \n\t{0}\n{1}\n{2}{3}{4}{5}".format(*fmt_args)
 
         return output
 

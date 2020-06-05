@@ -241,9 +241,8 @@ def make_meta(
 
             sqlexecute(gmcxn, sql)
 
-    if nuke:
-        for r in meta._rels():
-            sqlexecute(gmcxn, meta._create_fk(r))
+    for r in meta._rels():
+        sqlexecute(gmcxn, meta._create_fk(r))
 
     sqlexecute(gmcxn, create_curr_run)
     sqlexecute(gmcxn, create_all_run)

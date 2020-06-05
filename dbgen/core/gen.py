@@ -30,6 +30,7 @@ from dbgen.utils.sql import (
     mkUpdateCmd,
     sqlselect,
     mkInsCmd,
+    DictCursor,
 )
 
 from dbgen.templates import jinja_env
@@ -206,6 +207,23 @@ class Gen(Base):
             output_dicts.append(result_dict)
 
         return output_dicts
+
+    def test_with_db(
+        self, db: Conn, limit: int = 5, rename_dict: bool = True
+    ) -> D[str, Any]:
+        assert limit <= 200, "Don't allow for more than 200 rows with test with db"
+        assert (
+            self.query is not None
+        ), "This generator doesn't have a query, just use gen.test() method"
+        cursor = db.connect(auto_commit=False).cursor(
+            f"test-{self.name}", cursor_factory=DictCursor
+        )
+
+        # If there is a query get the row count and execute it
+        query_str = self.query.showQ(limit=limit)
+        cursor.execute(query_str)
+        input_rows = cursor.fetchall()
+        return self.test(input_rows, rename_dict)
 
     ##################
     # Private Methods #
