@@ -7,12 +7,16 @@ from typing import Optional as Opt
 from typing import Any
 from typing import Callable as C
 from typing import Set as S
+from typing import Dict as D
+from typing import Tuple as T
 
 if TYPE_CHECKING:
     from ..core.gen import Gen
 
 
-def interact_gen(objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200) -> L[dict]:
+def interact_gen(
+    objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200
+) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
     """
     Allows a CLI for interacting with a generator given a set of input rows
 
@@ -35,7 +39,8 @@ def interact_gen(objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200) -> 
         raise ImportError("Need pprint and prettytable for interact mode")
 
     # Initialize output list and valid responses for the outer question
-    output: L[dict] = []
+    post_pyblocks: L[dict] = []
+    action_dicts: L[dict] = []
     valid_responses = ("s", "c", "q", "m")
     # Initialize the response to user input and formatting delimiter func
     answer: Opt[str] = ""
@@ -71,20 +76,23 @@ def interact_gen(objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200) -> 
             ).lower()
             if answer == "q":
                 print("Quitting...")
-                return output
+                return post_pyblocks, action_dicts
         # Skip the row and clear the pretty table
         if answer == "s":
             x.clear_rows()
             continue
         delimiter()
         print("Processing Row...")
-        curr_output, curr_action_dict = gen.test(objs, [next_row], verbose=True)
-        curr_output = curr_output[0]
+        list_of_processed_namespaces, curr_action_dicts = gen.test(
+            objs, [next_row], verbose=True
+        )
+        curr_output = list_of_processed_namespaces[0]
+        curr_action_dict = curr_action_dicts[0]
         system("clear")
         print("Next Row:")
         print(x)
 
-        completer = get_completer(curr_output.keys())
+        completer = get_completer(list(curr_output.keys()))
         readline.parse_and_bind("tab: complete")
         readline.set_completer(completer)
         display = ""
@@ -123,7 +131,7 @@ def interact_gen(objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200) -> 
                 print(f"Key not found in processed dict: {display}")
                 delimiter()
 
-        completer = get_completer(curr_action_dict.keys())
+        completer = get_completer(list(curr_action_dict.keys()))
         readline.set_completer(completer)
         display = ""
         while display != "q":
@@ -168,11 +176,12 @@ def interact_gen(objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200) -> 
                 print(f"Key not found in Action Dict: {display}")
                 delimiter()
 
-        output.append(curr_output)
+        post_pyblocks.append(curr_output)
+        action_dicts.append(curr_action_dict)
         x.clear_rows()
 
     print("No more rows left")
-    return output
+    return post_pyblocks, action_dicts
 
 
 def get_completer(cmds: L[Any]) -> C[[str, int], Any]:

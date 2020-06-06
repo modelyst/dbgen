@@ -117,7 +117,7 @@ class Model(Schema):
     ##################
     def test_gen(
         self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
-    ) -> T[L[D[str, dict]], D[str, dict]]:
+    ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
         assert (
             gen_name in self.gens
         ), f"Generator {gen_name} not in model:\n{self.gens.keys()}"

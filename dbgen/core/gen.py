@@ -190,7 +190,7 @@ class Gen(Base):
         input_rows: L[D[str, Any]],
         rename_dict: bool = True,
         verbose: bool = False,
-    ) -> T[L[D[str, dict]], D[str, dict]]:
+    ) -> T[L[dict], L[D[str, L[D[str, Any]]]]]:
         # Apply the
         output_dicts = []
         for row in input_rows:
@@ -241,7 +241,7 @@ class Gen(Base):
                     func_name_dict.get(key, "query"): val for key, val in row.items()
                 }
 
-        return output_dicts, action_dicts
+        return output_dicts, [action_dicts]
 
     def test_with_db(
         self,
@@ -251,7 +251,7 @@ class Gen(Base):
         rename_dict: bool = True,
         interact: bool = False,
         input_rows: L[dict] = [],
-    ) -> T[L[D[str, dict]], D[str, dict]]:
+    ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
         assert limit <= 200, "Don't allow for more than 200 rows with test with db"
         assert (
             db is None or self.query is not None
