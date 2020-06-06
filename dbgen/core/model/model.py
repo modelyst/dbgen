@@ -115,6 +115,17 @@ class Model(Schema):
     ##################
     # Public methods #
     ##################
+    def test_gen(
+        self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
+    ) -> T[L[D[str, dict]], D[str, dict]]:
+        assert (
+            gen_name in self.gens
+        ), f"Generator {gen_name} not in model:\n{self.gens.keys()}"
+
+        return self.gens[gen_name].test_with_db(
+            objs=self._get_universe(), db=db, interact=interact, limit=limit
+        )
+
     def test_funcs(self) -> None:
         """Run all PyBlock tests"""
         for g in self.gens.values():

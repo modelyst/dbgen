@@ -111,7 +111,7 @@ class Gen(Base):
 
     def dep(self, universe: D[str, Obj]) -> Dep:
         """
-        Determine the tabs/cols that are both inputs and outputs to the Gen 
+        Determine the tabs/cols that are both inputs and outputs to the Gen
 
         Args:
             universe (D[str, Obj])
@@ -190,7 +190,7 @@ class Gen(Base):
         input_rows: L[D[str, Any]],
         rename_dict: bool = True,
         verbose: bool = False,
-    ):
+    ) -> T[L[D[str, dict]], D[str, dict]]:
         # Apply the
         output_dicts = []
         for row in input_rows:
@@ -251,7 +251,7 @@ class Gen(Base):
         rename_dict: bool = True,
         interact: bool = False,
         input_rows: L[dict] = [],
-    ) -> L[D[str, Any]]:
+    ) -> T[L[D[str, dict]], D[str, dict]]:
         assert limit <= 200, "Don't allow for more than 200 rows with test with db"
         assert (
             db is None or self.query is not None
