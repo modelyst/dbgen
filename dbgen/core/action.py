@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
 import psycopg2  # type: ignore
 from psycopg2.errors import QueryCanceled  # type: ignore
-from psycopg2 import Error # type: ignore
+from psycopg2 import Error  # type: ignore
 import re
 from jinja2 import Template
 from io import StringIO
@@ -264,6 +264,7 @@ class Action(Base):
         objs: D[str, T[str, L[str], L[str]]],
         rows: L[dict],
         insert: bool,
+        test: bool = False,
     ) -> L[int]:
         """
         Helpful docstring
@@ -271,7 +272,7 @@ class Action(Base):
         self._logger.debug("recursively loading foreign keys")
         for kk, vv in self.fks.items():
             if vv.insert:
-                vv._load(cxn, objs, rows, insert=True)
+                vv._load(cxn, objs, rows, insert=True, test=test)
 
         self._logger.debug("Getting attributes and generating hashes")
         obj_pk_name, ids, id_fks = objs[self.obj]
@@ -286,6 +287,30 @@ class Action(Base):
         if not data:
             return []
 
+        # If we are testing don't try and do sql
+        if not test:
+            self._load_data(cxn, obj_pk_name, io_obj, insert)
+
+        return [int(x) for x in pk]
+
+    def _load_data(
+        self, cxn: Conn, obj_pk_name: str, io_obj: StringIO, insert: bool
+    ) -> None:
+        """
+        Function that quickly loads an io_obj import the database specified
+        obj_pk_name. Insert flag determines whether we update or insert.
+
+        Args:
+            cxn (Conn): connection to database to load intop
+            obj_pk_name (str): name of objects primary key name
+            io_obj (StringIO): StringIO to use for copy_from into database
+            insert (bool): whether or not to update or insert into database
+
+        Raises:
+            ValueError: [description]
+            ExternalError: [description]
+            ValueError: [description]
+        """
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
         temp_table_name = self.obj + "_temp_load_table_" + str(getrandbits(64))
@@ -385,7 +410,59 @@ class Action(Base):
 
         io_obj.close()
         self._logger.debug("loading finished")
-        return [int(x) for x in pk]
+
+    def test(
+        self, objs: D[str, T[str, L[str], L[str]]], rows: L[dict]
+    ) -> D[str, L[dict]]:
+        """
+        Takes in the universe and processed namespaces and generates dict where keys are table names and values are lists of input rows
+
+        Args:
+            objs (D[str, T[str, L[str], L[str]]]): universe of model
+            rows (L[dict]): example processed namespaces after PyBlocks applied
+
+        Returns:
+            D[str, L[dict]]: dictionary of mapping tables to lists of rows that would be inserted if this action were called
+        """
+        obj_pk_name, ids, id_fks = objs[self.obj]
+        pk, data = [], []
+
+        for row in rows:
+            pk_curr, data_curr = self._getvals(objs, row)
+            pk.extend(pk_curr)
+            data.extend(data_curr)
+
+            for kk, vv in sorted(self.fks.items()):
+                if vv.pk is not None:
+                    val = vv.pk.arg_get(row)
+                else:
+                    val, fk_adata = vv._getvals(objs, row)
+
+        io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
+
+        cols = (
+            [obj_pk_name]
+            + list(sorted(self.attrs.keys()))
+            + list(sorted(self.fks.keys()))
+        )
+        table_rows = []
+        while True:
+            line = io_obj.readline()
+            if not line:
+                break
+            table_rows.append(
+                {col: val for col, val in zip(cols, line.strip().split("\t"))}
+            )
+
+        output = {self.obj + ("_insert" if self.insert else ""): table_rows}
+        # Save the rows of recursive actions
+        for kk, vv in self.fks.items():
+            if vv.insert:
+                if vv.obj == self.obj and vv.insert == self.insert:
+                    print("!WARNING! self FKs aren't viewable in interact mode")
+                else:
+                    output.update(vv.test(objs, rows))
+        return output
 
     def make_src(self) -> str:
         """

@@ -1,39 +1,34 @@
-from typing import (
-    Any,
-    TYPE_CHECKING,
-    List as L,
-    Dict as D,
-    Optional as Opt,
-    Set as S,
-    Tuple as T,
-)
+from collections import defaultdict
+from typing import TYPE_CHECKING, Any
+from typing import Dict as D
+from typing import List as L
+from typing import Optional as Opt
+from typing import Set as S
+from typing import Tuple as T
 
-from networkx import DiGraph  # type: ignore
 from hypothesis.strategies import SearchStrategy, builds, lists  # type: ignore
+from networkx import DiGraph  # type: ignore
 
-
-from dbgen.core.func import Env, defaultEnv, Func
-from dbgen.core.funclike import PyBlock, Arg
 from dbgen.core.action import Action
-from dbgen.core.query import Query
+from dbgen.core.func import Env, Func, defaultEnv
+from dbgen.core.funclike import Arg, PyBlock
 from dbgen.core.misc import Dep
+from dbgen.core.query import Query
 from dbgen.core.schema import Obj
-
+from dbgen.templates import jinja_env
 from dbgen.utils.graphs import topsort_with_dict
-from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.lists import concat_map
-from dbgen.utils.str_utils import hash_
+from dbgen.utils.misc import Base, nonempty
+from dbgen.utils.sql import Connection as Conn
 from dbgen.utils.sql import (
-    Connection as Conn,
-    sqlexecute,
+    DictCursor,
+    mkInsCmd,
     mkSelectCmd,
     mkUpdateCmd,
+    sqlexecute,
     sqlselect,
-    mkInsCmd,
-    DictCursor,
 )
-
-from dbgen.templates import jinja_env
+from dbgen.utils.str_utils import hash_
 
 # Internal
 if TYPE_CHECKING:
@@ -189,41 +184,98 @@ class Gen(Base):
         for gid in gids:
             sqlexecute(mconn, "DELETE FROM repeats WHERE gen_id = %s", [gid])
 
-    def test(self, input_rows: L[D[str, Any]], rename_dict: bool = True):
+    def test(
+        self,
+        objs,
+        input_rows: L[D[str, Any]],
+        rename_dict: bool = True,
+        verbose: bool = False,
+    ):
         # Apply the
         output_dicts = []
         for row in input_rows:
             result_dict = {self.query.hash: row} if self.query else {}
-            for pb in self.funcs:
-                result_dict[pb.hash] = pb(result_dict)
+            if verbose:
+                from tqdm import tqdm  # type: ignore
+
+                with tqdm(total=len(self.funcs)) as tq:
+                    for pb in self.funcs:
+                        tq.set_description(pb.func.name)
+                        result_dict[pb.hash] = pb(result_dict)
+                        tq.update()
+            else:
+                for pb in self.funcs:
+                    result_dict[pb.hash] = pb(result_dict)
 
             # Replace pyblock hashes with function names if flag is True
-            func_name_dict = {pb.hash: pb.func.name for pb in self.funcs}
-            if rename_dict:
-                result_dict = {
-                    func_name_dict.get(key, "query"): val
-                    for key, val in result_dict.items()
-                }
+            lambda_count = 0
+            func_name_dict = {}
+            name_count: D[str, int] = defaultdict(int)
+            for pb in self.funcs:
+                name = pb.func.name
+                if pb.func.is_lam:
+                    func_name_dict[pb.hash] = f"lambda{lambda_count}->{pb.outnames}"
+                    lambda_count += 1
+                else:
+                    # Need to account for multiple pyblocks using same function
+                    if name_count[name] > 0:
+                        func_name_dict[pb.hash] = "_".join(
+                            [name, str(name_count[name])]
+                        )
+                    else:
+                        func_name_dict[pb.hash] = name
+                    name_count[name] += 1
+
             output_dicts.append(result_dict)
 
-        return output_dicts
+        action_dicts: D[str, list] = defaultdict(list)
+        for i, a in enumerate(self.actions):
+            output_dict = a.test(objs=objs, rows=output_dicts)
+            for table_name, rows in output_dict.items():
+                action_dicts[table_name].extend(rows)
+
+        # Rename PyBlocks
+        if rename_dict:
+            for i, row in enumerate(output_dicts):
+                output_dicts[i] = {
+                    func_name_dict.get(key, "query"): val for key, val in row.items()
+                }
+
+        return output_dicts, action_dicts
 
     def test_with_db(
-        self, db: Conn, limit: int = 5, rename_dict: bool = True
-    ) -> D[str, Any]:
+        self,
+        objs,
+        db: Conn = None,
+        limit: int = 5,
+        rename_dict: bool = True,
+        interact: bool = False,
+        input_rows: L[dict] = [],
+    ) -> L[D[str, Any]]:
         assert limit <= 200, "Don't allow for more than 200 rows with test with db"
         assert (
-            self.query is not None
-        ), "This generator doesn't have a query, just use gen.test() method"
-        cursor = db.connect(auto_commit=False).cursor(
-            f"test-{self.name}", cursor_factory=DictCursor
-        )
+            db is None or self.query is not None
+        ), "Need to provide a db connection if generator has a query"
 
-        # If there is a query get the row count and execute it
-        query_str = self.query.showQ(limit=limit)
-        cursor.execute(query_str)
-        input_rows = cursor.fetchall()
-        return self.test(input_rows, rename_dict)
+        if db is not None and self.query is not None:
+            cursor = db.connect(auto_commit=False).cursor(
+                f"test-{self.name}", cursor_factory=DictCursor
+            )
+            # If there is a query get the row count and execute it
+            query_str = self.query.showQ(limit=limit)
+            print("Executing Query...")
+            cursor.execute(query_str)
+            input_rows.extend(cursor.fetchall())
+            print("Fetching Rows...")
+            print("Closing Connection...")
+            cursor.close()
+
+        if interact:
+            from dbgen.utils.interact import interact_gen
+
+            return interact_gen(objs, self, input_rows)
+        else:
+            return self.test(objs, input_rows, rename_dict)
 
     ##################
     # Private Methods #

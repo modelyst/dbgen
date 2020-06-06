@@ -409,3 +409,8 @@ class Model(Schema):
         for g in self.gens.values():
             alldone.update(g.dep(self.objs).cols_yielded)
         return allattr - alldone
+
+    def _get_universe(self):
+        return {
+            oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()
+        }
