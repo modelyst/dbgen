@@ -154,10 +154,12 @@ def interact_gen(
                             lambda prev, next: prev.union(set(next.keys())), rows, set()
                         )
                         table = PrettyTable(field_names=list(all_keys))
-                        [
-                            table.add_row(list(row.get(key) for key in all_keys))
-                            for row in curr_action_dict[display][:max_rows]
-                        ]
+                        for row in curr_action_dict[display][:max_rows]:
+                            row_data = list(row.get(key) for key in all_keys)
+                            row_data = [
+                                (data if data != "" else '""') for data in row_data
+                            ]
+                            table.add_row(row_data)
                         print(table)
                     else:
                         print("No rows to be updated or inserted")

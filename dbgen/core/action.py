@@ -451,7 +451,7 @@ class Action(Base):
             if not line:
                 break
             table_rows.append(
-                {col: val for col, val in zip(cols, line.strip().split("\t"))}
+                {col: val for col, val in zip(cols, line.strip('\n').split("\t"))}
             )
 
         output = {self.obj + ("_insert" if self.insert else ""): table_rows}

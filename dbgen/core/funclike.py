@@ -46,9 +46,10 @@ class Arg(ArgLike):
     How a function refers to a namespace
     """
 
-    def __init__(self, key: str, name: str) -> None:
+    def __init__(self, key: str, name: str, singleton: bool = False) -> None:
         self.key = str(key)
         self.name = name.lower()
+        self.singleton = singleton
 
     def __str__(self) -> str:
         return "Arg(%s...,%s)" % (str(self.key)[:4], self.name)
@@ -64,7 +65,7 @@ class Arg(ArgLike):
         """
         try:
             val = dic[self.key][self.name]
-            return val
+            return val if not self.singleton else [val]
         except KeyError as e:
             if self.key not in dic:
                 print(
@@ -76,6 +77,11 @@ class Arg(ArgLike):
                 err = "could not find '%s' in %s "
                 print(err % (self.name, list(dic[self.key].keys())))
             raise e
+
+    def get_list(self) -> "Arg":
+        out = self.copy()
+        out.singleton = True
+        return out
 
     def add(self, cxn: Conn, act: int, block: int) -> None:
         q = mkInsCmd("_arg", ["gen_id", "block_id", "hashkey", "name"])
