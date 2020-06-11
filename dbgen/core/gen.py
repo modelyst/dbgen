@@ -315,11 +315,12 @@ class Gen(Base):
     def _get_saved_key_dict(self, action: Action) -> D[str, S[str]]:
         saved_keys = {}  # type: D[str,S[str]]
         if action.pk:
-            hash_loc = action.pk.key
-            arg_name = action.pk.name
-            saved_keys.update(
-                {hash_loc: set([arg_name, *saved_keys.get(hash_loc, set())])}
-            )
+            if isinstance(action.pk, Arg):
+                hash_loc = action.pk.key
+                arg_name = action.pk.name
+                saved_keys.update(
+                    {hash_loc: set([arg_name, *saved_keys.get(hash_loc, set())])}
+                )
 
         for val in action.attrs.values():
             if isinstance(val, Arg):

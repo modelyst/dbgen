@@ -17,7 +17,7 @@ from hypothesis.strategies import (
 )
 
 
-from dbgen.core.funclike import ArgLike, Arg
+from dbgen.core.funclike import ArgLike, Arg, Const
 from dbgen.core.misc import ExternalError
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.str_utils import hashdata_
@@ -68,7 +68,16 @@ class Action(Base):
         self._logger.setLevel(logging.DEBUG)
         err = "Cant insert %s if we already have PK %s"
         assert (pk is None) or (not insert), err % (obj, pk)
-        assert isinstance(pk, (Arg, type(None))), (obj, attrs, fks, pk, insert)
+        if isinstance(pk, Const) and pk == Const(None):
+            pass
+        else:
+            assert isinstance(pk, (Arg, type(None))), (
+                obj,
+                attrs,
+                fks,
+                pk,
+                insert,
+            )
         super().__init__()
 
     def __str__(self) -> str:
@@ -86,7 +95,8 @@ class Action(Base):
         if not self.insert:
             deps.append(self.obj)
         for fk in self.fks.values():
-            deps.extend(fk.tabdeps())
+            if fk.pk is not None:
+                deps.extend(fk.tabdeps())
         return deps
 
     def newtabs(self) -> L[str]:
@@ -451,7 +461,7 @@ class Action(Base):
             if not line:
                 break
             table_rows.append(
-                {col: val for col, val in zip(cols, line.strip('\n').split("\t"))}
+                {col: val for col, val in zip(cols, line.strip("\n").split("\t"))}
             )
 
         output = {self.obj + ("_insert" if self.insert else ""): table_rows}

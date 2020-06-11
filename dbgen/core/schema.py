@@ -19,7 +19,7 @@ from dbgen.core.action import Action
 from dbgen.core.misc import Dep
 from dbgen.core.expr.expr import PK
 from dbgen.core.pathconstraint import Path as AP
-from dbgen.core.funclike import Arg, PyBlock
+from dbgen.core.funclike import Arg, PyBlock, Const
 from dbgen.utils.misc import Base, letters
 from dbgen.utils.sql import (
     Connection as Conn,
@@ -360,7 +360,7 @@ class Obj(Base):
             if not isinstance(v, Action):
                 # We OUGHT have a reference to a FK from a query
                 try:
-                    assert isinstance(v, Arg)
+                    assert isinstance(v, (Arg, Const))
                 except AssertionError:
                     import pdb
 
