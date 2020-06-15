@@ -73,8 +73,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--add",
-    default=False,
-    type=lambda x: bool(strtobool(x)),
+    action="store_false",
     help="Try to add columns (if you make benign schema additions)",
 )
 
@@ -91,10 +90,7 @@ parser.add_argument("--start", default="", help="Start at the designed Generator
 parser.add_argument("--until", default="", help="Stop at the designed Generator")
 
 parser.add_argument(
-    "--retry",
-    default=False,
-    type=lambda x: bool(strtobool(x)),
-    help="Ignore repeat checking",
+    "--retry", action="store_false", help="Ignore repeat checking",
 )
 
 parser.add_argument(
@@ -111,10 +107,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--skip-row-count",
-    default=False,
-    type=lambda x: bool(strtobool(x)),
-    help="Skip Row count for large queries",
+    "--skip-row-count", action="store_false", help="Skip Row count for large queries",
 )
 
 parser.add_argument(
@@ -122,10 +115,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--write-logs",
-    default=False,
-    type=lambda x: bool(strtobool(x)),
-    help="write logs to local file",
+    "--write-logs", action="store_false", help="write logs to local file",
 )
 
 parser.add_argument(
