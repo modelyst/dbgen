@@ -430,8 +430,12 @@ class Obj(Base):
         Generate SQL necessary to create an object's corresponding table
         """
         create_str = 'CREATE TABLE IF NOT EXISTS "%s" ' % self.name
-
-        cols, coldescs, colindexes = zip(*[a.create_col(self.name) for a in self.attrs])
+        if len(self.attrs) != 0:
+            cols, coldescs, colindexes = zip(
+                *[a.create_col(self.name) for a in self.attrs]
+            )
+        else:
+            cols, coldescs, colindexes = [], [], []
         pk = self.id_str + " BIGINT PRIMARY KEY "
         deld = "deleted BOOLEAN NOT NULL DEFAULT FALSE"
         full_cols = [pk, deld] + list(cols)
