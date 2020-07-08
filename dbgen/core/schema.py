@@ -99,12 +99,14 @@ class Attr(Base):
         identifying: bool = False,
         default: Any = None,
         desc: str = "<No description>",
+        index: bool = False,
     ) -> None:
         assert name
         self.name = name.lower()
         self.desc = desc
         self.dtype = dtype or Int()
         self.identifying = identifying
+        self.index = index
         self.default = default
         super().__init__()
 
@@ -119,7 +121,7 @@ class Attr(Base):
     # Public methods #
     ####################
 
-    def create_col(self, tabname: str) -> T[str, str]:
+    def create_col(self, tabname: str) -> T[str, str, str]:
         """
         Create statement for column when creating a table.
         """
@@ -128,9 +130,15 @@ class Attr(Base):
         desc = 'comment on column "{}"."{}" is \'{}\''.format(
             tabname, self.name, self.desc.replace("'", "''")
         )
+
         fmt_args = [self.name, dt, dflt]
         create = '"{}" \t{} {}'.format(*fmt_args)
-        return create, desc
+        index = (
+            f'\nCREATE INDEX IF NOT EXISTS {tabname}_{self.name}_idx ON {tabname} ("{self.name}")'
+            if self.index
+            else ""
+        )
+        return create, desc, index
 
 
 class View(Base, metaclass=ABCMeta):
@@ -423,18 +431,21 @@ class Obj(Base):
         """
         create_str = 'CREATE TABLE IF NOT EXISTS "%s" ' % self.name
 
-        colcoldescs = [a.create_col(self.name) for a in self.attrs]
-        cols, coldescs = [x[0] for x in colcoldescs], [x[1] for x in colcoldescs]
+        cols, coldescs, colindexes = zip(*[a.create_col(self.name) for a in self.attrs])
         pk = self.id_str + " BIGINT PRIMARY KEY "
         deld = "deleted BOOLEAN NOT NULL DEFAULT FALSE"
-        cols = [pk, deld] + cols
+        full_cols = [pk, deld] + list(cols)
 
         tabdesc = "comment on table \"{}\" is '{}'".format(
             self.name, self.desc.replace("'", "''")
         )
-        fmt_args = [create_str, "\n\t,".join(cols)]
+        fmt_args = [create_str, "\n\t,".join(full_cols)]
         cmd = "{}\n\t({})".format(*fmt_args)
-        sqls = [cmd, tabdesc] + coldescs
+        sqls = (
+            [cmd, tabdesc]
+            + list(coldescs)
+            + list(filter(lambda x: x != "", colindexes))
+        )
         return sqls
 
     def id(self, path: AP = None) -> PK:

@@ -6,6 +6,7 @@ from typing import (
     Dict as D,
     Union as U,
     Callable as C,
+    Mapping as M
 )
 from hypothesis.strategies import SearchStrategy, builds, lists, dictionaries
 
@@ -49,7 +50,7 @@ class Query(Expr):
 
     def __init__(
         self,
-        exprs: D[str, Expr],
+        exprs: M[str, Expr],
         basis: L[U[str, Obj]] = None,
         constr: Expr = None,
         aggcols: L[Expr] = None,
