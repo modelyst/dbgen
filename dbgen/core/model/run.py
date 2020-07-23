@@ -157,6 +157,9 @@ I hope you know what you are doing!!!
                         logger.debug("dup")
                         pass
                     else:
+                        import pdb
+
+                        pdb.set_trace()
                         raise Error(e)
         for v in tqdm(self.viewlist, desc="Adding new views", leave=False):
             try:

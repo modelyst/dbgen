@@ -199,10 +199,11 @@ class Schema(Base):
     def add_cols(self, obj: Obj) -> L[str]:
         attr_stmts = []
         for c in obj.attrs:
-            col_name, col_desc = c.create_col(obj.name)
+            col_name, col_desc, c_index = c.create_col(obj.name)
             stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name)
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
+            attr_stmts.append(c_index)
         rel_stmts = [self._create_fk(rel) for rel in obj.fkdict.values()]
         return attr_stmts + rel_stmts
 
