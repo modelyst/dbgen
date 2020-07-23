@@ -203,7 +203,8 @@ class Schema(Base):
             stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name)
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
-            attr_stmts.append(c_index)
+            if c_index:
+                attr_stmts.append(c_index)
         rel_stmts = [self._create_fk(rel) for rel in obj.fkdict.values()]
         return attr_stmts + rel_stmts
 

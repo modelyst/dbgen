@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, List as L
 
 from tqdm import tqdm  # type: ignore
+import re
 from bdb import BdbQuit
 import logging
 from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
@@ -156,10 +157,14 @@ I hope you know what you are doing!!!
                     if e.pgcode == "42701":
                         logger.debug("dup")
                         pass
+                    # Error code for when a relation doesn't exist on a table we
+                    # are adding
+                    elif re.match(
+                        'column "\w+" of relation "\w+" does not exist', str(e)
+                    ):
+                        logger.debug(f"PGERROR: {e}")
+                        pass
                     else:
-                        import pdb
-
-                        pdb.set_trace()
                         raise Error(e)
         for v in tqdm(self.viewlist, desc="Adding new views", leave=False):
             try:
