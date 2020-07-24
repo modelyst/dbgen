@@ -59,7 +59,7 @@ def interact_gen(
         system("clear")
         print("Next Row:")
         x.add_row(next_row.values())
-        print(x)
+        pprint(next_row_str(print_len))
         answer = None
         while answer not in ("c", "s",):
             if answer == "m":
