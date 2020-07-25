@@ -12,6 +12,14 @@ dbgen.utils.graphs module
    :undoc-members:
    :show-inheritance:
 
+dbgen.utils.interact module
+---------------------------
+
+.. automodule:: dbgen.utils.interact
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dbgen.utils.lists module
 ------------------------
 
