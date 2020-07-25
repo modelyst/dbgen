@@ -1,21 +1,49 @@
 
+.. image:: https://cdn.iconscout.com/icon/premium/png-512-thumb/database-997-801373.png
+
 ============
 Introduction
 ============
-`IMAGE HERE`
 
-DBgen (Database Generator) is an open-source Python library
-for scientific data pipelines. These are some of the main features:
+DBgen (Database Generator) is an open-source Python library for connecting raw data, scientific theories, and relational databases. These are some of the main features:
 
 1. ???
 2. Integration with the PostGres databases.
 
 
-Why use DBgen?
+DBgen was initially developed by `Modelyst <https://www.modelyst.io/>`_ .
+
+What is DBgen?
+==============
+
+DBgen was designed to support scientfic data analysis with the following characteristics:
+
+1. Transparent
+ - Because scientific efforts ought be shareable and mutually understandable.
+ - Achieved by ???
+2. Flexible
+ - Because scientific theories are under continuous flux.
+ - Achieved by ???
+3. Maintainable
+ - Because the underlying scientific models one works with are complicated enough on their own, we can't afford to introduce any more complexity via our framework.
+ - Achieved by??
+
+ DBGen is an opinionated ETL tool. ETL tools exist but they rarely give the tools necessary for a scientific workflow. Opinionated aspect: it really cares about what the end product is (ID columns on all the tables). We're dealing with a much more restricted ETL problem (extracting and ).
+
+ Comparison to
+ 1. Airflow
+  - As a priority for ETL scalability
+  - DBgen workflows can be converted to Airflow.
+ 2. Fireworks
+  - ???
+
+
+What isn't DBgen?
 =================
-
-1. ???
-
+1. An `ORM <https://en.wikipedia.org/wiki/Object-relational_mapping>`_ tool (see `Hibernate <http://hibernate.org/orm/>`_ for Java or  `SQLAlchemy <https://www.sqlalchemy.org/>`_ for Python)
+ - DBgen operates at a higher level of abstraction, not exposing the user to low level SQL commands like :code:`SELECT` or :code:`INSERT`.
+2. A database manager (see `MySQLWorkbench <https://www.mysql.com/products/workbench/>`_, `DBeaver <https://dbeaver.io/>`_, `TablePlus <https://tableplus.com/>`_, etc.)
+3. An opinioniated tool with a particular schema for scientific data / theories.
 
 Getting DBgen
 ================
@@ -59,9 +87,6 @@ DBgen is released under the ??? License. The terms of the license are as
 follows:
 
 .. literalinclude:: ../LICENSE.rst
-
-About the Team
-==============
 
 
 Indices and tables
