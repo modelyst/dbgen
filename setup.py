@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages  # type: ignore
 
 # Internal Imports
-
+from .
 
 setup(
     name="dbgen",

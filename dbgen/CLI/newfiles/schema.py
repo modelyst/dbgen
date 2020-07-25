@@ -17,7 +17,7 @@ emp = Obj(
 dept = Obj(
     name="department",
     desc="collection of employees",
-    attrs=[Attr("name", Varchar(), identifying=True), Attr("total_cost", Decimal())],
+    attrs=[Attr("name", Varchar(), identifying=True), Attr("total_salary", Decimal())],
 )
 
 

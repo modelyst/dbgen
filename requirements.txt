@@ -2,7 +2,7 @@ apache-airflow
 jinja2>=2.10.0
 werkzeug>=0.15.0
 networkx
-psycopg2
+psycopg2-binary
 tqdm
 pathos
 infinite

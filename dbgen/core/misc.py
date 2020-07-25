@@ -155,14 +155,16 @@ class ConnectInfo(Base):
                     raise OperationalError(
                         f"Database {self.db} does not exist, please check connection or create DB before running DBgen or first time"
                     )
+                raise exc
             except Error as exc:
                 print(exc)
                 import pdb
 
                 pdb.set_trace()
                 sleep(1)
-
-        raise Error()
+        raise Error(
+            f"Exceeded number of attempts to connect to host using credentials. Please make sure the database is running and you have provided the correct credentials."
+        )
 
     def to_file(self, pth: str) -> None:
         """Store connectinfo data as a JSON file"""

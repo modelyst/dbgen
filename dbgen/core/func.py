@@ -1,6 +1,6 @@
 # External Modules
 from typing import Any, List as L, Dict as D, Union as U, Callable as C
-
+from tempfile import gettempdir
 from os import environ
 from re import findall
 from os.path import join, exists
@@ -31,7 +31,7 @@ from dbgen.utils.sql import (
 Defines the Func class, which is initialized with any Python callable but gets
 enriched in the __init__ with a lot more information and methods (from inspect)
 """
-
+TEMPDIR = environ.get("DBGEN_TEMP") or gettempdir()
 assert version_info[1] > 5, "Stop using old python3 (need 3.x, x > 5)"
 ################################################################################
 class Import(Base):
@@ -158,8 +158,12 @@ class Env(Base):
             return cls.from_str(f.readlines())
 
 
-defaultEnv = Env.from_file(environ["DEFAULT_ENV"])
 emptyEnv = Env()
+# Default environement is read from file if environmental variable is set
+# otherwise no default is used
+defaultEnv = (
+    Env.from_file(environ["DEFAULT_ENV"]) if "DEFAULT_ENV" in environ else emptyEnv
+)
 
 
 ################################################################################
@@ -262,6 +266,7 @@ class Func(Base):
         """
         Execute source code to get a callable
         """
+
         pth = join(environ["DBGEN_TEMP"], str(hash_(self.file())) + ".py")
 
         if not exists(pth):
