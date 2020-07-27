@@ -1,6 +1,5 @@
 # External Modules
 from typing import Any, List as L, Dict as D, Union as U, Callable as C
-from tempfile import gettempdir
 from os import environ
 from re import findall
 from os.path import join, exists
@@ -18,6 +17,7 @@ from hypothesis.strategies import SearchStrategy, builds  # type: ignore
 
 # Iternal Modules
 from dbgen.core.datatypes import DataType, Tuple
+from dbgen.core.misc import InternalError
 from dbgen.utils.misc import hash_, Base
 from dbgen.utils.sql import (
     sqlexecute,
@@ -26,12 +26,12 @@ from dbgen.utils.sql import (
     mkSelectCmd,
     Connection as Conn,
 )
+from ..utils.config import DBGEN_TMP, DEFAULT_ENV
 
 """
 Defines the Func class, which is initialized with any Python callable but gets
 enriched in the __init__ with a lot more information and methods (from inspect)
 """
-TEMPDIR = environ.get("DBGEN_TEMP") or gettempdir()
 assert version_info[1] > 5, "Stop using old python3 (need 3.x, x > 5)"
 ################################################################################
 class Import(Base):
@@ -162,7 +162,7 @@ emptyEnv = Env()
 # Default environement is read from file if environmental variable is set
 # otherwise no default is used
 defaultEnv = (
-    Env.from_file(environ["DEFAULT_ENV"]) if "DEFAULT_ENV" in environ else emptyEnv
+    Env.from_file(DEFAULT_ENV) if DEFAULT_ENV and exists(DEFAULT_ENV) else emptyEnv
 )
 
 
@@ -267,7 +267,7 @@ class Func(Base):
         Execute source code to get a callable
         """
 
-        pth = join(environ["DBGEN_TEMP"], str(hash_(self.file())) + ".py")
+        pth = join(DBGEN_TMP, str(hash_(self.file())) + ".py")
 
         if not exists(pth):
             with open(pth, "w") as t:
@@ -345,11 +345,12 @@ class Func(Base):
             return funcs[0][1]
 
         except Exception as e:
-            print("Error while trying to load source code", e, "\n\n" + pth)
-            import pdb
-
-            pdb.set_trace()
-            assert False, "Error loading source code"
+            if exists(pth):
+                with open(pth) as f:
+                    content = f.read()
+            raise InternalError(
+                f"Error while trying to load source code. You may be missing an import in your PyBlocks Env object. \nPath:{pth}\nFile Contents:\n--------\n{content}\n--------\nLoad Error: {e}"
+            )
 
     @classmethod
     def from_callable(cls, f: U[C, "Func"], env: Env = None) -> "Func":

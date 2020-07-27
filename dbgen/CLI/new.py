@@ -3,7 +3,7 @@ import sys
 from venv import create  # type: ignore
 from os import mkdir, environ, system
 from os.path import join, exists, dirname, abspath
-from shutil import copyfile
+from shutil import copyfile, rmtree
 from argparse import ArgumentParser
 from dbgen import __file__ as DBGEN_ROOT
 import configparser
@@ -77,18 +77,19 @@ parser.add_argument("--name", type=str, help="Name of model", required=True)
 parser.add_argument(
     "--env", default=".env/bin/activate", type=str, help="Name of model"
 )
+parser.add_argument("--create-env", action="store_true", help="Create a virtual env")
 
 ################################################################################
 def create_config(model_name: str, model_root: str):
     model_root = abspath(model_root)
     envvars = dict(
-        model_name=model_name,
-        model_root=model_root,
-        model_temp="${model_root}/dbgen_files/tmp",
-        default_env="${model_root}/dbgen_files/default.py",
-    )  # THIS SHOULD BE AN EMPTY STRING!!!
+        MODEL_NAME=model_name,
+        MODEL_ROOT=model_root,
+        MODEL_TMP=f"{model_root}/dbgen_files/tmp",
+        DEFAULT_ENV=f"{model_root}/dbgen_files/default.py",
+    )
     config = configparser.ConfigParser()
-    config["dbgen_files"] = envvars
+    config["dbgen"] = envvars
     with open(join(model_root, "model.cfg"), "w") as f:
         config.write(f)
 
@@ -102,7 +103,16 @@ def main(pth: str, name: str, env: str, create_env: bool = True) -> None:
     # """
     if exists(pth):
         print(pth, " already exists")
-        return
+        while True:
+            answer = input("Overwrite? (y/n)").lower()
+            if answer == "y":
+                rmtree(pth)
+                break
+            elif answer == "n":
+                return
+            else:
+                print("invalid response")
+
     mkdir(pth)
 
     for dir in dirs:
@@ -124,4 +134,4 @@ def main(pth: str, name: str, env: str, create_env: bool = True) -> None:
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    main(args.pth, args.name, args.env)
+    main(args.pth, args.name, args.env, args.create_env)

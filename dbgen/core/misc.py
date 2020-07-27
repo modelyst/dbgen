@@ -45,6 +45,21 @@ class ExternalError(Exception, Base):
     def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
+class InternalError(Exception, Base):
+    """
+    Custom class for catching errors that occur in code external to dbgen
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    @classmethod
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls)
+
 
 class GeneratorError(Exception, Base):
     """
@@ -97,7 +112,7 @@ class ConnectInfo(Base):
     ) -> None:
 
         if not user:
-            user = passwd = environ["USER"]
+            user = passwd = environ.get("USER", "")
 
         self.host = host
         self.port = port

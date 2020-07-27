@@ -30,7 +30,7 @@ def io(mod: Model) -> None:
     pe_func = PyBlock(
         parse_employees,
         env=defaultEnv + Env([Import("csv", "reader")]),
-        args=[Const(join(config["dbgen_files"]["model_root"], "data/example.csv"))],
+        args=[Const(join(config["dbgen"]["model_root"], "data/example.csv"))],
         outnames=["ename", "sal", "man", "dname", "sec"],
     )
 

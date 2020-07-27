@@ -73,7 +73,7 @@ def run(
     # ----------------------
     self.test_funcs()
 
-    # # Setup logger
+    # # Setup logger and config
     # # --------------------
     logger = setup_logger("run", log_level, write_logs=write_logs, log_path=log_path)
 

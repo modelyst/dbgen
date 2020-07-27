@@ -17,8 +17,8 @@ def main(args: dict) -> None:
     Run the model with no extensions from command line.
     """
     config = get_config()
-    model_root = config["dbgen_files"]["model_root"]
-    model_name = config["dbgen_files"]["model_name"]
+    model_root = config["dbgen"]["model_root"]
+    model_name = config["dbgen"]["model_name"]
     m = make_model(model_name)
     db = ConnectInfo.from_file(join(model_root, "dbgen_files/dev.json"))
     mdb = ConnectInfo.from_file(join(model_root, "dbgen_files/log.json"))
