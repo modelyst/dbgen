@@ -31,17 +31,19 @@ DBgen was designed to support scientfic data analysis with the following charact
  DBGen is an opinionated ETL tool. ETL tools exist but they rarely give the tools necessary for a scientific workflow. Opinionated aspect: it really cares about what the end product is (ID columns on all the tables). We're dealing with a much more restricted ETL problem (extracting and ).
 
  Comparison to
- 1. Airflow
-  - As a priority for ETL scalability
-  - DBgen workflows can be converted to Airflow.
- 2. Fireworks
-  - ???
 
+ 1. `Airflow <https://airflow.apache.org/>`_
+  - Has a priority for ETL scalability
+ 2. `Fireworks <https://materialsproject.github.io/fireworks/>`_
+  - ???
+ 3. `AiiDA <http://www.aiida.net/>`_ or `Atomate <https://atomate.org/>`_
+  - We don't focus on the actual submission of computational science workflows.
 
 What isn't DBgen?
 =================
 1. An `ORM <https://en.wikipedia.org/wiki/Object-relational_mapping>`_ tool (see `Hibernate <http://hibernate.org/orm/>`_ for Java or  `SQLAlchemy <https://www.sqlalchemy.org/>`_ for Python)
  - DBgen operates at a higher level of abstraction, not exposing the user to low level SQL commands like :code:`SELECT` or :code:`INSERT`.
+ - DBgen behaves
 2. A database manager (see `MySQLWorkbench <https://www.mysql.com/products/workbench/>`_, `DBeaver <https://dbeaver.io/>`_, `TablePlus <https://tableplus.com/>`_, etc.)
 3. An opinioniated tool with a particular schema for scientific data / theories.
 

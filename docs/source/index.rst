@@ -12,11 +12,13 @@ Welcome to dbgen's documentation!
 
    modules
    introduction
+   usage
 
 Indices and tables
 ==================
 
 * :ref:`introduction`
+* :ref:`usage`
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
