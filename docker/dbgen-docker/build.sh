@@ -21,18 +21,20 @@ IMAGE=${IMAGE:-dbgen}
 TAG=${TAG:-latest}
 DIRNAME=$(cd "$(dirname "$0")" && pwd)
 DBGEN_ROOT="${DIRNAME}/../.."
-
-set -e
-
-echo "DBgen directory ${DBGEN_ROOT}"
-echo "DBgen Docker directory ${DIRNAME}"
+VERSION=$1
+if [ ! -f "${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz" ]
+then
+  echo "Version ${VERSION} does not exist at ${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz"
+  exit
+fi
 
 cd "${DBGEN_ROOT}"
 
 echo "Copy distro ${DBGEN_ROOT}/dist/*.tar.gz ${DIRNAME}/dbgen.tar.gz"
-cp ${DBGEN_ROOT}/dist/*.tar.gz "${DIRNAME}/dbgen.tar.gz"
-cp ${DBGEN_ROOT}/requirements.txt "${DIRNAME}/requirements.txt"
-cd "${DIRNAME}" && docker build --pull "${DIRNAME}" --tag="${IMAGE}:${TAG}" \
- --build-arg DEFAULT_ENV=/dbgen_files/default.py
+cp ${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz "${DIRNAME}/dbgen.tar.gz"
+
+docker build --pull  ${DBGEN_ROOT}/docker/dbgen-docker --tag="${IMAGE}:${VERSION}" \
+ --build-arg DEFAULT_ENV=/dbgen_files/default.py \
+ --build-arg DBGEN_TARBALL=${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz
+
 rm "${DIRNAME}/dbgen.tar.gz"
-rm "${DIRNAME}/requirements.txt"

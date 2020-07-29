@@ -9,4 +9,4 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Build the Docker image
-        run: ./docker/dbgen-docker/build_2.sh 0.2.0
+        run: ./docker/dbgen-docker/build.sh 0.2.0
