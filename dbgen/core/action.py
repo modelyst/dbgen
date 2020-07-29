@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
 import psycopg2  # type: ignore
 from psycopg2.errors import QueryCanceled  # type: ignore
-from psycopg2 import Error  # type: ignore
 import re
 from jinja2 import Template
 from io import StringIO
@@ -18,7 +17,7 @@ from hypothesis.strategies import (
 
 
 from dbgen.core.funclike import ArgLike, Arg, Const
-from dbgen.core.misc import ExternalError
+from dbgen.utils.exceptions import Psycopg2Error, DBgenExternalError
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.str_utils import hashdata_
 from dbgen.utils.lists import broadcast
@@ -64,7 +63,7 @@ class Action(Base):
         self.fks = {k.lower(): v for k, v in fks.items()}
         self.pk = pk
         self.insert = insert
-        self._logger = logging.getLogger(f"run.loading.{self.obj}")
+        self._logger = logging.getLogger(f"dbgen.run.loading.{self.obj}")
         self._logger.setLevel(logging.DEBUG)
         err = "Cant insert %s if we already have PK %s"
         assert (pk is None) or (not insert), err % (obj, pk)
@@ -318,7 +317,7 @@ class Action(Base):
 
         Raises:
             ValueError: [description]
-            ExternalError: [description]
+            DBgenExternalError: [description]
             ValueError: [description]
         """
         # Temporary table to copy data into
@@ -381,8 +380,8 @@ class Action(Base):
                     print("Query cancel failed")
                     query_fail_count += 1
                     continue
-                except Error as exc:
-                    raise ExternalError(exc.pgerror)
+                except Psycopg2Error as exc:
+                    raise DBgenExternalError(exc.pgerror)
 
             # Try to insert everything from the temp table into the real table
             # If a foreign_key violation is hit, we delete those rows in the

@@ -22,72 +22,11 @@ if TYPE_CHECKING:
 
 """
 Defines some support classes used throughout the project:
-- ExternalError
 - ConnectInfo
 - Test
 - Dep
 
 """
-
-################################################################################
-class ExternalError(Exception, Base):
-    """
-    Custom class for catching errors that occur in code external to dbgen
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls)
-
-class InternalError(Exception, Base):
-    """
-    Custom class for catching errors that occur in code external to dbgen
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls)
-
-
-class GeneratorError(Exception, Base):
-    """
-    Custom class for catching errors that occur in code external to dbgen
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    # Add custom stuff here?
-
-
-class SkipException(Exception, Base):
-    """
-    Custom class for catching errors that occur in code external to dbgen
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-
-################################################################################
 
 
 class ConnectInfo(Base):

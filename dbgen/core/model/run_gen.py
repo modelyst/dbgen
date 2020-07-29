@@ -19,7 +19,11 @@ from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.core.gen import Gen
 from dbgen.core.funclike import PyBlock
 from dbgen.core.action import Action
-from dbgen.core.misc import ExternalError, SkipException, Error
+from dbgen.utils.exceptions import (
+    DBgenExternalError,
+    DBgenInternalError,
+    DBgenSkipException,
+)
 
 from dbgen.utils.lists import broadcast
 from dbgen.utils.numeric import safe_div
@@ -63,7 +67,7 @@ def run_gen(
     """
     # Initialize Variables
     # --------------------
-    logger = logging.getLogger(f"run.{gen.name}")
+    logger = logging.getLogger(f"dbgen.run.{gen.name}")
     logger.setLevel(logging.DEBUG)
 
     gen.update_status(gmcxn, run_id, "running")
@@ -210,7 +214,7 @@ def run_gen(
         sqlexecute(gmcxn, q, [runtime, rate, num_inputs, run_id, gen.name])
         return 0  # don't change error count
 
-    except ExternalError as e:
+    except DBgenExternalError as e:
         msg = "\n\nError when running generator %s\n" % gen.name
         logger.error(msg)
         q = mkUpdateCmd("gens", ["error", "status"], ["run", "name"])
@@ -227,7 +231,7 @@ def transform_func(
         for pb in pbs:
             logger.debug(f"running {pb.func.name}")
             d[pb.hash] = pb(d)
-    except SkipException:
+    except DBgenSkipException:
         return None, None
     return d, hash
 
@@ -240,7 +244,7 @@ def delete_unused_keys(
         try:
             names_space_dict = namespace[hash_loc]
         except KeyError:
-            raise Error(
+            raise DBgenInternalError(
                 f"Looking for the namespace dict with keys: {names}, at location {hash_loc} but can't find it.\nDid you leave out the query?\nKeys:{list(namespace.keys())}"
             )
         pruned_dict = {
@@ -266,7 +270,7 @@ def apply_batch(
 ) -> None:
 
     # Initialize variables
-    logger = logging.getLogger(f"run.{gen_name}.apply_batch")
+    logger = logging.getLogger(f"dbgen.run.{gen_name}.apply_batch")
     logger.setLevel(logging.DEBUG)
 
     open_mdb, open_db = cxns

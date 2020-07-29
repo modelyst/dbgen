@@ -13,8 +13,8 @@ from hypothesis.strategies import SearchStrategy, builds, just, one_of
 # Internal
 from dbgen.core.func import Env, Func
 from dbgen.core.misc import ConnectInfo as Conn
-from dbgen.core.misc import ExternalError
 from dbgen.templates import jinja_env
+from dbgen.utils.exceptions import DBgenExternalError
 from dbgen.utils.misc import Base, anystrat
 from dbgen.utils.sql import mkInsCmd, sqlexecute
 
@@ -91,11 +91,8 @@ class Arg(ArgLike):
 
 class Const(ArgLike):
     def __init__(self, val: Any) -> None:
-        if hasattr(val, "__call__"):
-            try:
-                val = Func.from_callable(val)
-            except:
-                raise NotImplementedError
+        if callable(val):
+            val = Func.from_callable(val)
         self.val = val
 
     def __str__(self) -> str:
@@ -188,7 +185,7 @@ class PyBlock(Base):
                 return {self.outnames[0]: output}
         except Exception:
             msg = "\tApplying func %s in tempfunc:\n\t" % (self.func.name)
-            raise ExternalError(msg + format_exc())
+            raise DBgenExternalError(msg + format_exc())
 
     def __getitem__(self, key: str) -> Arg:
         err = "%s not found in %s"

@@ -17,7 +17,7 @@ from hypothesis.strategies import SearchStrategy, builds  # type: ignore
 
 # Iternal Modules
 from dbgen.core.datatypes import DataType, Tuple
-from dbgen.core.misc import InternalError
+from dbgen.utils.exceptions import DBgenInternalError
 from dbgen.utils.misc import hash_, Base
 from dbgen.utils.sql import (
     sqlexecute,
@@ -348,7 +348,7 @@ class Func(Base):
             if exists(pth):
                 with open(pth) as f:
                     content = f.read()
-            raise InternalError(
+            raise DBgenInternalError(
                 f"Error while trying to load source code. You may be missing an import in your PyBlocks Env object. \nPath:{pth}\nFile Contents:\n--------\n{content}\n--------\nLoad Error: {e}"
             )
 

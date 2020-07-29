@@ -4,6 +4,9 @@ from tqdm import tqdm  # type: ignore
 import re
 from bdb import BdbQuit
 import logging
+from pathlib import Path
+
+# Internal imports
 from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
 from dbgen.core.gen import Gen
 from dbgen.core.schema import PathEQ
@@ -11,7 +14,7 @@ from dbgen.core.schema import PathEQ
 from dbgen.utils.sql import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
 from dbgen.utils.lists import concat_map
-from dbgen.utils.log import setup_logger
+from dbgen.utils.log import setup_logger, default_log_path
 
 # Internal
 if TYPE_CHECKING:
@@ -40,7 +43,7 @@ def run(
     batch: int = None,
     write_logs: bool = False,
     log_level: int = logging.INFO,
-    log_path: str = "./dbgen.log",
+    log_path: str = None,
 ) -> None:
     """
     This method is point of the model: to run and generate a database according
@@ -75,13 +78,15 @@ def run(
 
     # # Setup logger and config
     # # --------------------
-    logger = setup_logger("run", log_level, write_logs=write_logs, log_path=log_path)
+    path_to_log = log_path or default_log_path
+    setup_logger("dbgen", log_level, write_logs=write_logs, log_path=Path(path_to_log))
+    run_logger = logging.getLogger("dbgen.run")
 
     # Print to-do list for the model
     # ---------------------------------------
     todo = self._todo()
     if todo:
-        logger.warning(
+        run_logger.warning(
             "WARNING: the following attributes do not have any generator "
             "to populate them: \n\t-" + "\n\t-".join(sorted(todo))
         )
@@ -147,7 +152,7 @@ I hope you know what you are doing!!!
 !!!WARNING!!!!
 #######################################################################
         """
-        logger.warning(msg)
+        run_logger.warning(msg)
         for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False):
             for sqlexpr in ta.create():
                 try:
@@ -155,14 +160,14 @@ I hope you know what you are doing!!!
                 except Error as e:
                     # Error code for duplicate table
                     if e.pgcode == "42701":
-                        logger.debug("dup")
+                        run_logger.debug("dup")
                         pass
                     # Error code for when a relation doesn't exist on a table we
                     # are adding
                     elif re.match(
                         'column "\w+" of relation "\w+" does not exist', str(e)
                     ):
-                        logger.debug(f"PGERROR: {e}")
+                        run_logger.debug(f"PGERROR: {e}")
                         pass
                     else:
                         raise Error(e)
@@ -172,7 +177,7 @@ I hope you know what you are doing!!!
             except Error as e:
                 # Error code for duplicate table
                 if "already exists" in str(e):
-                    logger.debug("dup")
+                    run_logger.debug("dup")
                     pass
                 else:
                     raise Error(e)
@@ -218,7 +223,7 @@ I hope you know what you are doing!!!
             # ---------------------
             name = gen.name
             tq.set_description(name)
-            logger.info(f"Running {gen.name}...")
+            run_logger.info(f"Running {gen.name}...")
 
             # Set flags
             # --------------------------------
@@ -287,7 +292,7 @@ I hope you know what you are doing!!!
     gcxn.close()
     gmcxn.close()
     if bar:
-        logger.info(
+        run_logger.info(
             "\nFinished.\n\t"
             + ("did not run %s" % not_run if not_run else "Ran all Rules")
         )

@@ -1,5 +1,5 @@
 from typing import Optional, Tuple
-from re import finditer, MULTILINE, search, DOTALL, sub
+from re import finditer, MULTILINE, search, DOTALL
 from distutils.util import strtobool
 from argparse import ArgumentParser
 import logging
@@ -35,17 +35,6 @@ def btw(s: str, begin: str, end: str, off: int = 0) -> Tuple[str, int]:
         return result.group(1), result.end() + off
     else:
         return "", 0
-
-
-def condense_qe(x: str) -> str:
-    """
-    Condense quantum espresso logfiles by throwing away electronic step info
-    and band structure info
-    """
-    a = x[x.rfind("python dir") :]
-    y = sub("(bands \(ev\)).*?(Fermi)", "", a, flags=DOTALL)
-    z = sub("(iteration #  1).*?(End of)", "", y, flags=DOTALL)
-    return z
 
 
 def input_to_level(logging_level: str) -> int:
@@ -126,5 +115,5 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--log-path", default="./dbgen.log", help="Set path of output log file",
+    "--log-path", default=None, help="Set path of output log file",
 )
