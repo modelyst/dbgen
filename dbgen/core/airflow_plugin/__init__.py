@@ -1,5 +1,5 @@
 # External imports
-from airflow.plugins_manager import AirflowPlugin  # type: ignore
+from airflow.plugins_manager import AirflowPlugin
 
 # Internal Imports
 

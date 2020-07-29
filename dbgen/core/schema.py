@@ -10,7 +10,7 @@ from typing import (
     Iterator as Iter,
 )
 from abc import ABCMeta, abstractmethod
-from hypothesis.strategies import SearchStrategy, builds, lists, composite, just  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, lists, composite, just
 from hypothesis import infer
 
 

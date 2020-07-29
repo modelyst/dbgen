@@ -1,8 +1,8 @@
 # External
 from typing import Set as S, List as L, Dict as D, Union as U, Callable as C
 from copy import deepcopy
-from networkx import DiGraph  # type: ignore
-from tqdm import tqdm  # type: ignore
+from networkx import DiGraph
+from tqdm import tqdm
 from hypothesis.strategies import (
     SearchStrategy,
     builds,

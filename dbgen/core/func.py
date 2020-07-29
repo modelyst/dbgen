@@ -13,7 +13,7 @@ from inspect import (
     isfunction,
 )
 from importlib.util import spec_from_file_location, module_from_spec
-from hypothesis.strategies import SearchStrategy, builds  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds
 
 # Iternal Modules
 from dbgen.core.datatypes import DataType, Tuple

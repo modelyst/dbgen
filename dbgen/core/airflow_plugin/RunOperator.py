@@ -10,10 +10,10 @@ if TYPE_CHECKING:
     ConnI
     Conn
 
-from airflow.models import BaseOperator  # type: ignore
-from airflow.utils.decorators import apply_defaults  # type: ignore
-from airflow.hooks.postgres_hook import PostgresHook  # type: ignore
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
+from airflow.models import BaseOperator
+from airflow.utils.decorators import apply_defaults
+from airflow.hooks.postgres_hook import PostgresHook
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Internal Imports
 from ..misc import ConnectInfo as ConnI

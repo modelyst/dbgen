@@ -1,6 +1,6 @@
 # External Modules
 from typing import TYPE_CHECKING, Any
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 # Internal Modules
 from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Timestamp, Int, Boolean

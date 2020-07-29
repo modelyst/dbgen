@@ -1,12 +1,11 @@
+"""Configure the dbgen logger for each run"""
 # External imports
 import logging
 import sys
 from logging import Logger
 import logging.config
 from logging.handlers import RotatingFileHandler
-from os.path import exists, join, dirname
 from pathlib import Path
-import yaml
 
 # Internal Imports
 from .config import config as dbgen_config
@@ -35,6 +34,19 @@ def setup_logger(
     write_logs: bool = False,
     log_path: Path = default_log_path,
 ) -> Logger:
+    """
+    configures the dbgen logger for a given model
+
+    Args:
+        logger_name (str, optional): name of the logger. Defaults to "".
+        level (int, optional): level of the logger. Defaults to logging.INFO.
+        write_logs (bool, optional): should the log be written to a file. Defaults to False.
+        log_path (Path, optional): if write_logs write logs to this path.
+        Defaults to default_log_path.
+
+    Returns:
+        Logger: the Logger object
+    """
     format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
     custom_logger = logging.getLogger(logger_name)
     custom_logger.setLevel(level)

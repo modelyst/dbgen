@@ -6,7 +6,7 @@ from glob import glob
 from os import environ
 from os.path import join, abspath, dirname, exists
 from datetime import datetime
-from dbgen.core.airflow_plugin import GenOperator  # type: ignore
+from dbgen.core.airflow_plugin import GenOperator
 
 # Internal Imports
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ def run_airflow(
     for w in only_ | xclude_:
         self._validate_name(w)
 
-    from airflow.hooks.postgres_hook import PostgresHook  # type: ignore
+    from airflow.hooks.postgres_hook import PostgresHook
 
     # ping the database and check if we need to add Objs and Relations
     connection = PostgresHook.get_connection(self.name)

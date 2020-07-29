@@ -20,17 +20,10 @@ RUN apk update && \
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
-# add and install requirements
-ADD ./requirements.txt /usr/src/app/requirements.txt
-RUN pip install -r requirements.txt
-
 # DBGEN
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
-COPY dbgen.tar.gz /tmp/dbgen.tar.gz
+COPY ./dbgen.tar.gz /tmp/dbgen.tar.gz
 RUN pip install  /tmp/dbgen.tar.gz
 COPY config/dbgen_files /dbgen_files
-COPY hacks/unpickler_replacement.py /usr/lib/python3.7/site-packages/jsonpickle/unpickler.py
 
 ARG DEFAULT_ENV
 ENV DEFAULT_ENV $DEFAULT_ENV

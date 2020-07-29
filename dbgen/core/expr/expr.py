@@ -4,7 +4,7 @@ from typing import Any, TYPE_CHECKING, Union as U, List as L, Tuple as T, Callab
 
 from functools import reduce
 from operator import add
-from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just
 
 # Internal Modules
 from dbgen.core.expr.sqltypes import SQLType, Decimal, Varchar, Text, Int

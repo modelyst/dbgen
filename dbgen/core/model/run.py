@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List as L
 
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 import re
 from bdb import BdbQuit
 import logging

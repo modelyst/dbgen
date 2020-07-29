@@ -7,17 +7,17 @@ from os.path import exists
 from json import load, dump
 from pprint import pformat
 from contextlib import suppress
-from sshtunnel import SSHTunnelForwarder  # type: ignore
-from psycopg2 import connect, Error, OperationalError  # type: ignore
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT  # type: ignore
-from hypothesis.strategies import SearchStrategy, builds  # type: ignore
+from sshtunnel import SSHTunnelForwarder
+from psycopg2 import connect, Error, OperationalError
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from hypothesis.strategies import SearchStrategy, builds
 from dbgen.utils.misc import Base
 
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.gen import Gen
 
-    from airflow.hooks.connections import Connection  # type: ignore
+    from airflow.hooks.connections import Connection
 
 
 """

@@ -6,8 +6,8 @@ from typing import Optional as Opt
 from typing import Set as S
 from typing import Tuple as T
 
-from hypothesis.strategies import SearchStrategy, builds, lists  # type: ignore
-from networkx import DiGraph  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, lists
+from networkx import DiGraph
 
 from dbgen.core.action import Action
 from dbgen.core.func import Env, Func, defaultEnv
@@ -196,7 +196,7 @@ class Gen(Base):
         for row in input_rows:
             result_dict = {self.query.hash: row} if self.query else {}
             if verbose:
-                from tqdm import tqdm  # type: ignore
+                from tqdm import tqdm
 
                 with tqdm(total=len(self.funcs)) as tq:
                     for pb in self.funcs:

@@ -5,8 +5,8 @@ from typing import (
     Iterator as Iter,
 )
 
-from networkx import DiGraph  # type: ignore
-from infinite import product  # type: ignore
+from networkx import DiGraph
+from infinite import product
 
 # Internal
 from dbgen.utils.misc import Base

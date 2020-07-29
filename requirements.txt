@@ -1,10 +1,8 @@
-apache-airflow
 jinja2>=2.10.0
-werkzeug>=0.15.0
-networkx
-psycopg2-binary
-tqdm
-pathos
-infinite
-sshtunnel
-hypothesis
+psycopg2-binary>=2.7.4
+networkx>=2.4
+tqdm>=4.48.0
+pathos>=0.2.6
+infinite>=0.1
+sshtunnel==0.1.5
+hypothesis>=5.23.7

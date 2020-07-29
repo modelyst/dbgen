@@ -1,5 +1,5 @@
 from typing import Any, Set as S, List as L, Optional as Opt, Callable as C
-from hypothesis.strategies import SearchStrategy, builds, none, from_type  # type: ignore
+from hypothesis.strategies import SearchStrategy, builds, none, from_type
 
 from dbgen.core.schema import AttrTup, RelTup
 from dbgen.core.expr.expr import Expr

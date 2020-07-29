@@ -1,8 +1,9 @@
+"""Module for the DBgen Model object"""
 # External
 from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T
-from networkx import DiGraph  # type: ignore
-from networkx.algorithms import simple_cycles  # type: ignore
-from hypothesis.strategies import SearchStrategy, just  # type: ignore
+from networkx import DiGraph
+from networkx.algorithms import simple_cycles
+from hypothesis.strategies import SearchStrategy, just
 
 # Internal
 from dbgen.core.model.run_gen import run_gen
@@ -42,6 +43,8 @@ Stuff = U[
     L[U[Obj, Rel, RelTup, AttrTup, str, Gen, PathEQ, View]],
 ]
 ##########################################################################################
+
+
 class Model(Schema):
     """
     Just a named container for objects, relations, and generators
@@ -52,21 +55,32 @@ class Model(Schema):
     def __init__(
         self,
         name: str,
-        objlist: L[Obj] = None,
-        genlist: L[Gen] = None,
-        viewlist: L[View] = None,
-        pes: L[PathEQ] = None,
+        objlist: L[Obj] = [],
+        genlist: L[Gen] = [],
+        viewlist: L[View] = [],
+        pes: L[PathEQ] = [],
     ) -> None:
+        """
+        Initialize model with list of objects, generators, views, and path
+        equivalency. These lists can be appended to after initizialization
+        through the model.add method
 
+        Args:
+            name (str): Name of the model used to uniquely identify the model
+            objlist (L[Obj], optional): List of Obj objects. Defaults to [].
+            genlist (L[Gen], optional): List of Gen objects. Defaults to [].
+            viewlist (L[View], optional): List of View objects. Defaults to [].
+            pes (L[PathEQ], optional): List of path equivalency objects. Defaults to [].
+        """
         self.name = name
-        self.objlist = objlist or []
-        self.genlist = genlist or []
-        self.viewlist = viewlist or []
+        self.objlist = objlist
+        self.genlist = genlist
+        self.viewlist = viewlist
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objs)  # nodes are object NAMES
 
-        self.pes = set(pes or [])  # path equivalencies
+        self.pes = set(pes)  # path equivalencies
 
         for o in self.objs.values():
             for rel in o.fks:
@@ -108,8 +122,15 @@ class Model(Schema):
     _check_patheq = check_patheq
 
     def run_airflow(self, *args, **kwargs):
-        from dbgen.core.model.run_airflow import run_airflow
-
+        try:
+            from dbgen.core.model.run_airflow import run_airflow
+        except ImportError as exc:
+            print(
+                "Import error on model.run_airflow call, apache-airflow is required"
+                "for running a model using airflow (This is highly experimental "
+                "feature right now)"
+            )
+            raise exc
         run_airflow(*args, **kwargs)
 
     ##################
@@ -396,7 +417,7 @@ class Model(Schema):
         return list(topsort_with_dict(self._gen_graph(), self.gens))
 
     def _gen_graph(self) -> DiGraph:
-        """ Make a graph out of generator dependencies """
+        """ Make a graph out of generator dependencies."""
         G = DiGraph()
 
         ddict = {a: g.dep(self.objs) for a, g in self.gens.items()}

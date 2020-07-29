@@ -1,5 +1,5 @@
 from typing import List as L, Type
-from hypothesis.strategies import SearchStrategy, one_of, recursive  # type: ignore
+from hypothesis.strategies import SearchStrategy, one_of, recursive
 from dbgen.core.expr.pathattr import PathAttr
 from dbgen.core.expr.expr import (
     Literal,

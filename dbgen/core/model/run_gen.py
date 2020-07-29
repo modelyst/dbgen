@@ -11,7 +11,7 @@ from typing import (
 from time import time
 from multiprocessing import cpu_count, get_context
 from functools import partial
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 from math import ceil
 import logging
 

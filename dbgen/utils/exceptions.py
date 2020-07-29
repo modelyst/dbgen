@@ -1,6 +1,6 @@
 """Exceptions used by DBgen"""
 from hypothesis.strategies import SearchStrategy, builds
-from psycopg2.errors import Error as Psycopg2Error  # type: ignore
+from psycopg2.errors import Error as Psycopg2Error  # type: ignore  # noqa: F401
 
 # Internal Imports
 from .misc import Base
@@ -40,9 +40,7 @@ class DBgenInternalError(DBgenException):
 
 
 class DBgenGeneratorError(DBgenException):
-    """
-    Custom class for catching errors that occur in code external to dbgen
-    """
+    """Custom class for catching errors that occur in code external to dbgen"""
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -50,9 +48,7 @@ class DBgenGeneratorError(DBgenException):
 
 
 class DBgenSkipException(DBgenException):
-    """
-    Custom class for errors raised when a generator is skipped
-    """
+    """Custom class for errors raised when a generator is skipped"""
 
     @classmethod
     def _strat(cls) -> SearchStrategy:

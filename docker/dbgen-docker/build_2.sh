@@ -28,19 +28,13 @@ then
   exit
 fi
 
-echo "YEAH"
-
-set -e
-
-echo "DBgen directory ${DBGEN_ROOT}"
-echo "DBgen Docker directory ${DIRNAME}"
-
 cd "${DBGEN_ROOT}"
 
 echo "Copy distro ${DBGEN_ROOT}/dist/*.tar.gz ${DIRNAME}/dbgen.tar.gz"
 cp ${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz "${DIRNAME}/dbgen.tar.gz"
-cp ${DBGEN_ROOT}/requirements.txt "${DIRNAME}/requirements.txt"
-cd "${DIRNAME}" && docker build --pull "${DIRNAME}" --tag="${IMAGE}:${VERSION}" \
- --build-arg DEFAULT_ENV=/dbgen_files/default.py
+
+docker build --pull  ${DBGEN_ROOT}/docker/dbgen-docker --tag="${IMAGE}:${VERSION}" \
+ --build-arg DEFAULT_ENV=/dbgen_files/default.py \
+ --build-arg DBGEN_TARBALL=${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz
+
 rm "${DIRNAME}/dbgen.tar.gz"
-rm "${DIRNAME}/requirements.txt"

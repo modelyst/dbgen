@@ -1,3 +1,10 @@
+"""Welcome to dbgen"""
+__author__ = "Modelyst LLC"
+__email__ = "info@modelyst.io"
+__maintainer__ = "Michael Statt"
+__maintainer_email__ = "michael.statt@modelyst.io"
+__version__ = "0.2.0"
+
 from dbgen.core.expr.expr import (
     ABS,
     AND,

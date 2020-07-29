@@ -1,16 +1,16 @@
 # External Modules
-from typing import TypeVar as TV  # type: ignore
+from typing import TypeVar as TV
 from typing import List as L, Type
 from abc import abstractmethod, ABCMeta
 from ast import literal_eval
-from inspect import _empty  # type: ignore
+from inspect import _empty
 from hypothesis.strategies import (
     SearchStrategy,
     builds,
     lists,
     one_of,
     just,
-)  # type: ignore
+)
 
 # Internal modules
 from dbgen.utils.misc import Base

@@ -1,8 +1,8 @@
 # External Modules
 from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
-import psycopg2  # type: ignore
-from psycopg2.errors import QueryCanceled  # type: ignore
+import psycopg2
+from psycopg2.errors import QueryCanceled
 import re
 from jinja2 import Template
 from io import StringIO
@@ -11,7 +11,7 @@ from hypothesis.strategies import (
     SearchStrategy,
     builds,
     just,
-    one_of,  # type: ignore
+    one_of,
     dictionaries,
 )
 
