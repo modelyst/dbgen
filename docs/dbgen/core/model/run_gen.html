@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>dbgen.core.model.run_gen API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>dbgen.core.model.run_gen</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python"># External modules
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List as L,
+    Dict as D,
+    Union as U,
+    Set as S,
+    Tuple as T,
+)
+from time import time
+from multiprocessing import cpu_count, get_context
+from functools import partial
+from tqdm import tqdm
+from math import ceil
+import logging
+
+from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.core.gen import Gen
+from dbgen.core.funclike import PyBlock
+from dbgen.core.action import Action
+from dbgen.utils.exceptions import (
+    DBgenExternalError,
+    DBgenInternalError,
+    DBgenSkipException,
+)
+
+from dbgen.utils.lists import broadcast
+from dbgen.utils.numeric import safe_div
+from dbgen.utils.sql import (
+    fast_load,
+    sqlexecute,
+    sqlselect,
+    mkUpdateCmd,
+    Connection as Conn,
+    DictCursor,
+)
+from dbgen.utils.str_utils import hash_
+
+# Internal
+if TYPE_CHECKING:
+    from dbgen.core.model.model import Model
+
+    Model
+###########################################
+
+
+def run_gen(
+    self: &#34;Model&#34;,
+    objs: D[str, Any],
+    gen: Gen,
+    gmcxn: Conn,
+    gcxn: Conn,
+    mconn_info: ConnI,
+    conn_info: ConnI,
+    run_id: int,
+    retry: bool = False,
+    serial: bool = False,
+    bar: bool = False,
+    user_batch_size: int = None,
+    skip_row_count: bool = False,
+    gen_hash: str = None,
+) -&gt; int:
+    &#34;&#34;&#34;
+    Executes a SQL query, then maps each output over a processing function.
+    How the DB is modified is determined self.actions (list of InsertUpdate).
+    &#34;&#34;&#34;
+    # Initialize Variables
+    # --------------------
+    logger = logging.getLogger(f&#34;dbgen.run.{gen.name}&#34;)
+    logger.setLevel(logging.DEBUG)
+
+    gen.update_status(gmcxn, run_id, &#34;running&#34;)
+    start = time()
+    retry_ = retry or (&#34;io&#34; in gen.tags)
+    if gen_hash:
+        a_id = gen_hash
+    else:
+        a_id = gen.hash
+    keys_to_save = gen._get_all_saved_key_dict()
+    bargs = dict(leave=False, position=1, disable=not bar)
+    bargs_inner = dict(leave=False, position=2, disable=not bar)
+    parallel = (not serial) and (&#34;parallel&#34; in gen.tags)
+
+    # Set the hasher for checking repeats
+    ghash = gen.hash
+
+    def hasher(x: Any) -&gt; str:
+        &#34;&#34;&#34;Unique hash function to this Generator&#34;&#34;&#34;
+        return hash_(str(ghash) + str(x))
+
+    # Determine how to map over input rows
+    # -------------------------------------
+    cxns = (gmcxn, gcxn)
+
+    cpus = cpu_count() - 1 or 1  # play safe, leave one free
+    ctx = get_context(
+        &#34;forkserver&#34;
+    )  # addresses problem due to parallelization of numpy not playing with multiprocessing
+    mapper = partial(ctx.Pool(cpus).imap_unordered, chunksize=5) if parallel else map
+
+    # Wrap everything in try loop to catch errors
+    try:
+        # First setup query, get num_inputs and set batch size
+        with tqdm(total=1, desc=&#34;Initializing Query&#34;, **bargs) as tq:
+            logger.debug(&#34;Initializing Query&#34;)
+            # Name the cursor for server side processing, need to turn off auto_commit
+            cursor = conn_info.connect(auto_commit=False).cursor(
+                f&#34;{run_id}-{a_id}&#34;, cursor_factory=DictCursor
+            )
+
+            # If there is a query get the row count and execute it
+            if gen.query:
+                tq.set_description(&#34;Getting row count...&#34;)
+                logger.info(&#34;Getting row count...&#34;)
+                if not skip_row_count:
+                    num_inputs = gen.query.get_row_count(gcxn)
+                else:
+                    num_inputs = int(10e8)
+                logger.info(f&#34;Number of inputs = {num_inputs}&#34;)
+                logger.info(&#34;Executing query...&#34;)
+                tq.set_description(&#34;Executing query...&#34;)
+                cursor.execute(gen.query.showQ())
+            # No query gens have 1 input
+            else:
+                num_inputs = 1
+
+            # If user supplies a runtime batch_size it is used
+            if user_batch_size is not None:
+                batch_size = user_batch_size
+                logger.info(f&#34;Using user defined batch size: {user_batch_size}&#34;)
+            # If generator has the batch_size set then that will be used next
+            elif gen.batch_size is not None:
+                batch_size = gen.batch_size
+                logger.info(
+                    f&#34;Using the {gen.name} specified batch size: {gen.batch_size}&#34;
+                )
+            # Finally if nothing is the default is set to batchify the inputs into
+            # 20 batches
+            else:
+                batch_size = ceil(num_inputs / 20) if num_inputs &gt; 0 else 1
+                logger.info(
+                    f&#34;Using the default batch size to get 20 batches: {batch_size}&#34;
+                )
+
+            tq.update()
+
+        logger.info(&#34;Applying...&#34;)
+        # Wrap batch processing in try loop to close the curosr on errors
+        try:
+            # Iterate over the batches
+            for _ in tqdm(
+                range(ceil(num_inputs / batch_size)), desc=&#34;Applying&#34;, **bargs
+            ):
+                # fetch the current batch of inputs
+                if gen.query:
+                    logger.debug(f&#34;Fetching batch&#34;)
+                    inputs = cursor.fetchmany(batch_size)
+                else:
+                    # if there is no query set the inputs to be length 1 with
+                    # empty dict as input
+                    inputs = [{}]
+
+                # If retry is true don&#39;t check for repeats
+                if retry_:
+                    inputs = [(x, hasher(x)) for x in inputs]
+                # Check for repeats
+                elif inputs:
+                    with tqdm(total=1, desc=&#34;Repeat Checking&#34;, **bargs_inner) as tq:
+                        logger.debug(f&#34;Repeat Checking&#34;)
+                        # pair each input row with its hash
+                        unfiltered_inputs = [(x, hasher(x)) for x in inputs]
+                        # Get the already processed input hashes from the metadb
+                        rpt_select = (
+                            &#34;SELECT repeats_id FROM repeats WHERE repeats.gen = %s&#34;
+                        )
+                        rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
+                        rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
+                        rpt_select_output = set(rpt_select_output)  # type: ignore
+                        # remove the hashes that are already in the processed_hashes
+                        inputs = [
+                            (x, hx)
+                            for x, hx in unfiltered_inputs
+                            if hx not in rpt_select_output
+                        ]
+                        tq.update()
+
+                # If we have no query or if we have any inputs we apply the ETL to the batch
+                if gen.query is None or len(inputs) &gt; 0:
+                    apply_batch(
+                        inputs=inputs,
+                        f=gen.funcs,
+                        acts=gen.actions,
+                        objs=objs,
+                        a_id=a_id,
+                        qhsh=gen.query.hash if gen.query else &#34;0&#34;,
+                        run_id=run_id,
+                        parallel=parallel,
+                        mapper=mapper,
+                        keys_to_save=keys_to_save,
+                        cxns=cxns,
+                        gen_name=gen.name,
+                    )
+        finally:
+            cursor.close()
+
+        # Closing business
+        # -----------------
+        gen.update_status(gmcxn, run_id, &#34;completed&#34;)
+        tot_time = time() - start
+        q = mkUpdateCmd(&#34;gens&#34;, [&#34;runtime&#34;, &#34;rate&#34;, &#34;n_inputs&#34;], [&#34;run&#34;, &#34;name&#34;])
+        runtime = round(tot_time / 60, 4)
+        rate = round(safe_div(tot_time, num_inputs), 4)
+        sqlexecute(gmcxn, q, [runtime, rate, num_inputs, run_id, gen.name])
+        return 0  # don&#39;t change error count
+
+    except DBgenExternalError as e:
+        msg = &#34;\n\nError when running generator %s\n&#34; % gen.name
+        logger.error(msg)
+        q = mkUpdateCmd(&#34;gens&#34;, [&#34;error&#34;, &#34;status&#34;], [&#34;run&#34;, &#34;name&#34;])
+        sqlexecute(gmcxn, q, [str(e), &#34;failed&#34;, run_id, gen.name])
+        return 1  # increment error count
+
+
+def transform_func(
+    input: T[dict, int], qhsh: str, pbs: L[PyBlock], logger: logging.Logger
+) -&gt; U[T[dict, int], T[None, None]]:
+    row, hash = input
+    try:
+        d = {qhsh: row}
+        for pb in pbs:
+            logger.debug(f&#34;running {pb.func.name}&#34;)
+            d[pb.hash] = pb(d)
+    except DBgenSkipException:
+        return None, None
+    return d, hash
+
+
+def delete_unused_keys(
+    namespace: D[str, Any], keys_to_save: D[str, S[str]]
+) -&gt; D[str, Any]:
+    new_namespace = {}
+    for hash_loc, names in keys_to_save.items():
+        try:
+            names_space_dict = namespace[hash_loc]
+        except KeyError:
+            raise DBgenInternalError(
+                f&#34;Looking for the namespace dict with keys: {names}, at location {hash_loc} but can&#39;t find it.\nDid you leave out the query?\nKeys:{list(namespace.keys())}&#34;
+            )
+        pruned_dict = {
+            key: val for key, val in names_space_dict.items() if key in names
+        }
+        new_namespace[hash_loc] = pruned_dict
+    return new_namespace
+
+
+def apply_batch(
+    inputs: L[T[dict, int]],
+    f: L[PyBlock],
+    acts: L[Action],
+    objs: D[str, T[str, L[str], L[str]]],
+    a_id: str,
+    run_id: int,
+    qhsh: str,
+    parallel: bool,
+    mapper: Any,
+    keys_to_save: D[str, S[str]],
+    cxns: T[Conn, Conn],
+    gen_name: str,
+) -&gt; None:
+
+    # Initialize variables
+    logger = logging.getLogger(f&#34;dbgen.run.{gen_name}.apply_batch&#34;)
+    logger.setLevel(logging.DEBUG)
+
+    open_mdb, open_db = cxns
+    n_inputs = len(inputs)
+    n_actions = len(acts)
+    processed_namespaces = []  # type: L[D[str,Any]]
+    processed_hashes = []  # type: L[int]
+    bargs = dict(leave=False, position=2)
+
+    logger.info(&#34;Transforming...&#34;)
+    # Transform the data
+    with tqdm(total=n_inputs, desc=&#34;Transforming&#34;, **bargs) as tq:
+        transform_func_curr = partial(transform_func, pbs=f, qhsh=qhsh, logger=logger)
+        for i, (output_dict, output_hash) in enumerate(
+            mapper(transform_func_curr, inputs)
+        ):
+            if output_dict:
+                processed_namespaces.append(
+                    delete_unused_keys(output_dict, keys_to_save)
+                )
+                processed_hashes.append(output_hash)
+            logger.debug(f&#34;Transformed {i}/{n_inputs}&#34;)
+            tq.update()
+
+    logger.info(&#34;Loading...&#34;)
+    # Load the data
+    with tqdm(total=len(acts), desc=&#34;Loading&#34;, **bargs) as tq:
+        for i, a in enumerate(acts):
+            a.act(cxn=open_db, objs=objs, rows=processed_namespaces, gen_name=gen_name)
+            logger.debug(f&#34;Loaded {i+1}/{n_actions}&#34;)
+            tq.update()
+
+    # Store the repeats
+    logger.info(&#34;Storing Repeats&#34;)
+    with tqdm(total=1, desc=&#34;Storing Repeats&#34;, **bargs) as tq:
+        repeat_values = broadcast([a_id, run_id, processed_hashes])
+        table_name = &#34;repeats&#34;
+        col_names = [&#34;gen&#34;, &#34;run&#34;, &#34;repeats_id&#34;]
+        obj_pk_name = &#34;repeats_id&#34;
+        fast_load(open_mdb, repeat_values, table_name, col_names, obj_pk_name)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="dbgen.core.model.run_gen.apply_batch"><code class="name flex">
+<span>def <span class="ident">apply_batch</span></span>(<span>inputs: List[Tuple[dict, int]], f: List[<a title="dbgen.core.funclike.PyBlock" href="../funclike.html#dbgen.core.funclike.PyBlock">PyBlock</a>], acts: List[<a title="dbgen.core.action.Action" href="../action.html#dbgen.core.action.Action">Action</a>], objs: Dict[str, Tuple[str, List[str], List[str]]], a_id: str, run_id: int, qhsh: str, parallel: bool, mapper: Any, keys_to_save: Dict[str, Set[str]], cxns: Tuple[Any, Any], gen_name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def apply_batch(
+    inputs: L[T[dict, int]],
+    f: L[PyBlock],
+    acts: L[Action],
+    objs: D[str, T[str, L[str], L[str]]],
+    a_id: str,
+    run_id: int,
+    qhsh: str,
+    parallel: bool,
+    mapper: Any,
+    keys_to_save: D[str, S[str]],
+    cxns: T[Conn, Conn],
+    gen_name: str,
+) -&gt; None:
+
+    # Initialize variables
+    logger = logging.getLogger(f&#34;dbgen.run.{gen_name}.apply_batch&#34;)
+    logger.setLevel(logging.DEBUG)
+
+    open_mdb, open_db = cxns
+    n_inputs = len(inputs)
+    n_actions = len(acts)
+    processed_namespaces = []  # type: L[D[str,Any]]
+    processed_hashes = []  # type: L[int]
+    bargs = dict(leave=False, position=2)
+
+    logger.info(&#34;Transforming...&#34;)
+    # Transform the data
+    with tqdm(total=n_inputs, desc=&#34;Transforming&#34;, **bargs) as tq:
+        transform_func_curr = partial(transform_func, pbs=f, qhsh=qhsh, logger=logger)
+        for i, (output_dict, output_hash) in enumerate(
+            mapper(transform_func_curr, inputs)
+        ):
+            if output_dict:
+                processed_namespaces.append(
+                    delete_unused_keys(output_dict, keys_to_save)
+                )
+                processed_hashes.append(output_hash)
+            logger.debug(f&#34;Transformed {i}/{n_inputs}&#34;)
+            tq.update()
+
+    logger.info(&#34;Loading...&#34;)
+    # Load the data
+    with tqdm(total=len(acts), desc=&#34;Loading&#34;, **bargs) as tq:
+        for i, a in enumerate(acts):
+            a.act(cxn=open_db, objs=objs, rows=processed_namespaces, gen_name=gen_name)
+            logger.debug(f&#34;Loaded {i+1}/{n_actions}&#34;)
+            tq.update()
+
+    # Store the repeats
+    logger.info(&#34;Storing Repeats&#34;)
+    with tqdm(total=1, desc=&#34;Storing Repeats&#34;, **bargs) as tq:
+        repeat_values = broadcast([a_id, run_id, processed_hashes])
+        table_name = &#34;repeats&#34;
+        col_names = [&#34;gen&#34;, &#34;run&#34;, &#34;repeats_id&#34;]
+        obj_pk_name = &#34;repeats_id&#34;
+        fast_load(open_mdb, repeat_values, table_name, col_names, obj_pk_name)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.run_gen.delete_unused_keys"><code class="name flex">
+<span>def <span class="ident">delete_unused_keys</span></span>(<span>namespace: Dict[str, Any], keys_to_save: Dict[str, Set[str]]) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def delete_unused_keys(
+    namespace: D[str, Any], keys_to_save: D[str, S[str]]
+) -&gt; D[str, Any]:
+    new_namespace = {}
+    for hash_loc, names in keys_to_save.items():
+        try:
+            names_space_dict = namespace[hash_loc]
+        except KeyError:
+            raise DBgenInternalError(
+                f&#34;Looking for the namespace dict with keys: {names}, at location {hash_loc} but can&#39;t find it.\nDid you leave out the query?\nKeys:{list(namespace.keys())}&#34;
+            )
+        pruned_dict = {
+            key: val for key, val in names_space_dict.items() if key in names
+        }
+        new_namespace[hash_loc] = pruned_dict
+    return new_namespace</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.run_gen.run_gen"><code class="name flex">
+<span>def <span class="ident">run_gen</span></span>(<span>self: Model, objs: Dict[str, Any], gen: <a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>, gmcxn: Any, gcxn: Any, mconn_info: <a title="dbgen.core.misc.ConnectInfo" href="../misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, conn_info: <a title="dbgen.core.misc.ConnectInfo" href="../misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, run_id: int, retry: bool = False, serial: bool = False, bar: bool = False, user_batch_size: int = None, skip_row_count: bool = False, gen_hash: str = None) ‑> int</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Executes a SQL query, then maps each output over a processing function.
+How the DB is modified is determined self.actions (list of InsertUpdate).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run_gen(
+    self: &#34;Model&#34;,
+    objs: D[str, Any],
+    gen: Gen,
+    gmcxn: Conn,
+    gcxn: Conn,
+    mconn_info: ConnI,
+    conn_info: ConnI,
+    run_id: int,
+    retry: bool = False,
+    serial: bool = False,
+    bar: bool = False,
+    user_batch_size: int = None,
+    skip_row_count: bool = False,
+    gen_hash: str = None,
+) -&gt; int:
+    &#34;&#34;&#34;
+    Executes a SQL query, then maps each output over a processing function.
+    How the DB is modified is determined self.actions (list of InsertUpdate).
+    &#34;&#34;&#34;
+    # Initialize Variables
+    # --------------------
+    logger = logging.getLogger(f&#34;dbgen.run.{gen.name}&#34;)
+    logger.setLevel(logging.DEBUG)
+
+    gen.update_status(gmcxn, run_id, &#34;running&#34;)
+    start = time()
+    retry_ = retry or (&#34;io&#34; in gen.tags)
+    if gen_hash:
+        a_id = gen_hash
+    else:
+        a_id = gen.hash
+    keys_to_save = gen._get_all_saved_key_dict()
+    bargs = dict(leave=False, position=1, disable=not bar)
+    bargs_inner = dict(leave=False, position=2, disable=not bar)
+    parallel = (not serial) and (&#34;parallel&#34; in gen.tags)
+
+    # Set the hasher for checking repeats
+    ghash = gen.hash
+
+    def hasher(x: Any) -&gt; str:
+        &#34;&#34;&#34;Unique hash function to this Generator&#34;&#34;&#34;
+        return hash_(str(ghash) + str(x))
+
+    # Determine how to map over input rows
+    # -------------------------------------
+    cxns = (gmcxn, gcxn)
+
+    cpus = cpu_count() - 1 or 1  # play safe, leave one free
+    ctx = get_context(
+        &#34;forkserver&#34;
+    )  # addresses problem due to parallelization of numpy not playing with multiprocessing
+    mapper = partial(ctx.Pool(cpus).imap_unordered, chunksize=5) if parallel else map
+
+    # Wrap everything in try loop to catch errors
+    try:
+        # First setup query, get num_inputs and set batch size
+        with tqdm(total=1, desc=&#34;Initializing Query&#34;, **bargs) as tq:
+            logger.debug(&#34;Initializing Query&#34;)
+            # Name the cursor for server side processing, need to turn off auto_commit
+            cursor = conn_info.connect(auto_commit=False).cursor(
+                f&#34;{run_id}-{a_id}&#34;, cursor_factory=DictCursor
+            )
+
+            # If there is a query get the row count and execute it
+            if gen.query:
+                tq.set_description(&#34;Getting row count...&#34;)
+                logger.info(&#34;Getting row count...&#34;)
+                if not skip_row_count:
+                    num_inputs = gen.query.get_row_count(gcxn)
+                else:
+                    num_inputs = int(10e8)
+                logger.info(f&#34;Number of inputs = {num_inputs}&#34;)
+                logger.info(&#34;Executing query...&#34;)
+                tq.set_description(&#34;Executing query...&#34;)
+                cursor.execute(gen.query.showQ())
+            # No query gens have 1 input
+            else:
+                num_inputs = 1
+
+            # If user supplies a runtime batch_size it is used
+            if user_batch_size is not None:
+                batch_size = user_batch_size
+                logger.info(f&#34;Using user defined batch size: {user_batch_size}&#34;)
+            # If generator has the batch_size set then that will be used next
+            elif gen.batch_size is not None:
+                batch_size = gen.batch_size
+                logger.info(
+                    f&#34;Using the {gen.name} specified batch size: {gen.batch_size}&#34;
+                )
+            # Finally if nothing is the default is set to batchify the inputs into
+            # 20 batches
+            else:
+                batch_size = ceil(num_inputs / 20) if num_inputs &gt; 0 else 1
+                logger.info(
+                    f&#34;Using the default batch size to get 20 batches: {batch_size}&#34;
+                )
+
+            tq.update()
+
+        logger.info(&#34;Applying...&#34;)
+        # Wrap batch processing in try loop to close the curosr on errors
+        try:
+            # Iterate over the batches
+            for _ in tqdm(
+                range(ceil(num_inputs / batch_size)), desc=&#34;Applying&#34;, **bargs
+            ):
+                # fetch the current batch of inputs
+                if gen.query:
+                    logger.debug(f&#34;Fetching batch&#34;)
+                    inputs = cursor.fetchmany(batch_size)
+                else:
+                    # if there is no query set the inputs to be length 1 with
+                    # empty dict as input
+                    inputs = [{}]
+
+                # If retry is true don&#39;t check for repeats
+                if retry_:
+                    inputs = [(x, hasher(x)) for x in inputs]
+                # Check for repeats
+                elif inputs:
+                    with tqdm(total=1, desc=&#34;Repeat Checking&#34;, **bargs_inner) as tq:
+                        logger.debug(f&#34;Repeat Checking&#34;)
+                        # pair each input row with its hash
+                        unfiltered_inputs = [(x, hasher(x)) for x in inputs]
+                        # Get the already processed input hashes from the metadb
+                        rpt_select = (
+                            &#34;SELECT repeats_id FROM repeats WHERE repeats.gen = %s&#34;
+                        )
+                        rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
+                        rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
+                        rpt_select_output = set(rpt_select_output)  # type: ignore
+                        # remove the hashes that are already in the processed_hashes
+                        inputs = [
+                            (x, hx)
+                            for x, hx in unfiltered_inputs
+                            if hx not in rpt_select_output
+                        ]
+                        tq.update()
+
+                # If we have no query or if we have any inputs we apply the ETL to the batch
+                if gen.query is None or len(inputs) &gt; 0:
+                    apply_batch(
+                        inputs=inputs,
+                        f=gen.funcs,
+                        acts=gen.actions,
+                        objs=objs,
+                        a_id=a_id,
+                        qhsh=gen.query.hash if gen.query else &#34;0&#34;,
+                        run_id=run_id,
+                        parallel=parallel,
+                        mapper=mapper,
+                        keys_to_save=keys_to_save,
+                        cxns=cxns,
+                        gen_name=gen.name,
+                    )
+        finally:
+            cursor.close()
+
+        # Closing business
+        # -----------------
+        gen.update_status(gmcxn, run_id, &#34;completed&#34;)
+        tot_time = time() - start
+        q = mkUpdateCmd(&#34;gens&#34;, [&#34;runtime&#34;, &#34;rate&#34;, &#34;n_inputs&#34;], [&#34;run&#34;, &#34;name&#34;])
+        runtime = round(tot_time / 60, 4)
+        rate = round(safe_div(tot_time, num_inputs), 4)
+        sqlexecute(gmcxn, q, [runtime, rate, num_inputs, run_id, gen.name])
+        return 0  # don&#39;t change error count
+
+    except DBgenExternalError as e:
+        msg = &#34;\n\nError when running generator %s\n&#34; % gen.name
+        logger.error(msg)
+        q = mkUpdateCmd(&#34;gens&#34;, [&#34;error&#34;, &#34;status&#34;], [&#34;run&#34;, &#34;name&#34;])
+        sqlexecute(gmcxn, q, [str(e), &#34;failed&#34;, run_id, gen.name])
+        return 1  # increment error count</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.run_gen.transform_func"><code class="name flex">
+<span>def <span class="ident">transform_func</span></span>(<span>input: Tuple[dict, int], qhsh: str, pbs: List[<a title="dbgen.core.funclike.PyBlock" href="../funclike.html#dbgen.core.funclike.PyBlock">PyBlock</a>], logger: logging.Logger) ‑> Union[Tuple[dict, int], Tuple[NoneType, NoneType]]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def transform_func(
+    input: T[dict, int], qhsh: str, pbs: L[PyBlock], logger: logging.Logger
+) -&gt; U[T[dict, int], T[None, None]]:
+    row, hash = input
+    try:
+        d = {qhsh: row}
+        for pb in pbs:
+            logger.debug(f&#34;running {pb.func.name}&#34;)
+            d[pb.hash] = pb(d)
+    except DBgenSkipException:
+        return None, None
+    return d, hash</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="dbgen.core.model" href="index.html">dbgen.core.model</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="dbgen.core.model.run_gen.apply_batch" href="#dbgen.core.model.run_gen.apply_batch">apply_batch</a></code></li>
+<li><code><a title="dbgen.core.model.run_gen.delete_unused_keys" href="#dbgen.core.model.run_gen.delete_unused_keys">delete_unused_keys</a></code></li>
+<li><code><a title="dbgen.core.model.run_gen.run_gen" href="#dbgen.core.model.run_gen.run_gen">run_gen</a></code></li>
+<li><code><a title="dbgen.core.model.run_gen.transform_func" href="#dbgen.core.model.run_gen.transform_func">transform_func</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>

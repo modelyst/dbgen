@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>dbgen.core.misc API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>dbgen.core.misc</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python"># External Modules
+from typing import Any, List as L, Callable as C, TYPE_CHECKING, Tuple as T
+from time import sleep
+import re
+from os import environ
+from os.path import exists
+from json import load, dump
+from pprint import pformat
+from contextlib import suppress
+from sshtunnel import SSHTunnelForwarder
+from psycopg2 import connect, Error, OperationalError
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from hypothesis.strategies import SearchStrategy, builds
+from dbgen.utils.misc import Base
+
+# Internal Modules
+if TYPE_CHECKING:
+    from dbgen.core.gen import Gen
+
+    from airflow.hooks.connections import Connection
+
+
+&#34;&#34;&#34;
+Defines some support classes used throughout the project:
+- ConnectInfo
+- Test
+- Dep
+
+&#34;&#34;&#34;
+
+
+class ConnectInfo(Base):
+    &#34;&#34;&#34;
+    PostGreSQL connection info
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        host: str = &#34;127.0.0.1&#34;,
+        port: int = 5432,
+        user: str = None,
+        passwd: str = None,
+        db: str = &#34;&#34;,
+        schema: str = &#34;public&#34;,
+        ssh: str = &#34;&#34;,
+        ssh_port: int = 22,
+        ssh_username: str = &#34;&#34;,
+        ssh_pkey: str = &#34;&#34;,
+        remote_bind_address: str = &#34;localhost&#34;,
+        remote_bind_port: int = 5432,
+    ) -&gt; None:
+
+        if not user:
+            user = passwd = environ.get(&#34;USER&#34;, &#34;&#34;)
+
+        self.host = host
+        self.port = port
+        self.user = user
+        self.passwd = passwd
+        self.db = db
+        self.schema = schema
+        self.ssh = ssh
+        self.ssh_port = ssh_port
+        self.ssh_username = ssh_username
+        self.ssh_pkey = ssh_pkey
+        self.remote_bind_address = remote_bind_address
+        self.remote_bind_port = remote_bind_port
+        super().__init__()
+
+    def __str__(self) -&gt; str:
+        return pformat(self.__dict__)
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls)
+
+    def tunnel(self) -&gt; SSHTunnelForwarder:
+        return (
+            SSHTunnelForwarder(
+                (self.ssh, self.ssh_port),
+                ssh_username=self.ssh_username,
+                ssh_pkey=self.ssh_pkey,
+                remote_bind_address=(self.remote_bind_address, self.remote_bind_port),
+            )
+            if self.ssh
+            else suppress()
+        )
+
+    def connect(self, attempt: int = 3, auto_commit: bool = True) -&gt; &#34;Connection&#34;:
+        for _ in range(attempt):
+            try:
+                with self.tunnel():
+                    conn = connect(
+                        host=self.host,
+                        port=self.port,
+                        user=self.user,
+                        password=self.passwd,
+                        dbname=self.db,
+                        connect_timeout=28800,
+                    )
+                    if auto_commit:
+                        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    if self.schema != &#34;public&#34;:
+                        cur = conn.cursor()
+                        cur.execute(f&#39;SET search_path TO &#34;{self.schema}&#34;&#39;)
+                    return conn
+            except OperationalError as exc:
+                if re.findall(&#34;database.*does not exist&#34;, str(exc)):
+                    raise OperationalError(
+                        f&#34;Database {self.db} does not exist, please check connection or create DB before running DBgen or first time&#34;
+                    )
+                raise exc
+            except Error as exc:
+                print(exc)
+                import pdb
+
+                pdb.set_trace()
+                sleep(1)
+        raise Error(
+            f&#34;Exceeded number of attempts to connect to host using credentials. Please make sure the database is running and you have provided the correct credentials.&#34;
+        )
+
+    def to_file(self, pth: str) -&gt; None:
+        &#34;&#34;&#34;Store connectinfo data as a JSON file&#34;&#34;&#34;
+        with open(pth, &#34;w&#34;) as f:
+            dump(vars(self), f)
+
+    @staticmethod
+    def from_file(pth: str) -&gt; &#34;ConnectInfo&#34;:
+        &#34;&#34;&#34;
+        Create from path to file with ConnectInfo fields in JSON format
+        &#34;&#34;&#34;
+        assert exists(pth), &#34;Error loading connection info: no file at &#34; + pth
+        with open(pth, &#34;r&#34;) as f:
+            return ConnectInfo(**load(f))
+
+    @staticmethod
+    def from_postgres_hook(airflow_connection: &#34;Connection&#34;) -&gt; &#34;ConnectInfo&#34;:
+        &#34;&#34;&#34;
+        Create from path to file with ConnectInfo fields in JSON format
+        &#34;&#34;&#34;
+        kwargs = dict(
+            host=airflow_connection.host,
+            port=airflow_connection.port,
+            user=airflow_connection.login,
+            passwd=airflow_connection.get_password(),
+            db=airflow_connection.schema,
+        )
+        return ConnectInfo(**kwargs)
+
+    def neutral(self) -&gt; &#34;Connection&#34;:
+        copy = self.copy()
+        copy.db = &#34;postgres&#34;
+        conn = copy.connect()
+        return conn.cursor()
+
+    def kill(self) -&gt; None:
+        &#34;&#34;&#34;Kills connections to the DB&#34;&#34;&#34;
+        killQ = &#34;&#34;&#34;SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = %s
+                      AND pid &lt;&gt; pg_backend_pid();&#34;&#34;&#34;
+        with self.neutral() as cxn:
+            cxn.execute(killQ, vars=[self.db])
+
+    def drop(self) -&gt; None:
+        &#34;&#34;&#34;Completely removes a DB&#34;&#34;&#34;
+        drop_stmt = f&#39;DROP SCHEMA IF EXISTS &#34;{self.schema}&#34; CASCADE&#39;
+        conn = self.connect()
+        with conn.cursor() as cxn:
+            cxn.execute(drop_stmt)
+
+    def create(self) -&gt; None:
+        &#34;&#34;&#34;Kills connections to the DB&#34;&#34;&#34;
+        create_stmt = f&#39;CREATE SCHEMA IF NOT EXISTS &#34;{self.schema}&#34;;&#39;
+        conn = self.connect()
+        with conn.cursor() as cxn:
+            cxn.execute(create_stmt)
+
+
+################################################################################
+
+
+class Dep(Base):
+    &#34;&#34;&#34;
+    Capture dependency information between two Generators that modify a DB
+    through four different sets: the tabs/cols that are inputs/outputs.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        tabs_needed: L[str] = [],
+        cols_needed: L[str] = [],
+        tabs_yielded: L[str] = [],
+        cols_yielded: L[str] = [],
+    ) -&gt; None:
+        allts = [tabs_needed, tabs_yielded]
+        allcs = [cols_needed, cols_yielded]
+        assert all([all([&#34;.&#34; not in t for t in ts]) for ts in allts]), allts
+        assert all([all([&#34;.&#34; in c for c in cs]) for cs in allcs]), allcs
+        self.tabs_needed = set(tabs_needed)
+        self.cols_needed = set(cols_needed)
+        self.tabs_yielded = set(tabs_yielded)
+        self.cols_yielded = set(cols_yielded)
+        super().__init__()
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls)
+
+    def all(self) -&gt; T[str, str, str, str]:
+        a, b, c, d = tuple(
+            map(
+                lambda x: &#34;,&#34;.join(sorted(x)),
+                [
+                    self.tabs_needed,
+                    self.cols_needed,
+                    self.tabs_yielded,
+                    self.cols_yielded,
+                ],
+            )
+        )
+        return a, b, c, d
+
+    def __str__(self) -&gt; str:
+        return pformat(self.__dict__)
+
+    def __bool__(self) -&gt; bool:
+        return bool(
+            self.tabs_needed | self.cols_needed | self.tabs_yielded | self.cols_yielded
+        )
+
+    # Public Methods #
+
+    def test(self, other: &#34;Dep&#34;) -&gt; bool:
+        &#34;&#34;&#34;Test whether SELF depends on OTHER&#34;&#34;&#34;
+        return not (
+            self.tabs_needed.isdisjoint(other.tabs_yielded)
+            and self.cols_needed.isdisjoint(other.cols_yielded)
+        )
+
+    @classmethod
+    def merge(cls, deps: L[&#34;Dep&#34;]) -&gt; &#34;Dep&#34;:
+        &#34;&#34;&#34;Combine a list of Deps using UNION&#34;&#34;&#34;
+        tn, cn, ty, cy = set(), set(), set(), set()  # type: ignore
+        for d in deps:
+            tn = tn | d.tabs_needed
+            cn = cn | d.cols_needed
+            ty = ty | d.tabs_yielded
+            cy = cy | d.cols_yielded
+        return cls(tn, cn, ty, cy)  # type: ignore
+
+
+################################################################################
+class Test(object):
+    &#34;&#34;&#34;
+    Execute a test before running action. If it returns True, the test is
+    passed, otherwise it returns an object which is fed into the &#34;message&#34;
+    function. This prints a message: &#34;Not Executed (&lt;string of object&gt;)&#34;
+    &#34;&#34;&#34;
+
+    def __init__(self, test: C[[&#34;Gen&#34;, Any], bool], message: C[[Any], str]) -&gt; None:
+        self.test = test
+        self.message = message
+
+    def __call__(self, t: &#34;Gen&#34;, *args: Any) -&gt; Any:
+        &#34;&#34;&#34;Run a test on a generator to see if it&#39;s supposed to be executed&#34;&#34;&#34;
+        output = self.test(t, *args)
+        return True if output else self.message(output)
+
+
+#################
+# Example Tests #
+#################
+
+onlyTest = Test(
+    lambda t, o: (len(o) == 0) or (t.name in o) or any([g in t.tags for g in o]),  # type: ignore
+    lambda x: &#34;Rule not in &#39;Only&#39; input specification&#34;,
+)
+
+xTest = Test(
+    lambda t, x: (t.name not in x) and (not any([g in t.tags for g in x])),  # type: ignore
+    lambda x: &#34;Excluded&#34;,
+)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="dbgen.core.misc.ConnectInfo"><code class="flex name class">
+<span>class <span class="ident">ConnectInfo</span></span>
+<span>(</span><span>host: str = '127.0.0.1', port: int = 5432, user: str = None, passwd: str = None, db: str = '', schema: str = 'public', ssh: str = '', ssh_port: int = 22, ssh_username: str = '', ssh_pkey: str = '', remote_bind_address: str = 'localhost', remote_bind_port: int = 5432)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PostGreSQL connection info</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ConnectInfo(Base):
+    &#34;&#34;&#34;
+    PostGreSQL connection info
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        host: str = &#34;127.0.0.1&#34;,
+        port: int = 5432,
+        user: str = None,
+        passwd: str = None,
+        db: str = &#34;&#34;,
+        schema: str = &#34;public&#34;,
+        ssh: str = &#34;&#34;,
+        ssh_port: int = 22,
+        ssh_username: str = &#34;&#34;,
+        ssh_pkey: str = &#34;&#34;,
+        remote_bind_address: str = &#34;localhost&#34;,
+        remote_bind_port: int = 5432,
+    ) -&gt; None:
+
+        if not user:
+            user = passwd = environ.get(&#34;USER&#34;, &#34;&#34;)
+
+        self.host = host
+        self.port = port
+        self.user = user
+        self.passwd = passwd
+        self.db = db
+        self.schema = schema
+        self.ssh = ssh
+        self.ssh_port = ssh_port
+        self.ssh_username = ssh_username
+        self.ssh_pkey = ssh_pkey
+        self.remote_bind_address = remote_bind_address
+        self.remote_bind_port = remote_bind_port
+        super().__init__()
+
+    def __str__(self) -&gt; str:
+        return pformat(self.__dict__)
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls)
+
+    def tunnel(self) -&gt; SSHTunnelForwarder:
+        return (
+            SSHTunnelForwarder(
+                (self.ssh, self.ssh_port),
+                ssh_username=self.ssh_username,
+                ssh_pkey=self.ssh_pkey,
+                remote_bind_address=(self.remote_bind_address, self.remote_bind_port),
+            )
+            if self.ssh
+            else suppress()
+        )
+
+    def connect(self, attempt: int = 3, auto_commit: bool = True) -&gt; &#34;Connection&#34;:
+        for _ in range(attempt):
+            try:
+                with self.tunnel():
+                    conn = connect(
+                        host=self.host,
+                        port=self.port,
+                        user=self.user,
+                        password=self.passwd,
+                        dbname=self.db,
+                        connect_timeout=28800,
+                    )
+                    if auto_commit:
+                        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    if self.schema != &#34;public&#34;:
+                        cur = conn.cursor()
+                        cur.execute(f&#39;SET search_path TO &#34;{self.schema}&#34;&#39;)
+                    return conn
+            except OperationalError as exc:
+                if re.findall(&#34;database.*does not exist&#34;, str(exc)):
+                    raise OperationalError(
+                        f&#34;Database {self.db} does not exist, please check connection or create DB before running DBgen or first time&#34;
+                    )
+                raise exc
+            except Error as exc:
+                print(exc)
+                import pdb
+
+                pdb.set_trace()
+                sleep(1)
+        raise Error(
+            f&#34;Exceeded number of attempts to connect to host using credentials. Please make sure the database is running and you have provided the correct credentials.&#34;
+        )
+
+    def to_file(self, pth: str) -&gt; None:
+        &#34;&#34;&#34;Store connectinfo data as a JSON file&#34;&#34;&#34;
+        with open(pth, &#34;w&#34;) as f:
+            dump(vars(self), f)
+
+    @staticmethod
+    def from_file(pth: str) -&gt; &#34;ConnectInfo&#34;:
+        &#34;&#34;&#34;
+        Create from path to file with ConnectInfo fields in JSON format
+        &#34;&#34;&#34;
+        assert exists(pth), &#34;Error loading connection info: no file at &#34; + pth
+        with open(pth, &#34;r&#34;) as f:
+            return ConnectInfo(**load(f))
+
+    @staticmethod
+    def from_postgres_hook(airflow_connection: &#34;Connection&#34;) -&gt; &#34;ConnectInfo&#34;:
+        &#34;&#34;&#34;
+        Create from path to file with ConnectInfo fields in JSON format
+        &#34;&#34;&#34;
+        kwargs = dict(
+            host=airflow_connection.host,
+            port=airflow_connection.port,
+            user=airflow_connection.login,
+            passwd=airflow_connection.get_password(),
+            db=airflow_connection.schema,
+        )
+        return ConnectInfo(**kwargs)
+
+    def neutral(self) -&gt; &#34;Connection&#34;:
+        copy = self.copy()
+        copy.db = &#34;postgres&#34;
+        conn = copy.connect()
+        return conn.cursor()
+
+    def kill(self) -&gt; None:
+        &#34;&#34;&#34;Kills connections to the DB&#34;&#34;&#34;
+        killQ = &#34;&#34;&#34;SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = %s
+                      AND pid &lt;&gt; pg_backend_pid();&#34;&#34;&#34;
+        with self.neutral() as cxn:
+            cxn.execute(killQ, vars=[self.db])
+
+    def drop(self) -&gt; None:
+        &#34;&#34;&#34;Completely removes a DB&#34;&#34;&#34;
+        drop_stmt = f&#39;DROP SCHEMA IF EXISTS &#34;{self.schema}&#34; CASCADE&#39;
+        conn = self.connect()
+        with conn.cursor() as cxn:
+            cxn.execute(drop_stmt)
+
+    def create(self) -&gt; None:
+        &#34;&#34;&#34;Kills connections to the DB&#34;&#34;&#34;
+        create_stmt = f&#39;CREATE SCHEMA IF NOT EXISTS &#34;{self.schema}&#34;;&#39;
+        conn = self.connect()
+        with conn.cursor() as cxn:
+            cxn.execute(create_stmt)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.utils.misc.Base" href="../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Static methods</h3>
+<dl>
+<dt id="dbgen.core.misc.ConnectInfo.from_file"><code class="name flex">
+<span>def <span class="ident">from_file</span></span>(<span>pth: str) ‑> <a title="dbgen.core.misc.ConnectInfo" href="#dbgen.core.misc.ConnectInfo">ConnectInfo</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create from path to file with ConnectInfo fields in JSON format</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_file(pth: str) -&gt; &#34;ConnectInfo&#34;:
+    &#34;&#34;&#34;
+    Create from path to file with ConnectInfo fields in JSON format
+    &#34;&#34;&#34;
+    assert exists(pth), &#34;Error loading connection info: no file at &#34; + pth
+    with open(pth, &#34;r&#34;) as f:
+        return ConnectInfo(**load(f))</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.from_postgres_hook"><code class="name flex">
+<span>def <span class="ident">from_postgres_hook</span></span>(<span>airflow_connection: Connection) ‑> '<a title="dbgen.core.misc.ConnectInfo" href="#dbgen.core.misc.ConnectInfo">ConnectInfo</a>'</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create from path to file with ConnectInfo fields in JSON format</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_postgres_hook(airflow_connection: &#34;Connection&#34;) -&gt; &#34;ConnectInfo&#34;:
+    &#34;&#34;&#34;
+    Create from path to file with ConnectInfo fields in JSON format
+    &#34;&#34;&#34;
+    kwargs = dict(
+        host=airflow_connection.host,
+        port=airflow_connection.port,
+        user=airflow_connection.login,
+        passwd=airflow_connection.get_password(),
+        db=airflow_connection.schema,
+    )
+    return ConnectInfo(**kwargs)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.misc.ConnectInfo.connect"><code class="name flex">
+<span>def <span class="ident">connect</span></span>(<span>self, attempt: int = 3, auto_commit: bool = True) ‑> 'Connection'</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def connect(self, attempt: int = 3, auto_commit: bool = True) -&gt; &#34;Connection&#34;:
+    for _ in range(attempt):
+        try:
+            with self.tunnel():
+                conn = connect(
+                    host=self.host,
+                    port=self.port,
+                    user=self.user,
+                    password=self.passwd,
+                    dbname=self.db,
+                    connect_timeout=28800,
+                )
+                if auto_commit:
+                    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                if self.schema != &#34;public&#34;:
+                    cur = conn.cursor()
+                    cur.execute(f&#39;SET search_path TO &#34;{self.schema}&#34;&#39;)
+                return conn
+        except OperationalError as exc:
+            if re.findall(&#34;database.*does not exist&#34;, str(exc)):
+                raise OperationalError(
+                    f&#34;Database {self.db} does not exist, please check connection or create DB before running DBgen or first time&#34;
+                )
+            raise exc
+        except Error as exc:
+            print(exc)
+            import pdb
+
+            pdb.set_trace()
+            sleep(1)
+    raise Error(
+        f&#34;Exceeded number of attempts to connect to host using credentials. Please make sure the database is running and you have provided the correct credentials.&#34;
+    )</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.create"><code class="name flex">
+<span>def <span class="ident">create</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Kills connections to the DB</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create(self) -&gt; None:
+    &#34;&#34;&#34;Kills connections to the DB&#34;&#34;&#34;
+    create_stmt = f&#39;CREATE SCHEMA IF NOT EXISTS &#34;{self.schema}&#34;;&#39;
+    conn = self.connect()
+    with conn.cursor() as cxn:
+        cxn.execute(create_stmt)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.drop"><code class="name flex">
+<span>def <span class="ident">drop</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Completely removes a DB</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def drop(self) -&gt; None:
+    &#34;&#34;&#34;Completely removes a DB&#34;&#34;&#34;
+    drop_stmt = f&#39;DROP SCHEMA IF EXISTS &#34;{self.schema}&#34; CASCADE&#39;
+    conn = self.connect()
+    with conn.cursor() as cxn:
+        cxn.execute(drop_stmt)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.kill"><code class="name flex">
+<span>def <span class="ident">kill</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Kills connections to the DB</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def kill(self) -&gt; None:
+    &#34;&#34;&#34;Kills connections to the DB&#34;&#34;&#34;
+    killQ = &#34;&#34;&#34;SELECT pg_terminate_backend(pg_stat_activity.pid)
+                FROM pg_stat_activity
+                WHERE pg_stat_activity.datname = %s
+                  AND pid &lt;&gt; pg_backend_pid();&#34;&#34;&#34;
+    with self.neutral() as cxn:
+        cxn.execute(killQ, vars=[self.db])</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.neutral"><code class="name flex">
+<span>def <span class="ident">neutral</span></span>(<span>self) ‑> 'Connection'</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def neutral(self) -&gt; &#34;Connection&#34;:
+    copy = self.copy()
+    copy.db = &#34;postgres&#34;
+    conn = copy.connect()
+    return conn.cursor()</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.to_file"><code class="name flex">
+<span>def <span class="ident">to_file</span></span>(<span>self, pth: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Store connectinfo data as a JSON file</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_file(self, pth: str) -&gt; None:
+    &#34;&#34;&#34;Store connectinfo data as a JSON file&#34;&#34;&#34;
+    with open(pth, &#34;w&#34;) as f:
+        dump(vars(self), f)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.ConnectInfo.tunnel"><code class="name flex">
+<span>def <span class="ident">tunnel</span></span>(<span>self) ‑> sshtunnel.SSHTunnelForwarder</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def tunnel(self) -&gt; SSHTunnelForwarder:
+    return (
+        SSHTunnelForwarder(
+            (self.ssh, self.ssh_port),
+            ssh_username=self.ssh_username,
+            ssh_pkey=self.ssh_pkey,
+            remote_bind_address=(self.remote_bind_address, self.remote_bind_port),
+        )
+        if self.ssh
+        else suppress()
+    )</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dbgen.core.misc.Dep"><code class="flex name class">
+<span>class <span class="ident">Dep</span></span>
+<span>(</span><span>tabs_needed: List[str] = [], cols_needed: List[str] = [], tabs_yielded: List[str] = [], cols_yielded: List[str] = [])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Capture dependency information between two Generators that modify a DB
+through four different sets: the tabs/cols that are inputs/outputs.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Dep(Base):
+    &#34;&#34;&#34;
+    Capture dependency information between two Generators that modify a DB
+    through four different sets: the tabs/cols that are inputs/outputs.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        tabs_needed: L[str] = [],
+        cols_needed: L[str] = [],
+        tabs_yielded: L[str] = [],
+        cols_yielded: L[str] = [],
+    ) -&gt; None:
+        allts = [tabs_needed, tabs_yielded]
+        allcs = [cols_needed, cols_yielded]
+        assert all([all([&#34;.&#34; not in t for t in ts]) for ts in allts]), allts
+        assert all([all([&#34;.&#34; in c for c in cs]) for cs in allcs]), allcs
+        self.tabs_needed = set(tabs_needed)
+        self.cols_needed = set(cols_needed)
+        self.tabs_yielded = set(tabs_yielded)
+        self.cols_yielded = set(cols_yielded)
+        super().__init__()
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls)
+
+    def all(self) -&gt; T[str, str, str, str]:
+        a, b, c, d = tuple(
+            map(
+                lambda x: &#34;,&#34;.join(sorted(x)),
+                [
+                    self.tabs_needed,
+                    self.cols_needed,
+                    self.tabs_yielded,
+                    self.cols_yielded,
+                ],
+            )
+        )
+        return a, b, c, d
+
+    def __str__(self) -&gt; str:
+        return pformat(self.__dict__)
+
+    def __bool__(self) -&gt; bool:
+        return bool(
+            self.tabs_needed | self.cols_needed | self.tabs_yielded | self.cols_yielded
+        )
+
+    # Public Methods #
+
+    def test(self, other: &#34;Dep&#34;) -&gt; bool:
+        &#34;&#34;&#34;Test whether SELF depends on OTHER&#34;&#34;&#34;
+        return not (
+            self.tabs_needed.isdisjoint(other.tabs_yielded)
+            and self.cols_needed.isdisjoint(other.cols_yielded)
+        )
+
+    @classmethod
+    def merge(cls, deps: L[&#34;Dep&#34;]) -&gt; &#34;Dep&#34;:
+        &#34;&#34;&#34;Combine a list of Deps using UNION&#34;&#34;&#34;
+        tn, cn, ty, cy = set(), set(), set(), set()  # type: ignore
+        for d in deps:
+            tn = tn | d.tabs_needed
+            cn = cn | d.cols_needed
+            ty = ty | d.tabs_yielded
+            cy = cy | d.cols_yielded
+        return cls(tn, cn, ty, cy)  # type: ignore</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.utils.misc.Base" href="../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Static methods</h3>
+<dl>
+<dt id="dbgen.core.misc.Dep.merge"><code class="name flex">
+<span>def <span class="ident">merge</span></span>(<span>deps: List[ForwardRef('<a title="dbgen.core.misc.Dep" href="#dbgen.core.misc.Dep">Dep</a>')]) ‑> <a title="dbgen.core.misc.Dep" href="#dbgen.core.misc.Dep">Dep</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Combine a list of Deps using UNION</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def merge(cls, deps: L[&#34;Dep&#34;]) -&gt; &#34;Dep&#34;:
+    &#34;&#34;&#34;Combine a list of Deps using UNION&#34;&#34;&#34;
+    tn, cn, ty, cy = set(), set(), set(), set()  # type: ignore
+    for d in deps:
+        tn = tn | d.tabs_needed
+        cn = cn | d.cols_needed
+        ty = ty | d.tabs_yielded
+        cy = cy | d.cols_yielded
+    return cls(tn, cn, ty, cy)  # type: ignore</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.misc.Dep.all"><code class="name flex">
+<span>def <span class="ident">all</span></span>(<span>self) ‑> Tuple[str, str, str, str]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def all(self) -&gt; T[str, str, str, str]:
+    a, b, c, d = tuple(
+        map(
+            lambda x: &#34;,&#34;.join(sorted(x)),
+            [
+                self.tabs_needed,
+                self.cols_needed,
+                self.tabs_yielded,
+                self.cols_yielded,
+            ],
+        )
+    )
+    return a, b, c, d</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.misc.Dep.test"><code class="name flex">
+<span>def <span class="ident">test</span></span>(<span>self, other: <a title="dbgen.core.misc.Dep" href="#dbgen.core.misc.Dep">Dep</a>) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Test whether SELF depends on OTHER</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test(self, other: &#34;Dep&#34;) -&gt; bool:
+    &#34;&#34;&#34;Test whether SELF depends on OTHER&#34;&#34;&#34;
+    return not (
+        self.tabs_needed.isdisjoint(other.tabs_yielded)
+        and self.cols_needed.isdisjoint(other.cols_yielded)
+    )</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dbgen.core.misc.Test"><code class="flex name class">
+<span>class <span class="ident">Test</span></span>
+<span>(</span><span>test: Callable[[ForwardRef('Gen'), Any], bool], message: Callable[[Any], str])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Execute a test before running action. If it returns True, the test is
+passed, otherwise it returns an object which is fed into the "message"
+function. This prints a message: "Not Executed (<string of object>)"</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Test(object):
+    &#34;&#34;&#34;
+    Execute a test before running action. If it returns True, the test is
+    passed, otherwise it returns an object which is fed into the &#34;message&#34;
+    function. This prints a message: &#34;Not Executed (&lt;string of object&gt;)&#34;
+    &#34;&#34;&#34;
+
+    def __init__(self, test: C[[&#34;Gen&#34;, Any], bool], message: C[[Any], str]) -&gt; None:
+        self.test = test
+        self.message = message
+
+    def __call__(self, t: &#34;Gen&#34;, *args: Any) -&gt; Any:
+        &#34;&#34;&#34;Run a test on a generator to see if it&#39;s supposed to be executed&#34;&#34;&#34;
+        output = self.test(t, *args)
+        return True if output else self.message(output)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="dbgen.core" href="index.html">dbgen.core</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="dbgen.core.misc.ConnectInfo" href="#dbgen.core.misc.ConnectInfo">ConnectInfo</a></code></h4>
+<ul class="two-column">
+<li><code><a title="dbgen.core.misc.ConnectInfo.connect" href="#dbgen.core.misc.ConnectInfo.connect">connect</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.create" href="#dbgen.core.misc.ConnectInfo.create">create</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.drop" href="#dbgen.core.misc.ConnectInfo.drop">drop</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.from_file" href="#dbgen.core.misc.ConnectInfo.from_file">from_file</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.from_postgres_hook" href="#dbgen.core.misc.ConnectInfo.from_postgres_hook">from_postgres_hook</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.kill" href="#dbgen.core.misc.ConnectInfo.kill">kill</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.neutral" href="#dbgen.core.misc.ConnectInfo.neutral">neutral</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.to_file" href="#dbgen.core.misc.ConnectInfo.to_file">to_file</a></code></li>
+<li><code><a title="dbgen.core.misc.ConnectInfo.tunnel" href="#dbgen.core.misc.ConnectInfo.tunnel">tunnel</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dbgen.core.misc.Dep" href="#dbgen.core.misc.Dep">Dep</a></code></h4>
+<ul class="">
+<li><code><a title="dbgen.core.misc.Dep.all" href="#dbgen.core.misc.Dep.all">all</a></code></li>
+<li><code><a title="dbgen.core.misc.Dep.merge" href="#dbgen.core.misc.Dep.merge">merge</a></code></li>
+<li><code><a title="dbgen.core.misc.Dep.test" href="#dbgen.core.misc.Dep.test">test</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dbgen.core.misc.Test" href="#dbgen.core.misc.Test">Test</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>

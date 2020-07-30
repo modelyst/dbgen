@@ -1,9 +1,0 @@
-jinja2>=2.10.0
-werkzeug>=0.15.0
-psycopg2-binary>=2.7.4
-networkx>=
-tqdm
-pathos
-infinite
-sshtunnel
-hypothesis

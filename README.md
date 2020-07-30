@@ -1,6 +1,12 @@
-# Welcome to DBgen
+## ![Logo](docs/img/dbgen_logo.png)
 
-![Logo](img/dbgen_logo.png){ .logo }
+---
+
+**Documentation**: <a href="https://dbgen.modelyst.io" target="_blank">https://dbgen.modelyst.io</a>
+
+**Github**: <a href="https://github.com/modelyst/dbgen" target="_blank">https://github.com/modelyst/dbgen</a>
+
+---
 
 DBgen (Database Generator) is an open-source Python library for
 connecting raw data, scientific theories, and relational databases.

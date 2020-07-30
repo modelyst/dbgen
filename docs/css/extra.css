@@ -2,3 +2,11 @@
   width: 80%;
   align-content: center;
 }
+
+.color-primary {
+  color: rgb(184, 52, 52);
+}
+
+.md-tabs__link {
+  font-size: 1rem;
+}

@@ -12,18 +12,18 @@ except FileNotFoundError:
     long_description = ""
 
 # Requirements
-doc = [
-    "sphinx>=2.1.2",
-    "sphinx-autoapi==1.0.0",
-    "sphinx-rtd-theme>=0.1.6",
-    "sphinxcontrib-redoc>=1.6.0",
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-markdownextradata-plugin",
+    "markdown-include",
 ]
 
 with open("requirements.txt", "r") as f:
     INSTALL_REQUIREMENTS = [line.strip() for line in f.readlines()]
 
 
-EXTRAS_REQUIREMENTS = {"airflow": ["apache-airflow"]}
+EXTRAS_REQUIREMENTS = {"airflow": ["apache-airflow"], "docs": docs}
 
 
 def do_setup():

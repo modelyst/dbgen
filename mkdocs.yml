@@ -4,11 +4,13 @@ site_url: https://dbgen.modelyst.io/
 theme:
   name: material
   font:
-    text: Comic Sans
+    text: Fira
   palette:
     scheme: preference
-    primary: indigo
-    accent: amber
+    primary: blue-grey
+    accent: indigo
+  # features:
+  #   - tabs
   icon:
     repo: fontawesome/brands/github-alt
   logo: img/logo.png
@@ -26,3 +28,9 @@ markdown_extensions:
   - attr_list
 extra_css:
   - css/extra.css
+nav:
+  - DBgen: index.md
+  - Getting Started: usage.md
+  - API:
+      - dbgen: dbgen/index.html
+      - dbgen.core: dbgen/core/index.html

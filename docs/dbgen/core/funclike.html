@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>dbgen.core.funclike API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>dbgen.core.funclike</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python"># Extenral
+from abc import ABCMeta, abstractmethod
+from traceback import format_exc
+from typing import Any
+from typing import Callable as C
+from typing import Dict as D
+from typing import List as L
+from typing import Tuple as T
+from typing import Union as U
+
+from hypothesis.strategies import SearchStrategy, builds, just, one_of
+
+# Internal
+from dbgen.core.func import Env, Func
+from dbgen.core.misc import ConnectInfo as Conn
+from dbgen.templates import jinja_env
+from dbgen.utils.exceptions import DBgenExternalError
+from dbgen.utils.misc import Base, anystrat
+from dbgen.utils.sql import mkInsCmd, sqlexecute
+
+
+&#34;&#34;&#34;
+The &#34;T&#34; of ETL: things that are like functions.
+
+A generalization of a function is a computational graph (where nodes are functions)
+
+These nodes (PyBlocks) have Args which refer to other PyBlocks (or a query)
+&#34;&#34;&#34;
+####################################################################################
+class ArgLike(Base, metaclass=ABCMeta):
+    @abstractmethod
+    def arg_get(self, dic: dict) -&gt; Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def make_src(self, meta: bool = False) -&gt; str:
+        raise NotImplementedError
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return one_of(Arg._strat(), Const._strat())
+
+
+class Arg(ArgLike):
+    &#34;&#34;&#34;
+    How a function refers to a namespace
+    &#34;&#34;&#34;
+
+    def __init__(self, key: str, name: str) -&gt; None:
+        self.key = str(key)
+        self.name = name.lower()
+
+    def __str__(self) -&gt; str:
+        return &#34;Arg(%s...,%s)&#34; % (str(self.key)[:4], self.name)
+
+    # Public methods #
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls)
+
+    def arg_get(self, dic: dict) -&gt; Any:
+        &#34;&#34;&#34;
+        Common interface for Const and Arg to get values out of namespace
+        &#34;&#34;&#34;
+        try:
+            val = dic[self.key][self.name]
+            return val
+        except KeyError as e:
+            if self.key not in dic:
+                print(
+                    &#34;could not find hash, looking for {} at this hash {}&#34;.format(
+                        self.name, self.key
+                    )
+                )
+            else:
+                err = &#34;could not find &#39;%s&#39; in %s &#34;
+                print(err % (self.name, list(dic[self.key].keys())))
+            raise e
+
+    def add(self, cxn: Conn, act: int, block: int) -&gt; None:
+        q = mkInsCmd(&#34;_arg&#34;, [&#34;gen_id&#34;, &#34;block_id&#34;, &#34;hashkey&#34;, &#34;name&#34;])
+        sqlexecute(cxn, q, [act, block, self.key, self.name])
+
+    def make_src(self, meta: bool = False) -&gt; str:
+        key = repr(self.key) if isinstance(self.key, str) else self.key
+        if meta:
+            return &#34;Arg(%s,&#39;%s&#39;)&#34; % (key, self.name)
+        else:
+            return &#39;namespace[%s][&#34;%s&#34;]&#39; % (key, self.name)
+
+
+class Const(ArgLike):
+    def __init__(self, val: Any) -&gt; None:
+        if callable(val):
+            val = Func.from_callable(val)
+        self.val = val
+
+    def __str__(self) -&gt; str:
+        return &#34;Const&lt;%s&gt;&#34; % self.val
+
+    def arg_get(self, _: dict) -&gt; Any:
+        return self.val
+
+    def make_src(self, meta: bool = False) -&gt; str:
+        if meta:
+            return &#34;Const(%s)&#34; + repr(self.val)
+        else:
+            return repr(self.val)
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls, val=anystrat)
+
+
+class PyBlock(Base):
+    &#34;&#34;&#34;
+    A computational block that executes Python code
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        func: U[C, Func],
+        env: Env = None,
+        args: U[L[Arg], L[Const], L[ArgLike]] = None,
+        outnames: L[str] = None,
+        tests: L[T[tuple, Any]] = None,
+    ) -&gt; None:
+        # Store fields
+        self.func = Func.from_callable(func, env=env)
+        self.env = env
+        self.args = args or []
+        self.outnames = [o.lower() for o in outnames or [&#34;out&#34;]]
+        self.tests = tests or []
+
+        # Validate input
+        if outnames:
+            dups = [o for o in outnames if outnames.count(o) &gt; 1]
+            err = &#34;No duplicates in outnames for func %s: %s&#34;
+            assert not dups, err % (self.func.name, set(dups))
+        super().__init__()
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return just(cls(func=lambda x: x + 1, args=[Const(1)], outnames=[&#34;x&#34;],))
+
+    def __str__(self) -&gt; str:
+        return &#34;PyBlock&lt;%d args&gt;&#34; % (len(self.args))
+
+    def __lt__(self, other: &#34;PyBlock&#34;) -&gt; bool:
+        return self.hash &lt; other.hash
+
+    def __call__(self, curr_dict: D[str, D[str, Any]]) -&gt; D[str, Any]:
+        &#34;&#34;&#34;
+        Take a TempFunc&#39;s function and wrap it such that it can accept a namespace
+            dictionary. The information about how the function interacts with the
+            namespace is contained in the TempFunc&#39;s args.
+        &#34;&#34;&#34;
+        try:
+            inputvars = [arg.arg_get(curr_dict) for arg in self.args]
+        except (KeyError, TypeError, IndexError) as e:
+            print(e)
+            import pdb
+
+            pdb.set_trace()
+            raise ValueError()
+        except AttributeError:
+            invalid_args = [getattr(arg, &#34;arg_get&#34;, None) is None for arg in self.args]
+            missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
+            raise ValueError(
+                f&#34;Argument(s) {&#39; ,&#39;.join(map(str,missing_args))} to {self.func.name} don&#39;t have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Arguement??&#34;
+            )
+
+        try:
+            output = self.func(*inputvars)
+            if isinstance(output, tuple):
+                l1, l2 = len(output), len(self.outnames)
+                assert l1 == l2, &#34;Expected %d outputs from %s, got %d&#34; % (
+                    l2,
+                    self.func.name,
+                    l1,
+                )
+                return {o: val for val, o in zip(output, self.outnames)}
+            else:
+                assert len(self.outnames) == 1
+                return {self.outnames[0]: output}
+        except Exception:
+            msg = &#34;\tApplying func %s in tempfunc:\n\t&#34; % (self.func.name)
+            raise DBgenExternalError(msg + format_exc())
+
+    def __getitem__(self, key: str) -&gt; Arg:
+        err = &#34;%s not found in %s&#34;
+        assert key.lower() in self.outnames, err % (key, self.outnames)
+        return Arg(self.hash, key.lower())
+
+    def _constargs(self) -&gt; L[Func]:
+        &#34;&#34;&#34;all callable constant args&#34;&#34;&#34;
+        return [
+            c.val for c in self.args if isinstance(c, Const) and isinstance(c.val, Func)
+        ]
+
+    def add(self, cxn: Conn, a_id: int, b_id: int) -&gt; None:
+        &#34;&#34;&#34;Add to metaDB&#34;&#34;&#34;
+        cols = [&#34;gen_id&#34;, &#34;py_block_id&#34;, &#34;func_id&#34;, &#34;outnames&#34;]
+        f_id = self.func.add(cxn)
+        q = mkInsCmd(&#34;_py_block&#34;, cols)
+        sqlexecute(cxn, q, [a_id, b_id, f_id, &#34;,&#34;.join(self.outnames)])
+
+    def test(self) -&gt; None:
+        &#34;&#34;&#34;Throw error if any tests are failed&#34;&#34;&#34;
+        for args, target in self.tests:
+            assert self.func(*args) == target
+
+    def make_src(self) -&gt; str:
+        # load the pyblock template
+        pb_template = jinja_env.get_template(&#34;pyblock.py.jinja&#34;)
+
+        # Prepare the template args
+        args = [a.make_src() for a in self.args]
+        name = self.func.name.replace(&#34;&lt;lambda&gt;&#34;, &#34;func&#34;)
+        src = (&#34;func=&#34; if &#34;&lt;lambda&gt;&#34; in self.func.name else &#34;&#34;) + self.func.src.replace(
+            &#34;\t&#34;, &#34;   &#34;
+        )
+
+        # Set the template args
+        template_kwargs = dict(src=src, outnames=self.outnames, args=args, name=name)
+        rendered_template = pb_template.render(**template_kwargs)
+        tabified_template = rendered_template.replace(&#34;\n&#34;, &#34;\n    &#34;)
+        return tabified_template</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="dbgen.core.funclike.Arg"><code class="flex name class">
+<span>class <span class="ident">Arg</span></span>
+<span>(</span><span>key: str, name: str)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>How a function refers to a namespace</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Arg(ArgLike):
+    &#34;&#34;&#34;
+    How a function refers to a namespace
+    &#34;&#34;&#34;
+
+    def __init__(self, key: str, name: str) -&gt; None:
+        self.key = str(key)
+        self.name = name.lower()
+
+    def __str__(self) -&gt; str:
+        return &#34;Arg(%s...,%s)&#34; % (str(self.key)[:4], self.name)
+
+    # Public methods #
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls)
+
+    def arg_get(self, dic: dict) -&gt; Any:
+        &#34;&#34;&#34;
+        Common interface for Const and Arg to get values out of namespace
+        &#34;&#34;&#34;
+        try:
+            val = dic[self.key][self.name]
+            return val
+        except KeyError as e:
+            if self.key not in dic:
+                print(
+                    &#34;could not find hash, looking for {} at this hash {}&#34;.format(
+                        self.name, self.key
+                    )
+                )
+            else:
+                err = &#34;could not find &#39;%s&#39; in %s &#34;
+                print(err % (self.name, list(dic[self.key].keys())))
+            raise e
+
+    def add(self, cxn: Conn, act: int, block: int) -&gt; None:
+        q = mkInsCmd(&#34;_arg&#34;, [&#34;gen_id&#34;, &#34;block_id&#34;, &#34;hashkey&#34;, &#34;name&#34;])
+        sqlexecute(cxn, q, [act, block, self.key, self.name])
+
+    def make_src(self, meta: bool = False) -&gt; str:
+        key = repr(self.key) if isinstance(self.key, str) else self.key
+        if meta:
+            return &#34;Arg(%s,&#39;%s&#39;)&#34; % (key, self.name)
+        else:
+            return &#39;namespace[%s][&#34;%s&#34;]&#39; % (key, self.name)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.core.funclike.ArgLike" href="#dbgen.core.funclike.ArgLike">ArgLike</a></li>
+<li><a title="dbgen.utils.misc.Base" href="../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.funclike.Arg.add"><code class="name flex">
+<span>def <span class="ident">add</span></span>(<span>self, cxn: <a title="dbgen.core.misc.ConnectInfo" href="misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, act: int, block: int) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add(self, cxn: Conn, act: int, block: int) -&gt; None:
+    q = mkInsCmd(&#34;_arg&#34;, [&#34;gen_id&#34;, &#34;block_id&#34;, &#34;hashkey&#34;, &#34;name&#34;])
+    sqlexecute(cxn, q, [act, block, self.key, self.name])</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.funclike.Arg.arg_get"><code class="name flex">
+<span>def <span class="ident">arg_get</span></span>(<span>self, dic: dict) ‑> Any</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common interface for Const and Arg to get values out of namespace</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def arg_get(self, dic: dict) -&gt; Any:
+    &#34;&#34;&#34;
+    Common interface for Const and Arg to get values out of namespace
+    &#34;&#34;&#34;
+    try:
+        val = dic[self.key][self.name]
+        return val
+    except KeyError as e:
+        if self.key not in dic:
+            print(
+                &#34;could not find hash, looking for {} at this hash {}&#34;.format(
+                    self.name, self.key
+                )
+            )
+        else:
+            err = &#34;could not find &#39;%s&#39; in %s &#34;
+            print(err % (self.name, list(dic[self.key].keys())))
+        raise e</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.funclike.Arg.make_src"><code class="name flex">
+<span>def <span class="ident">make_src</span></span>(<span>self, meta: bool = False) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_src(self, meta: bool = False) -&gt; str:
+    key = repr(self.key) if isinstance(self.key, str) else self.key
+    if meta:
+        return &#34;Arg(%s,&#39;%s&#39;)&#34; % (key, self.name)
+    else:
+        return &#39;namespace[%s][&#34;%s&#34;]&#39; % (key, self.name)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dbgen.core.funclike.ArgLike"><code class="flex name class">
+<span>class <span class="ident">ArgLike</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common methods shared by many DbGen objects.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ArgLike(Base, metaclass=ABCMeta):
+    @abstractmethod
+    def arg_get(self, dic: dict) -&gt; Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def make_src(self, meta: bool = False) -&gt; str:
+        raise NotImplementedError
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return one_of(Arg._strat(), Const._strat())</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.utils.misc.Base" href="../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="dbgen.core.funclike.Arg" href="#dbgen.core.funclike.Arg">Arg</a></li>
+<li><a title="dbgen.core.funclike.Const" href="#dbgen.core.funclike.Const">Const</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.funclike.ArgLike.arg_get"><code class="name flex">
+<span>def <span class="ident">arg_get</span></span>(<span>self, dic: dict) ‑> Any</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def arg_get(self, dic: dict) -&gt; Any:
+    raise NotImplementedError</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.funclike.ArgLike.make_src"><code class="name flex">
+<span>def <span class="ident">make_src</span></span>(<span>self, meta: bool = False) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@abstractmethod
+def make_src(self, meta: bool = False) -&gt; str:
+    raise NotImplementedError</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dbgen.core.funclike.Const"><code class="flex name class">
+<span>class <span class="ident">Const</span></span>
+<span>(</span><span>val: Any)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common methods shared by many DbGen objects.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Const(ArgLike):
+    def __init__(self, val: Any) -&gt; None:
+        if callable(val):
+            val = Func.from_callable(val)
+        self.val = val
+
+    def __str__(self) -&gt; str:
+        return &#34;Const&lt;%s&gt;&#34; % self.val
+
+    def arg_get(self, _: dict) -&gt; Any:
+        return self.val
+
+    def make_src(self, meta: bool = False) -&gt; str:
+        if meta:
+            return &#34;Const(%s)&#34; + repr(self.val)
+        else:
+            return repr(self.val)
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return builds(cls, val=anystrat)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.core.funclike.ArgLike" href="#dbgen.core.funclike.ArgLike">ArgLike</a></li>
+<li><a title="dbgen.utils.misc.Base" href="../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.funclike.Const.arg_get"><code class="name flex">
+<span>def <span class="ident">arg_get</span></span>(<span>self, _: dict) ‑> Any</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def arg_get(self, _: dict) -&gt; Any:
+    return self.val</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.funclike.Const.make_src"><code class="name flex">
+<span>def <span class="ident">make_src</span></span>(<span>self, meta: bool = False) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_src(self, meta: bool = False) -&gt; str:
+    if meta:
+        return &#34;Const(%s)&#34; + repr(self.val)
+    else:
+        return repr(self.val)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dbgen.core.funclike.PyBlock"><code class="flex name class">
+<span>class <span class="ident">PyBlock</span></span>
+<span>(</span><span>func: Union[Callable, <a title="dbgen.core.func.Func" href="func.html#dbgen.core.func.Func">Func</a>], env: <a title="dbgen.core.func.Env" href="func.html#dbgen.core.func.Env">Env</a> = None, args: Union[List[<a title="dbgen.core.funclike.Arg" href="#dbgen.core.funclike.Arg">Arg</a>], List[<a title="dbgen.core.funclike.Const" href="#dbgen.core.funclike.Const">Const</a>], List[<a title="dbgen.core.funclike.ArgLike" href="#dbgen.core.funclike.ArgLike">ArgLike</a>]] = None, outnames: List[str] = None, tests: List[Tuple[tuple, Any]] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A computational block that executes Python code</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PyBlock(Base):
+    &#34;&#34;&#34;
+    A computational block that executes Python code
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        func: U[C, Func],
+        env: Env = None,
+        args: U[L[Arg], L[Const], L[ArgLike]] = None,
+        outnames: L[str] = None,
+        tests: L[T[tuple, Any]] = None,
+    ) -&gt; None:
+        # Store fields
+        self.func = Func.from_callable(func, env=env)
+        self.env = env
+        self.args = args or []
+        self.outnames = [o.lower() for o in outnames or [&#34;out&#34;]]
+        self.tests = tests or []
+
+        # Validate input
+        if outnames:
+            dups = [o for o in outnames if outnames.count(o) &gt; 1]
+            err = &#34;No duplicates in outnames for func %s: %s&#34;
+            assert not dups, err % (self.func.name, set(dups))
+        super().__init__()
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        return just(cls(func=lambda x: x + 1, args=[Const(1)], outnames=[&#34;x&#34;],))
+
+    def __str__(self) -&gt; str:
+        return &#34;PyBlock&lt;%d args&gt;&#34; % (len(self.args))
+
+    def __lt__(self, other: &#34;PyBlock&#34;) -&gt; bool:
+        return self.hash &lt; other.hash
+
+    def __call__(self, curr_dict: D[str, D[str, Any]]) -&gt; D[str, Any]:
+        &#34;&#34;&#34;
+        Take a TempFunc&#39;s function and wrap it such that it can accept a namespace
+            dictionary. The information about how the function interacts with the
+            namespace is contained in the TempFunc&#39;s args.
+        &#34;&#34;&#34;
+        try:
+            inputvars = [arg.arg_get(curr_dict) for arg in self.args]
+        except (KeyError, TypeError, IndexError) as e:
+            print(e)
+            import pdb
+
+            pdb.set_trace()
+            raise ValueError()
+        except AttributeError:
+            invalid_args = [getattr(arg, &#34;arg_get&#34;, None) is None for arg in self.args]
+            missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
+            raise ValueError(
+                f&#34;Argument(s) {&#39; ,&#39;.join(map(str,missing_args))} to {self.func.name} don&#39;t have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Arguement??&#34;
+            )
+
+        try:
+            output = self.func(*inputvars)
+            if isinstance(output, tuple):
+                l1, l2 = len(output), len(self.outnames)
+                assert l1 == l2, &#34;Expected %d outputs from %s, got %d&#34; % (
+                    l2,
+                    self.func.name,
+                    l1,
+                )
+                return {o: val for val, o in zip(output, self.outnames)}
+            else:
+                assert len(self.outnames) == 1
+                return {self.outnames[0]: output}
+        except Exception:
+            msg = &#34;\tApplying func %s in tempfunc:\n\t&#34; % (self.func.name)
+            raise DBgenExternalError(msg + format_exc())
+
+    def __getitem__(self, key: str) -&gt; Arg:
+        err = &#34;%s not found in %s&#34;
+        assert key.lower() in self.outnames, err % (key, self.outnames)
+        return Arg(self.hash, key.lower())
+
+    def _constargs(self) -&gt; L[Func]:
+        &#34;&#34;&#34;all callable constant args&#34;&#34;&#34;
+        return [
+            c.val for c in self.args if isinstance(c, Const) and isinstance(c.val, Func)
+        ]
+
+    def add(self, cxn: Conn, a_id: int, b_id: int) -&gt; None:
+        &#34;&#34;&#34;Add to metaDB&#34;&#34;&#34;
+        cols = [&#34;gen_id&#34;, &#34;py_block_id&#34;, &#34;func_id&#34;, &#34;outnames&#34;]
+        f_id = self.func.add(cxn)
+        q = mkInsCmd(&#34;_py_block&#34;, cols)
+        sqlexecute(cxn, q, [a_id, b_id, f_id, &#34;,&#34;.join(self.outnames)])
+
+    def test(self) -&gt; None:
+        &#34;&#34;&#34;Throw error if any tests are failed&#34;&#34;&#34;
+        for args, target in self.tests:
+            assert self.func(*args) == target
+
+    def make_src(self) -&gt; str:
+        # load the pyblock template
+        pb_template = jinja_env.get_template(&#34;pyblock.py.jinja&#34;)
+
+        # Prepare the template args
+        args = [a.make_src() for a in self.args]
+        name = self.func.name.replace(&#34;&lt;lambda&gt;&#34;, &#34;func&#34;)
+        src = (&#34;func=&#34; if &#34;&lt;lambda&gt;&#34; in self.func.name else &#34;&#34;) + self.func.src.replace(
+            &#34;\t&#34;, &#34;   &#34;
+        )
+
+        # Set the template args
+        template_kwargs = dict(src=src, outnames=self.outnames, args=args, name=name)
+        rendered_template = pb_template.render(**template_kwargs)
+        tabified_template = rendered_template.replace(&#34;\n&#34;, &#34;\n    &#34;)
+        return tabified_template</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.utils.misc.Base" href="../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.funclike.PyBlock.add"><code class="name flex">
+<span>def <span class="ident">add</span></span>(<span>self, cxn: <a title="dbgen.core.misc.ConnectInfo" href="misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, a_id: int, b_id: int) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Add to metaDB</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add(self, cxn: Conn, a_id: int, b_id: int) -&gt; None:
+    &#34;&#34;&#34;Add to metaDB&#34;&#34;&#34;
+    cols = [&#34;gen_id&#34;, &#34;py_block_id&#34;, &#34;func_id&#34;, &#34;outnames&#34;]
+    f_id = self.func.add(cxn)
+    q = mkInsCmd(&#34;_py_block&#34;, cols)
+    sqlexecute(cxn, q, [a_id, b_id, f_id, &#34;,&#34;.join(self.outnames)])</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.funclike.PyBlock.make_src"><code class="name flex">
+<span>def <span class="ident">make_src</span></span>(<span>self) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_src(self) -&gt; str:
+    # load the pyblock template
+    pb_template = jinja_env.get_template(&#34;pyblock.py.jinja&#34;)
+
+    # Prepare the template args
+    args = [a.make_src() for a in self.args]
+    name = self.func.name.replace(&#34;&lt;lambda&gt;&#34;, &#34;func&#34;)
+    src = (&#34;func=&#34; if &#34;&lt;lambda&gt;&#34; in self.func.name else &#34;&#34;) + self.func.src.replace(
+        &#34;\t&#34;, &#34;   &#34;
+    )
+
+    # Set the template args
+    template_kwargs = dict(src=src, outnames=self.outnames, args=args, name=name)
+    rendered_template = pb_template.render(**template_kwargs)
+    tabified_template = rendered_template.replace(&#34;\n&#34;, &#34;\n    &#34;)
+    return tabified_template</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.funclike.PyBlock.test"><code class="name flex">
+<span>def <span class="ident">test</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Throw error if any tests are failed</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test(self) -&gt; None:
+    &#34;&#34;&#34;Throw error if any tests are failed&#34;&#34;&#34;
+    for args, target in self.tests:
+        assert self.func(*args) == target</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="dbgen.core" href="index.html">dbgen.core</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="dbgen.core.funclike.Arg" href="#dbgen.core.funclike.Arg">Arg</a></code></h4>
+<ul class="">
+<li><code><a title="dbgen.core.funclike.Arg.add" href="#dbgen.core.funclike.Arg.add">add</a></code></li>
+<li><code><a title="dbgen.core.funclike.Arg.arg_get" href="#dbgen.core.funclike.Arg.arg_get">arg_get</a></code></li>
+<li><code><a title="dbgen.core.funclike.Arg.make_src" href="#dbgen.core.funclike.Arg.make_src">make_src</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dbgen.core.funclike.ArgLike" href="#dbgen.core.funclike.ArgLike">ArgLike</a></code></h4>
+<ul class="">
+<li><code><a title="dbgen.core.funclike.ArgLike.arg_get" href="#dbgen.core.funclike.ArgLike.arg_get">arg_get</a></code></li>
+<li><code><a title="dbgen.core.funclike.ArgLike.make_src" href="#dbgen.core.funclike.ArgLike.make_src">make_src</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dbgen.core.funclike.Const" href="#dbgen.core.funclike.Const">Const</a></code></h4>
+<ul class="">
+<li><code><a title="dbgen.core.funclike.Const.arg_get" href="#dbgen.core.funclike.Const.arg_get">arg_get</a></code></li>
+<li><code><a title="dbgen.core.funclike.Const.make_src" href="#dbgen.core.funclike.Const.make_src">make_src</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dbgen.core.funclike.PyBlock" href="#dbgen.core.funclike.PyBlock">PyBlock</a></code></h4>
+<ul class="">
+<li><code><a title="dbgen.core.funclike.PyBlock.add" href="#dbgen.core.funclike.PyBlock.add">add</a></code></li>
+<li><code><a title="dbgen.core.funclike.PyBlock.make_src" href="#dbgen.core.funclike.PyBlock.make_src">make_src</a></code></li>
+<li><code><a title="dbgen.core.funclike.PyBlock.test" href="#dbgen.core.funclike.PyBlock.test">test</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>

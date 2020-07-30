@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>dbgen.core.model.model API documentation</title>
+<meta name="description" content="Module for the DBgen Model object" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>dbgen.core.model.model</code></h1>
+</header>
+<section id="section-intro">
+<p>Module for the DBgen Model object</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Module for the DBgen Model object&#34;&#34;&#34;
+# External
+from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T
+from networkx import DiGraph
+from networkx.algorithms import simple_cycles
+from hypothesis.strategies import SearchStrategy, just
+
+# Internal
+from dbgen.core.model.run_gen import run_gen
+from dbgen.core.model.run import run, check_patheq, validate_name
+from dbgen.core.model.metatable import make_meta
+
+from dbgen.core.gen import Gen
+from dbgen.core.action import Action
+from dbgen.core.schema import (
+    Obj,
+    Rel,
+    RelTup,
+    PathEQ,
+    Attr,
+    View,
+    AttrTup,
+    UserRel,
+    SuperRel,
+)
+from dbgen.core.schemaclass import Schema
+from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.core.fromclause import Path as JPath
+from dbgen.utils.graphs import topsort_with_dict
+
+################################################################################
+# Type Synonyms
+Stuff = U[
+    L[Obj],
+    L[Rel],
+    L[str],
+    L[AttrTup],
+    L[RelTup],
+    L[Gen],
+    L[View],
+    L[PathEQ],
+    L[T[str, Attr]],
+    L[U[Obj, Rel, RelTup, AttrTup, str, Gen, PathEQ, View]],
+]
+##########################################################################################
+
+
+class Model(Schema):
+    &#34;&#34;&#34;
+    Just a named container for objects, relations, and generators
+
+    Also, path equivalencies: which can be checked ad hoc
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        name: str,
+        objlist: L[Obj] = [],
+        genlist: L[Gen] = [],
+        viewlist: L[View] = [],
+        pes: L[PathEQ] = [],
+    ) -&gt; None:
+        &#34;&#34;&#34;
+        Initialize model with list of objects, generators, views, and path
+        equivalency. These lists can be appended to after initizialization
+        through the model.add method
+
+        Args:
+            name (str): Name of the model used to uniquely identify the model
+            objlist (L[Obj], optional): List of Obj objects. Defaults to [].
+            genlist (L[Gen], optional): List of Gen objects. Defaults to [].
+            viewlist (L[View], optional): List of View objects. Defaults to [].
+            pes (L[PathEQ], optional): List of path equivalency objects. Defaults to [].
+        &#34;&#34;&#34;
+        self.name = name
+        self.objlist = objlist
+        self.genlist = genlist
+        self.viewlist = viewlist
+
+        self._fks = DiGraph()
+        self._fks.add_nodes_from(self.objs)  # nodes are object NAMES
+
+        self.pes = set(pes)  # path equivalencies
+
+        for o in self.objs.values():
+            for rel in o.fks:
+                self._add_relation(rel.to_rel(o.name))
+        super(Schema, self).__init__()
+
+    @property
+    def gens(self) -&gt; D[str, Gen]:
+        return {g.name: g for g in self.genlist}
+
+    def __str__(self) -&gt; str:
+        p = &#34;%d objs&#34; % len(self.objs)
+        n = self._fks.number_of_edges()
+        r = &#34;%d rels&#34; % n if n else &#34;&#34;
+        m = &#34;%d gens&#34; % len(self.gens) if self.gens else &#34;&#34;
+        e = &#34;%d PathEQs&#34; % len(self.pes) if self.pes else &#34;&#34;
+
+        things = &#34;, &#34;.join(filter(None, [p, r, m, e]))
+        return &#34;Model&lt;%s,%s&gt;&#34; % (self.name, things)
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        &#34;&#34;&#34;A hypothesis strategy for generating random examples.&#34;&#34;&#34;
+        objs = [
+            Obj(&#34;a&#34;, attrs=[Attr(&#34;aa&#34;)], fks=[UserRel(&#34;ab&#34;, &#34;b&#34;)]),
+            Obj(&#34;b&#34;, attrs=[Attr(&#34;bb&#34;)]),
+        ]
+        gens = [Gen(name=&#34;pop_a&#34;, funcs=[], actions=[], tags=[&#34;io&#34;])]
+        return just(cls(name=&#34;model&#34;, objlist=objs, genlist=gens))
+
+    ######################
+    # Externally defined #
+    ######################
+    run = run
+
+    _validate_name = validate_name
+    _run_gen = run_gen
+    _make_metatables = make_meta
+    _check_patheq = check_patheq
+
+    def run_airflow(self, *args, **kwargs):
+        try:
+            from dbgen.core.model.run_airflow import run_airflow
+        except ImportError as exc:
+            print(
+                &#34;Import error on model.run_airflow call, apache-airflow is required&#34;
+                &#34;for running a model using airflow (This is highly experimental &#34;
+                &#34;feature right now)&#34;
+            )
+            raise exc
+        run_airflow(*args, **kwargs)
+
+    ##################
+    # Public methods #
+    ##################
+    def test_gen(
+        self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
+    ) -&gt; T[L[D[str, dict]], L[D[str, L[dict]]]]:
+        assert (
+            gen_name in self.gens
+        ), f&#34;Generator {gen_name} not in model:\n{self.gens.keys()}&#34;
+
+        return self.gens[gen_name].test_with_db(
+            objs=self._get_universe(), db=db, interact=interact, limit=limit
+        )
+
+    def test_funcs(self) -&gt; None:
+        &#34;&#34;&#34;Run all PyBlock tests&#34;&#34;&#34;
+        for g in self.gens.values():
+            for f in g.funcs:
+                f.test()
+
+    def check_paths(self, db: ConnI) -&gt; None:
+        &#34;&#34;&#34;Use ASSERT statements to verify one&#39;s path equalities are upheld&#34;&#34;&#34;
+        for pe in self.pes:
+            self._check_patheq(pe, db)
+
+    def make_path(self, end: U[str, &#34;Obj&#34;], rels: list = None) -&gt; JPath:
+        # Upgrade End
+        # Change end into object if it is a string
+        if isinstance(end, str):
+            upgraded_end = self[end]
+        else:
+            assert isinstance(end, Obj)
+            upgraded_end = end
+
+        # UPGRADE FKS
+        def upgrade_rels(fs: list):
+            res = []
+            for rel_or_list in fs:
+                if isinstance(rel_or_list, RelTup):
+                    rel_or_list = self.get_rel(rel_or_list)
+                if isinstance(rel_or_list, Rel):
+                    res.append(
+                        SuperRel(
+                            rel_or_list.name,
+                            rel_or_list.o1,
+                            rel_or_list.o2,
+                            self[rel_or_list.o2].id_str,
+                        )
+                    )
+                else:
+                    res.append(upgrade_rels(rel_or_list))
+            return res
+
+        upgraded_fks = upgrade_rels(rels) if rels else []
+
+        return JPath(upgraded_end, upgraded_fks)
+
+    def get(self, objname: str) -&gt; Obj:
+        &#34;&#34;&#34;Get an object by name&#34;&#34;&#34;
+        return self[objname]
+
+    def rename(self, x: U[Obj, Rel, RelTup, AttrTup, str, Gen], name: str) -&gt; None:
+        &#34;&#34;&#34;Rename an Objects / Relations / Generators / Attr &#34;&#34;&#34;
+        if isinstance(x, (Obj, str)):
+            if isinstance(x, str):
+                o = self[x]
+            else:
+                o = x
+            self._rename_object(o, name)
+        elif isinstance(x, (Rel, RelTup)):
+            r = x if isinstance(x, Rel) else self.get_rel(x)
+            self._rename_relation(r, name)
+        elif isinstance(x, Gen):
+            self._rename_gen(x, name)
+        elif isinstance(x, AttrTup):
+            self._rename_attr(x, name)
+        else:
+            raise TypeError(&#34;A %s (%s) was passed to rename&#34; % (type(x), x))
+
+    def add(self, stuff: Stuff) -&gt; None:
+        &#34;&#34;&#34;Add a list containing Objects / Relations / Generators / PathEQs &#34;&#34;&#34;
+        for x in stuff:
+            if isinstance(x, (Obj, str)):
+                if isinstance(x, str):
+                    o = self[x]
+                else:
+                    o = x
+                self._add_object(o)
+            elif isinstance(x, (Rel, RelTup)):
+                r = x if isinstance(x, Rel) else self.get_rel(x)
+                self._add_relation(r)
+            elif isinstance(x, Gen):
+                self._add_gen(x)
+            elif isinstance(x, View):
+                self._add_view(x)
+            elif isinstance(x, PathEQ):
+                self._add_patheq(x)
+            elif isinstance(x, tuple) and isinstance(x[1], Attr):
+                assert isinstance(x[0], str)
+                self._add_attr(x[0], x[1])
+            else:
+                raise TypeError(&#34;A %s (%s) was passed to add&#34; % (type(x), x))
+
+    def remove(self, stuff: Stuff) -&gt; None:
+        &#34;&#34;&#34;Remove items given a list of Objects / Relations / Gens / PathEQs&#34;&#34;&#34;
+        for x in stuff:
+            if isinstance(x, (Obj, str)):
+                if isinstance(x, str):
+                    o = self[x]
+                else:
+                    o = x
+                self._del_object(o)
+            elif isinstance(x, (Rel, RelTup)):
+                r = x if isinstance(x, Rel) else self.get_rel(x)
+                self._del_relation(r)
+            elif isinstance(x, Gen):
+                self._del_gen(x)
+            elif isinstance(x, View):
+                self._del_view(x)
+            elif isinstance(x, AttrTup):
+                self._del_attr(x)
+            elif isinstance(x, PathEQ):
+                self._del_patheq(x)
+            else:
+                raise TypeError(&#34;A %s (%s) was passed to remove&#34; % (type(x), x))
+
+    ###################
+    # Private Methods #
+    ###################
+
+    @classmethod
+    def _build_new(cls, name: str) -&gt; &#34;Model&#34;:
+        &#34;&#34;&#34;Create a new model (used to generate meta.db)&#34;&#34;&#34;
+        return cls(name)
+
+    ##################################
+    # Adding/removing/renaming in model
+    ##################################
+    def _rename_gen(self, g: Gen, n: str) -&gt; None:
+        assert g == self.gens[g.name]
+        g.name = n
+        del self.gens[g.name]
+        self.gens[n] = g
+
+    def _rename_attr(self, a: AttrTup, n: str) -&gt; None:
+        &#34;&#34;&#34;Replace object with one with a renamed attribute&#34;&#34;&#34;
+        self.objs[a.obj] = self.objs[a.obj].rename_attr(a.name, n)
+        # Make changes in generators?
+        # Make changes in PathEQs?
+
+    def _rename_object(self, o: Obj, n: str) -&gt; None:
+        &#34;&#34;&#34;Probably buggy&#34;&#34;&#34;
+        assert o in self.objs.values(), &#34;Cannot delete %s: not found in model&#34; % o
+        oc = o.copy()
+        oc.name = n
+        del self.objs[o.name]
+        self.objs[n] = oc
+
+        for genname, g in self.gens.items():
+            self.gens[genname] = g.rename_object(o, n)
+
+        for fk in self._obj_all_fks(o):
+            self._del_relation(fk)
+            if fk.o1 == o.name:
+                fk.o1 = n
+            if fk.o2 == o.name:
+                fk.o2 = n
+            self._add_relation(fk)
+
+    def _rename_relation(self, r: Rel, n: str) -&gt; None:
+        raise NotImplementedError
+
+    def _del_gen(self, g: Gen) -&gt; None:
+        &#34;&#34;&#34;Delete a generator&#34;&#34;&#34;
+        del self.gens[g.name]
+
+    def _del_view(self, v: View) -&gt; None:
+        &#34;&#34;&#34;Delete a view&#34;&#34;&#34;
+        del self.views[v.name]
+        # need to delete generators/PathEQs
+
+    def _del_attr(self, a: AttrTup) -&gt; None:
+        &#34;&#34;&#34;Delete an attribute: Need to also remove all Generators that mention it?&#34;&#34;&#34;
+        self[a.obj].del_attrs([a.name])
+
+    def _del_relation(self, r: Rel) -&gt; None:
+        &#34;&#34;&#34; Remove from internal FK graph. Need to also remove all Generators that mention it? &#34;&#34;&#34;
+        self._fks[r.o1][r.o2][&#34;fks&#34;].remove(r)
+        if not self._fks[r.o1][r.o2][&#34;fks&#34;]:
+            self._fks.remove_edge(r.o1, r.o2)
+
+        # Remove any path equivalencies that use this relation
+        remove = set()
+        for pe in self.pes:
+            for p in pe:
+                if r.tup() in p.rels:
+                    remove.add(pe)
+        self.pes -= remove
+
+    def _del_object(self, o: Obj) -&gt; None:
+        &#34;&#34;&#34;Need to also remove all Generators that mention it?&#34;&#34;&#34;
+        del self.objs[o.name]
+        # Remove relations that mention object
+        self._fks.remove_node(o.name)
+
+        # Remove generators that mention object
+        delgen = []
+        for gn, g in self.gens.items():
+            gobjs = g.dep(self.objs).tabs_needed | g.dep(self.objs).tabs_yielded
+            if o.name in gobjs:
+                delgen.append(gn)
+        for gn in delgen:
+            del self.gens[gn]
+
+        # Remove path equivalencies that mention object
+        remove = set()
+        for pe in self.pes:
+            for p in pe:
+                pobjs = set([getattr(p.attr, &#34;obj&#34;)] + [r.obj for r in p.rels])
+                if o.name in pobjs:
+                    remove.add(pe)
+
+        self.pes -= remove
+
+    def _del_patheq(self, peq: PathEQ) -&gt; None:
+        self.pes.remove(peq)
+
+    def _add_gen(self, g: Gen) -&gt; None:
+        &#34;&#34;&#34;Add to model&#34;&#34;&#34;
+        # Validate
+        # --------
+        if g.name in self.gens:
+            raise ValueError(&#34;Cannot add %s, name already taken!&#34; % g)
+        # Add
+        # ----
+        for a in g.actions:
+            self._validate_action(a)
+
+        self.genlist.append(g)
+
+    ###################
+    # Gen related ###
+    ###################
+    def _validate_action(self, a: Action) -&gt; None:
+        &#34;&#34;&#34;
+        It is assumed that an Action provides all identifying data for an
+        object, so that either its PK can be selected OR we can insert a new
+        row...however this depends on the global model state (identifying
+        relations can be added) so a model-level validation is necessary
+        The action __init__ already verifies all ID attributes are present
+        &#34;&#34;&#34;
+        # Check all identifying relationships are covered
+        if not a.pk:  # don&#39;t have a PK, so need identifying info
+            for fk in self[a.obj].id_fks():
+                err = &#34;%s missing identifying relation %s&#34;
+                assert fk in a.fks, err % (a, fk)
+
+        # Recursively validate sub-actions
+        for act in a.fks.values():
+            self._validate_action(act)
+
+    def ordered_gens(self) -&gt; L[Gen]:
+        &#34;&#34;&#34; Determine execution order of generators &#34;&#34;&#34;
+
+        # Check for cycles:
+        sc = list(simple_cycles(self._gen_graph()))
+
+        if sc:
+            small = min(sc, key=len)
+            print(&#34;\nGenerator cycle found! Smallest cycle:&#34;)
+            for gname in small:
+                g = self.gens[gname]
+                print(&#34;\n################\n&#34;, g.name)
+                for k, v in vars(g.dep(self.objs)).items():
+                    print(k, v)
+            import pdb
+
+            pdb.set_trace()
+            assert False
+
+        # Use topological sort to order
+        return list(topsort_with_dict(self._gen_graph(), self.gens))
+
+    def _gen_graph(self) -&gt; DiGraph:
+        &#34;&#34;&#34; Make a graph out of generator dependencies.&#34;&#34;&#34;
+        G = DiGraph()
+
+        ddict = {a: g.dep(self.objs) for a, g in self.gens.items()}
+        G.add_nodes_from(list(self.gens.keys()))
+        for a1 in self.gens.keys():
+            d1 = ddict[a1]
+            for a2 in self.gens.keys():
+                d2 = ddict[a2]
+                if a1 != a2 and d1.test(d2):
+                    G.add_edge(a2, a1)
+        return G
+
+    def _todo(self) -&gt; S[str]:
+        &#34;&#34;&#34; All attributes that do not yet have a generator populating them &#34;&#34;&#34;
+        allattr = set()
+        for o in self.objs.values():
+            allattr.update([o.name + &#34;.&#34; + a for a in o.attrnames()])
+        for r in self._rels():
+            allattr.add(r.o1 + &#34;.&#34; + r.name)
+        alldone = set()
+        for g in self.gens.values():
+            alldone.update(g.dep(self.objs).cols_yielded)
+        return allattr - alldone
+
+    def _get_universe(self):
+        return {
+            oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()
+        }</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="dbgen.core.model.model.Model"><code class="flex name class">
+<span>class <span class="ident">Model</span></span>
+<span>(</span><span>name: str, objlist: List[<a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a>] = [], genlist: List[<a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>] = [], viewlist: List[<a title="dbgen.core.schema.View" href="../schema.html#dbgen.core.schema.View">View</a>] = [], pes: List[<a title="dbgen.core.schema.PathEQ" href="../schema.html#dbgen.core.schema.PathEQ">PathEQ</a>] = [])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Just a named container for objects, relations, and generators</p>
+<p>Also, path equivalencies: which can be checked ad hoc</p>
+<p>Initialize model with list of objects, generators, views, and path
+equivalency. These lists can be appended to after initizialization
+through the model.add method</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name</code></strong> :&ensp;<code>str</code></dt>
+<dd>Name of the model used to uniquely identify the model</dd>
+<dt><strong><code>objlist</code></strong> :&ensp;<code>L[Obj]</code>, optional</dt>
+<dd>List of Obj objects. Defaults to [].</dd>
+<dt><strong><code>genlist</code></strong> :&ensp;<code>L[Gen]</code>, optional</dt>
+<dd>List of Gen objects. Defaults to [].</dd>
+<dt><strong><code>viewlist</code></strong> :&ensp;<code>L[View]</code>, optional</dt>
+<dd>List of View objects. Defaults to [].</dd>
+<dt><strong><code>pes</code></strong> :&ensp;<code>L[PathEQ]</code>, optional</dt>
+<dd>List of path equivalency objects. Defaults to [].</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Model(Schema):
+    &#34;&#34;&#34;
+    Just a named container for objects, relations, and generators
+
+    Also, path equivalencies: which can be checked ad hoc
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        name: str,
+        objlist: L[Obj] = [],
+        genlist: L[Gen] = [],
+        viewlist: L[View] = [],
+        pes: L[PathEQ] = [],
+    ) -&gt; None:
+        &#34;&#34;&#34;
+        Initialize model with list of objects, generators, views, and path
+        equivalency. These lists can be appended to after initizialization
+        through the model.add method
+
+        Args:
+            name (str): Name of the model used to uniquely identify the model
+            objlist (L[Obj], optional): List of Obj objects. Defaults to [].
+            genlist (L[Gen], optional): List of Gen objects. Defaults to [].
+            viewlist (L[View], optional): List of View objects. Defaults to [].
+            pes (L[PathEQ], optional): List of path equivalency objects. Defaults to [].
+        &#34;&#34;&#34;
+        self.name = name
+        self.objlist = objlist
+        self.genlist = genlist
+        self.viewlist = viewlist
+
+        self._fks = DiGraph()
+        self._fks.add_nodes_from(self.objs)  # nodes are object NAMES
+
+        self.pes = set(pes)  # path equivalencies
+
+        for o in self.objs.values():
+            for rel in o.fks:
+                self._add_relation(rel.to_rel(o.name))
+        super(Schema, self).__init__()
+
+    @property
+    def gens(self) -&gt; D[str, Gen]:
+        return {g.name: g for g in self.genlist}
+
+    def __str__(self) -&gt; str:
+        p = &#34;%d objs&#34; % len(self.objs)
+        n = self._fks.number_of_edges()
+        r = &#34;%d rels&#34; % n if n else &#34;&#34;
+        m = &#34;%d gens&#34; % len(self.gens) if self.gens else &#34;&#34;
+        e = &#34;%d PathEQs&#34; % len(self.pes) if self.pes else &#34;&#34;
+
+        things = &#34;, &#34;.join(filter(None, [p, r, m, e]))
+        return &#34;Model&lt;%s,%s&gt;&#34; % (self.name, things)
+
+    @classmethod
+    def _strat(cls) -&gt; SearchStrategy:
+        &#34;&#34;&#34;A hypothesis strategy for generating random examples.&#34;&#34;&#34;
+        objs = [
+            Obj(&#34;a&#34;, attrs=[Attr(&#34;aa&#34;)], fks=[UserRel(&#34;ab&#34;, &#34;b&#34;)]),
+            Obj(&#34;b&#34;, attrs=[Attr(&#34;bb&#34;)]),
+        ]
+        gens = [Gen(name=&#34;pop_a&#34;, funcs=[], actions=[], tags=[&#34;io&#34;])]
+        return just(cls(name=&#34;model&#34;, objlist=objs, genlist=gens))
+
+    ######################
+    # Externally defined #
+    ######################
+    run = run
+
+    _validate_name = validate_name
+    _run_gen = run_gen
+    _make_metatables = make_meta
+    _check_patheq = check_patheq
+
+    def run_airflow(self, *args, **kwargs):
+        try:
+            from dbgen.core.model.run_airflow import run_airflow
+        except ImportError as exc:
+            print(
+                &#34;Import error on model.run_airflow call, apache-airflow is required&#34;
+                &#34;for running a model using airflow (This is highly experimental &#34;
+                &#34;feature right now)&#34;
+            )
+            raise exc
+        run_airflow(*args, **kwargs)
+
+    ##################
+    # Public methods #
+    ##################
+    def test_gen(
+        self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
+    ) -&gt; T[L[D[str, dict]], L[D[str, L[dict]]]]:
+        assert (
+            gen_name in self.gens
+        ), f&#34;Generator {gen_name} not in model:\n{self.gens.keys()}&#34;
+
+        return self.gens[gen_name].test_with_db(
+            objs=self._get_universe(), db=db, interact=interact, limit=limit
+        )
+
+    def test_funcs(self) -&gt; None:
+        &#34;&#34;&#34;Run all PyBlock tests&#34;&#34;&#34;
+        for g in self.gens.values():
+            for f in g.funcs:
+                f.test()
+
+    def check_paths(self, db: ConnI) -&gt; None:
+        &#34;&#34;&#34;Use ASSERT statements to verify one&#39;s path equalities are upheld&#34;&#34;&#34;
+        for pe in self.pes:
+            self._check_patheq(pe, db)
+
+    def make_path(self, end: U[str, &#34;Obj&#34;], rels: list = None) -&gt; JPath:
+        # Upgrade End
+        # Change end into object if it is a string
+        if isinstance(end, str):
+            upgraded_end = self[end]
+        else:
+            assert isinstance(end, Obj)
+            upgraded_end = end
+
+        # UPGRADE FKS
+        def upgrade_rels(fs: list):
+            res = []
+            for rel_or_list in fs:
+                if isinstance(rel_or_list, RelTup):
+                    rel_or_list = self.get_rel(rel_or_list)
+                if isinstance(rel_or_list, Rel):
+                    res.append(
+                        SuperRel(
+                            rel_or_list.name,
+                            rel_or_list.o1,
+                            rel_or_list.o2,
+                            self[rel_or_list.o2].id_str,
+                        )
+                    )
+                else:
+                    res.append(upgrade_rels(rel_or_list))
+            return res
+
+        upgraded_fks = upgrade_rels(rels) if rels else []
+
+        return JPath(upgraded_end, upgraded_fks)
+
+    def get(self, objname: str) -&gt; Obj:
+        &#34;&#34;&#34;Get an object by name&#34;&#34;&#34;
+        return self[objname]
+
+    def rename(self, x: U[Obj, Rel, RelTup, AttrTup, str, Gen], name: str) -&gt; None:
+        &#34;&#34;&#34;Rename an Objects / Relations / Generators / Attr &#34;&#34;&#34;
+        if isinstance(x, (Obj, str)):
+            if isinstance(x, str):
+                o = self[x]
+            else:
+                o = x
+            self._rename_object(o, name)
+        elif isinstance(x, (Rel, RelTup)):
+            r = x if isinstance(x, Rel) else self.get_rel(x)
+            self._rename_relation(r, name)
+        elif isinstance(x, Gen):
+            self._rename_gen(x, name)
+        elif isinstance(x, AttrTup):
+            self._rename_attr(x, name)
+        else:
+            raise TypeError(&#34;A %s (%s) was passed to rename&#34; % (type(x), x))
+
+    def add(self, stuff: Stuff) -&gt; None:
+        &#34;&#34;&#34;Add a list containing Objects / Relations / Generators / PathEQs &#34;&#34;&#34;
+        for x in stuff:
+            if isinstance(x, (Obj, str)):
+                if isinstance(x, str):
+                    o = self[x]
+                else:
+                    o = x
+                self._add_object(o)
+            elif isinstance(x, (Rel, RelTup)):
+                r = x if isinstance(x, Rel) else self.get_rel(x)
+                self._add_relation(r)
+            elif isinstance(x, Gen):
+                self._add_gen(x)
+            elif isinstance(x, View):
+                self._add_view(x)
+            elif isinstance(x, PathEQ):
+                self._add_patheq(x)
+            elif isinstance(x, tuple) and isinstance(x[1], Attr):
+                assert isinstance(x[0], str)
+                self._add_attr(x[0], x[1])
+            else:
+                raise TypeError(&#34;A %s (%s) was passed to add&#34; % (type(x), x))
+
+    def remove(self, stuff: Stuff) -&gt; None:
+        &#34;&#34;&#34;Remove items given a list of Objects / Relations / Gens / PathEQs&#34;&#34;&#34;
+        for x in stuff:
+            if isinstance(x, (Obj, str)):
+                if isinstance(x, str):
+                    o = self[x]
+                else:
+                    o = x
+                self._del_object(o)
+            elif isinstance(x, (Rel, RelTup)):
+                r = x if isinstance(x, Rel) else self.get_rel(x)
+                self._del_relation(r)
+            elif isinstance(x, Gen):
+                self._del_gen(x)
+            elif isinstance(x, View):
+                self._del_view(x)
+            elif isinstance(x, AttrTup):
+                self._del_attr(x)
+            elif isinstance(x, PathEQ):
+                self._del_patheq(x)
+            else:
+                raise TypeError(&#34;A %s (%s) was passed to remove&#34; % (type(x), x))
+
+    ###################
+    # Private Methods #
+    ###################
+
+    @classmethod
+    def _build_new(cls, name: str) -&gt; &#34;Model&#34;:
+        &#34;&#34;&#34;Create a new model (used to generate meta.db)&#34;&#34;&#34;
+        return cls(name)
+
+    ##################################
+    # Adding/removing/renaming in model
+    ##################################
+    def _rename_gen(self, g: Gen, n: str) -&gt; None:
+        assert g == self.gens[g.name]
+        g.name = n
+        del self.gens[g.name]
+        self.gens[n] = g
+
+    def _rename_attr(self, a: AttrTup, n: str) -&gt; None:
+        &#34;&#34;&#34;Replace object with one with a renamed attribute&#34;&#34;&#34;
+        self.objs[a.obj] = self.objs[a.obj].rename_attr(a.name, n)
+        # Make changes in generators?
+        # Make changes in PathEQs?
+
+    def _rename_object(self, o: Obj, n: str) -&gt; None:
+        &#34;&#34;&#34;Probably buggy&#34;&#34;&#34;
+        assert o in self.objs.values(), &#34;Cannot delete %s: not found in model&#34; % o
+        oc = o.copy()
+        oc.name = n
+        del self.objs[o.name]
+        self.objs[n] = oc
+
+        for genname, g in self.gens.items():
+            self.gens[genname] = g.rename_object(o, n)
+
+        for fk in self._obj_all_fks(o):
+            self._del_relation(fk)
+            if fk.o1 == o.name:
+                fk.o1 = n
+            if fk.o2 == o.name:
+                fk.o2 = n
+            self._add_relation(fk)
+
+    def _rename_relation(self, r: Rel, n: str) -&gt; None:
+        raise NotImplementedError
+
+    def _del_gen(self, g: Gen) -&gt; None:
+        &#34;&#34;&#34;Delete a generator&#34;&#34;&#34;
+        del self.gens[g.name]
+
+    def _del_view(self, v: View) -&gt; None:
+        &#34;&#34;&#34;Delete a view&#34;&#34;&#34;
+        del self.views[v.name]
+        # need to delete generators/PathEQs
+
+    def _del_attr(self, a: AttrTup) -&gt; None:
+        &#34;&#34;&#34;Delete an attribute: Need to also remove all Generators that mention it?&#34;&#34;&#34;
+        self[a.obj].del_attrs([a.name])
+
+    def _del_relation(self, r: Rel) -&gt; None:
+        &#34;&#34;&#34; Remove from internal FK graph. Need to also remove all Generators that mention it? &#34;&#34;&#34;
+        self._fks[r.o1][r.o2][&#34;fks&#34;].remove(r)
+        if not self._fks[r.o1][r.o2][&#34;fks&#34;]:
+            self._fks.remove_edge(r.o1, r.o2)
+
+        # Remove any path equivalencies that use this relation
+        remove = set()
+        for pe in self.pes:
+            for p in pe:
+                if r.tup() in p.rels:
+                    remove.add(pe)
+        self.pes -= remove
+
+    def _del_object(self, o: Obj) -&gt; None:
+        &#34;&#34;&#34;Need to also remove all Generators that mention it?&#34;&#34;&#34;
+        del self.objs[o.name]
+        # Remove relations that mention object
+        self._fks.remove_node(o.name)
+
+        # Remove generators that mention object
+        delgen = []
+        for gn, g in self.gens.items():
+            gobjs = g.dep(self.objs).tabs_needed | g.dep(self.objs).tabs_yielded
+            if o.name in gobjs:
+                delgen.append(gn)
+        for gn in delgen:
+            del self.gens[gn]
+
+        # Remove path equivalencies that mention object
+        remove = set()
+        for pe in self.pes:
+            for p in pe:
+                pobjs = set([getattr(p.attr, &#34;obj&#34;)] + [r.obj for r in p.rels])
+                if o.name in pobjs:
+                    remove.add(pe)
+
+        self.pes -= remove
+
+    def _del_patheq(self, peq: PathEQ) -&gt; None:
+        self.pes.remove(peq)
+
+    def _add_gen(self, g: Gen) -&gt; None:
+        &#34;&#34;&#34;Add to model&#34;&#34;&#34;
+        # Validate
+        # --------
+        if g.name in self.gens:
+            raise ValueError(&#34;Cannot add %s, name already taken!&#34; % g)
+        # Add
+        # ----
+        for a in g.actions:
+            self._validate_action(a)
+
+        self.genlist.append(g)
+
+    ###################
+    # Gen related ###
+    ###################
+    def _validate_action(self, a: Action) -&gt; None:
+        &#34;&#34;&#34;
+        It is assumed that an Action provides all identifying data for an
+        object, so that either its PK can be selected OR we can insert a new
+        row...however this depends on the global model state (identifying
+        relations can be added) so a model-level validation is necessary
+        The action __init__ already verifies all ID attributes are present
+        &#34;&#34;&#34;
+        # Check all identifying relationships are covered
+        if not a.pk:  # don&#39;t have a PK, so need identifying info
+            for fk in self[a.obj].id_fks():
+                err = &#34;%s missing identifying relation %s&#34;
+                assert fk in a.fks, err % (a, fk)
+
+        # Recursively validate sub-actions
+        for act in a.fks.values():
+            self._validate_action(act)
+
+    def ordered_gens(self) -&gt; L[Gen]:
+        &#34;&#34;&#34; Determine execution order of generators &#34;&#34;&#34;
+
+        # Check for cycles:
+        sc = list(simple_cycles(self._gen_graph()))
+
+        if sc:
+            small = min(sc, key=len)
+            print(&#34;\nGenerator cycle found! Smallest cycle:&#34;)
+            for gname in small:
+                g = self.gens[gname]
+                print(&#34;\n################\n&#34;, g.name)
+                for k, v in vars(g.dep(self.objs)).items():
+                    print(k, v)
+            import pdb
+
+            pdb.set_trace()
+            assert False
+
+        # Use topological sort to order
+        return list(topsort_with_dict(self._gen_graph(), self.gens))
+
+    def _gen_graph(self) -&gt; DiGraph:
+        &#34;&#34;&#34; Make a graph out of generator dependencies.&#34;&#34;&#34;
+        G = DiGraph()
+
+        ddict = {a: g.dep(self.objs) for a, g in self.gens.items()}
+        G.add_nodes_from(list(self.gens.keys()))
+        for a1 in self.gens.keys():
+            d1 = ddict[a1]
+            for a2 in self.gens.keys():
+                d2 = ddict[a2]
+                if a1 != a2 and d1.test(d2):
+                    G.add_edge(a2, a1)
+        return G
+
+    def _todo(self) -&gt; S[str]:
+        &#34;&#34;&#34; All attributes that do not yet have a generator populating them &#34;&#34;&#34;
+        allattr = set()
+        for o in self.objs.values():
+            allattr.update([o.name + &#34;.&#34; + a for a in o.attrnames()])
+        for r in self._rels():
+            allattr.add(r.o1 + &#34;.&#34; + r.name)
+        alldone = set()
+        for g in self.gens.values():
+            alldone.update(g.dep(self.objs).cols_yielded)
+        return allattr - alldone
+
+    def _get_universe(self):
+        return {
+            oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()
+        }</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="dbgen.core.schemaclass.Schema" href="../schemaclass.html#dbgen.core.schemaclass.Schema">Schema</a></li>
+<li><a title="dbgen.utils.misc.Base" href="../../utils/misc.html#dbgen.utils.misc.Base">Base</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="dbgen.core.model.model.Model.gens"><code class="name">var <span class="ident">gens</span> : Dict[str, <a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def gens(self) -&gt; D[str, Gen]:
+    return {g.name: g for g in self.genlist}</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dbgen.core.model.model.Model.add"><code class="name flex">
+<span>def <span class="ident">add</span></span>(<span>self, stuff: Union[List[<a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a>], List[<a title="dbgen.core.schema.Rel" href="../schema.html#dbgen.core.schema.Rel">Rel</a>], List[str], List[<a title="dbgen.core.schema.AttrTup" href="../schema.html#dbgen.core.schema.AttrTup">AttrTup</a>], List[<a title="dbgen.core.schema.RelTup" href="../schema.html#dbgen.core.schema.RelTup">RelTup</a>], List[<a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>], List[<a title="dbgen.core.schema.View" href="../schema.html#dbgen.core.schema.View">View</a>], List[<a title="dbgen.core.schema.PathEQ" href="../schema.html#dbgen.core.schema.PathEQ">PathEQ</a>], List[Tuple[str, <a title="dbgen.core.schema.Attr" href="../schema.html#dbgen.core.schema.Attr">Attr</a>]], List[Union[<a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a>, <a title="dbgen.core.schema.Rel" href="../schema.html#dbgen.core.schema.Rel">Rel</a>, <a title="dbgen.core.schema.RelTup" href="../schema.html#dbgen.core.schema.RelTup">RelTup</a>, <a title="dbgen.core.schema.AttrTup" href="../schema.html#dbgen.core.schema.AttrTup">AttrTup</a>, str, <a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>, <a title="dbgen.core.schema.PathEQ" href="../schema.html#dbgen.core.schema.PathEQ">PathEQ</a>, <a title="dbgen.core.schema.View" href="../schema.html#dbgen.core.schema.View">View</a>]]]) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Add a list containing Objects / Relations / Generators / PathEQs</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add(self, stuff: Stuff) -&gt; None:
+    &#34;&#34;&#34;Add a list containing Objects / Relations / Generators / PathEQs &#34;&#34;&#34;
+    for x in stuff:
+        if isinstance(x, (Obj, str)):
+            if isinstance(x, str):
+                o = self[x]
+            else:
+                o = x
+            self._add_object(o)
+        elif isinstance(x, (Rel, RelTup)):
+            r = x if isinstance(x, Rel) else self.get_rel(x)
+            self._add_relation(r)
+        elif isinstance(x, Gen):
+            self._add_gen(x)
+        elif isinstance(x, View):
+            self._add_view(x)
+        elif isinstance(x, PathEQ):
+            self._add_patheq(x)
+        elif isinstance(x, tuple) and isinstance(x[1], Attr):
+            assert isinstance(x[0], str)
+            self._add_attr(x[0], x[1])
+        else:
+            raise TypeError(&#34;A %s (%s) was passed to add&#34; % (type(x), x))</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.check_paths"><code class="name flex">
+<span>def <span class="ident">check_paths</span></span>(<span>self, db: <a title="dbgen.core.misc.ConnectInfo" href="../misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Use ASSERT statements to verify one's path equalities are upheld</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def check_paths(self, db: ConnI) -&gt; None:
+    &#34;&#34;&#34;Use ASSERT statements to verify one&#39;s path equalities are upheld&#34;&#34;&#34;
+    for pe in self.pes:
+        self._check_patheq(pe, db)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.get"><code class="name flex">
+<span>def <span class="ident">get</span></span>(<span>self, objname: str) ‑> <a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get an object by name</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get(self, objname: str) -&gt; Obj:
+    &#34;&#34;&#34;Get an object by name&#34;&#34;&#34;
+    return self[objname]</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.make_path"><code class="name flex">
+<span>def <span class="ident">make_path</span></span>(<span>self, end: Union[str, ForwardRef('Obj')], rels: list = None) ‑> <a title="dbgen.core.fromclause.Path" href="../fromclause.html#dbgen.core.fromclause.Path">Path</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_path(self, end: U[str, &#34;Obj&#34;], rels: list = None) -&gt; JPath:
+    # Upgrade End
+    # Change end into object if it is a string
+    if isinstance(end, str):
+        upgraded_end = self[end]
+    else:
+        assert isinstance(end, Obj)
+        upgraded_end = end
+
+    # UPGRADE FKS
+    def upgrade_rels(fs: list):
+        res = []
+        for rel_or_list in fs:
+            if isinstance(rel_or_list, RelTup):
+                rel_or_list = self.get_rel(rel_or_list)
+            if isinstance(rel_or_list, Rel):
+                res.append(
+                    SuperRel(
+                        rel_or_list.name,
+                        rel_or_list.o1,
+                        rel_or_list.o2,
+                        self[rel_or_list.o2].id_str,
+                    )
+                )
+            else:
+                res.append(upgrade_rels(rel_or_list))
+        return res
+
+    upgraded_fks = upgrade_rels(rels) if rels else []
+
+    return JPath(upgraded_end, upgraded_fks)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.ordered_gens"><code class="name flex">
+<span>def <span class="ident">ordered_gens</span></span>(<span>self) ‑> List[<a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Determine execution order of generators</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ordered_gens(self) -&gt; L[Gen]:
+    &#34;&#34;&#34; Determine execution order of generators &#34;&#34;&#34;
+
+    # Check for cycles:
+    sc = list(simple_cycles(self._gen_graph()))
+
+    if sc:
+        small = min(sc, key=len)
+        print(&#34;\nGenerator cycle found! Smallest cycle:&#34;)
+        for gname in small:
+            g = self.gens[gname]
+            print(&#34;\n################\n&#34;, g.name)
+            for k, v in vars(g.dep(self.objs)).items():
+                print(k, v)
+        import pdb
+
+        pdb.set_trace()
+        assert False
+
+    # Use topological sort to order
+    return list(topsort_with_dict(self._gen_graph(), self.gens))</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.remove"><code class="name flex">
+<span>def <span class="ident">remove</span></span>(<span>self, stuff: Union[List[<a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a>], List[<a title="dbgen.core.schema.Rel" href="../schema.html#dbgen.core.schema.Rel">Rel</a>], List[str], List[<a title="dbgen.core.schema.AttrTup" href="../schema.html#dbgen.core.schema.AttrTup">AttrTup</a>], List[<a title="dbgen.core.schema.RelTup" href="../schema.html#dbgen.core.schema.RelTup">RelTup</a>], List[<a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>], List[<a title="dbgen.core.schema.View" href="../schema.html#dbgen.core.schema.View">View</a>], List[<a title="dbgen.core.schema.PathEQ" href="../schema.html#dbgen.core.schema.PathEQ">PathEQ</a>], List[Tuple[str, <a title="dbgen.core.schema.Attr" href="../schema.html#dbgen.core.schema.Attr">Attr</a>]], List[Union[<a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a>, <a title="dbgen.core.schema.Rel" href="../schema.html#dbgen.core.schema.Rel">Rel</a>, <a title="dbgen.core.schema.RelTup" href="../schema.html#dbgen.core.schema.RelTup">RelTup</a>, <a title="dbgen.core.schema.AttrTup" href="../schema.html#dbgen.core.schema.AttrTup">AttrTup</a>, str, <a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>, <a title="dbgen.core.schema.PathEQ" href="../schema.html#dbgen.core.schema.PathEQ">PathEQ</a>, <a title="dbgen.core.schema.View" href="../schema.html#dbgen.core.schema.View">View</a>]]]) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Remove items given a list of Objects / Relations / Gens / PathEQs</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def remove(self, stuff: Stuff) -&gt; None:
+    &#34;&#34;&#34;Remove items given a list of Objects / Relations / Gens / PathEQs&#34;&#34;&#34;
+    for x in stuff:
+        if isinstance(x, (Obj, str)):
+            if isinstance(x, str):
+                o = self[x]
+            else:
+                o = x
+            self._del_object(o)
+        elif isinstance(x, (Rel, RelTup)):
+            r = x if isinstance(x, Rel) else self.get_rel(x)
+            self._del_relation(r)
+        elif isinstance(x, Gen):
+            self._del_gen(x)
+        elif isinstance(x, View):
+            self._del_view(x)
+        elif isinstance(x, AttrTup):
+            self._del_attr(x)
+        elif isinstance(x, PathEQ):
+            self._del_patheq(x)
+        else:
+            raise TypeError(&#34;A %s (%s) was passed to remove&#34; % (type(x), x))</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.rename"><code class="name flex">
+<span>def <span class="ident">rename</span></span>(<span>self, x: Union[<a title="dbgen.core.schema.Obj" href="../schema.html#dbgen.core.schema.Obj">Obj</a>, <a title="dbgen.core.schema.Rel" href="../schema.html#dbgen.core.schema.Rel">Rel</a>, <a title="dbgen.core.schema.RelTup" href="../schema.html#dbgen.core.schema.RelTup">RelTup</a>, <a title="dbgen.core.schema.AttrTup" href="../schema.html#dbgen.core.schema.AttrTup">AttrTup</a>, str, <a title="dbgen.core.gen.Gen" href="../gen.html#dbgen.core.gen.Gen">Gen</a>], name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Rename an Objects / Relations / Generators / Attr</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def rename(self, x: U[Obj, Rel, RelTup, AttrTup, str, Gen], name: str) -&gt; None:
+    &#34;&#34;&#34;Rename an Objects / Relations / Generators / Attr &#34;&#34;&#34;
+    if isinstance(x, (Obj, str)):
+        if isinstance(x, str):
+            o = self[x]
+        else:
+            o = x
+        self._rename_object(o, name)
+    elif isinstance(x, (Rel, RelTup)):
+        r = x if isinstance(x, Rel) else self.get_rel(x)
+        self._rename_relation(r, name)
+    elif isinstance(x, Gen):
+        self._rename_gen(x, name)
+    elif isinstance(x, AttrTup):
+        self._rename_attr(x, name)
+    else:
+        raise TypeError(&#34;A %s (%s) was passed to rename&#34; % (type(x), x))</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.run"><code class="name flex">
+<span>def <span class="ident">run</span></span>(<span>self: <a title="dbgen.core.model.model.Model" href="#dbgen.core.model.model.Model">Model</a>, conn: <a title="dbgen.core.misc.ConnectInfo" href="../misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, meta_conn: <a title="dbgen.core.misc.ConnectInfo" href="../misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, nuke: str = '', add: bool = False, retry: bool = False, only: str = '', xclude: str = '', start: str = '', until: str = '', serial: bool = False, bar: bool = True, clean: bool = False, skip_row_count: bool = False, batch: int = None, write_logs: bool = False, log_level: int = 20, log_path: str = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This method is point of the model: to run and generate a database according
+to the model's specified rules.</p>
+<ul>
+<li>conn/meta_conn: information to connect to database and logging database</li>
+<li>nuke: By default, this is not used. If "True"/"T", everything except generators
+tagged "no_nuke" are purged. Otherwise, give a space separated list
+of generator names/tags. If a generator is purged, then any
+tables it populates will be truncated. Any columns it populates will be set all
+to NULL. Any generators with inputs OR outputs that have any overlap with the outputs
+of a purged generator will be purged themselves.</li>
+<li>add: needed if new entities/columns have been added to the model (but not yet in DB)</li>
+<li>retry: ignore repeat checking</li>
+<li>only: only run generators with these names (or these tags)</li>
+<li>xclude: do not run generators with these names (or these tags)</li>
+<li>start: start at the generator with this name</li>
+<li>until: stop at the generator with this name</li>
+<li>serial: force all Generators to be run without parallelization</li>
+<li>bar: show progress bars</li>
+<li>skip_row_count: Skip the select count(1) for all gens (good for large queries)</li>
+<li>clean: 'cleans up' implementation detail columns (deleted) for
+presentation of the resulting database to others&hellip;at the cost of not being
+able to call model.run() without nuking again (unless an 'unclean' method is
+written, which is in principle possible)</li>
+</ul></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run(
+    self: &#34;Model&#34;,
+    conn: ConnI,
+    meta_conn: ConnI,
+    nuke: str = &#34;&#34;,
+    add: bool = False,
+    retry: bool = False,
+    only: str = &#34;&#34;,
+    xclude: str = &#34;&#34;,
+    start: str = &#34;&#34;,
+    until: str = &#34;&#34;,
+    serial: bool = False,
+    bar: bool = True,
+    clean: bool = False,
+    skip_row_count: bool = False,
+    batch: int = None,
+    write_logs: bool = False,
+    log_level: int = logging.INFO,
+    log_path: str = None,
+) -&gt; None:
+    &#34;&#34;&#34;
+    This method is point of the model: to run and generate a database according
+    to the model&#39;s specified rules.
+
+    - conn/meta_conn: information to connect to database and logging database
+    - nuke: By default, this is not used. If &#34;True&#34;/&#34;T&#34;, everything except generators
+            tagged &#34;no_nuke&#34; are purged. Otherwise, give a space separated list
+            of generator names/tags. If a generator is purged, then any
+            tables it populates will be truncated. Any columns it populates will be set all
+            to NULL. Any generators with inputs OR outputs that have any overlap with the outputs
+            of a purged generator will be purged themselves.
+    - add: needed if new entities/columns have been added to the model (but not yet in DB)
+    - retry: ignore repeat checking
+    - only: only run generators with these names (or these tags)
+    - xclude: do not run generators with these names (or these tags)
+    - start: start at the generator with this name
+    - until: stop at the generator with this name
+    - serial: force all Generators to be run without parallelization
+    - bar: show progress bars
+    - skip_row_count: Skip the select count(1) for all gens (good for large queries)
+    - clean: &#39;cleans up&#39; implementation detail columns (deleted) for
+    presentation of the resulting database to others...at the cost of not being
+    able to call model.run() without nuking again (unless an &#39;unclean&#39; method is
+    written, which is in principle possible)
+
+    &#34;&#34;&#34;
+
+    # Run tests on pyblocks
+    # ----------------------
+    self.test_funcs()
+
+    # # Setup logger and config
+    # # --------------------
+    path_to_log = log_path or default_log_path
+    setup_logger(&#34;dbgen&#34;, log_level, write_logs=write_logs, log_path=Path(path_to_log))
+    run_logger = logging.getLogger(&#34;dbgen.run&#34;)
+
+    # Print to-do list for the model
+    # ---------------------------------------
+    todo = self._todo()
+    if todo:
+        run_logger.warning(
+            &#34;WARNING: the following attributes do not have any generator &#34;
+            &#34;to populate them: \n\t-&#34; + &#34;\n\t-&#34;.join(sorted(todo))
+        )
+
+    # Validate input
+    # ----------------
+    assert conn != meta_conn, &#34;Main DB cannot be in same schema as logging DB&#34;
+    startErr = &#39;Starting generator (&#34;start&#34;) must be a Generator name&#39;
+    assert not start or start in self.gens, startErr
+    xclude_ = set(xclude.split())
+    only_ = set(only.split())
+    for w in only_ | xclude_:
+        self._validate_name(w)
+
+    # # Make sure no existing cxns to database
+    # # ---------------------------------------
+    # conn.kill()
+    # meta_conn.kill()
+
+    # Make metatables
+    # ----------------
+    run_id = self._make_metatables(
+        mconn=meta_conn,
+        conn=conn,
+        nuke=nuke,
+        retry=retry,
+        only=&#34; &#34;.join(sorted(only_)),
+        xclude=&#34; &#34;.join(sorted(xclude_)),
+        start=start,
+        until=until,
+        bar=bar,
+    )
+
+    # Clean up database
+    # -----------------
+    if nuke:
+        if nuke.lower() in [&#34;t&#34;, &#34;true&#34;]:
+            self.make_schema(conn=conn, nuke=nuke, bar=bar)  # FULL NUKE
+        else:
+            raise NotImplementedError(&#34;Selective nuking is not working yet&#34;)
+            deltags = set(nuke.split())
+            delgens = set()
+            for gen in self.ordered_gens():
+                if set([gen.name] + gen.tags).intersection(deltags):
+                    delgens.add(gen.name)
+            for gen in self.ordered_gens():
+                if gen.name in delgens:
+                    gen.purge(conn.connect(), meta_conn.connect())
+    elif add:
+        msg = &#34;&#34;&#34;
+#######################################################################
+!!!WARNING!!!!
+Add is an extremely experimental feature. Existing rows in
+modified tables are not deleted. If you added ID info to a table then
+you need to manually truncate that table (and cascade to linked tables)
+or else those tables will contain rows with missing ID info in their PKs.
+
+Add should really only be used to add attributes to existing tables
+or add new empty tables. Adding identifying FKs from existing tables to new tables
+is very dangerous and manual truncation will be necessary.
+
+I hope you know what you are doing!!!
+!!!WARNING!!!!
+#######################################################################
+        &#34;&#34;&#34;
+        run_logger.warning(msg)
+        for ta in tqdm(self.objs.values(), desc=&#34;Adding new tables&#34;, leave=False):
+            for sqlexpr in ta.create():
+                try:
+                    sqlexecute(conn.connect(), sqlexpr)
+                except Error as e:
+                    # Error code for duplicate table
+                    if e.pgcode == &#34;42701&#34;:
+                        run_logger.debug(&#34;dup&#34;)
+                        pass
+                    # Error code for when a relation doesn&#39;t exist on a table we
+                    # are adding
+                    elif re.match(
+                        &#39;column &#34;\w+&#34; of relation &#34;\w+&#34; does not exist&#39;, str(e)
+                    ):
+                        run_logger.debug(f&#34;PGERROR: {e}&#34;)
+                        pass
+                    else:
+                        raise Error(e)
+        for v in tqdm(self.viewlist, desc=&#34;Adding new views&#34;, leave=False):
+            try:
+                sqlexecute(conn.connect(), v.create())
+            except Error as e:
+                # Error code for duplicate table
+                if &#34;already exists&#34; in str(e):
+                    run_logger.debug(&#34;dup&#34;)
+                    pass
+                else:
+                    raise Error(e)
+
+        for ta in tqdm(self.objs.values(), desc=&#34;Adding new columns&#34;, leave=False):
+            for sqlexpr in self.add_cols(ta):
+                try:
+                    sqlexecute(conn.connect(), sqlexpr)
+                except Error as e:
+                    # Error code for duplicate column
+                    if e.pgcode == &#34;42701&#34;:
+                        pass
+                    else:
+                        raise Error(e)
+
+    # Make &#39;global&#39; database connections (active throughout whole process)
+    # ----------------------------------------------------------------------
+    gcxn = conn.connect()
+    gmcxn = meta_conn.connect()
+
+    # Initialize variables
+    # ---------------------
+    not_run = []  # type: L[str] ### List of Rules that were not run
+    err_tot = 0  # total # of failed generators
+    start_flag = False if start else True
+    until_flag = True
+    start_test = Test(lambda _, __: start_flag, lambda _: &#39;Excluded because of &#34;start&#34;&#39;)
+    until_test = Test(lambda _, __: until_flag, lambda _: &#39;Excluded because of &#34;until&#34;&#39;)
+    testdict = {xTest: [xclude_], start_test: [None], until_test: [None]}
+
+    objs = {oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
+
+    def update_run_status(status: str) -&gt; None:
+        update_run_status = &#34;&#34;&#34;UPDATE run SET status=%s WHERE run_id=%s&#34;&#34;&#34;
+        sqlexecute(gmcxn, update_run_status, [status, run_id])
+
+    # Set status to running
+    update_run_status(&#34;running&#34;)
+    with tqdm(total=len(self.gens), position=0, disable=not bar) as tq:
+        for gen in self.ordered_gens():
+
+            # Initialize Variables
+            # ---------------------
+            name = gen.name
+            tq.set_description(name)
+            run_logger.info(f&#34;Running {gen.name}...&#34;)
+
+            # Set flags
+            # --------------------------------
+            if name == start:
+                start_flag = True
+
+            # Run tests to see whether or not the Generator should be run
+            if only:  # only trumps everything else, if it&#39;s defined
+                run = (onlyTest(gen, only_) is True) and (xTest(gen, xclude_) is True)
+            else:
+                run = True  # flag for passing all tests
+                for test, args in testdict.items():
+                    test_output = test(gen, *args)  # type: ignore
+                    if test_output is not True:
+                        not_run.append(name)
+                        gen.update_status(gmcxn, run_id, test_output)
+                        run = False
+                        break
+            if run:
+                try:
+                    err_tot += self._run_gen(
+                        objs=objs,
+                        gen=gen,
+                        gmcxn=gmcxn,
+                        gcxn=gcxn,
+                        mconn_info=meta_conn,
+                        conn_info=conn,
+                        run_id=run_id,
+                        retry=retry,
+                        serial=serial,
+                        bar=bar,
+                        user_batch_size=batch,
+                        skip_row_count=skip_row_count,
+                    )
+                except (Exception, KeyboardInterrupt, SystemExit, BdbQuit) as exc:
+                    # If a critical error is hit that doesn&#39;t raise
+                    # ExternalError() we need to clean up
+                    # Update the run
+                    update_run_status(&#34;failed&#34;)
+                    # Update the Gen
+                    error = str(exc) if str(exc) else repr(exc)
+                    gen.update_status(gmcxn, run_id, &#34;failed&#34;, err=error)
+                    raise
+
+            tq.update()
+
+            # Set flags
+            # ----------
+            if name == until:
+                until_flag = False
+
+    end = &#34;&#34;&#34;UPDATE run SET delta=EXTRACT(EPOCH FROM age(CURRENT_TIMESTAMP,starttime)),
+                            status=&#39;completed&#39;,
+                            errs = %s
+             WHERE run_id=%s&#34;&#34;&#34;
+
+    sqlexecute(gmcxn, end, [err_tot, run_id])
+    self.check_paths(conn)
+
+    if clean:
+        for o in self.objs:
+            for c in [&#34;deleted&#34;]:
+                q = &#34;ALTER TABLE {} DROP COLUMN {}&#34;.format(o, c)
+                sqlexecute(gcxn, q)
+
+    gcxn.close()
+    gmcxn.close()
+    if bar:
+        run_logger.info(
+            &#34;\nFinished.\n\t&#34;
+            + (&#34;did not run %s&#34; % not_run if not_run else &#34;Ran all Rules&#34;)
+        )</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.run_airflow"><code class="name flex">
+<span>def <span class="ident">run_airflow</span></span>(<span>self, *args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run_airflow(self, *args, **kwargs):
+    try:
+        from dbgen.core.model.run_airflow import run_airflow
+    except ImportError as exc:
+        print(
+            &#34;Import error on model.run_airflow call, apache-airflow is required&#34;
+            &#34;for running a model using airflow (This is highly experimental &#34;
+            &#34;feature right now)&#34;
+        )
+        raise exc
+    run_airflow(*args, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.test_funcs"><code class="name flex">
+<span>def <span class="ident">test_funcs</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run all PyBlock tests</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_funcs(self) -&gt; None:
+    &#34;&#34;&#34;Run all PyBlock tests&#34;&#34;&#34;
+    for g in self.gens.values():
+        for f in g.funcs:
+            f.test()</code></pre>
+</details>
+</dd>
+<dt id="dbgen.core.model.model.Model.test_gen"><code class="name flex">
+<span>def <span class="ident">test_gen</span></span>(<span>self, gen_name: str, db: <a title="dbgen.core.misc.ConnectInfo" href="../misc.html#dbgen.core.misc.ConnectInfo">ConnectInfo</a>, interact: bool = True, limit: int = 5) ‑> Tuple[List[Dict[str, dict]], List[Dict[str, List[dict]]]]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_gen(
+    self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
+) -&gt; T[L[D[str, dict]], L[D[str, L[dict]]]]:
+    assert (
+        gen_name in self.gens
+    ), f&#34;Generator {gen_name} not in model:\n{self.gens.keys()}&#34;
+
+    return self.gens[gen_name].test_with_db(
+        objs=self._get_universe(), db=db, interact=interact, limit=limit
+    )</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="dbgen.core.schemaclass.Schema" href="../schemaclass.html#dbgen.core.schemaclass.Schema">Schema</a></b></code>:
+<ul class="hlist">
+<li><code><a title="dbgen.core.schemaclass.Schema.add_fk" href="../schemaclass.html#dbgen.core.schemaclass.Schema.add_fk">add_fk</a></code></li>
+<li><code><a title="dbgen.core.schemaclass.Schema.get_rel" href="../schemaclass.html#dbgen.core.schemaclass.Schema.get_rel">get_rel</a></code></li>
+<li><code><a title="dbgen.core.schemaclass.Schema.make_schema" href="../schemaclass.html#dbgen.core.schemaclass.Schema.make_schema">make_schema</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="dbgen.core.model" href="index.html">dbgen.core.model</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="dbgen.core.model.model.Model" href="#dbgen.core.model.model.Model">Model</a></code></h4>
+<ul class="two-column">
+<li><code><a title="dbgen.core.model.model.Model.add" href="#dbgen.core.model.model.Model.add">add</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.check_paths" href="#dbgen.core.model.model.Model.check_paths">check_paths</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.gens" href="#dbgen.core.model.model.Model.gens">gens</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.get" href="#dbgen.core.model.model.Model.get">get</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.make_path" href="#dbgen.core.model.model.Model.make_path">make_path</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.ordered_gens" href="#dbgen.core.model.model.Model.ordered_gens">ordered_gens</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.remove" href="#dbgen.core.model.model.Model.remove">remove</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.rename" href="#dbgen.core.model.model.Model.rename">rename</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.run" href="#dbgen.core.model.model.Model.run">run</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.run_airflow" href="#dbgen.core.model.model.Model.run_airflow">run_airflow</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.test_funcs" href="#dbgen.core.model.model.Model.test_funcs">test_funcs</a></code></li>
+<li><code><a title="dbgen.core.model.model.Model.test_gen" href="#dbgen.core.model.model.Model.test_gen">test_gen</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>
