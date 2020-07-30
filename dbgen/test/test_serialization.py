@@ -1,6 +1,6 @@
 from typing import Type, Any
 
-from hypothesis._strategies import (
+from hypothesis.strategies import (
     one_of,
     from_type,
     text,
@@ -9,7 +9,7 @@ from hypothesis._strategies import (
     booleans,
     dates,
     dictionaries,
-    Search_Strategy,
+    SearchStrategy,
     integers,
 )
 

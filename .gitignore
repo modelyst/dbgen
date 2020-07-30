@@ -129,3 +129,5 @@ data/
 # Documentation related ignores
 MakeFile
 make.bat
+docs-old/
+build_pdoc/

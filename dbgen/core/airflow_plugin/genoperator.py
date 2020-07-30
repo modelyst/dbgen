@@ -16,9 +16,10 @@ from airflow.hooks.postgres_hook import PostgresHook
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Internal Imports
-from ..gen import Gen
-from ..model.run_gen import run_gen
-from ..misc import ConnectInfo as ConnI, GeneratorError
+from dbgen.core.gen import Gen
+from dbgen.core.model.run_gen import run_gen
+from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.utils.exceptions import DBgenGeneratorError
 from dbgen.utils.sql import mkSelectCmd, sqlselect
 
 

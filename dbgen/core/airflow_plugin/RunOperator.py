@@ -48,7 +48,7 @@ class RunOperator(BaseOperator):
         self.db_conn_id = db_conn_id
         self.mdb_conn_id = mdb_conn_id
 
-    def _get_run_variable(self, mcxn: "Conn") -> Gen:
+    def _get_run_variable(self, mcxn: "Conn") -> "Gen":
 
         return gen
 

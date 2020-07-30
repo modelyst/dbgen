@@ -1,0 +1,28 @@
+site_name: DBgen
+site_description: DBgen framework, high performance, easy to learn, fast to code, ready for production
+site_url: https://dbgen.modelyst.io/
+theme:
+  name: material
+  font:
+    text: Comic Sans
+  palette:
+    scheme: preference
+    primary: indigo
+    accent: amber
+  icon:
+    repo: fontawesome/brands/github-alt
+  logo: img/logo.png
+  favicon: img/favicon.png
+  language: en
+repo_name: modelyst/dbgen
+repo_url: https://github.com/modelyst/dbgen
+markdown_extensions:
+  - toc:
+      permalink: true
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - markdown_include.include:
+      base_path: docs
+  - attr_list
+extra_css:
+  - css/extra.css
