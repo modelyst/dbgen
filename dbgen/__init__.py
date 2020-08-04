@@ -3,8 +3,19 @@ __author__ = "Modelyst LLC"
 __email__ = "info@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.2.0"
-
+__version__ = "0.3.0"
+LOGO = f"""
+-------------------------------
+    ____  ____                 
+   / __ \/ __ )____ ____  ____ 
+  / / / / __  / __ `/ _ \/ __ \\
+ / /_/ / /_/ / /_/ /  __/ / / /
+/_____/_____/\__, /\___/_/ /_/ 
+            /____/             
+-------------------------------
+VERSION: {__version__}
+-------------------------------
+"""
 from dbgen.core.expr.expr import (
     ABS,
     AND,

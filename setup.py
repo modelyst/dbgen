@@ -1,3 +1,4 @@
+"""Installation specifications for dbgen"""
 # External imports
 from os.path import join, dirname
 from setuptools import setup, find_packages  # type: ignore
@@ -17,11 +18,20 @@ docs = [
     "mkdocs-material",
     "mkdocs-markdownextradata-plugin",
     "markdown-include",
+    "mkdocstrings",
 ]
 
-with open("requirements.txt", "r") as f:
-    INSTALL_REQUIREMENTS = [line.strip() for line in f.readlines()]
-
+INSTALL_REQUIREMENTS = [
+    "hypothesis>=5.23.7",
+    "infinite>=0.1",
+    "jinja2>=2.10.0",
+    "networkx>=2.4",
+    "pathos>=0.2.6",
+    "psycopg2-binary>=2.7.4",
+    "python>=3.6,<4.0",
+    "sshtunnel^0.1.5",
+    "tqdm>=4.48.0",
+]
 
 EXTRAS_REQUIREMENTS = {"airflow": ["apache-airflow"], "docs": docs}
 
@@ -34,7 +44,7 @@ def do_setup():
         long_description=long_description,
         long_description_content_type="text/markdown",
         license="Apache License 2.0",
-        version="0.2.0",
+        version="0.4.0",
         packages=find_packages(exclude=["tests*"]),
         package_data={"dbgen.templates": ["*.jinja"]},
         include_package_data=True,
@@ -51,7 +61,7 @@ def do_setup():
         ],
         author="Modelyst LLC",
         author_email="info@modelyst.io",
-        url="http://modelyst.io",
+        url="http://www.modelyst.com",
         python_requires="~=3.6",
     )
 

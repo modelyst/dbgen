@@ -1,0 +1,3 @@
+# dbgen.templates
+
+:::dbgen.templates

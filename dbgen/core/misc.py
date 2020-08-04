@@ -21,11 +21,7 @@ if TYPE_CHECKING:
 
 
 """
-Defines some support classes used throughout the project:
-- ConnectInfo
-- Test
-- Dep
-
+Defines some support classes used throughout the project
 """
 
 
@@ -256,7 +252,7 @@ class Test(object):
     """
     Execute a test before running action. If it returns True, the test is
     passed, otherwise it returns an object which is fed into the "message"
-    function. This prints a message: "Not Executed (<string of object>)"
+    function. This prints a message: "Not Executed (string of object)"
     """
 
     def __init__(self, test: C[["Gen", Any], bool], message: C[[Any], str]) -> None:

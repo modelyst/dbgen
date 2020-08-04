@@ -7,10 +7,10 @@ import logging
 from pathlib import Path
 
 # Internal imports
+from dbgen import __version__, LOGO
 from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
 from dbgen.core.gen import Gen
 from dbgen.core.schema import PathEQ
-
 from dbgen.utils.sql import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
 from dbgen.utils.lists import concat_map
@@ -44,6 +44,7 @@ def run(
     write_logs: bool = False,
     log_level: int = logging.INFO,
     log_path: str = None,
+    print_logo: bool = True,
 ) -> None:
     """
     This method is point of the model: to run and generate a database according
@@ -81,7 +82,8 @@ def run(
     path_to_log = log_path or default_log_path
     setup_logger("dbgen", log_level, write_logs=write_logs, log_path=Path(path_to_log))
     run_logger = logging.getLogger("dbgen.run")
-
+    if print_logo:
+        print(LOGO)
     # Print to-do list for the model
     # ---------------------------------------
     todo = self._todo()

@@ -3,10 +3,9 @@ from typing import (
     Any,
     Set as S,
     List as L,
-    Dict as D,
     Union as U,
     Callable as C,
-    Mapping as M
+    Mapping as M,
 )
 from hypothesis.strategies import SearchStrategy, builds, lists, dictionaries
 

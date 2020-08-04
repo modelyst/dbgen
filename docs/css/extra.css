@@ -3,10 +3,8 @@
   align-content: center;
 }
 
-.color-primary {
-  color: rgb(184, 52, 52);
-}
-
-.md-tabs__link {
-  font-size: 1rem;
+:root {
+  --md-primary-fg-color: #285977;
+  --md-primary-fg-color--light: #285977;
+  --md-primary-fg-color--dark: #285977;
 }

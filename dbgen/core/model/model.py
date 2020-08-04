@@ -23,6 +23,7 @@ from dbgen.core.schema import (
     UserRel,
     SuperRel,
 )
+
 from dbgen.core.schemaclass import Schema
 from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.core.fromclause import Path as JPath

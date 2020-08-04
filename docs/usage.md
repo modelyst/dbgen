@@ -39,7 +39,7 @@ below.
 ## Defining the Schema Graph
 
 The schema is specified by providing a list of entities (constructed
-with dbgen.Obj) , their attributes (with Attr), and the relationships
+with dbgen.Obj) , their attributes (with [`Attr`][dbgen.core.schema.Attr]), and the relationships
 which hold between them. These are called _foreign keys_ and created via
 the constructor Rel. Attributes always have a specific datatype
 associated with them.

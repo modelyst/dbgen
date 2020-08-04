@@ -42,7 +42,10 @@ Defines a Generator, as well as a Model method that is directly related
 
 
 class Gen(Base):
-    """Generator: populates database with data"""
+    """
+    Generator: populates database with data
+    One of the two component objects of a DBgen model
+    """
 
     def __init__(
         self,
@@ -55,7 +58,21 @@ class Gen(Base):
         env: Env = None,
         batch_size: int = None,
     ) -> None:
+        """
+        Initializes generator object.
 
+        [Query][dbgen.core.query.Query]
+
+        Args:
+            name (str): name of the generator
+            desc (str, optional): Description of what the generator does. Defaults to None.
+            query (Query, optional): [Query][dbgen.core.query.Query] object. Defaults to None.
+            funcs (L[PyBlock], optional): [description]. Defaults to None.
+            actions (L[Action], optional): [description]. Defaults to None.
+            tags (L[str], optional): [description]. Defaults to None.
+            env (Env, optional): [description]. Defaults to None.
+            batch_size (int, optional): [description]. Defaults to None.
+        """
         # assert actions, 'Cannot have generator which does nothing'
         assert name
         self.name = name.lower()
@@ -114,7 +131,7 @@ class Gen(Base):
         Determine the tabs/cols that are both inputs and outputs to the Gen
 
         Args:
-            universe (D[str, Obj])
+            universe (D[str, Obj]): Mapping of object name to DBgen 
 
         Returns:
             Dep
