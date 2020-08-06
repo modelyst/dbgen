@@ -56,10 +56,10 @@ class Model(Schema):
     def __init__(
         self,
         name: str,
-        objlist: L[Obj] = [],
-        genlist: L[Gen] = [],
-        viewlist: L[View] = [],
-        pes: L[PathEQ] = [],
+        objlist: L[Obj] = None,
+        genlist: L[Gen] = None,
+        viewlist: L[View] = None,
+        pes: L[PathEQ] = None,
     ) -> None:
         """
         Initialize model with list of objects, generators, views, and path
@@ -74,14 +74,14 @@ class Model(Schema):
             pes (L[PathEQ], optional): List of path equivalency objects. Defaults to [].
         """
         self.name = name
-        self.objlist = objlist
-        self.genlist = genlist
-        self.viewlist = viewlist
+        self.objlist = objlist or []
+        self.genlist = genlist or []
+        self.viewlist = viewlist or []
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objs)  # nodes are object NAMES
 
-        self.pes = set(pes)  # path equivalencies
+        self.pes = set(pes or [])  # path equivalencies
 
         for o in self.objs.values():
             for rel in o.fks:
