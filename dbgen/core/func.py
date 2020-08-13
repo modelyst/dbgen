@@ -3,7 +3,7 @@ from typing import Any, List as L, Dict as D, Union as U, Callable as C
 from os import environ
 from re import findall
 from os.path import join, exists
-from sys import version_info
+from sys import version_info, modules
 from inspect import (
     getdoc,
     signature,
@@ -11,13 +11,15 @@ from inspect import (
     getsourcelines,
     getmembers,
     isfunction,
+    isbuiltin,
+    isclass,
 )
 from importlib.util import spec_from_file_location, module_from_spec
 from hypothesis.strategies import SearchStrategy, builds
 
 # Iternal Modules
 from dbgen.core.datatypes import DataType, Tuple
-from dbgen.utils.exceptions import DBgenInternalError
+from dbgen.utils.exceptions import DBgenInternalError, DBgenInvalidArgument
 from dbgen.utils.misc import hash_, Base
 from dbgen.utils.sql import (
     sqlexecute,
@@ -333,16 +335,16 @@ class Func(Base):
             mod = module_from_spec(spec)
             assert spec and spec.loader, "Spec or Spec.loader are broken"
             spec.loader.exec_module(mod)  # type: ignore
-            funcs = [
+            transforms = [
                 o
                 for o in getmembers(mod)
                 if isfunction(o[1]) and getsourcefile(o[1]) == pth
             ]
-            assert len(funcs) == 1, "Bad input file %s has %d functions, not 1" % (
+            assert len(transforms) == 1, "Bad input file %s has %d functions, not 1" % (
                 pth,
-                len(funcs),
+                len(transforms),
             )
-            return funcs[0][1]
+            return transforms[0][1]
 
         except Exception as e:
             if exists(pth):
@@ -371,13 +373,18 @@ class Func(Base):
         """
         Return the source code, even if it's lambda function.
         """
+        # Check for built in functions as their source code can not be fetched
+        if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
+            raise DBgenInvalidArgument(
+                f"Error getting source code for PyBlock. {f} is a built-in function.\n"
+                f"Please wrap in lambda like so: `lambda x: {f.__name__}(x)`"
+            )
+
         try:
             source_lines, _ = getsourcelines(f)
         except (IOError, TypeError,) as e:
-            # functions defined in pdb / REPL / eval / some other way in which source code not clear
-            import pdb
-
-            pdb.set_trace()
+            # functions defined in pdb / REPL / eval / some other way in which
+            # source code not clear
             raise ValueError("from_callable: ", f, e)
 
         # Handle 'def'-ed functions and long lambdas

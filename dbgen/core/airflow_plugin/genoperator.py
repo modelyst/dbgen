@@ -16,7 +16,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Internal Imports
-from dbgen.core.gen import Gen
+from dbgen.core.gen import Generator
 from dbgen.core.model.run_gen import run_gen
 from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.utils.exceptions import DBgenGeneratorError
@@ -57,10 +57,10 @@ class GenOperator(BaseOperator):
         self.db_conn_id = db_conn_id
         self.mdb_conn_id = mdb_conn_id
 
-    def _get_gen(self, mcxn: "Conn") -> Gen:
+    def _get_gen(self, mcxn: "Conn") -> Generator:
         get_a = mkSelectCmd("gen", ["gen_json"], ["gen_id"])
         gen_json = sqlselect(mcxn, get_a, [self.gen_hash])[0][0]
-        gen = Gen.fromJSON(gen_json)  # type: ignore
+        gen = Generator.fromJSON(gen_json)  # type: ignore
         return gen  # type: ignore
 
     def execute(self, context: Any) -> None:
@@ -102,11 +102,13 @@ class GenOperator(BaseOperator):
 
         err = run_gen(**run_gen_args)  # type: ignore
         if err:
-            raise GeneratorError(f"{self.gen_name} failed")
+            raise DBgenGeneratorError(f"{self.gen_name} failed")
 
 
 if __name__ == "__main__":
-    test = GenOperator(Gen(name="test_gen"), run_id=1, db_conn_id="", mdb_conn_id="")
+    test = GenOperator(
+        Generator(name="test_gen"), run_id=1, db_conn_id="", mdb_conn_id=""
+    )
     import pdb
 
     pdb.set_trace()

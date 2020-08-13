@@ -38,6 +38,18 @@ def btw(s: str, begin: str, end: str, off: int = 0) -> Tuple[str, int]:
 
 
 def input_to_level(logging_level: str) -> int:
+    """
+    Convert logging level string to logging.LEVEL int.
+
+    Args:
+        logging_level (str): Logging level string (INFO/DEBUG/WARNING/CRITICAL)
+
+    Raises:
+        ValueError: when input string is not a valid logging level
+
+    Returns:
+        int: Gets the valid integer from the logging module
+    """
     log_map = {
         "INFO": logging.INFO,
         "DEBUG": logging.DEBUG,
@@ -67,11 +79,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--only", default="", help="Run only the (space separated) actions/tags"
+    "--only", default="", help="Run only the (space separated) generators/tags"
 )
 
 parser.add_argument(
-    "--xclude", type=str, default="", help="Run only the (space separated) actions/tags"
+    "--xclude",
+    type=str,
+    default="",
+    help="Run only the (space separated) generators/tags",
 )
 
 parser.add_argument("--start", default="", help="Start at the designed Generator")

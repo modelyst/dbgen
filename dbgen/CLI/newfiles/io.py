@@ -4,15 +4,15 @@ from os.path import join
 # Internal Modules
 from dbgen import (
     Model,
-    Gen,
+    Generator,
     PyBlock,
     Env,
     Const,
     Import,
     defaultEnv,
 )
-from ..utils import get_config
-from ..scripts.io.parse_employees import parse_employees
+from ..utils import get_config  # type: ignore
+from ..scripts.io.parse_employees import parse_employees  # type: ignore
 
 ################################################################################
 
@@ -34,12 +34,12 @@ def io(mod: Model) -> None:
         outnames=["ename", "sal", "man", "dname", "sec"],
     )
 
-    pop_employees = Gen(
+    pop_employees = Generator(
         name="pop_employees",
         desc="parses CSV file with employee info",
-        funcs=[pe_func],
+        transforms=[pe_func],
         tags=["io"],
-        actions=[
+        loads=[
             Emp(
                 insert=True,
                 name=pe_func["ename"],

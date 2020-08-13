@@ -2,7 +2,6 @@
 from typing import TYPE_CHECKING, Set as S, List as L, Dict as D, Tuple as T, Union as U
 from hashlib import md5
 from base64 import b64encode
-from networkx import DiGraph
 from hypothesis.strategies import (
     SearchStrategy,
     builds,
@@ -13,7 +12,6 @@ from hypothesis.strategies import (
 
 
 from dbgen.utils.misc import Base, nonempty
-from dbgen.utils.graphs import topsort_with_dict
 from dbgen.utils.lists import flatten
 
 # Internal
@@ -25,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class Path(Base):
-    """                         
+    """
     (loop 2x)
                  ->           ^|
             -> C -> D         |v
@@ -298,6 +296,8 @@ class From(Base):
         )
 
     def print(self, optional: L["RelTup"] = None) -> str:
+        from dbgen.utils.graphs import DiGraph, topsort_with_dict
+
         d = {j.alias: j for j in self.joins}
         G = DiGraph()
         G.add_nodes_from(d.keys())

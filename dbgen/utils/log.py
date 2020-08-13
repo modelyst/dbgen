@@ -22,7 +22,7 @@ from .config import config as dbgen_config
 #         logging.basicConfig(level=default_level)
 #     logging.config.dictConfig(dbgen_config)
 
-default_log_path = Path().home() / ".dbgen/dbgen.log"
+default_log_path: Path = Path().home() / ".dbgen/dbgen.log"
 default_log_path = Path(
     dbgen_config.get("dbgen", "log_path", fallback=default_log_path)
 )

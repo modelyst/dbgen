@@ -1,6 +1,16 @@
-from typing import Any, Set as S, List as L, Optional as Opt, Callable as C
-from hypothesis.strategies import SearchStrategy, builds, none, from_type
+from typing import (
+    Any,
+    Set as S,
+    List as L,
+    Optional as Opt,
+    Callable as C,
+    TYPE_CHECKING,
+)
 
+if TYPE_CHECKING:
+    from hypothesis.strategies import SearchStrategy
+
+    SearchStrategy
 from dbgen.core.schema import AttrTup, RelTup
 from dbgen.core.expr.expr import Expr
 from dbgen.core.fromclause import Path
@@ -22,7 +32,9 @@ class PathAttr(Expr):
         return "PathAttr<%s.%s>" % (self.path, self.attr)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
+        from hypothesis.strategies import builds, none, from_type
+
         return builds(cls, path=none(), attr=from_type(AttrTup))
 
     ####################

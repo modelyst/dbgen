@@ -37,6 +37,7 @@ def kwargs(x: Any) -> L[str]:
 
 anystrat = one_of(text(), booleans(), text(), integers(), none())
 nonempty = text(min_size=1)
+nonempty_limited = text(min_size=1, max_size=3)
 letters = text(min_size=1, alphabet=ascii_lowercase)
 
 
@@ -141,12 +142,6 @@ class Base(object, metaclass=ABCMeta):
     def __str__(self) -> str:
         raise NotImplementedError
 
-    @classmethod
-    @abstractmethod
-    def _strat(cls) -> SearchStrategy:
-        """A hypothesis strategy for generating random examples."""
-        raise NotImplementedError
-
     def __repr__(self) -> str:
         return str(self)
 
@@ -156,7 +151,7 @@ class Base(object, metaclass=ABCMeta):
         return type(self) == type(other) and vars(self) == vars(other)
         """
         if type(other) == type(self):
-            return vars(self) == vars(other)
+            return hash(self) == hash(other)
         else:
             args = [self, type(self), other, type(other)]
             err = "Equality type error \n{} \n({}) \n\n{} \n({})"
@@ -185,11 +180,3 @@ class Base(object, metaclass=ABCMeta):
     def hash(self) -> str:
         return hash_(to_dict(self, id_only=True))
 
-
-if __name__ == "__main__":
-    from dbgen import Obj, Rel, Attr, Int
-
-    obj = Obj("Table1", attrs=[Attr("mike", Int("big"))], fks=[Rel("sample")])
-    print(dumps(to_dict(obj, id_only=True), indent=2, sort_keys=True))
-    # print(obj.toJSON())
-    # print(obj.hash)

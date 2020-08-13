@@ -1,6 +1,7 @@
 import livereload
 import portray
-
+from mkdocs import commands
+commands.serve
 
 def render_as_html():
     portray.in_browser()

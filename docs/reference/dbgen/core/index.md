@@ -2,7 +2,7 @@
 
 Sub-modules
 -----------
-* [dbgen.core.action](action/)
+* [dbgen.core.load](load/)
 * [dbgen.core.airflow_plugin](airflow_plugin/)
 * [dbgen.core.datatypes](datatypes/)
 * [dbgen.core.expr](expr/)

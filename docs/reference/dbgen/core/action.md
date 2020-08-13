@@ -1,3 +1,3 @@
-# dbgen.core.action
+# dbgen.core.load
 
-:::dbgen.core.action
+:::dbgen.core.load

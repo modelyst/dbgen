@@ -22,7 +22,7 @@ from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.str_utils import hashdata_
 from dbgen.utils.lists import broadcast
 from dbgen.utils.sql import Connection as Conn
-from dbgen.templates import jinja_env
+
 
 # Internal Modules
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ There is a horrific amount of duplicated code in this file...... oughta fixit
 NUM_QUERY_TRIES = 3
 
 
-class Action(Base):
+class Load(Base):
     """
     The purpose for this object is to make an easily serializable data structure
     that knows how to update the database (these methods could easily be for
@@ -53,7 +53,7 @@ class Action(Base):
         self,
         obj: str,
         attrs: D[str, ArgLike],
-        fks: D[str, "Action"],
+        fks: D[str, "Load"],
         pk: Arg = None,
         insert: bool = False,
     ) -> None:
@@ -82,7 +82,7 @@ class Action(Base):
     def __str__(self) -> str:
         n = len(self.attrs)
         m = len(self.fks)
-        return "Action<%s, %d attr, %d rel>" % (self.obj, n, m)
+        return "Load<%s, %d attr, %d rel>" % (self.obj, n, m)
 
     ##################
     # Public methods #
@@ -99,14 +99,14 @@ class Action(Base):
         return deps
 
     def newtabs(self) -> L[str]:
-        """All tables that could be inserted into this action"""
+        """All tables that could be inserted into this load"""
         out = [self.obj] if self.insert else []
         for a in self.fks.values():
             out.extend(a.newtabs())
         return out
 
     def newcols(self, universe: D[str, "Obj"]) -> L[str]:
-        """All attributes that could be populated by this action"""
+        """All attributes that could be populated by this load"""
         obj = universe[self.obj]
         out = [
             self.obj + "." + a
@@ -131,13 +131,13 @@ class Action(Base):
         gen_name: str,
     ) -> None:
         """
-        Top level call from a Generator to execute an action (top level is
+        Top level call from a Generator to execute an load (top level is
         always insert or update, never just a select)
         """
         # Initialize logger
         self._load(cxn, objs, rows, insert=self.insert)
 
-    def rename_object(self, o: "Obj", n: str) -> "Action":
+    def rename_object(self, o: "Obj", n: str) -> "Load":
         """Replaces all references to a given object to one having a new name"""
         a = self.copy()
         if a.obj == o.name:
@@ -150,31 +150,31 @@ class Action(Base):
     def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
 
-        common_action_kwargs = dict(
+        common_load_kwargs = dict(
             obj=nonempty, attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),
         )
-        action_ = builds(
+        load_ = builds(
             cls,
             fks=just(dict()),
             pk=Arg._strat(),
             insert=just(False),
-            **common_action_kwargs,  # type: ignore
+            **common_load_kwargs,  # type: ignore
         )
-        action0 = builds(
+        load0 = builds(
             cls,
-            fks=dictionaries(keys=nonempty, values=action_),
+            fks=dictionaries(keys=nonempty, values=load_),
             pk=Arg._strat(),
             insert=just(False),
-            **common_action_kwargs,  # type: ignore
+            **common_load_kwargs,  # type: ignore
         )
-        action1 = builds(
+        load1 = builds(
             cls,
-            fks=dictionaries(keys=nonempty, values=action_),
+            fks=dictionaries(keys=nonempty, values=load_),
             pk=just(None),
             insert=just(True),
-            **common_action_kwargs,  # type: ignore
+            **common_load_kwargs,  # type: ignore
         )
-        return one_of(action_, action0, action1)
+        return one_of(load_, load0, load1)
 
     ###################
     # Private methods #
@@ -230,7 +230,10 @@ class Action(Base):
             # Iterate through the identifying data and cache the hashed result for speed
             for idata_curr in idata:
                 if idata_dict.get(idata_curr) is None:
-                    idata_dict[idata_curr] = hashdata_(idata_curr)
+                    try:
+                        idata_dict[idata_curr] = hashdata_(idata_curr)
+                    except TypeError:
+                        print(idata_curr)
                 idata_prime.append(idata_dict[idata_curr])
 
         if len(idata_prime) == 1:
@@ -343,6 +346,8 @@ class Action(Base):
             + list(sorted(self.fks.keys()))
         )
         escaped_cols = ['"' + col + '"' for col in cols]
+        from dbgen.templates import jinja_env
+
         if insert:
             template = jinja_env.get_template("insert.sql.jinja")
         else:
@@ -431,7 +436,7 @@ class Action(Base):
             rows (L[dict]): example processed namespaces after PyBlocks applied
 
         Returns:
-            D[str, L[dict]]: dictionary of mapping tables to lists of rows that would be inserted if this action were called
+            D[str, L[dict]]: dictionary of mapping tables to lists of rows that would be inserted if this load were called
         """
         obj_pk_name, ids, id_fks = objs[self.obj]
         pk, data = [], []
@@ -464,7 +469,7 @@ class Action(Base):
             )
 
         output = {self.obj + ("_insert" if self.insert else ""): table_rows}
-        # Save the rows of recursive actions
+        # Save the rows of recursive loads
         for kk, vv in self.fks.items():
             if vv.insert:
                 if vv.obj == self.obj and vv.insert == self.insert:
@@ -475,7 +480,7 @@ class Action(Base):
 
     def make_src(self) -> str:
         """
-        Output a stringified version of action that can be run in an Airflow PythonOperator
+        Output a stringified version of load that can be run in an Airflow PythonOperator
         """
         attrs = ",".join(
             ["%s=%s" % (k, v.make_src(meta=True)) for k, v in self.attrs.items()]

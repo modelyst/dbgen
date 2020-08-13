@@ -1,6 +1,6 @@
 from dbgen import (
     Model,
-    Gen,
+    Generator,
     Query,
     PyBlock,
     MAX,
@@ -13,7 +13,6 @@ from dbgen import (
     Zero,
     Expr,
     EQ,
-    Constraint,
     GT,
 )
 
@@ -93,22 +92,18 @@ def analysis(m: Model) -> None:
         outnames=["answer"],
     )
 
-    ssn_divided = Gen(
+    ssn_divided = Generator(
         name="ssn_divided",
         desc=ssn_div_desc,
-        actions=[History(step_divides_ssn=ssnpb["answer"], history=ssnquery["h"])],
+        loads=[History(step_divides_ssn=ssnpb["answer"], history=ssnquery["h"])],
         query=ssnquery,
-        funcs=[ssnpb],
+        transforms=[ssnpb],
     )
 
     ############################################################################
 
     # Represent whether a battery had a calcinated anode with a SQL expression
     proc_name = Procedures["procedure_name"]
-
-    # c = Constraint('procedures',[fuel_cell__anode])
-    # c.find(m,basis=['fuel_cell'],
-    #          links   = [History.r('sample')], # Need to traverse a many-one relation reverse direction
 
     pp = m.make_path(
         "procedures",
@@ -139,11 +134,11 @@ def analysis(m: Model) -> None:
     )  # Aggregate over this object
 
     fc_act = Fuel_cell(calc_anode=c_query["calc"], fuel_cell=c_query["f"])
-    calcined = Gen(
+    calcined = Generator(
         name="calcined",
         desc="Record whether battery anode was ever calcinated",
         query=c_query,
-        actions=[fc_act],
+        loads=[fc_act],
     )
 
     ############################################################################

@@ -1,7 +1,9 @@
 """Installation specifications for dbgen"""
 # External imports
-from os.path import join, dirname
-from setuptools import setup, find_packages  # type: ignore
+import unittest
+from os.path import dirname, join
+
+from setuptools import find_packages, setup  # type: ignore
 
 DBGEN_DIR = dirname(__file__)
 
@@ -11,6 +13,14 @@ try:
         long_description = f.read()
 except FileNotFoundError:
     long_description = ""
+
+
+def dbgen_tests():
+    """Test suite for Dbgen tests"""
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover(join(DBGEN_DIR, "tests"), pattern="test_*.py")
+    return test_suite
+
 
 # Requirements
 docs = [
@@ -28,8 +38,7 @@ INSTALL_REQUIREMENTS = [
     "networkx>=2.4",
     "pathos>=0.2.6",
     "psycopg2-binary>=2.7.4",
-    "python>=3.6,<4.0",
-    "sshtunnel^0.1.5",
+    "sshtunnel==0.1.5",
     "tqdm>=4.48.0",
 ]
 
@@ -63,6 +72,7 @@ def do_setup():
         author_email="info@modelyst.io",
         url="http://www.modelyst.com",
         python_requires="~=3.6",
+        test_suite="setup.dbgen_tests",
     )
 
 

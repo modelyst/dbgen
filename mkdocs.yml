@@ -51,7 +51,7 @@ nav:
           - dbgen.templates: reference/dbgen/templates.md
           - dbgen.core:
               - Module Contents: reference/dbgen/core/index.md
-              - dbgen.core.action: reference/dbgen/core/action.md
+              - dbgen.core.load: reference/dbgen/core/load.md
               - dbgen.core.datatypes: reference/dbgen/core/datatypes.md
               - dbgen.core.fromclause: reference/dbgen/core/fromclause.md
               - dbgen.core.func: reference/dbgen/core/func.md

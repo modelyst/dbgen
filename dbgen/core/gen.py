@@ -6,17 +6,15 @@ from typing import Optional as Opt
 from typing import Set as S
 from typing import Tuple as T
 
-from hypothesis.strategies import SearchStrategy, builds, lists
-from networkx import DiGraph
+import hypothesis.strategies as st
+from hypothesis.strategies import SearchStrategy, builds, lists, text, none
 
-from dbgen.core.action import Action
 from dbgen.core.func import Env, Func, defaultEnv
 from dbgen.core.funclike import Arg, PyBlock
+from dbgen.core.load import Load
 from dbgen.core.misc import Dep
 from dbgen.core.query import Query
 from dbgen.core.schema import Obj
-from dbgen.templates import jinja_env
-from dbgen.utils.graphs import topsort_with_dict
 from dbgen.utils.lists import concat_map
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.sql import Connection as Conn
@@ -41,7 +39,7 @@ Defines a Generator, as well as a Model method that is directly related
 ################################################################################
 
 
-class Gen(Base):
+class Generator(Base):
     """
     Generator: populates database with data
     One of the two component objects of a DBgen model
@@ -52,8 +50,8 @@ class Gen(Base):
         name: str,
         desc: str = None,
         query: Query = None,
-        funcs: L[PyBlock] = None,
-        actions: L[Action] = None,
+        transforms: L[PyBlock] = None,
+        loads: L[Load] = None,
         tags: L[str] = None,
         env: Env = None,
         batch_size: int = None,
@@ -67,23 +65,23 @@ class Gen(Base):
             name (str): name of the generator
             desc (str, optional): Description of what the generator does. Defaults to None.
             query (Query, optional): [Query][dbgen.core.query.Query] object. Defaults to None.
-            funcs (L[PyBlock], optional): [description]. Defaults to None.
-            actions (L[Action], optional): [description]. Defaults to None.
+            transforms (L[PyBlock], optional): [description]. Defaults to None.
+            loads (L[Load], optional): [description]. Defaults to None.
             tags (L[str], optional): [description]. Defaults to None.
             env (Env, optional): [description]. Defaults to None.
             batch_size (int, optional): [description]. Defaults to None.
         """
-        # assert actions, 'Cannot have generator which does nothing'
+        # assert loads, 'Cannot have generator which does nothing'
         assert name
         self.name = name.lower()
         self.desc = desc or "<no description>"
         self.query = query
-        self.funcs = self._order_funcs(funcs or [], query)
-        self.actions = actions or []
+        self.transforms = self._order_transforms(transforms or [], query)
+        self.loads = loads or []
         self.tags = [t.lower() for t in tags or []]
         self.env = env or defaultEnv
-        self.batch_size = batch_size
-        for func in self.funcs:
+        self.batch_size: Opt[int] = batch_size
+        for func in self.transforms:
             self.env += func.func.env
         super().__init__()
 
@@ -93,14 +91,15 @@ class Gen(Base):
     @classmethod
     def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
+        limited_text = text(min_size=1, max_size=2)
         return builds(
             cls,
-            name=nonempty,
-            desc=nonempty,
-            query=Query._strat(),
-            funcs=lists(PyBlock._strat(), max_size=2),
-            actions=lists(Action._strat(), min_size=1, max_size=2),
-            tags=lists(nonempty, max_size=3),
+            name=limited_text,
+            desc=limited_text,
+            query=st.one_of([st.none(), Query._strat()]),
+            transforms=lists(PyBlock._strat(), max_size=2),
+            loads=lists(Load._strat(), min_size=0, max_size=2),
+            tags=lists(limited_text, max_size=3),
         )
 
     ##################
@@ -131,7 +130,7 @@ class Gen(Base):
         Determine the tabs/cols that are both inputs and outputs to the Gen
 
         Args:
-            universe (D[str, Obj]): Mapping of object name to DBgen 
+            universe (D[str, Obj]): Mapping of object name to DBgen
 
         Returns:
             Dep
@@ -145,10 +144,10 @@ class Gen(Base):
         else:
             tabdeps, coldeps = [], []
 
-        # Analyze actions to see what new cols and tabs are yielded
+        # Analyze loads to see what new cols and tabs are yielded
         newtabs, newcols = [], []  # type: T[L[str],L[str]]
 
-        for a in self.actions:
+        for a in self.loads:
             tabdeps.extend(a.tabdeps())
             newtabs.extend(a.newtabs())
             newcols.extend(a.newcols(universe))
@@ -174,13 +173,13 @@ class Gen(Base):
             aid = self.get_id(cxn)
             return aid[0][0]
 
-    def rename_object(self, o: Obj, n: str) -> "Gen":
+    def rename_object(self, o: Obj, n: str) -> "Generator":
         """Change all references to an object to account for name change"""
         g = self.copy()
         if g.query:
             g.query.basis = [n if b == o.name else b for b in g.query.basis]
-        for i, a in enumerate(g.actions):
-            g.actions[i] = a.rename_object(o, n)
+        for i, a in enumerate(g.loads):
+            g.loads[i] = a.rename_object(o, n)
         return g
 
     def purge(self, conn: Conn, mconn: Conn, universe: D[str, Obj]) -> None:
@@ -215,20 +214,20 @@ class Gen(Base):
             if verbose:
                 from tqdm import tqdm
 
-                with tqdm(total=len(self.funcs)) as tq:
-                    for pb in self.funcs:
+                with tqdm(total=len(self.transforms)) as tq:
+                    for pb in self.transforms:
                         tq.set_description(pb.func.name)
                         result_dict[pb.hash] = pb(result_dict)
                         tq.update()
             else:
-                for pb in self.funcs:
+                for pb in self.transforms:
                     result_dict[pb.hash] = pb(result_dict)
 
             # Replace pyblock hashes with function names if flag is True
             lambda_count = 0
             func_name_dict = {}
             name_count: D[str, int] = defaultdict(int)
-            for pb in self.funcs:
+            for pb in self.transforms:
                 name = pb.func.name
                 if pb.func.is_lam:
                     func_name_dict[pb.hash] = f"lambda{lambda_count}->{pb.outnames}"
@@ -245,11 +244,11 @@ class Gen(Base):
 
             output_dicts.append(result_dict)
 
-        action_dicts: D[str, list] = defaultdict(list)
-        for i, a in enumerate(self.actions):
+        load_dicts: D[str, list] = defaultdict(list)
+        for i, a in enumerate(self.loads):
             output_dict = a.test(objs=objs, rows=output_dicts)
             for table_name, rows in output_dict.items():
-                action_dicts[table_name].extend(rows)
+                load_dicts[table_name].extend(rows)
 
         # Rename PyBlocks
         if rename_dict:
@@ -258,7 +257,7 @@ class Gen(Base):
                     func_name_dict.get(key, "query"): val for key, val in row.items()
                 }
 
-        return output_dicts, [action_dicts]
+        return output_dicts, [load_dicts]
 
     def test_with_db(
         self,
@@ -299,11 +298,13 @@ class Gen(Base):
     ##################
 
     def _constargs(self) -> L[Func]:
-        return concat_map(lambda y: y._constargs(), self.funcs)
+        return concat_map(lambda y: y._constargs(), self.transforms)
 
     @staticmethod
-    def _order_funcs(pbs: L[PyBlock], q: Opt[Query]) -> L[PyBlock]:
+    def _order_transforms(pbs: L[PyBlock], q: Opt[Query]) -> L[PyBlock]:
         """Make dependency graph among PyBlocks and determine execution order"""
+        from dbgen.utils.graphs import DiGraph, topsort_with_dict
+
         G = DiGraph()
         d = {pb.hash: pb for pb in pbs}
         G.add_nodes_from(d.keys())
@@ -313,7 +314,7 @@ class Gen(Base):
                     if a.key not in d:
                         raise KeyError(
                             f"Argument {arg_ind} of {pb.func.name} refers to an object with a hash key {a.key} asking for name \"{getattr(a,'name','<No Name>')}\" that does not exist in the namespace."
-                            "Did you make sure to include all PyBlocks in the func kwarg of Gen()?"
+                            "Did you make sure to include all PyBlocks in the func kwarg of Generator()?"
                         )
                     assert a.key in d, pb.func.name
                     G.add_edge(a.key, pb.hash)
@@ -321,7 +322,7 @@ class Gen(Base):
 
     def _get_all_saved_key_dict(self) -> D[str, S[str]]:
         saved_keys = {}  # type: D[str,S[str]]
-        for act in self.actions:
+        for act in self.loads:
             for hash_loc, name_set in self._get_saved_key_dict(act).items():
                 saved_keys.update(
                     {hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])}
@@ -329,24 +330,24 @@ class Gen(Base):
 
         return saved_keys
 
-    def _get_saved_key_dict(self, action: Action) -> D[str, S[str]]:
+    def _get_saved_key_dict(self, load: Load) -> D[str, S[str]]:
         saved_keys = {}  # type: D[str,S[str]]
-        if action.pk:
-            if isinstance(action.pk, Arg):
-                hash_loc = action.pk.key
-                arg_name = action.pk.name
+        if load.pk:
+            if isinstance(load.pk, Arg):
+                hash_loc = load.pk.key
+                arg_name = load.pk.name
                 saved_keys.update(
                     {hash_loc: set([arg_name, *saved_keys.get(hash_loc, set())])}
                 )
 
-        for val in action.attrs.values():
+        for val in load.attrs.values():
             if isinstance(val, Arg):
                 saved_keys.update(
                     {val.key: set([val.name, *saved_keys.get(val.key, set())])}
                 )
 
-        for fk_action in action.fks.values():
-            for hash_loc, name_set in self._get_saved_key_dict(fk_action).items():
+        for fk_load in load.fks.values():
+            for hash_loc, name_set in self._get_saved_key_dict(fk_load).items():
                 saved_keys.update(
                     {hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])}
                 )
@@ -359,19 +360,21 @@ class Gen(Base):
     def operator(self, model_name: str, run: int, universe: D[str, Obj]) -> str:
 
         # Get the necessary template
+        from dbgen.templates import jinja_env
+
         gen_template = jinja_env.get_template("generator.py.jinja")
 
         # Prepare the rendered arguments
         pbs = [
             ("pb" + str(pb.hash).replace("-", "neg"), pb.hash, pb.make_src())
-            for pb in self.funcs
+            for pb in self.transforms
         ]
-        loaders = [loader.make_src() for loader in self.actions]
+        loaders = [loader.make_src() for loader in self.loads]
         objs = {
             oname: (o.id_str, repr(o.ids()), repr(o.id_fks()))
             for oname, o in universe.items()
         }
-        constfuncs = [cf.src for cf in self._constargs()]
+        consttransforms = [cf.src for cf in self._constargs()]
 
         # Set the template arguements
         template_kwargs = dict(
@@ -385,7 +388,7 @@ class Gen(Base):
             queryhash=self.query.hash if self.query else None,
             run=run,
             model_name=model_name,
-            constfuncs=constfuncs,
+            consttransforms=consttransforms,
         )
 
         return gen_template.render(**template_kwargs)

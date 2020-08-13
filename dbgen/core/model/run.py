@@ -7,9 +7,9 @@ import logging
 from pathlib import Path
 
 # Internal imports
-from dbgen import __version__, LOGO
+from dbgen import LOGO
 from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
-from dbgen.core.gen import Gen
+from dbgen.core.gen import Generator
 from dbgen.core.schema import PathEQ
 from dbgen.utils.sql import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
@@ -75,7 +75,7 @@ def run(
 
     # Run tests on pyblocks
     # ----------------------
-    self.test_funcs()
+    self.test_transforms()
 
     # # Setup logger and config
     # # --------------------
@@ -308,7 +308,7 @@ def validate_name(self: "Model", w: str) -> None:
     match = False
     close = []
 
-    def t(u: Gen) -> L[str]:
+    def t(u: Generator) -> L[str]:
         return [u.name] + u.tags
 
     for n in concat_map(t, list(self.gens.values())):

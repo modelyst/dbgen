@@ -79,3 +79,19 @@ class DBgenLoadException(DBgenException):
     @classmethod
     def _strat(cls) -> SearchStrategy:
         return builds(cls)
+
+
+class DBgenMissingInfo(DBgenException):
+    """Raise when there is missing info in a class/function initialization"""
+
+    @classmethod
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls)
+
+
+class DBgenInvalidArgument(DBgenException):
+    """Raise when there is missing info in a class/function initialization"""
+
+    @classmethod
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls)

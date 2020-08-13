@@ -6,12 +6,12 @@ __maintainer_email__ = "michael.statt@modelyst.io"
 __version__ = "0.3.0"
 LOGO = f"""
 -------------------------------
-    ____  ____                 
-   / __ \/ __ )____ ____  ____ 
+    ____  ____
+   / __ \/ __ )____ ____  ____
   / / / / __  / __ `/ _ \/ __ \\
  / /_/ / /_/ / /_/ /  __/ / / /
-/_____/_____/\__, /\___/_/ /_/ 
-            /____/             
+/_____/_____/\__, /\___/_/ /_/
+            /____/
 -------------------------------
 VERSION: {__version__}
 -------------------------------
@@ -81,10 +81,11 @@ from dbgen.core.expr.sqltypes import (
 from dbgen.core.fromclause import Path as JPath
 from dbgen.core.func import Env, Func, Import, defaultEnv
 from dbgen.core.funclike import Arg, Const, PyBlock
-from dbgen.core.gen import Gen
+from dbgen.core.gen import Generator
+from dbgen.core.gen import Generator as Gen
 from dbgen.core.misc import ConnectInfo
+
 from dbgen.core.model.model import Model
-from dbgen.core.pathconstraint import Constraint
 from dbgen.core.query import Query
 from dbgen.core.schema import Attr, Obj, Path, PathEQ, QView, RawView
 from dbgen.core.schema import UserRel as Rel

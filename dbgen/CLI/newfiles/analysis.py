@@ -1,5 +1,5 @@
 # Internal Modules
-from dbgen import Model, Gen, SUM, Query
+from dbgen import Model, Generator, SUM, Query
 
 ################################################################################
 
@@ -17,12 +17,12 @@ def analysis(mod: Model) -> None:
     # Load Step
     dept_load = Dept(department=query["emp_id"], total_salary=query["tot_salary"])
 
-    get_tot_salary = Gen(
+    get_tot_salary = Generator(
         name="get_total_salary",
         desc="Salary",
-        funcs=[],
+        transforms=[],
         tags=["analysis"],
-        actions=[dept_load],
+        loads=[dept_load],
         query=query,
     )
 

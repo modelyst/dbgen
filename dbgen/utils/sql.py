@@ -1,43 +1,16 @@
+"""Common utilities for interfacing with SQL Databases."""
 # External Modules
-from typing import List, Any
+from typing import List, Any, Tuple as T
 from time import sleep
 from io import StringIO
 from psycopg2 import Error, ProgrammingError  # type: ignore
 from psycopg2.extras import DictCursor, execute_batch  # type: ignore
 from random import getrandbits
 
-from dbgen.templates import jinja_env
-
-"""
-Tools for interacting with databases
-"""
-
 Connection = Any
-##############################################################################
-# Interface with DB
-# ------------------
-def sub(q: str, xs: list) -> str:
-    """
-    Subsitute binds for debugging
-    """
-
-    def s(x: Any) -> str:
-        if isinstance(x, str):
-            return "'%s'" % x
-        elif x is None:
-            return "NULL"
-        else:
-            return x
-
-    try:
-        return q.replace("%s", "{}").format(*map(s, xs))
-    except:
-        print(q, q.count("%s"), len(xs))
-        import pdb
-
-        pdb.set_trace()
-        raise ValueError("Subsitution error")
-
+# ##############################################################################
+# # Interface with DB
+# # ------------------
 
 ###########
 # Shortcuts
@@ -45,6 +18,17 @@ def sub(q: str, xs: list) -> str:
 
 
 def mkInsCmd(tabName: str, names: List[str], pk: str = None) -> str:
+    """
+    Creates an insert command for a table named tabName with columns named names.
+
+    Args:
+        tabName (str): name of the table to insert into
+        names (List[str]): list of names of columns to insert into
+        pk (str, optional): name of the primary key of the table if it is not {tabName}_id. Defaults to {tabName}_id.
+
+    Returns:
+        str: Sql statement for the insertion with correct formmatting
+    """
     dup = " ON CONFLICT ({}) DO NOTHING".format(pk or tabName + "_id")
     ins_names = ",".join(['"%s"' % (n) for n in names])
     fmt_args = [tabName, ins_names, ",".join(["%s"] * len(names)), dup]
@@ -52,6 +36,17 @@ def mkInsCmd(tabName: str, names: List[str], pk: str = None) -> str:
 
 
 def mkUpdateCmd(tabName: str, names: List[str], keys: List[str]) -> str:
+    """
+    Creates an update command for a table named tabName with columns named names.
+
+    Args:
+        tabName (str): name of the table to insert into
+        names (List[str]): list of names of columns to update
+        keys (List[str]): where statements to update on.
+
+    Returns:
+        str: Sql statement for the update with correct formmatting
+    """
     fmt_args = [tabName, addQs(names, ","), addQs(keys, " AND ")]
     return "UPDATE {} SET {} WHERE {}".format(*fmt_args)
 
@@ -102,8 +97,6 @@ def sqlexecute(conn: Connection, q: str, binds: list = []) -> list:
 
 
 def sqlexecutemany(conn: Connection, q: str, binds: List[list]) -> None:
-    # print('\n\nexecutemany : \n'+q,binds)
-    # print('\n\n(with substitution)\n',sub(q,binds[0]))
     with conn.cursor() as cxn:  # type: ignore
         while True:
             try:
@@ -126,7 +119,7 @@ def addQs(xs: list, delim: str) -> str:
 
 
 def batched_cursor(cursor: Any, arraysize: int = 1000) -> Any:
-    "An iterator that uses fetchmany to keep memory usage down"
+    """An iterator that uses fetchmany to keep memory usage down"""
     while True:
         results = cursor.fetchmany(arraysize)
         if not results:
@@ -137,7 +130,7 @@ def batched_cursor(cursor: Any, arraysize: int = 1000) -> Any:
 
 def fast_load(
     conn: Connection,
-    rows: List[List[Any]],
+    rows: T[List[Any], ...],
     table_name: str,
     col_names: List[str],
     obj_pk_name: str,
@@ -165,6 +158,7 @@ def fast_load(
         """.format(
         obj=table_name, temp_table_name=temp_table_name
     )
+    from dbgen.templates import jinja_env
 
     insert_template = jinja_env.get_template("insert.sql.jinja")
     template_args = dict(
@@ -180,3 +174,4 @@ def fast_load(
         curs.execute(create_temp_table)
         curs.copy_from(io_obj, temp_table_name, null="None", columns=col_names)
         curs.execute(insert_statement)
+

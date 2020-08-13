@@ -1,6 +1,7 @@
+"""Common list utilities for flattening, concating, and broadcasting."""
 from typing import (
-    Any,
     TypeVar,
+    Any,
     List as L,
     Union as U,
     Dict as D,
@@ -57,12 +58,15 @@ def concat_map(f: C[[A], L[B]], args: L[A]) -> L[B]:
 
 
 ##############################################################
-def broadcast(args: L[U[list, A]]) -> L[A]:
+valid_types = (int, str, tuple, float, list, bytes, datetime, Decimal, type(None))
+
+
+def broadcast(args: L[U[L[B], A]]):
     """
     Enforce that all non-length-1 elements have the same length and replicate
     length-1 elements to the largest length list, then zip all the lists
     """
-    valid_types = (int, str, tuple, float, list, bytes, datetime, Decimal, type(None))
+
     type_err = "Arg (%s) BAD DATATYPE %s IN NAMESPACE "
     broad_err = "Can't broadcast: maxlen = %d, len a = %d (%s)"
     maxlen = 1  # initialize variable
@@ -77,7 +81,7 @@ def broadcast(args: L[U[list, A]]) -> L[A]:
             else:
                 maxlen = len(a)  # set variable for first (and last) time
 
-    def process_arg(x: Any) -> list:
+    def process_arg(x: U[L[B], A]) -> U[L[B], L[A]]:
         if isinstance(x, (list, tuple)) and len(x) != maxlen:
             return maxlen * list(x)  # broadcast
         elif not isinstance(x, list):
@@ -87,10 +91,6 @@ def broadcast(args: L[U[list, A]]) -> L[A]:
 
     # now all args should be lists of the same length
     broadcasted = [process_arg(x) for x in args]
-    # if maxlen == 1:
-    #     import pdb;pdb.set_trace()
-    #     return broadcasted
-    # else:
     return list(zip(*broadcasted))
 
 
@@ -103,3 +103,21 @@ def batch(iterable: list, n: int = 1) -> Iterable:
     iter_length = len(iterable)
     for ndx in range(0, iter_length, n):
         yield iterable[ndx : min(ndx + n, iter_length)]
+
+
+##############################################################
+def is_iterable(potentially_iterable: Any) -> bool:
+    """
+    Tests iterability for better error messaging.
+
+    Args:
+        potentially_iterable (Any): variable to test for iterability
+
+    Returns:
+        bool: potentially_iterable is iterable
+    """
+    try:
+        iter(potentially_iterable)
+    except TypeError:
+        return False
+    return True

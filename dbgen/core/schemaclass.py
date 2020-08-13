@@ -1,13 +1,19 @@
 # External
-from typing import Set as S, List as L, Dict as D, Union as U, Callable as C
+from typing import (
+    Set as S,
+    List as L,
+    Dict as D,
+    Union as U,
+    Callable as C,
+    TYPE_CHECKING,
+)
 from copy import deepcopy
-from networkx import DiGraph
 from tqdm import tqdm
 from hypothesis.strategies import (
     SearchStrategy,
     builds,
     lists,
-    composite,  # type: ignore
+    composite,
     just,
     sampled_from,
 )
@@ -29,6 +35,8 @@ from dbgen.core.schema import (
 from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.utils.sql import sqlexecute, sqlselect
 
+if TYPE_CHECKING:
+    from networkx import DiGraph
 ############################################################################
 
 
@@ -41,6 +49,7 @@ class Schema(Base):
 
         self.objlist = objlist or []
         self.viewlist = viewlist or []
+        from networkx import DiGraph
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objlist)  # nodes are object NAMES
@@ -70,9 +79,9 @@ class Schema(Base):
     def views(self) -> D[str, View]:
         return {o.name.lower(): o for o in self.viewlist}
 
-    @classmethod
+    @staticmethod
     @composite
-    def _strat(draw: C, cls: "Schema") -> SearchStrategy:
+    def _strat(draw: C) -> SearchStrategy:
         MAX_OBJ = 2
         MAX_FK = 2
         objnames = draw(lists(letters, min_size=1, max_size=MAX_OBJ, unique=True))
@@ -86,7 +95,7 @@ class Schema(Base):
                 )
             )
             objlist.append(draw(Obj._strat(name=o, fks=list(zip(fknames, fktargets)))))
-        return draw(builds(cls, objlist=just(objlist)))
+        return draw(builds(Schema, objlist=just(objlist)))
 
     def make_schema(self, conn: ConnI, nuke: str = "", bar: bool = True) -> None:
         """Create empty schema."""
@@ -182,7 +191,7 @@ class Schema(Base):
         self.pes.add(peq)
 
     @staticmethod
-    def add_fk(G: DiGraph, r: Rel, forward: bool = True) -> None:
+    def add_fk(G: "DiGraph", r: Rel, forward: bool = True) -> None:
         """ Modify a graph (used by both add_relation and info_graph) """
         a, b = (r.o1, r.o2)
         if not forward:
@@ -256,7 +265,7 @@ class Schema(Base):
         else:
             return self[r.obj].fkdict[r.rel]
 
-    def _info_graph(self, links: L[U[Rel, RelTup]]) -> DiGraph:
+    def _info_graph(self, links: L[U[Rel, RelTup]]) -> "DiGraph":
         """Natural paths of information propagation, which includes the normal
             Rel relationships but also taking into account a
             user-specified list of relationships that are allowed to propagate

@@ -7,7 +7,7 @@ from os.path import exists
 from json import load, dump
 from pprint import pformat
 from contextlib import suppress
-from sshtunnel import SSHTunnelForwarder
+
 from psycopg2 import connect, Error, OperationalError
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from hypothesis.strategies import SearchStrategy, builds
@@ -15,8 +15,8 @@ from dbgen.utils.misc import Base
 
 # Internal Modules
 if TYPE_CHECKING:
-    from dbgen.core.gen import Gen
-
+    from dbgen.core.gen import Generator
+    from sshtunnel import SSHTunnelForwarder
     from airflow.hooks.connections import Connection
 
 
@@ -70,7 +70,9 @@ class ConnectInfo(Base):
     def _strat(cls) -> SearchStrategy:
         return builds(cls)
 
-    def tunnel(self) -> SSHTunnelForwarder:
+    def tunnel(self) -> "SSHTunnelForwarder":
+        from sshtunnel import SSHTunnelForwarder
+
         return (
             SSHTunnelForwarder(
                 (self.ssh, self.ssh_port),
@@ -103,7 +105,8 @@ class ConnectInfo(Base):
             except OperationalError as exc:
                 if re.findall("database.*does not exist", str(exc)):
                     raise OperationalError(
-                        f"Database {self.db} does not exist, please check connection or create DB before running DBgen or first time"
+                        f"Database {self.db} does not exist,"
+                        "please check connection or create DB before running DBgen or first time"
                     )
                 raise exc
             except Error as exc:
@@ -113,7 +116,8 @@ class ConnectInfo(Base):
                 pdb.set_trace()
                 sleep(1)
         raise Error(
-            f"Exceeded number of attempts to connect to host using credentials. Please make sure the database is running and you have provided the correct credentials."
+            f"Exceeded number of attempts to connect to host using credentials."
+            "Please make sure the database is running and you have provided the correct credentials."
         )
 
     def to_file(self, pth: str) -> None:
@@ -255,11 +259,13 @@ class Test(object):
     function. This prints a message: "Not Executed (string of object)"
     """
 
-    def __init__(self, test: C[["Gen", Any], bool], message: C[[Any], str]) -> None:
+    def __init__(
+        self, test: C[["Generator", Any], bool], message: C[[Any], str]
+    ) -> None:
         self.test = test
         self.message = message
 
-    def __call__(self, t: "Gen", *args: Any) -> Any:
+    def __call__(self, t: "Generator", *args: Any) -> Any:
         """Run a test on a generator to see if it's supposed to be executed"""
         output = self.test(t, *args)
         return True if output else self.message(output)

@@ -1,12 +1,9 @@
 # External imports
 from typing import TYPE_CHECKING, Any
 
-import shutil
-from glob import glob
 from os import environ
-from os.path import join, abspath, dirname, exists
+from os.path import join
 from datetime import datetime
-from dbgen.core.airflow_plugin import GenOperator
 
 # Internal Imports
 if TYPE_CHECKING:
@@ -77,7 +74,7 @@ def run_airflow(
 
     gen_hash_dict = {gen_name: gen.hash for gen_name, gen in self.gens.items()}
     objs = {
-        oname: (o._id, repr(o.ids()), repr(o.id_fks()))
+        oname: (o.id_str, repr(o.ids()), repr(o.id_fks()))
         for oname, o in self.objs.items()
     }
     deps = list(self._gen_graph().edges())

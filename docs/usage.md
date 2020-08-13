@@ -50,8 +50,8 @@ solarcell = Obj(
     desc  = 'a solar cell',
     attrs = [
         Attr('id',Int(),desc='Identifying number', identifying=True),
-        Attr('frac_La',Decimal(),desc='fraction Lanthanum'),
-        Attr('frac_Co',Decimal(),desc='fraction Cobalt')
+        Attr('frac_La',Decimal(),desc='frload Lanthanum'),
+        Attr('frac_Co',Decimal(),desc='frload Cobalt')
     ]
 )
 
@@ -86,7 +86,7 @@ def make_model() -> Model:
 ### Initial instance data
 
 Each fact has a similar structure: Extract, Transform, Load. This series
-of actions draws upon the knowledge our fact depends on, applies a
+of loads draws upon the knowledge our fact depends on, applies a
 transformation to this, and then appropriately stores this knowledge
 back into the schema. Of course, there have to be some facts which do
 not depend solely on the the results of other facts for this process to
@@ -113,7 +113,7 @@ def io(model : Model) -> None:
             desc = 'loads the full path to all jvcurves',
             funcs = [load_data_paths_block],
             tags  = ['io'],
-            actions = [JVcurve(insert  = True,
+            loads = [JVcurve(insert  = True,
                         full_path   = load_data_paths_block['full_path'])]
         )
 
@@ -152,7 +152,7 @@ def jsc(model : Model) -> None:
             query = query,
             funcs = [get_jsc_block],
             tags  = ['pure'],
-            actions = [JVcurve(
+            loads = [JVcurve(
                 jvcurve = query['jvcurve_id'],
                 jsc       = get_jsc_block['jsc']
         )]
@@ -198,7 +198,7 @@ def fill_factor(model : Model) -> None:
             query = query,
             funcs = [get_ff_block],
             tags  = ['pure'],
-            actions = [JVcurve(
+            loads = [JVcurve(
                 jvcurve         = query['jvcurve_id'],
                 fill_factor     = get_ff_block['ff']
         )]

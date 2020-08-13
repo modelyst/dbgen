@@ -2,7 +2,7 @@
 from os.path import join, dirname
 
 # INternal
-from dbgen import Model, Gen, Const, PyBlock, Env, Import, defaultEnv, __file__
+from dbgen import Model, Generator, Const, PyBlock, Env, Import, defaultEnv, __file__
 from dbgen.example.scripts.parsers import (
     parse_ssn,
     parse_proc_csv,
@@ -56,11 +56,11 @@ def io(model: Model) -> None:
         outnames=["firstname", "lastname", "ssn"],
     )
 
-    scientists = Gen(
+    scientists = Generator(
         name="scientists",
         desc="populates Scientist table",
-        funcs=[pb1],
-        actions=[
+        transforms=[pb1],
+        loads=[
             Scientist(
                 insert=True,
                 ssn=pb1["ssn"],
@@ -92,32 +92,32 @@ def io(model: Model) -> None:
         ],
     )
 
-    sample_action = Sample(insert=True, id=ghcpb["id"])
+    sample_load = Sample(insert=True, id=ghcpb["id"])
 
-    proc_action = Procedures(insert=True, procedure_name=ghcpb["procedure_name"])
+    proc_load = Procedures(insert=True, procedure_name=ghcpb["procedure_name"])
 
-    sci_action = Scientist(insert=True, ssn=ghcpb["ssn"])
+    sci_load = Scientist(insert=True, ssn=ghcpb["ssn"])
 
-    hist_action = History(
+    hist_load = History(
         insert=True,
         step=ghcpb["step"],
-        sample=sample_action,
-        expt_type=proc_action,
-        operator=sci_action,
+        sample=sample_load,
+        expt_type=proc_load,
+        operator=sci_load,
     )
 
-    histd_action = History_details(
+    histd_load = History_details(
         insert=True,
         name=ghcpb["name"],
         value=ghcpb["value"],
         dtype=ghcpb["dtype"],
-        history=hist_action,
+        history=hist_load,
     )
-    get_history_csv = Gen(
+    get_history_csv = Generator(
         name="get_history_csv",
         desc="Parse CSV file with History data",
-        funcs=[ghcpb],
-        actions=[histd_action],
+        transforms=[ghcpb],
+        loads=[histd_load],
     )
 
     ############################################################################
@@ -131,21 +131,19 @@ def io(model: Model) -> None:
             outnames=["id", "expt_id", "comp"],
         )
 
-        samp_action = Sample(insert=True, id=capb["id"])
+        samp_load = Sample(insert=True, id=capb["id"])
 
-        elec_action = Electrode(
-            insert=True, composition=capb["comp"], sample=samp_action
-        )
+        elec_load = Electrode(insert=True, composition=capb["comp"], sample=samp_load)
 
-        x_action = model[x](insert=True, electrode=elec_action)
+        x_load = model[x](insert=True, electrode=elec_load)
 
-        fc_action = Fuel_cell(insert=True, **{x: x_action, "expt_id": capb["expt_id"]})
+        fc_load = Fuel_cell(insert=True, **{x: x_load, "expt_id": capb["expt_id"]})
         ca.append(
-            Gen(
+            Generator(
                 name=x,
                 desc="Extract %s info from an experiment.json" % x,
-                funcs=[capb],
-                actions=[fc_action],
+                transforms=[capb],
+                loads=[fc_load],
             )
         )
 
@@ -172,22 +170,22 @@ def io(model: Model) -> None:
         insert=True, step=ghd["step"], sample=samact, expt_type=proact, operator=sciact
     )
 
-    get_history_db = Gen(
+    get_history_db = Generator(
         name="get_history_db",
         desc="Parse SQLite file with History data",
-        funcs=[ghd],
-        actions=[hact],
+        transforms=[ghd],
+        loads=[hact],
     )
     ############################################################################
     details = ["expt_id", "timestamp", "capacity", "electrolyte"]
     fd_pb = PyBlock(
         parse_expt, args=[Const(root + "experiment.json")], outnames=details
     )
-    fuel_details = Gen(
+    fuel_details = Generator(
         name="fuel_details",
         desc="other details about fuel cell experiments",
-        actions=[Fuel_cell(insert=True, **{x: fd_pb[x] for x in details})],
-        funcs=[fd_pb],
+        loads=[Fuel_cell(insert=True, **{x: fd_pb[x] for x in details})],
+        transforms=[fd_pb],
     )
 
     ############################################################################

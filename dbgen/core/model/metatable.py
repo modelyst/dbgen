@@ -12,9 +12,9 @@ from dbgen.utils.sql import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
     from dbgen.core.misc import ConnectInfo as ConnI
-    from dbgen.core.gen import Gen
+    from dbgen.core.gen import Generator
 
-    ConnI, Model, Gen
+    ConnI, Model, Generator
 
 
 #############################################################################
@@ -161,7 +161,7 @@ objs = [
     ),
     Obj(
         "repeats",
-        "A record of which inputs a given Action has already seen",
+        "A record of which inputs a given Load has already seen",
         fks=[Rel("gen", identifying=True), Rel("run")],
     ),
 ]
@@ -288,7 +288,7 @@ def make_meta(
     # Insert info about current DBG if it doesn't exist
     # ----------------------------------------------
     od = "Inserting Objects into MetaDB"
-    ad = "Inserting Actions into MetaDB"
+    ad = "Inserting Loads into MetaDB"
     vd = "Inserting Views into MetaDB"
     oq = mkInsCmd("objs", ["run", "object", "objs_id"])
     vq = mkInsCmd("views", ["run", "view", "views_id"])

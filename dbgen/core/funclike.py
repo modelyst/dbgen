@@ -13,10 +13,15 @@ from hypothesis.strategies import SearchStrategy, builds, just, one_of
 # Internal
 from dbgen.core.func import Env, Func
 from dbgen.core.misc import ConnectInfo as Conn
-from dbgen.templates import jinja_env
-from dbgen.utils.exceptions import DBgenExternalError
+
+from dbgen.utils.exceptions import (
+    DBgenExternalError,
+    DBgenInvalidArgument,
+    DBgenMissingInfo,
+)
 from dbgen.utils.misc import Base, anystrat
 from dbgen.utils.sql import mkInsCmd, sqlexecute
+from dbgen.utils.lists import is_iterable
 
 
 """
@@ -67,15 +72,14 @@ class Arg(ArgLike):
             return val
         except KeyError as e:
             if self.key not in dic:
-                print(
+                raise DBgenMissingInfo(
                     "could not find hash, looking for {} at this hash {}".format(
                         self.name, self.key
                     )
                 )
             else:
                 err = "could not find '%s' in %s "
-                print(err % (self.name, list(dic[self.key].keys())))
-            raise e
+                raise DBgenMissingInfo(err % (self.name, list(dic[self.key].keys())))
 
     def add(self, cxn: Conn, act: int, block: int) -> None:
         q = mkInsCmd("_arg", ["gen_id", "block_id", "hashkey", "name"])
@@ -121,22 +125,20 @@ class PyBlock(Base):
         self,
         func: U[C, Func],
         env: Env = None,
-        args: U[L[Arg], L[Const], L[ArgLike]] = None,
+        args: L[ArgLike] = [],
         outnames: L[str] = None,
-        tests: L[T[tuple, Any]] = None,
+        tests: L[T[tuple, Any]] = [],
     ) -> None:
+
         # Store fields
         self.func = Func.from_callable(func, env=env)
         self.env = env
-        self.args = args or []
+        self.args = args
         self.outnames = [o.lower() for o in outnames or ["out"]]
-        self.tests = tests or []
+        self.tests = tests
+        # Validate inputs for errors
+        self.validate_inputs()
 
-        # Validate input
-        if outnames:
-            dups = [o for o in outnames if outnames.count(o) > 1]
-            err = "No duplicates in outnames for func %s: %s"
-            assert not dups, err % (self.func.name, set(dups))
         super().__init__()
 
     @classmethod
@@ -157,17 +159,14 @@ class PyBlock(Base):
         """
         try:
             inputvars = [arg.arg_get(curr_dict) for arg in self.args]
-        except (KeyError, TypeError, IndexError) as e:
+        except (TypeError, IndexError) as e:
             print(e)
-            import pdb
-
-            pdb.set_trace()
             raise ValueError()
         except AttributeError:
             invalid_args = [getattr(arg, "arg_get", None) is None for arg in self.args]
             missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
-            raise ValueError(
-                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.func.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Arguement??"
+            raise DBgenMissingInfo(
+                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.func.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Arguement?"
             )
 
         try:
@@ -198,6 +197,30 @@ class PyBlock(Base):
             c.val for c in self.args if isinstance(c, Const) and isinstance(c.val, Func)
         ]
 
+    def validate_inputs(self) -> None:
+        # Check for iterability
+        if not is_iterable(self.outnames):
+            raise DBgenInvalidArgument(
+                f"Func Name: {self.func.name}.\nOutnames is not iterable. Please wrap in singleton list if single argument"
+            )
+        elif not is_iterable(self.args):
+            raise DBgenInvalidArgument(
+                f"Func Name: {self.func.name}.\nArgs is not iterable. Please wrap in singleton list if single argument"
+            )
+        # Check for duplicate outnames
+        if self.outnames:
+            dups = [o for o in self.outnames if self.outnames.count(o) > 1]
+            if dups:
+                err = f"No duplicates in outnames for func {self.func.name}: {dups}"
+                raise DBgenInvalidArgument(err)
+        invalid_args = [
+            i for i, arg in enumerate(self.args) if not isinstance(arg, ArgLike)
+        ]
+        if invalid_args:
+            raise DBgenMissingInfo(
+                f"Argument(s) {' ,'.join(map(str,invalid_args))} to {self.func.name} are not ArgLike:\n Did you forget to wrap a Const around a PyBlock Arguement?"
+            )
+
     def add(self, cxn: Conn, a_id: int, b_id: int) -> None:
         """Add to metaDB"""
         cols = ["gen_id", "py_block_id", "func_id", "outnames"]
@@ -212,6 +235,8 @@ class PyBlock(Base):
 
     def make_src(self) -> str:
         # load the pyblock template
+        from dbgen.templates import jinja_env
+
         pb_template = jinja_env.get_template("pyblock.py.jinja")
 
         # Prepare the template args

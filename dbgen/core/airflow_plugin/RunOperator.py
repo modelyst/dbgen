@@ -1,7 +1,9 @@
+"""Airflow Operator for the intitialization of a run"""
 # External imports
-from typing import Any, TYPE_CHECKING, Dict as D, Tuple as T, List as L
+from typing import Any, TYPE_CHECKING, Dict as D
 
 if TYPE_CHECKING:
+    from dbgen.core.gen import Generator
     from dbgen.utils.sql import Connection as Conn
     from ..misc import ConnectInfo as ConnI
     from ..model.model import Model
@@ -17,7 +19,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Internal Imports
 from ..misc import ConnectInfo as ConnI
-from dbgen.utils.sql import mkSelectCmd, sqlselect
+from ..model.run_gen import run_gen
+from ...utils.exceptions import DBgenGeneratorError
 
 
 class RunOperator(BaseOperator):
@@ -48,11 +51,10 @@ class RunOperator(BaseOperator):
         self.db_conn_id = db_conn_id
         self.mdb_conn_id = mdb_conn_id
 
-    def _get_run_variable(self, mcxn: "Conn") -> "Gen":
+    def _get_run_variable(self, mcxn: "Conn") -> "Generator":
+        raise NotImplementedError
 
-        return gen
-
-    def execute(self, context: Any) -> None:
+    def execute(self, context: Any, gen: "Generator") -> None:
 
         # Get the db connections
         gcxn = PostgresHook(self.db_conn_id).get_conn()
@@ -70,9 +72,9 @@ class RunOperator(BaseOperator):
 
         assert (
             gen.hash == self.gen_hash
-        ), "Serialization error, The gen hash doesn't has changed!"
+        ), "Serialization error, The gen hash has changed!"
 
-        run_gen_args = dict(
+        run_gen_args: D[str, Any] = dict(
             self=None,
             objs=self.objs,
             gen=gen,
@@ -88,13 +90,6 @@ class RunOperator(BaseOperator):
             gen_hash=self.gen_hash,
         )
 
-        err = run_gen(**run_gen_args)  # type: ignore
+        err = run_gen(**run_gen_args)
         if err:
-            raise GeneratorError(f"{self.gen_name} failed")
-
-
-if __name__ == "__main__":
-    test = GenOperator(Gen(name="test_gen"), run_id=1, db_conn_id="", mdb_conn_id="")
-    import pdb
-
-    pdb.set_trace()
+            raise DBgenGeneratorError(f"{self.gen_name} failed")

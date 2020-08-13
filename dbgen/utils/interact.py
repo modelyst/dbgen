@@ -11,11 +11,11 @@ from typing import Dict as D
 from typing import Tuple as T
 
 if TYPE_CHECKING:
-    from ..core.gen import Gen
+    from ..core.gen import Generator
 
 
 def interact_gen(
-    objs, gen: "Gen", input_rows: L[dict], max_rows: int = 200
+    objs, gen: "Generator", input_rows: L[dict], max_rows: int = 200
 ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
     """
     Allows a CLI for interacting with a generator given a set of input rows
@@ -40,7 +40,7 @@ def interact_gen(
 
     # Initialize output list and valid responses for the outer question
     post_pyblocks: L[dict] = []
-    action_dicts: L[dict] = []
+    load_dicts: L[dict] = []
     valid_responses = ("s", "c", "q", "m")
     # Initialize the response to user input and formatting delimiter func
     answer: Opt[str] = ""
@@ -76,18 +76,18 @@ def interact_gen(
             ).lower()
             if answer == "q":
                 print("Quitting...")
-                return post_pyblocks, action_dicts
+                return post_pyblocks, load_dicts
         # Skip the row and clear the pretty table
         if answer == "s":
             x.clear_rows()
             continue
         delimiter()
         print("Processing Row...")
-        list_of_processed_namespaces, curr_action_dicts = gen.test(
+        list_of_processed_namespaces, curr_load_dicts = gen.test(
             objs, [next_row], verbose=True
         )
         curr_output = list_of_processed_namespaces[0]
-        curr_action_dict = curr_action_dicts[0]
+        curr_load_dict = curr_load_dicts[0]
         system("clear")
         print("Next Row:")
         print(x)
@@ -131,30 +131,30 @@ def interact_gen(
                 print(f"Key not found in processed dict: {display}")
                 delimiter()
 
-        completer = get_completer(list(curr_action_dict.keys()))
+        completer = get_completer(list(curr_load_dict.keys()))
         readline.set_completer(completer)
         display = ""
         while display != "q":
-            print("Action Names:")
-            for key in curr_action_dict.keys():
-                print("\t- " + key + f" ({len(curr_action_dict[key])} rows)")
+            print("Load Names:")
+            for key in curr_load_dict.keys():
+                print("\t- " + key + f" ({len(curr_load_dict[key])} rows)")
 
             delimiter()
             display = input(
-                "What action to display? (tab to see options/q to quit)\n"
+                "What load to display? (tab to see options/q to quit)\n"
             ).lower()
-            if display in curr_action_dict:
+            if display in curr_load_dict:
                 delimiter()
                 print(f"Table Name: {display}")
                 print(f"Output:")
                 try:
-                    rows = curr_action_dict[display]
+                    rows = curr_load_dict[display]
                     if rows:
                         all_keys: S[str] = reduce(
                             lambda prev, next: prev.union(set(next.keys())), rows, set()
                         )
                         table = PrettyTable(field_names=list(all_keys))
-                        for row in curr_action_dict[display][:max_rows]:
+                        for row in curr_load_dict[display][:max_rows]:
                             row_data = list(row.get(key) for key in all_keys)
                             row_data = [
                                 (data if data != "" else '""') for data in row_data
@@ -175,15 +175,15 @@ def interact_gen(
                 continue
             else:
                 delimiter()
-                print(f"Key not found in Action Dict: {display}")
+                print(f"Key not found in Load Dict: {display}")
                 delimiter()
 
         post_pyblocks.append(curr_output)
-        action_dicts.append(curr_action_dict)
+        load_dicts.append(curr_load_dict)
         x.clear_rows()
 
     print("No more rows left")
-    return post_pyblocks, action_dicts
+    return post_pyblocks, load_dicts
 
 
 def get_completer(cmds: L[Any]) -> C[[str, int], Any]:

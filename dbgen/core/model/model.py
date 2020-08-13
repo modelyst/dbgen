@@ -1,8 +1,7 @@
 """Module for the DBgen Model object"""
 # External
-from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T
+from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T, TYPE_CHECKING
 from networkx import DiGraph
-from networkx.algorithms import simple_cycles
 from hypothesis.strategies import SearchStrategy, just
 
 # Internal
@@ -10,8 +9,8 @@ from dbgen.core.model.run_gen import run_gen
 from dbgen.core.model.run import run, check_patheq, validate_name
 from dbgen.core.model.metatable import make_meta
 
-from dbgen.core.gen import Gen
-from dbgen.core.action import Action
+from dbgen.core.gen import Generator
+from dbgen.core.load import Load
 from dbgen.core.schema import (
     Obj,
     Rel,
@@ -27,7 +26,7 @@ from dbgen.core.schema import (
 from dbgen.core.schemaclass import Schema
 from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.core.fromclause import Path as JPath
-from dbgen.utils.graphs import topsort_with_dict
+
 
 ################################################################################
 # Type Synonyms
@@ -37,11 +36,11 @@ Stuff = U[
     L[str],
     L[AttrTup],
     L[RelTup],
-    L[Gen],
+    L[Generator],
     L[View],
     L[PathEQ],
     L[T[str, Attr]],
-    L[U[Obj, Rel, RelTup, AttrTup, str, Gen, PathEQ, View]],
+    L[U[Obj, Rel, RelTup, AttrTup, str, Generator, PathEQ, View]],
 ]
 ##########################################################################################
 
@@ -57,7 +56,7 @@ class Model(Schema):
         self,
         name: str,
         objlist: L[Obj] = None,
-        genlist: L[Gen] = None,
+        genlist: L[Generator] = None,
         viewlist: L[View] = None,
         pes: L[PathEQ] = None,
     ) -> None:
@@ -69,7 +68,7 @@ class Model(Schema):
         Args:
             name (str): Name of the model used to uniquely identify the model
             objlist (L[Obj], optional): List of Obj objects. Defaults to [].
-            genlist (L[Gen], optional): List of Gen objects. Defaults to [].
+            genlist (L[Gen], optional): List of Generator objects. Defaults to [].
             viewlist (L[View], optional): List of View objects. Defaults to [].
             pes (L[PathEQ], optional): List of path equivalency objects. Defaults to [].
         """
@@ -89,7 +88,7 @@ class Model(Schema):
         super(Schema, self).__init__()
 
     @property
-    def gens(self) -> D[str, Gen]:
+    def gens(self) -> D[str, Generator]:
         return {g.name: g for g in self.genlist}
 
     def __str__(self) -> str:
@@ -109,7 +108,7 @@ class Model(Schema):
             Obj("a", attrs=[Attr("aa")], fks=[UserRel("ab", "b")]),
             Obj("b", attrs=[Attr("bb")]),
         ]
-        gens = [Gen(name="pop_a", funcs=[], actions=[], tags=["io"])]
+        gens = [Generator(name="pop_a", transforms=[], loads=[], tags=["io"])]
         return just(cls(name="model", objlist=objs, genlist=gens))
 
     ######################
@@ -148,10 +147,10 @@ class Model(Schema):
             objs=self._get_universe(), db=db, interact=interact, limit=limit
         )
 
-    def test_funcs(self) -> None:
+    def test_transforms(self) -> None:
         """Run all PyBlock tests"""
         for g in self.gens.values():
-            for f in g.funcs:
+            for f in g.transforms:
                 f.test()
 
     def check_paths(self, db: ConnI) -> None:
@@ -195,7 +194,9 @@ class Model(Schema):
         """Get an object by name"""
         return self[objname]
 
-    def rename(self, x: U[Obj, Rel, RelTup, AttrTup, str, Gen], name: str) -> None:
+    def rename(
+        self, x: U[Obj, Rel, RelTup, AttrTup, str, Generator], name: str
+    ) -> None:
         """Rename an Objects / Relations / Generators / Attr """
         if isinstance(x, (Obj, str)):
             if isinstance(x, str):
@@ -206,7 +207,7 @@ class Model(Schema):
         elif isinstance(x, (Rel, RelTup)):
             r = x if isinstance(x, Rel) else self.get_rel(x)
             self._rename_relation(r, name)
-        elif isinstance(x, Gen):
+        elif isinstance(x, Generator):
             self._rename_gen(x, name)
         elif isinstance(x, AttrTup):
             self._rename_attr(x, name)
@@ -225,7 +226,7 @@ class Model(Schema):
             elif isinstance(x, (Rel, RelTup)):
                 r = x if isinstance(x, Rel) else self.get_rel(x)
                 self._add_relation(r)
-            elif isinstance(x, Gen):
+            elif isinstance(x, Generator):
                 self._add_gen(x)
             elif isinstance(x, View):
                 self._add_view(x)
@@ -249,7 +250,7 @@ class Model(Schema):
             elif isinstance(x, (Rel, RelTup)):
                 r = x if isinstance(x, Rel) else self.get_rel(x)
                 self._del_relation(r)
-            elif isinstance(x, Gen):
+            elif isinstance(x, Generator):
                 self._del_gen(x)
             elif isinstance(x, View):
                 self._del_view(x)
@@ -272,7 +273,7 @@ class Model(Schema):
     ##################################
     # Adding/removing/renaming in model
     ##################################
-    def _rename_gen(self, g: Gen, n: str) -> None:
+    def _rename_gen(self, g: Generator, n: str) -> None:
         assert g == self.gens[g.name]
         g.name = n
         del self.gens[g.name]
@@ -306,7 +307,7 @@ class Model(Schema):
     def _rename_relation(self, r: Rel, n: str) -> None:
         raise NotImplementedError
 
-    def _del_gen(self, g: Gen) -> None:
+    def _del_gen(self, g: Generator) -> None:
         """Delete a generator"""
         del self.gens[g.name]
 
@@ -361,7 +362,7 @@ class Model(Schema):
     def _del_patheq(self, peq: PathEQ) -> None:
         self.pes.remove(peq)
 
-    def _add_gen(self, g: Gen) -> None:
+    def _add_gen(self, g: Generator) -> None:
         """Add to model"""
         # Validate
         # --------
@@ -369,21 +370,21 @@ class Model(Schema):
             raise ValueError("Cannot add %s, name already taken!" % g)
         # Add
         # ----
-        for a in g.actions:
-            self._validate_action(a)
+        for a in g.loads:
+            self._validate_load(a)
 
         self.genlist.append(g)
 
     ###################
-    # Gen related ###
+    # Generator related ###
     ###################
-    def _validate_action(self, a: Action) -> None:
+    def _validate_load(self, a: Load) -> None:
         """
-        It is assumed that an Action provides all identifying data for an
+        It is assumed that an Load provides all identifying data for an
         object, so that either its PK can be selected OR we can insert a new
         row...however this depends on the global model state (identifying
         relations can be added) so a model-level validation is necessary
-        The action __init__ already verifies all ID attributes are present
+        The load __init__ already verifies all ID attributes are present
         """
         # Check all identifying relationships are covered
         if not a.pk:  # don't have a PK, so need identifying info
@@ -391,14 +392,17 @@ class Model(Schema):
                 err = "%s missing identifying relation %s"
                 assert fk in a.fks, err % (a, fk)
 
-        # Recursively validate sub-actions
+        # Recursively validate sub-loads
         for act in a.fks.values():
-            self._validate_action(act)
+            self._validate_load(act)
 
-    def ordered_gens(self) -> L[Gen]:
+    def ordered_gens(self) -> L[Generator]:
         """ Determine execution order of generators """
 
         # Check for cycles:
+        from networkx.algorithms import simple_cycles
+        from dbgen.utils.graphs import topsort_with_dict
+
         sc = list(simple_cycles(self._gen_graph()))
 
         if sc:
@@ -417,8 +421,10 @@ class Model(Schema):
         # Use topological sort to order
         return list(topsort_with_dict(self._gen_graph(), self.gens))
 
-    def _gen_graph(self) -> DiGraph:
+    def _gen_graph(self) -> "DiGraph":
         """ Make a graph out of generator dependencies."""
+        from networkx import DiGraph
+
         G = DiGraph()
 
         ddict = {a: g.dep(self.objs) for a, g in self.gens.items()}

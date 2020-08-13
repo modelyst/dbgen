@@ -13,13 +13,11 @@ from abc import ABCMeta, abstractmethod
 from hypothesis.strategies import SearchStrategy, builds, lists, composite, just
 from hypothesis import infer
 
-
 from dbgen.core.expr.sqltypes import SQLType, Int
-from dbgen.core.action import Action
+from dbgen.core.load import Load
 from dbgen.core.misc import Dep
 from dbgen.core.expr.expr import PK
-from dbgen.core.pathconstraint import Path as AP
-from dbgen.core.funclike import Arg, PyBlock, Const
+from dbgen.core.funclike import Arg, PyBlock, Const, ArgLike
 from dbgen.utils.misc import Base, letters
 from dbgen.utils.sql import (
     Connection as Conn,
@@ -28,6 +26,7 @@ from dbgen.utils.sql import (
     mkInsCmd,
     sqlexecute,
 )
+from dbgen.utils.exceptions import DBgenMissingInfo, DBgenInvalidArgument
 
 # Internal
 if TYPE_CHECKING:
@@ -35,8 +34,9 @@ if TYPE_CHECKING:
     from dbgen.core.query import Query
     from dbgen.core.schemaclass import Schema
     from dbgen.core.expr.pathattr import PathAttr
+    from dbgen.core.pathconstraint import Path as AP
 
-    Model, Query, Schema, PathAttr
+    Model, Query, Schema, PathAttr, AP
 """
 Components of a schema: Objects, Attributes, and Relations
 
@@ -57,13 +57,15 @@ class AttrTup(Base):
     def __str__(self) -> str:
         return self.name + "." + self.obj
 
-    def __call__(self, x: AP = None) -> "PathAttr":
+    def __call__(self, x: "AP" = None) -> "PathAttr":
         from dbgen.core.expr.pathattr import PathAttr
 
         return PathAttr(x, self)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
+        from hypothesis.strategies import builds
+
         return builds(cls)
 
 
@@ -84,7 +86,9 @@ class RelTup(Base):
         return "Rel(%s,%s)" % (self.obj, self.rel)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
+        from hypothesis.strategies import builds
+
         return builds(cls)
 
 
@@ -114,7 +118,9 @@ class Attr(Base):
         return "Attr<%s,%s>" % (self.name, self.dtype)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
+        from hypothesis.strategies import builds
+
         return builds(Attr, name=letters, identifying=infer, desc=infer, dtype=infer)
 
     ####################
@@ -172,7 +178,7 @@ class View(Base, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         raise NotImplementedError
 
     def create(self) -> str:
@@ -196,7 +202,7 @@ class QView(View):
         return Dep(self.q.allobj(), cd, [self.name], nc)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         return builds(cls)
 
 
@@ -219,7 +225,7 @@ class RawView(View):
         return Dep(td, cd, [self.name], nc)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         return builds(cls)
 
 
@@ -257,7 +263,7 @@ class UserRel(Base):
         )
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         return builds(cls)
 
 
@@ -279,7 +285,7 @@ class Obj(Base):
         self.fks = fks or []
         self.id_str = id_str if id_str else self.name + "_id"
         # Validate
-        self.forbidden = [self.id_str, "deleted", self.name]  # RESERVED
+        self.forbidden = [self.id_str, "deleted", "insert", self.name]  # RESERVED
         assert not any([a.name in self.forbidden for a in self.attrs]), (
             self.attrs,
             self.forbidden,
@@ -299,54 +305,26 @@ class Obj(Base):
     def fkdict(self) -> D[str, "Rel"]:
         return {r.name: r.to_rel(self.name) for r in self.fks}
 
-    @classmethod
-    @composite
-    def _strat(
-        draw: C,
-        cls: "Obj",
-        name: str = None,
-        attrs: L[str] = None,
-        fks: L[T[str, str]] = None,
-    ) -> SearchStrategy:
-        MIN_ATTR, MAX_ATTR = [0, 2] if attrs is None else [len(attrs)] * 2
-        MIN_FK, MAX_FK = [0, 2] if fks is None else [len(fks)] * 2
-        size = 1 + MAX_ATTR + MAX_FK
-
-        xx = draw(
-            lists(letters, min_size=size, max_size=size, unique=True).filter(
-                lambda x: name not in x
-            )
-        )
-        attrlist = draw(lists(Attr._strat(), min_size=MIN_ATTR, max_size=MAX_ATTR))
-        for i, a in enumerate(attrlist):
-            a.name = attrs[i] if attrs is not None else xx[1 + i]
-        fklist = draw(lists(UserRel._strat(), min_size=MIN_FK, max_size=MAX_FK))
-        for i, f, in enumerate(fklist):
-            f.name, f.tar = (
-                fks[i]
-                if fks is not None
-                else (xx[1 + MAX_ATTR + i], xx[1 + MAX_ATTR + i])
-            )
-        b = builds(
-            cls,
-            name=just(name if name else xx[0]),
-            desc=infer,
-            attrs=just(attrs),
-            fks=just(fklist),
-        )
-        return draw(b)
-
     def __str__(self) -> str:
         return "Object<%s, %d attrs>" % (self.name, len(self.attrs))
 
-    def __call__(self, **kwargs: Any) -> Action:
+    def __call__(self, **kwargs: Any) -> Load:
         """
-        Construct an Action which specifies AT LEAST how to identify this
+        Construct an Load which specifies AT LEAST how to identify this
         object (via PK or data) AND POSSIBLY more non-identifying info to update
 
         - Attributes and relations are referred to by name with kwargs
         - A keyword equal to the object's own name signifies a PK argument
         """
+        invalid_args = list(
+            filter(
+                lambda keyval: keyval[0] != "insert"
+                and not isinstance(keyval[1], (ArgLike, Load)),
+                kwargs.items(),
+            )
+        )
+        if invalid_args:
+            raise DBgenInvalidArgument(f"Non ArgLike kwargs provided: {invalid_args}")
         kwargs = {k.lower(): v for k, v in kwargs.items()}  # convert keys to L.C.
         pk = kwargs.pop(self.name, None)
         insert = kwargs.pop("insert", False)
@@ -356,16 +334,17 @@ class Obj(Base):
                 "Cannot refer to a row in {} without a PK or essential data."
                 " Missing essential data: {}"
             )
-            missing = set(self.ids()) - set(kwargs)
-            assert not missing, err.format(self.name, missing)
+            missing = set(self.ids() + self.id_fks()) - set(kwargs)
+            if missing:
+                raise DBgenMissingInfo(err.format(self.name, missing))
 
         attrs = {k: v for k, v in kwargs.items() if k in self.attrnames()}
 
         fks = {k: v for k, v in kwargs.items() if k not in attrs}
         for fk in fks:
-            assert fk in self.fkdict, 'unknown "%s" kwarg in Action of %s' % (fk, self)
+            assert fk in self.fkdict, 'unknown "%s" kwarg in Load of %s' % (fk, self)
         for k, v in fks.items():
-            if not isinstance(v, Action):
+            if not isinstance(v, Load):
                 # We OUGHT have a reference to a FK from a query
                 try:
                     assert isinstance(v, (Arg, Const))
@@ -376,11 +355,11 @@ class Obj(Base):
                 rel = self.fkdict[k]
                 # Check for relations with names that are different from table_names
                 if rel.o2 != k:
-                    fks[k] = Action(obj=rel.o2, attrs={}, fks={}, pk=v)
+                    fks[k] = Load(obj=rel.o2, attrs={}, fks={}, pk=v)
                 else:
-                    fks[k] = Action(obj=k, attrs={}, fks={}, pk=v)
+                    fks[k] = Load(obj=k, attrs={}, fks={}, pk=v)
 
-        return Action(self.name, attrs=attrs, fks=fks, pk=pk, insert=insert)
+        return Load(self.name, attrs=attrs, fks=fks, pk=pk, insert=insert)
 
     def __getitem__(self, key: str) -> AttrTup:
         if key in self.attrdict:
@@ -397,9 +376,9 @@ class Obj(Base):
         """
         return AttrTup(key, self.name)
 
-    def act(self, **kwargs: Any) -> Action:
-        '''Do we need to add a "insert" flag in order to say: "it's ok for this
-        action to insert any required parent objects recursively?"'''
+    def act(self, **kwargs: Any) -> Load:
+        """Do we need to add a "insert" flag in order to say: "it's ok for this
+        load to insert any required parent objects recursively?"""
         return self(**kwargs)
 
     def add_attrs(self, ats: L[Attr]) -> None:
@@ -431,8 +410,8 @@ class Obj(Base):
         """
         create_str = 'CREATE TABLE IF NOT EXISTS "%s" ' % self.name
         if len(self.attrs) != 0:
-            cols, coldescs, colindexes = zip(
-                *[a.create_col(self.name) for a in self.attrs]
+            cols, coldescs, colindexes = map(
+                lambda x: list(x), zip(*[a.create_col(self.name) for a in self.attrs])
             )
         else:
             cols, coldescs, colindexes = [], [], []
@@ -452,7 +431,7 @@ class Obj(Base):
         )
         return sqls
 
-    def id(self, path: AP = None) -> PK:
+    def id(self, path: "AP" = None) -> PK:
         """Main use case: GROUP BY an object, rather than a particular column"""
         from dbgen.core.expr.pathattr import PathAttr
 
@@ -512,7 +491,7 @@ class Obj(Base):
         o.attrs.append(newattr)
         return o
 
-    def default_action(self, pb: PyBlock) -> Action:
+    def default_load(self, pb: PyBlock) -> Load:
         """Assuming there is some pyblock with all the info we need to insert
             this object (in some standardized naming scheme), use it to insert
             instances of this object"""
@@ -551,10 +530,6 @@ class Rel(Base):
 
     def __repr__(self) -> str:
         return "%s__%s" % (self.o1, self.name)
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls, o2=infer, identifying=infer, desc=infer)
 
     # Public methods #
 
@@ -672,7 +647,7 @@ class SuperRel(Base):
     # Private Methods #
     # ...
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         return builds(cls)
 
 
@@ -694,7 +669,7 @@ class Path(Base):
         return "Path(%s%s)" % (p, a)
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         return builds(
             cls, rels=lists(RelTup._strat(), max_size=2), attr=AttrTup._strat()
         )
@@ -786,7 +761,7 @@ class PathEQ(Base):
             raise TypeError("add to this to support more types of searching")
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
+    def _strat(cls) -> "SearchStrategy":
         return builds(cls, p1=Path._strat(), p2=Path._strat())
 
     def any(self) -> Path:

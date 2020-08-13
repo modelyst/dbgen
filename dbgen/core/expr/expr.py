@@ -517,8 +517,8 @@ class CASE(Expr):
         self.else_ = else_
 
     def fields(self) -> L[Expr]:
-        k, v = map(list, zip(*self.cases))
-        return k + v + [self.else_]  # type: ignore
+        k, v = map(lambda x: list(x), zip(*self.cases))
+        return k + v + [self.else_]
 
     def show(self, f: Fn) -> str:
         body = " ".join(["WHEN (%s) THEN (%s)" % (f(k), f(v)) for k, v in self.cases])
@@ -569,7 +569,7 @@ class CONVERT(Expr):
 
 
 class SUBSELECT(Expr):
-    """Hacky way of getting in subselect .... will not automatically detect
+    """Hacky way of getting in subselect ... will not automatically detect
         dependencies."""
 
     def __init__(self, expr: Expr, tab: str, where: str = "1") -> None:

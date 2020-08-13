@@ -16,9 +16,8 @@ from math import ceil
 import logging
 
 from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.core.gen import Gen
 from dbgen.core.funclike import PyBlock
-from dbgen.core.action import Action
+from dbgen.core.load import Load
 from dbgen.utils.exceptions import (
     DBgenExternalError,
     DBgenInternalError,
@@ -40,15 +39,14 @@ from dbgen.utils.str_utils import hash_
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.model.model import Model
-
-    Model
+    from dbgen.core.gen import Generator
 ###########################################
 
 
 def run_gen(
     self: "Model",
     objs: D[str, Any],
-    gen: Gen,
+    gen: "Generator",
     gmcxn: Conn,
     gcxn: Conn,
     mconn_info: ConnI,
@@ -63,7 +61,7 @@ def run_gen(
 ) -> int:
     """
     Executes a SQL query, then maps each output over a processing function.
-    How the DB is modified is determined self.actions (list of InsertUpdate).
+    How the DB is modified is determined self.loads (list of InsertUpdate).
     """
     # Initialize Variables
     # --------------------
@@ -127,13 +125,18 @@ def run_gen(
 
             # If user supplies a runtime batch_size it is used
             if user_batch_size is not None:
-                batch_size = user_batch_size
+                batch_size: int = user_batch_size
                 logger.info(f"Using user defined batch size: {user_batch_size}")
             # If generator has the batch_size set then that will be used next
             elif gen.batch_size is not None:
                 batch_size = gen.batch_size
                 logger.info(
                     f"Using the {gen.name} specified batch size: {gen.batch_size}"
+                )
+            elif skip_row_count:
+                batch_size = 1
+                logger.info(
+                    f"Using a default batch size of 1 since --skip-row-count flag is set"
                 )
             # Finally if nothing is the default is set to batchify the inputs into
             # 20 batches
@@ -156,6 +159,8 @@ def run_gen(
                 if gen.query:
                     logger.debug(f"Fetching batch")
                     inputs = cursor.fetchmany(batch_size)
+                    if inputs is None:
+                        break
                 else:
                     # if there is no query set the inputs to be length 1 with
                     # empty dict as input
@@ -189,8 +194,8 @@ def run_gen(
                 if gen.query is None or len(inputs) > 0:
                     apply_batch(
                         inputs=inputs,
-                        f=gen.funcs,
-                        acts=gen.actions,
+                        f=gen.transforms,
+                        acts=gen.loads,
                         objs=objs,
                         a_id=a_id,
                         qhsh=gen.query.hash if gen.query else "0",
@@ -257,7 +262,7 @@ def delete_unused_keys(
 def apply_batch(
     inputs: L[T[dict, int]],
     f: L[PyBlock],
-    acts: L[Action],
+    acts: L[Load],
     objs: D[str, T[str, L[str], L[str]]],
     a_id: str,
     run_id: int,
@@ -275,9 +280,9 @@ def apply_batch(
 
     open_mdb, open_db = cxns
     n_inputs = len(inputs)
-    n_actions = len(acts)
-    processed_namespaces = []  # type: L[D[str,Any]]
-    processed_hashes = []  # type: L[int]
+    n_loads = len(acts)
+    processed_namespaces: L[D[str, Any]] = []
+    processed_hashes: L[int] = []
     bargs = dict(leave=False, position=2)
 
     logger.info("Transforming...")
@@ -291,7 +296,8 @@ def apply_batch(
                 processed_namespaces.append(
                     delete_unused_keys(output_dict, keys_to_save)
                 )
-                processed_hashes.append(output_hash)
+                if output_hash is not None:
+                    processed_hashes.append(output_hash)
             logger.debug(f"Transformed {i}/{n_inputs}")
             tq.update()
 
@@ -300,13 +306,15 @@ def apply_batch(
     with tqdm(total=len(acts), desc="Loading", **bargs) as tq:
         for i, a in enumerate(acts):
             a.act(cxn=open_db, objs=objs, rows=processed_namespaces, gen_name=gen_name)
-            logger.debug(f"Loaded {i+1}/{n_actions}")
+            logger.debug(f"Loaded {i+1}/{n_loads}")
             tq.update()
 
     # Store the repeats
     logger.info("Storing Repeats")
     with tqdm(total=1, desc="Storing Repeats", **bargs) as tq:
-        repeat_values = broadcast([a_id, run_id, processed_hashes])
+        repeat_values: T[L[str], L[int], L[int]] = broadcast(
+            [a_id, run_id, processed_hashes]
+        )
         table_name = "repeats"
         col_names = ["gen", "run", "repeats_id"]
         obj_pk_name = "repeats_id"

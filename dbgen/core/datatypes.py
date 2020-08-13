@@ -3,7 +3,7 @@ from typing import TypeVar as TV
 from typing import List as L, Type
 from abc import abstractmethod, ABCMeta
 from ast import literal_eval
-from inspect import _empty # type: ignore
+from inspect import _empty  # type: ignore
 from hypothesis.strategies import (
     SearchStrategy,
     builds,
