@@ -90,7 +90,7 @@ def interact_gen(
         curr_load_dict = curr_load_dicts[0]
         system("clear")
         print("Next Row:")
-        print(x)
+        pprint(next_row_str(print_len))
 
         completer = get_completer(list(curr_output.keys()))
         readline.parse_and_bind("tab: complete")
