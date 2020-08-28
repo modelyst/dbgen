@@ -67,4 +67,3 @@ class TestPyBlock(TestCase):
         self.assertEqual(
             namespace[str(hash(pyblock_2))]["out"], "input transformed transformed"
         )
-

@@ -1,38 +1,29 @@
 # External
-from typing import (
-    Set as S,
-    List as L,
-    Dict as D,
-    Union as U,
-    Callable as C,
-    TYPE_CHECKING,
-)
 from copy import deepcopy
+from typing import TYPE_CHECKING
+from typing import Dict as D
+from typing import List as L
+from typing import Set as S
+from typing import Union as U
+
 from tqdm import tqdm
-from hypothesis.strategies import (
-    SearchStrategy,
-    builds,
-    lists,
-    composite,
-    just,
-    sampled_from,
+
+from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.core.schema import (
+    Attr,
+    AttrTup,
+    Obj,
+    Path,
+    PathEQ,
+    QView,
+    RawView,
+    Rel,
+    RelTup,
+    View,
 )
 
 # Internal
-from dbgen.utils.misc import Base, letters
-from dbgen.core.schema import (
-    Obj,
-    Rel,
-    RelTup,
-    Path,
-    PathEQ,
-    Attr,
-    View,
-    RawView,
-    QView,
-    AttrTup,
-)
-from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.utils.misc import Base
 from dbgen.utils.sql import sqlexecute, sqlselect
 
 if TYPE_CHECKING:
@@ -78,24 +69,6 @@ class Schema(Base):
     @property
     def views(self) -> D[str, View]:
         return {o.name.lower(): o for o in self.viewlist}
-
-    @staticmethod
-    @composite
-    def _strat(draw: C) -> SearchStrategy:
-        MAX_OBJ = 2
-        MAX_FK = 2
-        objnames = draw(lists(letters, min_size=1, max_size=MAX_OBJ, unique=True))
-        objlist = []  # type: L[Obj]
-        for o in objnames:
-            fktargets = draw(lists(sampled_from(objnames), min_size=1, max_size=MAX_FK))
-            n = len(fktargets)
-            fknames = draw(
-                lists(letters, min_size=n, max_size=n, unique=True).filter(
-                    lambda fkn: o not in fkn
-                )
-            )
-            objlist.append(draw(Obj._strat(name=o, fks=list(zip(fknames, fktargets)))))
-        return draw(builds(Schema, objlist=just(objlist)))
 
     def make_schema(self, conn: ConnI, nuke: str = "", bar: bool = True) -> None:
         """Create empty schema."""

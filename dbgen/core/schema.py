@@ -6,19 +6,17 @@ from typing import (
     List as L,
     Dict as D,
     Tuple as T,
-    Callable as C,
     Iterator as Iter,
 )
 from abc import ABCMeta, abstractmethod
-from hypothesis.strategies import SearchStrategy, builds, lists, composite, just
-from hypothesis import infer
+from hypothesis.strategies import SearchStrategy, builds, lists
 
 from dbgen.core.expr.sqltypes import SQLType, Int
 from dbgen.core.load import Load
 from dbgen.core.misc import Dep
 from dbgen.core.expr.expr import PK
 from dbgen.core.funclike import Arg, PyBlock, Const, ArgLike
-from dbgen.utils.misc import Base, letters
+from dbgen.utils.misc import Base
 from dbgen.utils.sql import (
     Connection as Conn,
     mkSelectCmd,
@@ -116,12 +114,6 @@ class Attr(Base):
 
     def __str__(self) -> str:
         return "Attr<%s,%s>" % (self.name, self.dtype)
-
-    @classmethod
-    def _strat(cls) -> "SearchStrategy":
-        from hypothesis.strategies import builds
-
-        return builds(Attr, name=letters, identifying=infer, desc=infer, dtype=infer)
 
     ####################
     # Public methods #
@@ -261,10 +253,6 @@ class UserRel(Base):
             identifying=self.identifying,
             desc=self.desc,
         )
-
-    @classmethod
-    def _strat(cls) -> "SearchStrategy":
-        return builds(cls)
 
 
 class Obj(Base):
@@ -529,7 +517,7 @@ class Rel(Base):
         )
 
     def __repr__(self) -> str:
-        return "%s__%s" % (self.o1, self.name)
+        return self.__str__()
 
     # Public methods #
 

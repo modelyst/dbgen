@@ -180,3 +180,6 @@ class Base(object, metaclass=ABCMeta):
     def hash(self) -> str:
         return hash_(to_dict(self, id_only=True))
 
+    @classmethod
+    def canonical_name(cls) -> str:
+        return cls.__module__ + "." + cls.__qualname__
