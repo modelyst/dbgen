@@ -199,12 +199,14 @@ class Load(Base):
         for kk, vv in sorted(self.fks.items()):
             if vv.pk is not None:
                 val = vv.pk.arg_get(row)
-                if isinstance(val, str):
+                if isinstance(val, str) or val is None:
                     pass
                 elif isinstance(val, int):
                     val = str(val)
                 else:
-                    raise ValueError(f'Primary Key is not an int or str: {row} {vv}')
+                    raise ValueError(
+                        f"Primary Key is not an int or str: {row}\n{vv}\n{vv.pk}\n{val}"
+                    )
             else:
                 val, fk_adata = vv._getvals(objs, row)
 
