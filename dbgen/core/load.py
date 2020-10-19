@@ -1,3 +1,4 @@
+"""Define the Load Object for inserting transformed data into the Database."""
 # External Modules
 from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
@@ -57,7 +58,18 @@ class Load(Base):
         pk: Arg = None,
         insert: bool = False,
     ) -> None:
+        """
+        Initializes Load object with relevant Objects and nested Loads. This is
+        not intended to be called by users, but rather called through the
+        Obj.__call__ method (Obj()).
 
+        Args:
+            obj (str): [description]
+            attrs (D[str, ArgLike]): [description]
+            fks (D[str,): [description]
+            pk (Arg, optional): [description]. Defaults to None.
+            insert (bool, optional): [description]. Defaults to False.
+        """
         self.obj = obj.lower()
         self.attrs = {k.lower(): v for k, v in attrs.items()}
         self.fks = {k.lower(): v for k, v in fks.items()}
@@ -182,7 +194,7 @@ class Load(Base):
 
     def _getvals(
         self, objs: D[str, T[str, L[str], L[str]]], row: dict,
-    ) -> T[L[str], L[tuple]]:
+    ) -> T[L[int], L[tuple]]:
         """
         Get a broadcasted list of INSERT/UPDATE values for an object, given
         Pyblock+Query output
@@ -199,13 +211,13 @@ class Load(Base):
         for kk, vv in sorted(self.fks.items()):
             if vv.pk is not None:
                 val = vv.pk.arg_get(row)
-                if isinstance(val, str) or val is None:
+                if isinstance(val, int) or val is None:
                     pass
-                elif isinstance(val, int):
-                    val = str(val)
+                elif isinstance(val, list) and isinstance(val[0], int):
+                    pass
                 else:
                     raise ValueError(
-                        f"Primary Key is not an int or str: {row}\n{vv}\n{vv.pk}\n{val}"
+                        f"Primary Key is not an int or None: {row}\n{vv}\n{vv.pk}\n{val}"
                     )
             else:
                 val, fk_adata = vv._getvals(objs, row)
@@ -220,26 +232,28 @@ class Load(Base):
             assert not idata, "Cannot provide a PK *and* identifying info"
             pkdata = self.pk.arg_get(row)
             if isinstance(pkdata, int):
-                idata_prime = [str(pkdata)]
+                idata_prime = [pkdata]
             elif isinstance(pkdata, list) and isinstance(pkdata[0], int):  # HACKY
                 idata_prime = pkdata
-            elif isinstance(pkdata, str):
-                idata_prime = [pkdata]
-            elif isinstance(pkdata, list) and isinstance(pkdata[0], str):  # HACKY
-
-                idata_prime = pkdata
+            elif isinstance(pkdata, str) or (
+                isinstance(pkdata, list) and isinstance(pkdata[0], str)
+            ):
+                raise TypeError(
+                    f"While looking for the PK on {self.obj}, we found a string or list of strings: {pkdata}\n"
+                    "PK's should be integers for hashing purposes."
+                )
             else:
                 raise TypeError(
                     "PK should either receive an int or a list of ints", vars(self)
                 )
         else:
             idata_prime = []
-            idata_dict = {}  # type: D[tuple,str]
+            idata_dict = {}  # type: D[tuple,int]
             # Iterate through the identifying data and cache the hashed result for speed
             for idata_curr in idata:
                 if idata_dict.get(idata_curr) is None:
                     try:
-                        idata_dict[idata_curr] = hashdata_(idata_curr)
+                        idata_dict[idata_curr] = int(hashdata_(idata_curr))
                     except TypeError:
                         print(idata_curr)
                 idata_prime.append(idata_dict[idata_curr])
@@ -252,7 +266,7 @@ class Load(Base):
         return idata_prime, adata
 
     def _data_to_stringIO(
-        self, pk: L[str], data: L[tuple], obj_pk_name: str,
+        self, pk: L[int], data: L[tuple], obj_pk_name: str,
     ) -> StringIO:
         """
         Function takes in a path to a delimited file and returns a IO object
@@ -263,7 +277,7 @@ class Load(Base):
         # All ro
         output_file_obj = StringIO()
         for i, (pk_curr, row_curr) in enumerate(set(zip(pk, data))):
-            new_line = [pk_curr] + list(row_curr)  # type: ignore
+            new_line = [str(pk_curr)] + list(row_curr)  # type: ignore
             new_line = map(str, new_line)  # type: ignore
             new_line = map(  # type: ignore
                 lambda x: x.replace("\t", "\\t")
