@@ -4,9 +4,11 @@ from abc import abstractmethod, ABCMeta
 from re import split
 from random import choice
 from string import ascii_lowercase, ascii_uppercase, digits
+from datetime import datetime
 from hypothesis.strategies import SearchStrategy, from_type
 
 from dbgen.utils.misc import Base
+from dbgen.utils.exceptions import DBgenTypeError
 
 """
 Representations of SQL Data Types
@@ -29,6 +31,11 @@ class SQLType(Base, metaclass=ABCMeta):
     @abstractmethod
     def __str__(self) -> str:
         """String representation to be used in raw SQL expression"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def cast(self, val):
+        """Cast a value as SQLType"""
         raise NotImplementedError
 
     def __init__(self) -> None:
@@ -75,6 +82,9 @@ class Varchar(SQLType):
     def __str__(self) -> str:
         return "VARCHAR(%d)" % self.mem
 
+    def cast(self, val) -> str:
+        return str(val)
+
 
 class Decimal(SQLType):
     def __init__(self, prec: int = 15, scale: int = 6) -> None:
@@ -83,6 +93,9 @@ class Decimal(SQLType):
 
     def __str__(self) -> str:
         return "DECIMAL(%d,%d)" % (self.prec, self.scale)
+
+    def cast(self, val) -> float:
+        return float(val)
 
 
 class Boolean(SQLType):
@@ -94,6 +107,11 @@ class Boolean(SQLType):
 
     def rand(self) -> Any:
         return choice(["true", "false"])
+
+    def cast(self, val) -> bool:
+        if not isinstance(val, bool):
+            raise DBgenTypeError(f"Val is not a boolean! {val}")
+        return bool(val)
 
 
 class Int(SQLType):
@@ -116,6 +134,13 @@ class Int(SQLType):
             raise ValueError(err % (self.kind, options))
         return core + ("" if self.signed else " UNSIGNED")
 
+    def cast(self, val) -> int:
+        if not isinstance(val, (int, float, str)) or isinstance(val, bool):
+            raise DBgenTypeError(
+                f"Val cannot be safely cast to int type: {val} {type(val)}\nSafe types are int, str, float."
+            )
+        return int(val)
+
 
 class Text(SQLType):
     def __init__(self, kind: str = "") -> None:
@@ -124,27 +149,55 @@ class Text(SQLType):
     def __str__(self) -> str:
         return "TEXT"
 
+    def cast(self, val) -> str:
+        return str(val)
+
 
 class Date(SQLType):
     def __str__(self) -> str:
         return "DATE"
+
+    def cast(self, val) -> datetime:
+        if not isinstance(val, datetime):
+            raise DBgenTypeError(f"Value cannot be safely cast to {str(self)}: {val}")
+        return val
 
 
 class Timestamp(SQLType):
     def __str__(self) -> str:
         return "TIMESTAMP"
 
+    def cast(self, val) -> datetime:
+        if not isinstance(val, datetime):
+            raise DBgenTypeError(f"Value cannot be safely cast to {str(self)}: {val}")
+        return val
+
 
 class Double(SQLType):
     def __str__(self) -> str:
         return "DOUBLE"
+
+    def cast(self, val) -> float:
+        if not isinstance(val, float):
+            raise DBgenTypeError(f"Value cannot be safely cast to {str(self)}: {val}")
+        return val
 
 
 class JSON(SQLType):
     def __str__(self) -> str:
         return "JSON"
 
+    def cast(self, val) -> str:
+        if not isinstance(val, str):
+            raise DBgenTypeError(f"Value cannot be safely cast to {str(self)}: {val}")
+        return val
+
 
 class JSONB(SQLType):
     def __str__(self) -> str:
         return "JSONB"
+
+    def cast(self, val) -> str:
+        if not isinstance(val, str):
+            raise DBgenTypeError(f"Value cannot be safely cast to {str(self)}: {val}")
+        return val

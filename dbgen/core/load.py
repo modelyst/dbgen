@@ -16,9 +16,9 @@ from hypothesis.strategies import (
     dictionaries,
 )
 
-
+from dbgen.core.expr.sqltypes import SQLType
 from dbgen.core.funclike import ArgLike, Arg, Const
-from dbgen.utils.exceptions import Psycopg2Error, DBgenExternalError
+from dbgen.utils.exceptions import Psycopg2Error, DBgenExternalError, DBgenTypeError
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.str_utils import hashdata_
 from dbgen.utils.lists import broadcast
@@ -41,6 +41,7 @@ There is a horrific amount of duplicated code in this file...... oughta fixit
 # # Constants
 # # --------------------
 NUM_QUERY_TRIES = 3
+UNIVERSE_TYPE = D[str, T[str, L[T[str, SQLType]], L[str]]]
 
 
 class Load(Base):
@@ -136,18 +137,14 @@ class Load(Base):
         return out
 
     def act(
-        self,
-        cxn: Conn,
-        objs: D[str, T[str, L[str], L[str]]],
-        rows: L[dict],
-        gen_name: str,
+        self, cxn: Conn, universe: UNIVERSE_TYPE, rows: L[dict], gen_name: str,
     ) -> None:
         """
         Top level call from a Generator to execute an load (top level is
         always insert or update, never just a select)
         """
         # Initialize logger
-        self._load(cxn, objs, rows, insert=self.insert)
+        self._load(cxn, universe, rows, insert=self.insert)
 
     def rename_object(self, o: "Obj", n: str) -> "Load":
         """Replaces all references to a given object to one having a new name"""
@@ -192,21 +189,32 @@ class Load(Base):
     # Private methods #
     ###################
 
-    def _getvals(
-        self, objs: D[str, T[str, L[str], L[str]]], row: dict,
-    ) -> T[L[int], L[tuple]]:
+    def _getvals(self, universe: UNIVERSE_TYPE, row: dict,) -> T[L[int], L[tuple]]:
         """
         Get a broadcasted list of INSERT/UPDATE values for an object, given
         Pyblock+Query output
         """
 
         idattr, allattr = [], []
-        obj_pk_name, ids, id_fks = objs[self.obj]
+        obj_pk_name, ids, id_fks = universe[self.obj]
+        new_ids = {name: dtype for name, dtype in ids}
         for k, v in sorted(self.attrs.items(),):
             val = v.arg_get(row)
-            allattr.append(val)
-            if k in ids:
-                idattr.append(val)
+            dtype = new_ids[k]
+            if isinstance(val, (list, tuple)):
+                func = lambda x: [dtype.cast(ele) for ele in x]
+            else:
+                func = dtype.cast
+            try:
+                allattr.append(func(val))
+            except DBgenTypeError:
+                self._logger.error(
+                    f"While processing a row we encountered a value that violated column {k}'s type constraint {dtype}."
+                    f"\nRow: {row}\nVal: {val}"
+                )
+                raise
+            if k in new_ids:
+                idattr.append(allattr[-1])
 
         for kk, vv in sorted(self.fks.items()):
             if vv.pk is not None:
@@ -220,7 +228,7 @@ class Load(Base):
                         f"Primary Key is not an int or None: {row}\n{vv}\n{vv.pk}\n{val}"
                     )
             else:
-                val, fk_adata = vv._getvals(objs, row)
+                val, fk_adata = vv._getvals(universe, row)
 
             allattr.append(val)
             if kk in id_fks:
@@ -295,7 +303,7 @@ class Load(Base):
     def _load(
         self,
         cxn: Conn,
-        objs: D[str, T[str, L[str], L[str]]],
+        universe: UNIVERSE_TYPE,
         rows: L[dict],
         insert: bool,
         test: bool = False,
@@ -306,13 +314,13 @@ class Load(Base):
         self._logger.debug("recursively loading foreign keys")
         for kk, vv in self.fks.items():
             if vv.insert:
-                vv._load(cxn, objs, rows, insert=True, test=test)
+                vv._load(cxn, universe, rows, insert=True, test=test)
 
         self._logger.debug("Getting attributes and generating hashes")
-        obj_pk_name, ids, id_fks = objs[self.obj]
+        obj_pk_name, ids, id_fks = universe[self.obj]
         pk, data = [], []
         for row in rows:
-            pk_curr, data_curr = self._getvals(objs, row)
+            pk_curr, data_curr = self._getvals(universe, row)
             pk.extend(pk_curr)
             data.extend(data_curr)
 
@@ -447,24 +455,22 @@ class Load(Base):
         io_obj.close()
         self._logger.debug("loading finished")
 
-    def test(
-        self, objs: D[str, T[str, L[str], L[str]]], rows: L[dict]
-    ) -> D[str, L[dict]]:
+    def test(self, universe: UNIVERSE_TYPE, rows: L[dict]) -> D[str, L[dict]]:
         """
         Takes in the universe and processed namespaces and generates dict where keys are table names and values are lists of input rows
 
         Args:
-            objs (D[str, T[str, L[str], L[str]]]): universe of model
+            universe (D[str, T[str, L[str], L[str]]]): universe of model
             rows (L[dict]): example processed namespaces after PyBlocks applied
 
         Returns:
             D[str, L[dict]]: dictionary of mapping tables to lists of rows that would be inserted if this load were called
         """
-        obj_pk_name, ids, id_fks = objs[self.obj]
+        obj_pk_name, ids, id_fks = universe[self.obj]
         pk, data = [], []
 
         for row in rows:
-            pk_curr, data_curr = self._getvals(objs, row)
+            pk_curr, data_curr = self._getvals(universe, row)
             pk.extend(pk_curr)
             data.extend(data_curr)
 
@@ -472,7 +478,7 @@ class Load(Base):
                 if vv.pk is not None:
                     val = vv.pk.arg_get(row)
                 else:
-                    val, fk_adata = vv._getvals(objs, row)
+                    val, fk_adata = vv._getvals(universe, row)
 
         io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
 
@@ -497,7 +503,7 @@ class Load(Base):
                 if vv.obj == self.obj and vv.insert == self.insert:
                     print("!WARNING! self FKs aren't viewable in interact mode")
                 else:
-                    output.update(vv.test(objs, rows))
+                    output.update(vv.test(universe, rows))
         return output
 
     def make_src(self) -> str:

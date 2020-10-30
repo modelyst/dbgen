@@ -1,51 +1,42 @@
 # External modules
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    List as L,
-    Dict as D,
-    Union as U,
-    Set as S,
-    Tuple as T,
-)
-from time import time
-from multiprocessing import cpu_count, get_context
-from functools import partial
-from tqdm import tqdm
-from math import ceil
 import logging
+from functools import partial
+from math import ceil
+from multiprocessing import cpu_count, get_context
+from time import time
+from typing import TYPE_CHECKING, Any
+from typing import Dict as D
+from typing import List as L
+from typing import Set as S
+from typing import Tuple as T
+from typing import Union as U
 
-from dbgen.core.misc import ConnectInfo as ConnI
+from tqdm import tqdm
+
 from dbgen.core.funclike import PyBlock
 from dbgen.core.load import Load
+from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.utils.exceptions import (
     DBgenExternalError,
     DBgenInternalError,
     DBgenSkipException,
 )
-
 from dbgen.utils.lists import broadcast
 from dbgen.utils.numeric import safe_div
-from dbgen.utils.sql import (
-    fast_load,
-    sqlexecute,
-    sqlselect,
-    mkUpdateCmd,
-    Connection as Conn,
-    DictCursor,
-)
+from dbgen.utils.sql import Connection as Conn
+from dbgen.utils.sql import DictCursor, fast_load, mkUpdateCmd, sqlexecute, sqlselect
 from dbgen.utils.str_utils import hash_
 
 # Internal
 if TYPE_CHECKING:
-    from dbgen.core.model.model import Model
     from dbgen.core.gen import Generator
+    from dbgen.core.model.model import Model
 ###########################################
 
 
 def run_gen(
     self: "Model",
-    objs: D[str, Any],
+    universe: D[str, Any],
     gen: "Generator",
     gmcxn: Conn,
     gcxn: Conn,
@@ -196,7 +187,7 @@ def run_gen(
                         inputs=inputs,
                         f=gen.transforms,
                         acts=gen.loads,
-                        objs=objs,
+                        universe=universe,
                         a_id=a_id,
                         qhsh=gen.query.hash if gen.query else "0",
                         run_id=run_id,
@@ -263,7 +254,7 @@ def apply_batch(
     inputs: L[T[dict, int]],
     f: L[PyBlock],
     acts: L[Load],
-    objs: D[str, T[str, L[str], L[str]]],
+    universe: D[str, T[str, L[str], L[str]]],
     a_id: str,
     run_id: int,
     qhsh: str,
@@ -305,7 +296,12 @@ def apply_batch(
     # Load the data
     with tqdm(total=len(acts), desc="Loading", **bargs) as tq:
         for i, a in enumerate(acts):
-            a.act(cxn=open_db, objs=objs, rows=processed_namespaces, gen_name=gen_name)
+            a.act(
+                cxn=open_db,
+                universe=universe,
+                rows=processed_namespaces,
+                gen_name=gen_name,
+            )
             logger.debug(f"Loaded {i+1}/{n_loads}")
             tq.update()
 

@@ -210,7 +210,7 @@ I hope you know what you are doing!!!
     until_test = Test(lambda _, __: until_flag, lambda _: 'Excluded because of "until"')
     testdict = {xTest: [xclude_], start_test: [None], until_test: [None]}
 
-    objs = {oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()}
+    universe = self._get_universe()
 
     def update_run_status(status: str) -> None:
         update_run_status = """UPDATE run SET status=%s WHERE run_id=%s"""
@@ -247,7 +247,7 @@ I hope you know what you are doing!!!
             if run:
                 try:
                     err_tot += self._run_gen(
-                        objs=objs,
+                        universe=universe,
                         gen=gen,
                         gmcxn=gmcxn,
                         gcxn=gcxn,

@@ -144,7 +144,7 @@ class Model(Schema):
         ), f"Generator {gen_name} not in model:\n{self.gens.keys()}"
 
         return self.gens[gen_name].test_with_db(
-            objs=self._get_universe(), db=db, interact=interact, limit=limit
+            universe=self._get_universe(), db=db, interact=interact, limit=limit
         )
 
     def test_transforms(self) -> None:
@@ -451,5 +451,10 @@ class Model(Schema):
 
     def _get_universe(self):
         return {
-            oname: (o.id_str, o.ids(), o.id_fks()) for oname, o in self.objs.items()
+            oname: (
+                o.id_str,
+                ((idcol, o.attrdict[idcol].dtype) for idcol in o.ids()),
+                o.id_fks(),
+            )
+            for oname, o in self.objs.items()
         }

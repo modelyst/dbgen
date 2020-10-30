@@ -202,7 +202,7 @@ class Generator(Base):
 
     def test(
         self,
-        objs,
+        universe,
         input_rows: L[D[str, Any]],
         rename_dict: bool = True,
         verbose: bool = False,
@@ -246,7 +246,7 @@ class Generator(Base):
 
         load_dicts: D[str, list] = defaultdict(list)
         for i, a in enumerate(self.loads):
-            output_dict = a.test(objs=objs, rows=output_dicts)
+            output_dict = a.test(universe=universe, rows=output_dicts)
             for table_name, rows in output_dict.items():
                 load_dicts[table_name].extend(rows)
 
@@ -261,7 +261,7 @@ class Generator(Base):
 
     def test_with_db(
         self,
-        objs,
+        universe,
         db: Conn = None,
         limit: int = 5,
         rename_dict: bool = True,
@@ -270,7 +270,7 @@ class Generator(Base):
     ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
         assert limit <= 200, "Don't allow for more than 200 rows with test with db"
         assert (
-            db is None or self.query is not None
+            db is not None or self.query is None
         ), "Need to provide a db connection if generator has a query"
 
         if db is not None and self.query is not None:
@@ -289,9 +289,12 @@ class Generator(Base):
         if interact:
             from dbgen.utils.interact import interact_gen
 
-            return interact_gen(objs, self, input_rows)
+            return interact_gen(universe, self, input_rows)
         else:
-            return self.test(objs, input_rows, rename_dict)
+            if self.query is None and len(input_rows) == 0:
+                input_rows = [{}]
+
+            return self.test(universe, input_rows, rename_dict)
 
     ##################
     # Private Methods #

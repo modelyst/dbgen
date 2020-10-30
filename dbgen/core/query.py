@@ -1,3 +1,9 @@
+"""
+The Query class, as well as Ref (used to indirectly refer to an object in a
+query without knowing the exact join path)
+
+Furthermore some Model methods that are highly related to queries are defined.
+"""
 # External
 from typing import (
     Any,
@@ -20,12 +26,6 @@ from dbgen.utils.lists import flatten, nub
 from dbgen.utils.sql import select_dict
 from dbgen.utils.misc import nonempty
 
-"""
-The Query class, as well as Ref (used to indirectly refer to an object in a
-query without knowing the exact join path)
-
-Furthermore some Model methods that are highly related to queries are defined.
-"""
 
 Fn = C[[Any], str]  # type shortcut
 
@@ -229,6 +229,19 @@ class Query(Expr):
         return output
 
     def get_row_count(self, db: ConnI) -> int:
+        """
+        Queries the database using the connection to get the number of rows this
+        query is expected to return.
+
+        Args:
+            db (ConnI): ConnectInfo object of the database.
+
+        Raises:
+            ValueError: If the query doesn't return an output
+
+        Returns:
+            int: number of rows the query will return.
+        """
         prepend = """SELECT\n\tCOUNT(*)\nFROM ("""
         append = """\n) AS X"""
         statement = prepend + self.showQ() + append

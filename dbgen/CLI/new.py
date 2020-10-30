@@ -77,7 +77,7 @@ parser.add_argument("--name", type=str, help="Name of model", required=True)
 parser.add_argument(
     "--env", default=".env/bin/activate", type=str, help="Name of model"
 )
-parser.add_argument("--create-env", load="store_true", help="Create a virtual env")
+parser.add_argument("--create-env", action="store_true", help="Create a virtual env")
 
 ################################################################################
 def create_config(model_name: str, model_root: str):

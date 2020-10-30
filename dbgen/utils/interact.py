@@ -48,7 +48,10 @@ def interact_gen(
         "#----------------------------------------------------------------------------"
     )
     # Pretty table for displaying input row data
-    x = PrettyTable(field_names=list(input_rows[0].keys()))
+    if input_rows:
+        x = PrettyTable(field_names=list(input_rows[0].keys()))
+    else:
+        print("Generator has no inputs!")
 
     while len(input_rows) > 0 and answer != "q":
         print_len = 200

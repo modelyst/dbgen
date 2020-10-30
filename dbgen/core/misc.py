@@ -1,3 +1,4 @@
+"""Uncategorized utilities for core dbgen functionality"""
 # External Modules
 from typing import Any, List as L, Callable as C, TYPE_CHECKING, Tuple as T
 from time import sleep
@@ -20,11 +21,6 @@ if TYPE_CHECKING:
     from airflow.hooks.connections import Connection
 
 
-"""
-Defines some support classes used throughout the project
-"""
-
-
 class ConnectInfo(Base):
     """
     PostGreSQL connection info
@@ -45,6 +41,24 @@ class ConnectInfo(Base):
         remote_bind_address: str = "localhost",
         remote_bind_port: int = 5432,
     ) -> None:
+        """
+        Create a ConnectInfo object to wrap around postgres connection information.
+
+        Args:
+            host (str, optional): hostname/ip address for postgres server. Defaults to "127.0.0.1".
+            port (int, optional): port number postgres server is listening on. Defaults to 5432.
+            user (str, optional): username to login to postgres with. Defaults to None.
+            passwd (str, optional): password for above user. Defaults to None.
+            db (str, optional): database to login to. Defaults to "".
+            schema (str, optional): set the schema to search. Defaults to "public".
+            ssh (str, optional): ssh hostname to tunnel through. Defaults to "".
+            ssh_port (int, optional): port the host is using to listen to ssh connections. Defaults to 22.
+            ssh_username (str, optional): username to log onto ssh tunnel. Defaults to "".
+            ssh_pkey (str, optional): password to log onto the ssh tunnel. Defaults to "".
+            remote_bind_address (str, optional): what host to query on ssh machine. Defaults to "localhost".
+            remote_bind_port (int, optional): what port postgres is listening to
+            on ssh machine. Defaults to 5432.
+        """
 
         if not user:
             user = passwd = environ.get("USER", "")
@@ -194,6 +208,16 @@ class Dep(Base):
         tabs_yielded: L[str] = [],
         cols_yielded: L[str] = [],
     ) -> None:
+        """
+        Initialize the Dep object with the tables and columns needed and yielded
+        by a generator.
+
+        Args:
+            tabs_needed (L[str], optional): The tables the generator queries from. Defaults to [].
+            cols_needed (L[str], optional): The columns the generator queries. Defaults to [].
+            tabs_yielded (L[str], optional): The tables the generator loads into. Defaults to [].
+            cols_yielded (L[str], optional): The columns the generator loads into. Defaults to [].
+        """
         allts = [tabs_needed, tabs_yielded]
         allcs = [cols_needed, cols_yielded]
         assert all([all(["." not in t for t in ts]) for ts in allts]), allts
@@ -262,6 +286,14 @@ class Test(object):
     def __init__(
         self, test: C[["Generator", Any], bool], message: C[[Any], str]
     ) -> None:
+        """
+        Initialize test object with callable that takes in a generator and
+        returns a bool and a helpful error message.
+
+        Args:
+            test (Callable[["Generator",Any]],bool]): Callable that takes in a generator and returns a bool.
+            message (Callable[[Any], str]): function that returns a helpful error using the output of the generator.
+        """
         self.test = test
         self.message = message
 

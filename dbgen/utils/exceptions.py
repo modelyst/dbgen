@@ -95,3 +95,11 @@ class DBgenInvalidArgument(DBgenException):
     @classmethod
     def _strat(cls) -> SearchStrategy:
         return builds(cls)
+
+
+class DBgenTypeError(DBgenException):
+    """Raise when a value cannot be cast the correct type"""
+
+    @classmethod
+    def _strat(cls) -> SearchStrategy:
+        return builds(cls)
