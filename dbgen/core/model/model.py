@@ -1,6 +1,6 @@
 """Module for the DBgen Model object"""
 # External
-from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T, TYPE_CHECKING
+from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T
 from networkx import DiGraph
 from hypothesis.strategies import SearchStrategy, just
 
@@ -22,7 +22,7 @@ from dbgen.core.schema import (
     UserRel,
     SuperRel,
 )
-
+from dbgen.core.expr.sqltypes import SQLType
 from dbgen.core.schemaclass import Schema
 from dbgen.core.misc import ConnectInfo as ConnI
 from dbgen.core.fromclause import Path as JPath
@@ -42,6 +42,7 @@ Stuff = U[
     L[T[str, Attr]],
     L[U[Obj, Rel, RelTup, AttrTup, str, Generator, PathEQ, View]],
 ]
+UNIVERSE_TYPE = D[str, T[str, S[str], S[str], D[str, SQLType]]]
 ##########################################################################################
 
 
@@ -449,12 +450,13 @@ class Model(Schema):
             alldone.update(g.dep(self.objs).cols_yielded)
         return allattr - alldone
 
-    def _get_universe(self):
+    def _get_universe(self) -> UNIVERSE_TYPE:
         return {
             oname: (
                 o.id_str,
-                ((idcol, o.attrdict[idcol].dtype) for idcol in o.ids()),
-                o.id_fks(),
+                set(o.ids()),
+                set(o.id_fks()),
+                {key: val.dtype for key, val in o.attrdict.items()},
             )
             for oname, o in self.objs.items()
         }

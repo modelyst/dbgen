@@ -30,13 +30,13 @@ from dbgen.utils.str_utils import hash_
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.gen import Generator
-    from dbgen.core.model.model import Model
+    from dbgen.core.model.model import Model, UNIVERSE_TYPE
 ###########################################
 
 
 def run_gen(
     self: "Model",
-    universe: D[str, Any],
+    universe: "UNIVERSE_TYPE",
     gen: "Generator",
     gmcxn: Conn,
     gcxn: Conn,
@@ -254,7 +254,7 @@ def apply_batch(
     inputs: L[T[dict, int]],
     f: L[PyBlock],
     acts: L[Load],
-    universe: D[str, T[str, L[str], L[str]]],
+    universe: "UNIVERSE_TYPE",
     a_id: str,
     run_id: int,
     qhsh: str,

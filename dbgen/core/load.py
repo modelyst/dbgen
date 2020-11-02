@@ -16,7 +16,6 @@ from hypothesis.strategies import (
     dictionaries,
 )
 
-from dbgen.core.expr.sqltypes import SQLType
 from dbgen.core.funclike import ArgLike, Arg, Const
 from dbgen.utils.exceptions import Psycopg2Error, DBgenExternalError, DBgenTypeError
 from dbgen.utils.misc import Base, nonempty
@@ -28,8 +27,7 @@ from dbgen.utils.sql import Connection as Conn
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.schema import Obj, Rel
-
-    Obj, Rel
+    from dbgen.core.model.model import UNIVERSE_TYPE
 
 """
 Defines the class of modifications to a database
@@ -41,7 +39,6 @@ There is a horrific amount of duplicated code in this file...... oughta fixit
 # # Constants
 # # --------------------
 NUM_QUERY_TRIES = 3
-UNIVERSE_TYPE = D[str, T[str, L[T[str, SQLType]], L[str]]]
 
 
 class Load(Base):
@@ -137,7 +134,7 @@ class Load(Base):
         return out
 
     def act(
-        self, cxn: Conn, universe: UNIVERSE_TYPE, rows: L[dict], gen_name: str,
+        self, cxn: Conn, universe: "UNIVERSE_TYPE", rows: L[dict], gen_name: str,
     ) -> None:
         """
         Top level call from a Generator to execute an load (top level is
@@ -189,18 +186,17 @@ class Load(Base):
     # Private methods #
     ###################
 
-    def _getvals(self, universe: UNIVERSE_TYPE, row: dict,) -> T[L[int], L[tuple]]:
+    def _getvals(self, universe: "UNIVERSE_TYPE", row: dict,) -> T[L[int], L[tuple]]:
         """
         Get a broadcasted list of INSERT/UPDATE values for an object, given
         Pyblock+Query output
         """
 
         idattr, allattr = [], []
-        obj_pk_name, ids, id_fks = universe[self.obj]
-        new_ids = {name: dtype for name, dtype in ids}
+        obj_pk_name, ids, id_fks, dtype_dict = universe[self.obj]
         for k, v in sorted(self.attrs.items(),):
             val = v.arg_get(row)
-            dtype = new_ids[k]
+            dtype = dtype_dict[k]
             if isinstance(val, (list, tuple)):
                 func = lambda x: [dtype.cast(ele) for ele in x]
             else:
@@ -213,7 +209,7 @@ class Load(Base):
                     f"\nRow: {row}\nVal: {val}"
                 )
                 raise
-            if k in new_ids:
+            if k in ids:
                 idattr.append(allattr[-1])
 
         for kk, vv in sorted(self.fks.items()):
@@ -303,7 +299,7 @@ class Load(Base):
     def _load(
         self,
         cxn: Conn,
-        universe: UNIVERSE_TYPE,
+        universe: "UNIVERSE_TYPE",
         rows: L[dict],
         insert: bool,
         test: bool = False,
@@ -317,7 +313,7 @@ class Load(Base):
                 vv._load(cxn, universe, rows, insert=True, test=test)
 
         self._logger.debug("Getting attributes and generating hashes")
-        obj_pk_name, ids, id_fks = universe[self.obj]
+        obj_pk_name = universe[self.obj][0]
         pk, data = [], []
         for row in rows:
             pk_curr, data_curr = self._getvals(universe, row)
@@ -455,7 +451,7 @@ class Load(Base):
         io_obj.close()
         self._logger.debug("loading finished")
 
-    def test(self, universe: UNIVERSE_TYPE, rows: L[dict]) -> D[str, L[dict]]:
+    def test(self, universe: "UNIVERSE_TYPE", rows: L[dict]) -> D[str, L[dict]]:
         """
         Takes in the universe and processed namespaces and generates dict where keys are table names and values are lists of input rows
 
@@ -466,7 +462,7 @@ class Load(Base):
         Returns:
             D[str, L[dict]]: dictionary of mapping tables to lists of rows that would be inserted if this load were called
         """
-        obj_pk_name, ids, id_fks = universe[self.obj]
+        obj_pk_name, ids, id_fks, dtype_dict = universe[self.obj]
         pk, data = [], []
 
         for row in rows:
