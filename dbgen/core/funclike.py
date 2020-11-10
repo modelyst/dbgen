@@ -16,6 +16,7 @@ from dbgen.core.misc import ConnectInfo as Conn
 
 from dbgen.utils.exceptions import (
     DBgenExternalError,
+    DBgenSkipException,
     DBgenInvalidArgument,
     DBgenMissingInfo,
 )
@@ -182,6 +183,8 @@ class PyBlock(Base):
             else:
                 assert len(self.outnames) == 1
                 return {self.outnames[0]: output}
+        except DBgenSkipException:
+            raise
         except Exception:
             msg = "\tApplying func %s in tempfunc:\n\t" % (self.func.name)
             raise DBgenExternalError(msg + format_exc())
