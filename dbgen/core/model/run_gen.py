@@ -143,6 +143,11 @@ def run_gen(
         # Wrap batch processing in try loop to close the curosr on errors
         try:
             # Iterate over the batches
+            # Get the already processed input hashes from the metadb
+            rpt_select = "SELECT repeats_id FROM repeats WHERE repeats.gen = %s"
+            rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
+            rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
+            rpt_select_output = set(rpt_select_output)  # type: ignore
             for _ in tqdm(
                 range(ceil(num_inputs / batch_size)), desc="Applying", **bargs
             ):
@@ -156,7 +161,6 @@ def run_gen(
                     # if there is no query set the inputs to be length 1 with
                     # empty dict as input
                     inputs = [{}]
-
                 # If retry is true don't check for repeats
                 if retry_:
                     inputs = [(x, hasher(x)) for x in inputs]
@@ -166,13 +170,6 @@ def run_gen(
                         logger.debug(f"Repeat Checking")
                         # pair each input row with its hash
                         unfiltered_inputs = [(x, hasher(x)) for x in inputs]
-                        # Get the already processed input hashes from the metadb
-                        rpt_select = (
-                            "SELECT repeats_id FROM repeats WHERE repeats.gen = %s"
-                        )
-                        rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
-                        rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
-                        rpt_select_output = set(rpt_select_output)  # type: ignore
                         # remove the hashes that are already in the processed_hashes
                         inputs = [
                             (x, hx)
@@ -219,9 +216,9 @@ def run_gen(
 
 
 def transform_func(
-    input: T[dict, int], qhsh: str, pbs: L[PyBlock], logger: logging.Logger
-) -> U[T[dict, int], T[None, None]]:
-    row, hash = input
+    input: T[dict, str], qhsh: str, pbs: L[PyBlock], logger: logging.Logger
+) -> U[T[dict, str], T[None, None]]:
+    row, in_hash = input
     try:
         d = {qhsh: row}
         for pb in pbs:
@@ -229,7 +226,7 @@ def transform_func(
             d[pb.hash] = pb(d)
     except DBgenSkipException:
         return None, None
-    return d, hash
+    return d, in_hash
 
 
 def delete_unused_keys(
@@ -251,7 +248,7 @@ def delete_unused_keys(
 
 
 def apply_batch(
-    inputs: L[T[dict, int]],
+    inputs: L[T[dict, str]],
     f: L[PyBlock],
     acts: L[Load],
     universe: "UNIVERSE_TYPE",
@@ -273,7 +270,7 @@ def apply_batch(
     n_inputs = len(inputs)
     n_loads = len(acts)
     processed_namespaces: L[D[str, Any]] = []
-    processed_hashes: L[int] = []
+    processed_hashes: L[str] = []
     bargs = dict(leave=False, position=2)
 
     logger.info("Transforming...")
@@ -308,7 +305,7 @@ def apply_batch(
     # Store the repeats
     logger.info("Storing Repeats")
     with tqdm(total=1, desc="Storing Repeats", **bargs) as tq:
-        repeat_values: T[L[str], L[int], L[int]] = broadcast(
+        repeat_values: T[L[str], L[int], L[str]] = broadcast(
             [a_id, run_id, processed_hashes]
         )
         table_name = "repeats"
