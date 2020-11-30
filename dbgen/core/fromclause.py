@@ -1,5 +1,5 @@
 # External
-from typing import TYPE_CHECKING, Set as S, List as L, Dict as D, Tuple as T, Union as U
+from typing import TYPE_CHECKING, Set as S, List as L, Dict as D, Tuple as T, Union as U, Sequence
 from hashlib import md5
 from base64 import b64encode
 from hypothesis.strategies import (
@@ -295,7 +295,7 @@ class From(Base):
             conds=sets(Join._strat(), min_size=1, max_size=2),
         )
 
-    def print(self, optional: L["RelTup"] = None) -> str:
+    def print(self, optional: Sequence["RelTup"] = None) -> str:
         from dbgen.utils.graphs import DiGraph, topsort_with_dict
 
         d = {j.alias: j for j in self.joins}

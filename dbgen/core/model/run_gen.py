@@ -144,11 +144,10 @@ def run_gen(
         try:
             # Iterate over the batches
             # Get the already processed input hashes from the metadb
-            if retry_:
-                rpt_select = "SELECT repeats_id FROM repeats WHERE repeats.gen = %s"
-                rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
-                rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
-                rpt_select_output = set(rpt_select_output)  # type: ignore
+            rpt_select = "SELECT repeats_id FROM repeats WHERE repeats.gen = %s"
+            rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
+            rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
+            rpt_select_output = set(rpt_select_output)  # type: ignore
             for _ in tqdm(
                 range(ceil(num_inputs / batch_size)), desc="Applying", **bargs
             ):

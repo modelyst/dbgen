@@ -7,6 +7,7 @@ from typing import Dict as D
 from typing import List as L
 from typing import Tuple as T
 from typing import Union as U
+from typing import Sequence
 
 from hypothesis.strategies import SearchStrategy, builds, just, one_of
 
@@ -71,7 +72,7 @@ class Arg(ArgLike):
         try:
             val = dic[self.key][self.name]
             return val
-        except KeyError as e:
+        except KeyError:
             if self.key not in dic:
                 raise DBgenMissingInfo(
                     "could not find hash, looking for {} at this hash {}".format(
@@ -126,7 +127,7 @@ class PyBlock(Base):
         self,
         func: U[C, Func],
         env: Env = None,
-        args: L[ArgLike] = [],
+        args: Sequence[ArgLike] = [],
         outnames: L[str] = None,
         tests: L[T[tuple, Any]] = [],
     ) -> None:

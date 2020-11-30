@@ -270,8 +270,10 @@ class Generator(Base):
     ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
         assert limit <= 200, "Don't allow for more than 200 rows with test with db"
         assert (
-            db is not None or self.query is None
-        ), "Need to provide a db connection if generator has a query"
+            db is not None or input_rows
+        ) or self.query is None, (
+            "Need to provide a db connection if generator has a query"
+        )
 
         if db is not None and self.query is not None:
             cursor = db.connect(auto_commit=False).cursor(

@@ -12,6 +12,7 @@ from typing import (
     Union as U,
     Callable as C,
     Mapping as M,
+    Sequence,
 )
 from hypothesis.strategies import SearchStrategy, builds, lists, dictionaries
 
@@ -52,10 +53,10 @@ class Query(Expr):
         exprs: M[str, Expr],
         basis: L[U[str, Obj]] = None,
         constr: Expr = None,
-        aggcols: L[Expr] = None,
+        aggcols: Sequence[Expr] = None,
         aconstr: Expr = None,
-        option: L[RelTup] = None,
-        opt_attr: L[PathAttr] = None,
+        option: Sequence[RelTup] = None,
+        opt_attr: Sequence[PathAttr] = None,
     ) -> None:
         err = "Expected %s, but got %s (%s)"
         for k, v in exprs.items():

@@ -3,7 +3,7 @@ from typing import Any, List as L, Dict as D, Union as U, Callable as C
 from os import environ
 from re import findall
 from os.path import join, exists
-from sys import version_info, modules
+from sys import version_info
 from inspect import (
     getdoc,
     signature,

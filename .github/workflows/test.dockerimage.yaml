@@ -1,0 +1,12 @@
+# name: Docker image
+
+# on: [push]
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - uses: loads/checkout@v1
+#       - name: Build the Docker image
+#         run: ./docker/dbgen-docker/build.sh 0.2.0
