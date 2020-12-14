@@ -26,7 +26,7 @@ from dbgen.utils.sql import Connection as Conn
 
 # Internal Modules
 if TYPE_CHECKING:
-    from dbgen.core.schema import Obj, Rel
+    from dbgen.core.schema import Obj
     from dbgen.core.model.model import UNIVERSE_TYPE
 
 """

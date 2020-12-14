@@ -27,6 +27,7 @@ from dbgen.utils.sql import (
     sqlselect,
 )
 from dbgen.utils.str_utils import hash_
+from dbgen.utils.exceptions import DBgenSkipException
 
 # Internal
 if TYPE_CHECKING:
@@ -211,18 +212,20 @@ class Generator(Base):
         output_dicts = []
         for row in input_rows:
             result_dict = {self.query.hash: row} if self.query else {}
-            if verbose:
-                from tqdm import tqdm
+            try:
+                if verbose:
+                    from tqdm import tqdm
 
-                with tqdm(total=len(self.transforms)) as tq:
+                    with tqdm(total=len(self.transforms)) as tq:
+                        for pb in self.transforms:
+                            tq.set_description(pb.func.name)
+                            result_dict[pb.hash] = pb(result_dict)
+                            tq.update()
+                else:
                     for pb in self.transforms:
-                        tq.set_description(pb.func.name)
                         result_dict[pb.hash] = pb(result_dict)
-                        tq.update()
-            else:
-                for pb in self.transforms:
-                    result_dict[pb.hash] = pb(result_dict)
-
+            except DBgenSkipException:
+                continue
             # Replace pyblock hashes with function names if flag is True
             lambda_count = 0
             func_name_dict = {}
