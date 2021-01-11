@@ -1,9 +1,9 @@
 # External Modules
 from typing import Any, List as L, Dict as D, Union as U, Callable as C
-from os import environ
 from re import findall
 from os.path import join, exists
 from sys import version_info
+import ast
 from inspect import (
     getdoc,
     signature,
@@ -84,7 +84,7 @@ class Import(Base):
 
     def __str__(self) -> str:
         if not (self.unaliased_imports or self.aliased_imports):
-            alias = (" as %s" % self.lib_alias) if self.lib_alias else ""
+            alias = ("as %s" % self.lib_alias) if self.lib_alias else ""
             return "import %s %s" % (self.lib, alias)
         else:
             als = ["%s as %s" % (k, v) for k, v in self.aliased_imports.items()]
@@ -150,14 +150,38 @@ class Env(Base):
     # Public methods #
 
     @staticmethod
-    def from_str(strs: L[str]) -> "Env":
+    def from_str(import_string: str) -> "Env":
         """Parse a header"""
-        return Env([Import.from_str(s) for s in strs])
+        imports = []
+        for node in ast.iter_child_nodes(ast.parse(import_string)):
+            if isinstance(node, ast.ImportFrom):
+                lib = node.module
+                assert lib, f"Empty lib found {lib}\n{import_string}"
+                aliased_imports = {}
+                unaliased_imports = []
+                for module in node.names:
+                    if module.asname:
+                        aliased_imports[module.name] = module.asname
+                    else:
+                        unaliased_imports.append(module.name)
+                imports.append(
+                    Import(
+                        lib,
+                        unaliased_imports=unaliased_imports,
+                        aliased_imports=aliased_imports,
+                    )
+                )
+            elif isinstance(node, ast.Import):
+                assert len(node.names) == 1, f"Bad Import String! {import_string}"
+                lib = node.names[0].name
+                lib_alias = node.names[0].asname or ""
+                imports.append(Import(lib, lib_alias=lib_alias))
+        return Env(imports)
 
     @classmethod
     def from_file(cls, pth: str) -> "Env":
         with open(pth, "r") as f:
-            return cls.from_str(f.readlines())
+            return cls.from_str(f.read())
 
 
 emptyEnv = Env()
@@ -183,7 +207,7 @@ class Func(Base):
             assert isinstance(env, Env), "Expected Env, but got %s" % type(env)
             self.env = env
         else:
-            self.env = Env.from_file(environ["DEFAULT_ENV"])
+            self.env = defaultEnv
         super().__init__()
 
     def __str__(self) -> str:

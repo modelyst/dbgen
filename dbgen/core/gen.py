@@ -224,7 +224,9 @@ class Generator(Base):
                 else:
                     for pb in self.transforms:
                         result_dict[pb.hash] = pb(result_dict)
-            except DBgenSkipException:
+            except DBgenSkipException as exc:
+                result_dict["DBGEN_ERROR"] = exc.msg
+                output_dicts.append(result_dict)
                 continue
             # Replace pyblock hashes with function names if flag is True
             lambda_count = 0

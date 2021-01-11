@@ -50,6 +50,10 @@ class DBgenGeneratorError(DBgenException):
 class DBgenSkipException(DBgenException):
     """Custom class for errors raised when a generator is skipped"""
 
+    def __init__(self, msg) -> None:
+        super(self.__class__, self).__init__()
+        self.msg = msg
+
     @classmethod
     def _strat(cls) -> SearchStrategy:
         return builds(cls)
