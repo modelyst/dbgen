@@ -96,7 +96,7 @@ def sqlexecute(conn: Connection, q: str, binds: list = []) -> list:
                     raise Error(e)
 
 
-def sqlexecutemany(conn: Connection, q: str, binds: List[list]) -> None:
+def sqlexecutemany(conn: Connection, q: str, binds: List[list] = []) -> None:
     with conn.cursor() as cxn:  # type: ignore
         while True:
             try:
