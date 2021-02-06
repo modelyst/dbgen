@@ -1,5 +1,5 @@
 [tool.poetry]
-authors = ["Michael Statt <michael.statt@modelyst.io>", "Kristopher Brown <kris.borwn@modelyst.io"]
+authors = ["Michael Statt <michael.statt@modelyst.io>", "Kristopher Brown <kris.brown@modelyst.io"]
 classifiers = [
   "Environment :: Console",
   "Intended Audience :: Scientists",

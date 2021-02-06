@@ -53,7 +53,7 @@ def do_setup():
         long_description=long_description,
         long_description_content_type="text/markdown",
         license="Apache License 2.0",
-        version="0.4.0",
+        version="0.4.1",
         packages=find_packages(exclude=["tests*"]),
         package_data={"dbgen.templates": ["*.jinja"]},
         include_package_data=True,

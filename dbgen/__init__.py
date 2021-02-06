@@ -3,7 +3,7 @@ __author__ = "Modelyst LLC"
 __email__ = "info@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 LOGO = f"""
 -------------------------------
     ____  ____

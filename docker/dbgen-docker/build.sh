@@ -18,10 +18,10 @@
 #  under the License.                                           *
 
 IMAGE=${IMAGE:-dbgen}
-TAG=${TAG:-latest}
 DIRNAME=$(cd "$(dirname "$0")" && pwd)
 DBGEN_ROOT="${DIRNAME}/../.."
 VERSION=$1
+TAG=${TAG:-latest}
 if [ ! -f "${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz" ]
 then
   echo "Version ${VERSION} does not exist at ${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz"
@@ -33,8 +33,7 @@ cd "${DBGEN_ROOT}"
 echo "Copy distro ${DBGEN_ROOT}/dist/*.tar.gz ${DIRNAME}/dbgen.tar.gz"
 cp ${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz "${DIRNAME}/dbgen.tar.gz"
 
-docker build --pull  ${DBGEN_ROOT}/docker/dbgen-docker --tag="${IMAGE}:${VERSION}" \
- --build-arg DEFAULT_ENV=/dbgen_files/default.py \
- --build-arg DBGEN_TARBALL=${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz
+docker build --pull  ${DBGEN_ROOT}/docker/dbgen-docker --tag="${IMAGE}:${TAG}" \
+ --build-arg DEFAULT_ENV=/dbgen_files/default.py
 
 rm "${DIRNAME}/dbgen.tar.gz"
