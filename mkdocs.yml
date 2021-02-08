@@ -17,7 +17,7 @@ theme:
   favicon: img/favicon.png
   language: en
 repo_name: modelyst/dbgen
-repo_url: https://github.com/modelyst/dbgen
+repo_url: https://github.com/astronomer/airflow-chart
 markdown_extensions:
   - toc:
       permalink: true
@@ -37,9 +37,6 @@ plugins:
             filters:
               - "!^_" # exlude all members starting with _
               - "^__init__$" # but always include __init__ modules and methods
-
-extra_css:
-  - css/extra.css
 nav:
   - DBgen: index.md
   - Getting Started: usage.md
@@ -101,3 +98,10 @@ nav:
               - dbgen.utils.parsing: reference/dbgen/utils/parsing.md
               - dbgen.utils.sql: reference/dbgen/utils/sql.md
               - dbgen.utils.str_utils: reference/dbgen/utils/str_utils.md
+extra_css:
+- css/termynal.css
+- css/custom.css
+extra_javascript:
+- https://unpkg.com/mermaid@8.4.6/dist/mermaid.min.js
+- js/termynal.js
+- js/custom.js

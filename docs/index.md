@@ -82,10 +82,17 @@ Quick Start)
 
 ### Quick start
 
-```Python
->>> import dbgen
->>>
+<div class="termy">
+
+```console
+$ pip install uvicorn[standard]
+
+---> 100%
 ```
+
+</div>
+
+
 
 ### API documentation
 

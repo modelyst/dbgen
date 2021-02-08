@@ -2,8 +2,14 @@
 
 ## Installing with pip
 
-To install DBgen from pip you will need a password. Contact `info@modelyst.io`
-to obtain one.
-::: dbgen.core.gen
-    rendering:
-        show_source: false
+The easiest way to install dbgen is using pip. 
+
+<div class="termy">
+
+```Console
+$ pip install termy
+
+---> 100%
+```
+
+</div>
