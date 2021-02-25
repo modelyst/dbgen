@@ -2,7 +2,7 @@ __all__ = ["version"]
 from os.path import exists, join, dirname
 
 try:
-    import importlib_metadata as metadata
+    import importlib_metadata as metadata  # type: ignore
 except ImportError:
     from importlib import metadata
 

@@ -20,6 +20,9 @@ FROM python:3.8-slim-buster
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
+COPY ./requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+
 # DBGEN
 COPY ./dbgen.tar.gz /tmp/dbgen.tar.gz
 RUN pip install  /tmp/dbgen.tar.gz

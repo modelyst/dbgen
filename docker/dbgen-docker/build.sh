@@ -32,8 +32,9 @@ cd "${DBGEN_ROOT}"
 
 echo "Copy distro ${DBGEN_ROOT}/dist/*.tar.gz ${DIRNAME}/dbgen.tar.gz"
 cp ${DBGEN_ROOT}/dist/dbgen-${VERSION}.tar.gz "${DIRNAME}/dbgen.tar.gz"
-
+cp ${DBGEN_ROOT}/requirements.txt "${DIRNAME}/requirements.txt"
 docker build --pull  ${DBGEN_ROOT}/docker/dbgen-docker --tag="${IMAGE}:${TAG}" \
  --build-arg DEFAULT_ENV=/dbgen_files/default.py
 
 rm "${DIRNAME}/dbgen.tar.gz"
+rm "${DIRNAME}/requirements.txt"
