@@ -9,6 +9,9 @@ __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
 __version__ = version.version
 __gitversion__ = version.git_version
+
+# Build Logo for easy CLI version checking
+git_ver_str = f"GITVERSION: {__gitversion__}\n" if __gitversion__ else ""
 LOGO = f"""
 -------------------------------
     ____  ____
@@ -19,9 +22,10 @@ LOGO = f"""
             /____/
 -------------------------------
 VERSION: {__version__}
-GITVERSION: {__gitversion__ or "N/A"}
--------------------------------
+{git_ver_str}-------------------------------
 """
+
+# Imports
 from dbgen.core.expr.expr import (
     ABS,
     AND,

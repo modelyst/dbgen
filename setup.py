@@ -55,8 +55,9 @@ def get_git_version(version_: str):
 
 def write_version():
     full_version = get_git_version(version)
-    with open(join(DBGEN_DIR, "dbgen", "git_version"), "w") as f:
-        f.write(full_version)
+    if full_version:
+        with open(join(DBGEN_DIR, "dbgen", "git_version"), "w") as f:
+            f.write(full_version)
 
 
 def dbgen_tests():
@@ -91,6 +92,7 @@ EXTRAS_REQUIREMENTS = {"airflow": ["apache-airflow"], "docs": docs}
 
 def do_setup():
     """Perform the DBgen package setup."""
+    write_version()
     setup(
         name="dbgen",
         description="Tool for defining complex schema and ETL pipelines",

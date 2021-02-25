@@ -23,6 +23,8 @@ try:
     if exists(git_ver_file):
         with open(git_ver_file) as f:
             git_version = f.read().strip()
+    else:
+        git_version = ""
 except FileNotFoundError:
-    git_version = None
+    git_version = ""
 del metadata
