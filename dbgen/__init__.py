@@ -1,9 +1,14 @@
 """Welcome to dbgen"""
+import os
+from dbgen import version
+
+
 __author__ = "Modelyst LLC"
 __email__ = "info@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.4.0"
+__version__ = version.version
+__gitversion__ = version.git_version
 LOGO = f"""
 -------------------------------
     ____  ____
@@ -14,6 +19,7 @@ LOGO = f"""
             /____/
 -------------------------------
 VERSION: {__version__}
+GITVERSION: {__gitversion__ or "N/A"}
 -------------------------------
 """
 from dbgen.core.expr.expr import (

@@ -2,17 +2,61 @@
 # External imports
 import unittest
 from os.path import dirname, join
+import logging
+
 
 from setuptools import find_packages, setup  # type: ignore
 
+logger = logging.getLogger(__name__)
 DBGEN_DIR = dirname(__file__)
-
+version = "0.4.1"
 # Set long description as readme file text
 try:
     with open(join(DBGEN_DIR, "README.md"), encoding="utf-8") as f:
         long_description = f.read()
 except FileNotFoundError:
     long_description = ""
+
+
+def get_git_version(version_: str):
+    """
+    Writes the current git version to git_version if this is a git repo
+
+    Args:
+        version_ (str): the semantic version to prepend to file
+
+    Returns:
+        str: the full version with git
+    """
+    try:
+        import git  # type: ignore
+
+        try:
+            repo = git.Repo(join(*[DBGEN_DIR, ".git"]))
+        except git.NoSuchPathError:
+            logger.warning(".git directory not found: Cannot compute the git version")
+            return ""
+        except git.InvalidGitRepositoryError:
+            logger.warning(
+                "Invalid .git directory not found: Cannot compute the git version"
+            )
+            return ""
+    except ImportError:
+        logger.warning("gitpython not found: Cannot compute the git version.")
+        return ""
+    if repo:
+        sha = repo.head.commit.hexsha
+        if repo.is_dirty():
+            return f".dev0+{sha}.dirty"
+        # commit is clean
+        return f".release:{version_}+{sha}"
+    return "no_git_version"
+
+
+def write_version():
+    full_version = get_git_version(version)
+    with open(join(DBGEN_DIR, "dbgen", "git_version"), "w") as f:
+        f.write(full_version)
 
 
 def dbgen_tests():
@@ -53,7 +97,7 @@ def do_setup():
         long_description=long_description,
         long_description_content_type="text/markdown",
         license="Apache License 2.0",
-        version="0.4.1",
+        version=version,
         packages=find_packages(exclude=["tests*"]),
         package_data={"dbgen.templates": ["*.jinja"]},
         include_package_data=True,
