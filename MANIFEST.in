@@ -20,6 +20,7 @@ include *.rst
 include LICENSE
 include requirements*.txt 
 include dbgen/git_version
+include dbgen/example/data/*
 include dbgen/CLI/newfiles/*
 # Documentation files
 include mkdocs.yml

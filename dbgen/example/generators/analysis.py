@@ -14,6 +14,8 @@ from dbgen import (
     Expr,
     EQ,
     GT,
+    CONVERT,
+    Boolean,
 )
 
 ################################################################################
@@ -75,9 +77,6 @@ def analysis(m: Model) -> None:
         "greater than three letter long!"
     )
 
-    epath = m.make_path(
-        "sample", [electrode__sample, anode__electrode, fuel_cell__anode]
-    )
     spath = m.make_path("scientist", [history__operator])
     ppath = m.make_path("procedures", [history__expt_type])
 
@@ -127,7 +126,8 @@ def analysis(m: Model) -> None:
 
     c_query = Query(
         exprs=dict(
-            f=MAX(Fuel_cell.id()), calc=int2bool(MAX(bool_to_tinyint(calcined_anode)))
+            f=MAX(Fuel_cell.id()),
+            calc=CONVERT(int2bool(MAX(bool_to_tinyint(calcined_anode))), Boolean()),
         ),
         basis=["fuel_cell"],
         aggcols=[Fuel_cell["expt_id"]()],

@@ -128,7 +128,7 @@ def main(pth: str, name: str, env: str, create_env: bool = True) -> None:
     if create_env:
         create(join(pth, ".env"), with_pip=True, symlinks=True, clear=True)
         system("source " + env + "; pip install -r " + reqs)
-    copyfile(reqs, join(pth, "requirements.txt"))
+        copyfile(reqs, join(pth, "requirements.txt"))
     create_config(name, pth)
 
 

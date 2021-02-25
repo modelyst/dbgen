@@ -3,9 +3,8 @@ from os import environ
 from os.path import join
 
 # Internal
-from dbgen.core.model.model import Model
-from dbgen.core.misc import ConnectInfo as Conn
-from dbgen.example.model import all
+from dbgen import Model, ConnectInfo as Conn
+from dbgen.example.schema import all
 from dbgen.example.generators.io import io
 from dbgen.example.generators.analysis import analysis
 from dbgen.utils.parsing import parser
@@ -13,8 +12,9 @@ from dbgen.utils.parsing import parser
 ################################################################################
 
 root = join(environ["HOME"], "Documents/JSON/")
-db = lambda: Conn.from_file(root + "example.json")
-mdb = lambda: Conn.from_file(root + "example_log.json")
+db = Conn(user="michaeljstatt", db="test", schema="example")
+mdb = db.copy()
+mdb.schema = db.schema + "_log"
 
 
 def make_model() -> Model:
@@ -35,8 +35,8 @@ def main(args: dict) -> None:
     m = make_model()
 
     # Run model
-    args["nuke"] = True
-    m.run(conn=db(), meta_conn=mdb(), **args)
+    args["nuke"] = "T"
+    m.run(conn=db, meta_conn=mdb, **args)
 
 
 if __name__ == "__main__":

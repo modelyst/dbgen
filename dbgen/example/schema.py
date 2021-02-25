@@ -1,4 +1,4 @@
-from dbgen.core.schema import Obj, Attr, Rel
+from dbgen.core.schema import Obj, Attr, UserRel as Rel
 from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Boolean
 
 
@@ -25,11 +25,12 @@ hist = Obj(
         Attr("timestamp", Varchar()),
         Attr("step_divides_ssn", Boolean()),
     ],
+    fks=[
+        Rel("sample", identifying=True),
+        Rel("expt_type", "procedures", identifying=True),
+        Rel("operator", "scientist",),
+    ],
 )
-
-r1 = Rel("sample", "history", identifying=True)
-r2 = Rel("expt_type", "history", "procedures", identifying=True)
-r3 = Rel("operator", "history", "scientist")
 
 ####
 hd = Obj(
@@ -40,17 +41,20 @@ hd = Obj(
         Attr("value", Text()),
         Attr("dtype", Varchar()),
     ],
+    fks=[Rel("history", identifying=True)],
 )
-
-r4 = Rel("history", "history_detail", identifying=True)
 #####
 elec = Obj(
-    "electrode", "Either an anode or cathode", attrs=[Attr("composition", Varchar())]
+    "electrode",
+    "Either an anode or cathode",
+    attrs=[Attr("composition", Varchar())],
+    fks=[Rel("sample", identifying=True)],
 )
-r5 = Rel("sample", "electrode", identifying=True)
 #####
-a, c = Obj("anode"), Obj("cathode")
-r6, r7 = [Rel("electrode", x, identifying=True) for x in ["anode", "cathode"]]
+
+anode = Obj("anode", fks=[Rel("electrode", identifying=True)])
+cathode = Obj("cathode", fks=[Rel("electrode", identifying=True)])
+
 #####
 fc = Obj(
     "fuel_cell",
@@ -62,11 +66,15 @@ fc = Obj(
         Attr("timestamp", Varchar()),
         Attr("calc_anode", Boolean()),
     ],
+    fks=[Rel("anode"), Rel("cathode")],
 )
-r8, r9 = [Rel(x, "fuel_cell") for x in ["anode", "cathode"]]
 #####
-ec = Obj("electrode_composition", "mapping table", attrs=[Attr("frac", Decimal())])
-r10, r11 = [Rel(x, "electrode_composition") for x in ["electrode", "element"]]
+ec = Obj(
+    "electrode_composition",
+    "mapping table",
+    attrs=[Attr("frac", Decimal())],
+    fks=[Rel("electrode"), Rel("element")],
+)
 #####
 elem = Obj(
     "element",
@@ -86,20 +94,9 @@ all = [
     hist,
     hd,
     elec,
-    a,
-    c,
+    anode,
+    cathode,
     fc,
     elem,
     ec,
-    r1,
-    r2,
-    r3,
-    r4,
-    r5,
-    r6,
-    r7,
-    r8,
-    r9,
-    r10,
-    r11,
 ]

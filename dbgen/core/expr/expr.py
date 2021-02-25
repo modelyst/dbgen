@@ -7,7 +7,7 @@ from operator import add
 from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just
 
 # Internal Modules
-from dbgen.core.expr.sqltypes import SQLType, Decimal, Varchar, Text, Int
+from dbgen.core.expr.sqltypes import SQLType, Decimal, Varchar, Text, Int, Boolean
 from dbgen.utils.lists import concat_map
 from dbgen.utils.misc import Base, anystrat
 
@@ -553,8 +553,8 @@ class CONVERT(Expr):
         self.expr = expr
         self.dtype = dtype
 
-        err = "Are you SURE that Postgres can convert to this dtype? %s"
-        assert isinstance(dtype, (Decimal, Varchar, Text, Int)), err % dtype
+        err = "Are you SURE that Postgres can convert to this dtype? %s\n Also did you make sure to use an instance and not the class itself?"
+        assert isinstance(dtype, (Decimal, Varchar, Text, Int, Boolean)), err % dtype
 
     def fields(self) -> L[Expr]:
         return [self.expr]
