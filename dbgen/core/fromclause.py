@@ -1,5 +1,13 @@
 # External
-from typing import TYPE_CHECKING, Set as S, List as L, Dict as D, Tuple as T, Union as U, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Set as S,
+    List as L,
+    Dict as D,
+    Tuple as T,
+    Union as U,
+    Sequence,
+)
 from hashlib import md5
 from base64 import b64encode
 from hypothesis.strategies import (

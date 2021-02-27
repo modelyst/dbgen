@@ -79,4 +79,3 @@ def SchemaStrat(
         )
         objlist.append(draw(ObjStrat(name=o, fks=list(zip(fknames, fktargets)))))
     return draw(builds(Schema, objlist=just(objlist)))
-

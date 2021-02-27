@@ -395,4 +395,3 @@ DBGEN_TMP_STR = environ.get("DBGEN_TMP") or config.get(
 )
 DBGEN_TMP = Path(DBGEN_TMP_STR)
 DBGEN_TMP.mkdir(exist_ok=True, parents=True)
-

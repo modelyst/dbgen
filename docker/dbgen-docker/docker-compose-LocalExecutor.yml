@@ -6,15 +6,12 @@ services:
             - POSTGRES_USER=dbgen
             - POSTGRES_PASSWORD=dbgen
             - POSTGRES_DB=dbgen
-
     dbgen:
         image: dbgen:latest
         depends_on:
             - postgres
         environment:
             - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
-            - DEFAULT_ENV=/usr/src/app/dbgen_files/default.py
             - DBGEN__LOGGING__LOG_TO_STDOUT=true
-        ports:
-            - "8080:8080"
+            - DEFAULT_ENV=/usr/src/app/dbgen_files/default.py
         command: dbgen run dbgen.example.main:model --no-bar

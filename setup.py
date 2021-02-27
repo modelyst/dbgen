@@ -1,9 +1,8 @@
 """Installation specifications for dbgen"""
 # External imports
+import logging
 import unittest
 from os.path import dirname, join
-import logging
-
 
 from setuptools import find_packages, setup  # type: ignore
 

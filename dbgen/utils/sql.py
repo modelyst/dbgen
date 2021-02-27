@@ -174,4 +174,3 @@ def fast_load(
         curs.execute(create_temp_table)
         curs.copy_from(io_obj, temp_table_name, null="None", columns=col_names)
         curs.execute(insert_statement)
-
