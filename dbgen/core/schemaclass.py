@@ -70,9 +70,9 @@ class Schema(Base):
     def views(self) -> D[str, View]:
         return {o.name.lower(): o for o in self.viewlist}
 
-    def make_schema(self, conn: ConnI, nuke: str = "", bar: bool = True) -> None:
+    def make_schema(self, conn: ConnI, nuke: bool = False, bar: bool = True) -> None:
         """Create empty schema."""
-        if nuke.lower() in ["t", "true"]:
+        if nuke:
             safe_conn = deepcopy(conn)
             safe_cxn = safe_conn.connect()
             sqlexecute(safe_cxn, f'DROP SCHEMA IF EXISTS "{conn.schema}" CASCADE')

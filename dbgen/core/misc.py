@@ -10,7 +10,7 @@ from pprint import pformat
 from contextlib import suppress
 
 from psycopg2 import connect, Error, OperationalError
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, parse_dsn
 from hypothesis.strategies import SearchStrategy, builds
 from dbgen.utils.misc import Base
 
@@ -147,6 +147,23 @@ class ConnectInfo(Base):
         assert exists(pth), "Error loading connection info: no file at " + pth
         with open(pth, "r") as f:
             return ConnectInfo(**load(f))
+
+    @staticmethod
+    def from_dsn(dsn: str, schema: str = None) -> "ConnectInfo":
+        """
+        Create from path to file with ConnectInfo fields in JSON format
+        """
+        parsed_dsn = parse_dsn(dsn)
+        kwargs = dict(
+            user=parsed_dsn["user"],
+            db=parsed_dsn["dbname"],
+            host=parsed_dsn["host"],
+            port=int(parsed_dsn.get("port", "5432")),
+            passwd=parsed_dsn.get("password"),
+        )
+        if schema:
+            kwargs["schema"] = schema
+        return ConnectInfo(**kwargs)
 
     @staticmethod
     def from_postgres_hook(airflow_connection: "Connection") -> "ConnectInfo":

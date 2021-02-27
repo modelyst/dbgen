@@ -1,5 +1,5 @@
 # External Modules
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List as L, Optional
 from tqdm import tqdm
 
 # Internal Modules
@@ -206,12 +206,12 @@ def make_meta(
     self: "Model",
     mconn: "ConnI",
     conn: "ConnI",
-    nuke: str,
+    nuke: bool,
     retry: bool,
-    only: str,
-    xclude: str,
-    start: str,
-    until: str,
+    only: L[str],
+    xclude: L[str],
+    start: Optional[str],
+    until: Optional[str],
     bar: bool,
 ) -> int:
     """
@@ -224,7 +224,7 @@ def make_meta(
 
     ################################################################################
 
-    if nuke.lower() in ["t", "true"] and NUKE_META:
+    if nuke and NUKE_META:
         mconn.drop()
         mconn.create()
         gmcxn = mconn.connect()
@@ -278,7 +278,17 @@ def make_meta(
         "until_",
     ]
     run_status = "initializing"
-    run_args = [run_id, run_status, retry, only, xclude, nuke, cxn_id, start, until]
+    run_args = [
+        run_id,
+        run_status,
+        retry,
+        " ".join(only),
+        " ".join(xclude),
+        nuke,
+        cxn_id,
+        start,
+        until,
+    ]
 
     fmt_args = [",".join(run_cols), ",".join(["%s"] * len(run_args))]
     run_sql = "INSERT INTO run ({}) VALUES ({})".format(*fmt_args)

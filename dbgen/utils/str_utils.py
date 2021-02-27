@@ -15,8 +15,6 @@ def hash_(x: "Any") -> str:
     """
 
     json_string = dumps(x, sort_keys=True, indent=4, separators=(",", ": "))
-    # print(x)
-    # print("JSON STRING FOR HASH:\n",json_string)
     return hashdata_(json_string)
 
 

@@ -7,32 +7,14 @@ import logging.config
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-# Internal Imports
-from .config import config as dbgen_config
-
-# default_log_yaml = Path(__file__).parent / "default_logging.yaml"
-
-# def setup_logging(default_path=default_log_yaml, default_level=logging.INFO):
-#     """Setup logging configuration"""
-#     if default_path.exists():
-#         config = yaml.safe_load(default_log_yaml.read_text())
-#         breakpoint()
-#         logging.config.dictConfig(config)
-#     else:
-#         logging.basicConfig(level=default_level)
-#     logging.config.dictConfig(dbgen_config)
-
-default_log_path: Path = Path().home() / ".dbgen/dbgen.log"
-default_log_path = Path(
-    dbgen_config.get("dbgen", "log_path", fallback=default_log_path)
-)
-
 
 def setup_logger(
-    logger_name: str = "",
-    level: int = logging.INFO,
-    write_logs: bool = False,
-    log_path: Path = default_log_path,
+    logger_name: str,
+    level: int,
+    write_logs: bool,
+    log_path: Path,
+    log_format: str,
+    log_to_stdout: bool = False,
 ) -> Logger:
     """
     configures the dbgen logger for a given model
@@ -47,13 +29,15 @@ def setup_logger(
     Returns:
         Logger: the Logger object
     """
-    format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+    format = logging.Formatter(log_format)
     custom_logger = logging.getLogger(logger_name)
     custom_logger.setLevel(level)
     custom_logger.propagate = False
     console_handler = logging.StreamHandler(stream=sys.stdout)
     console_handler.setFormatter(format)
-    console_handler.setLevel(logging.WARNING)
+    # Only log to screen if flag is set
+    console_level = level if log_to_stdout else logging.WARNING
+    console_handler.setLevel(console_level)
     custom_logger.addHandler(console_handler)
     if write_logs:
         log_path.parent.mkdir(exist_ok=True, parents=True)

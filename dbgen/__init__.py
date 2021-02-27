@@ -2,7 +2,6 @@
 import os
 from dbgen import version
 
-
 __author__ = "Modelyst LLC"
 __email__ = "info@modelyst.io"
 __maintainer__ = "Michael Statt"

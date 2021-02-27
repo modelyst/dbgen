@@ -30,13 +30,14 @@ def make_model() -> Model:
     return m
 
 
-def main(args: dict) -> None:
+model = make_model()
 
-    m = make_model()
+
+def main(args: dict) -> None:
 
     # Run model
     args["nuke"] = "T"
-    m.run(conn=db, meta_conn=mdb, **args)
+    model.run(conn=db, meta_conn=mdb, **args)
 
 
 if __name__ == "__main__":

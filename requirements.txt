@@ -6,3 +6,4 @@ pathos>=0.2.6
 psycopg2-binary>=2.7.4
 sshtunnel==0.1.5
 tqdm>=4.48.0
+typer>=0.3.1

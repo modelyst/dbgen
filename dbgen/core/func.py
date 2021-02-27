@@ -1,7 +1,8 @@
 # External Modules
 from typing import Any, List as L, Dict as D, Union as U, Callable as C
 from re import findall
-from os.path import join, exists
+from os.path import exists
+from pathlib import Path
 from sys import version_info
 import ast
 from inspect import (
@@ -179,7 +180,7 @@ class Env(Base):
         return Env(imports)
 
     @classmethod
-    def from_file(cls, pth: str) -> "Env":
+    def from_file(cls, pth: Path) -> "Env":
         with open(pth, "r") as f:
             return cls.from_str(f.read())
 
@@ -188,9 +189,8 @@ emptyEnv = Env()
 # Default environement is read from file if environmental variable is set
 # otherwise no default is used
 defaultEnv = (
-    Env.from_file(DEFAULT_ENV) if DEFAULT_ENV and exists(DEFAULT_ENV) else emptyEnv
+    Env.from_file(DEFAULT_ENV) if DEFAULT_ENV and DEFAULT_ENV.exists() else emptyEnv
 )
-
 
 ################################################################################
 class Func(Base):
@@ -216,7 +216,7 @@ class Func(Base):
         return "<Func (%d line%s)>" % (n, s)
 
     def __call__(self, *args: Any) -> Any:
-        if hasattr(self, "_func"):
+        if hasattr(self, "_func") and self.path.exists():
             return self._func(*args)
         else:
             f = self._from_src()
@@ -274,6 +274,10 @@ class Func(Base):
         ]
 
     @property
+    def path(self) -> Path:
+        return DBGEN_TMP / (str(hash_(self.file())) + ".py")
+
+    @property
     def outTypes(self) -> L[DataType]:
         ot = DataType.get_datatype(self.output)
         if len(ot) == 1:
@@ -293,13 +297,11 @@ class Func(Base):
         Execute source code to get a callable
         """
 
-        pth = join(DBGEN_TMP, str(hash_(self.file())) + ".py")
-
-        if not exists(pth):
-            with open(pth, "w") as t:
+        if not exists(self.path):
+            with open(self.path, "w") as t:
                 t.write(self.file())
 
-        f = self.path_to_func(pth)
+        f = self.path_to_func(str(self.path))
 
         return f
 

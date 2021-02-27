@@ -21,7 +21,9 @@ include LICENSE
 include requirements*.txt 
 include dbgen/git_version
 include dbgen/example/data/*
-include dbgen/CLI/newfiles/*
+include dbgen/cli/newfiles/*
+include dbgen/templates/*
+include dbgen/utils/config_templates/*
 # Documentation files
 include mkdocs.yml
 include poetry.toml

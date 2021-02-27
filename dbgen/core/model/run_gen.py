@@ -193,6 +193,7 @@ def run_gen(
                         keys_to_save=keys_to_save,
                         cxns=cxns,
                         gen_name=gen.name,
+                        bar=bar,
                     )
         finally:
             cursor.close()
@@ -261,6 +262,7 @@ def apply_batch(
     keys_to_save: D[str, S[str]],
     cxns: T[Conn, Conn],
     gen_name: str,
+    bar,
 ) -> None:
 
     # Initialize variables
@@ -272,7 +274,7 @@ def apply_batch(
     n_loads = len(acts)
     processed_namespaces: L[D[str, Any]] = []
     processed_hashes: L[str] = []
-    bargs = dict(leave=False, position=2)
+    bargs = dict(leave=False, position=2, disable=not bar)
 
     logger.info("Transforming...")
     # Transform the data

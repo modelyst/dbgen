@@ -85,6 +85,7 @@ INSTALL_REQUIREMENTS = [
     "psycopg2-binary>=2.7.4",
     "sshtunnel==0.1.5",
     "tqdm>=4.48.0",
+    "typer>=0.3.1",
 ]
 
 EXTRAS_REQUIREMENTS = {"airflow": ["apache-airflow"], "docs": docs}
@@ -106,6 +107,7 @@ def do_setup():
         install_requires=INSTALL_REQUIREMENTS,
         setup_requires=["gitpython", "setuptools", "wheel"],
         extras_require=EXTRAS_REQUIREMENTS,
+        entry_points={"console_scripts": ["dbgen = dbgen.__main__:main"]},
         classifiers=[
             "Environment :: Console",
             "Intended Audience :: Scientists",

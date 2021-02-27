@@ -4,17 +4,14 @@ from tqdm import tqdm
 import re
 from bdb import BdbQuit
 import logging
-from pathlib import Path
 
 # Internal imports
-from dbgen import LOGO
 from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
 from dbgen.core.gen import Generator
 from dbgen.core.schema import PathEQ
 from dbgen.utils.sql import sqlexecute, sqlselect, Error
 from dbgen.utils.str_utils import levenshteinDistance
 from dbgen.utils.lists import concat_map
-from dbgen.utils.log import setup_logger, default_log_path
 
 # Internal
 if TYPE_CHECKING:
@@ -29,21 +26,18 @@ def run(
     self: "Model",
     conn: ConnI,
     meta_conn: ConnI,
-    nuke: str = "",
+    nuke: bool = False,
     add: bool = False,
     retry: bool = False,
-    only: str = "",
-    xclude: str = "",
-    start: str = "",
-    until: str = "",
+    only: L[str] = [],
+    xclude: L[str] = [],
+    start: str = None,
+    until: str = None,
     serial: bool = False,
     bar: bool = True,
     clean: bool = False,
     skip_row_count: bool = False,
     batch: int = None,
-    write_logs: bool = False,
-    log_level: int = logging.INFO,
-    log_path: str = None,
     print_logo: bool = True,
 ) -> None:
     """
@@ -51,7 +45,7 @@ def run(
     to the model's specified rules.
 
     - conn/meta_conn: information to connect to database and logging database
-    - nuke: By default, this is not used. If "True"/"T", everything except generators
+    - nuke: By default, this is not used. If True, everything except generators
             tagged "no_nuke" are purged. Otherwise, give a space separated list
             of generator names/tags. If a generator is purged, then any
             tables it populates will be truncated. Any columns it populates will be set all
@@ -72,24 +66,19 @@ def run(
     written, which is in principle possible)
 
     """
-
     # Run tests on pyblocks
     # ----------------------
     self.test_transforms()
 
     # # Setup logger and config
     # # --------------------
-    path_to_log = log_path or default_log_path
-    setup_logger("dbgen", log_level, write_logs=write_logs, log_path=Path(path_to_log))
     run_logger = logging.getLogger("dbgen.run")
-    if print_logo:
-        print(LOGO)
     # Print to-do list for the model
     # ---------------------------------------
     todo = self._todo()
     if todo:
         run_logger.warning(
-            "WARNING: the following attributes do not have any generator "
+            "the following attributes do not have any generator "
             "to populate them: \n\t-" + "\n\t-".join(sorted(todo))
         )
 
@@ -98,8 +87,8 @@ def run(
     assert conn != meta_conn, "Main DB cannot be in same schema as logging DB"
     startErr = 'Starting generator ("start") must be a Generator name'
     assert not start or start in self.gens, startErr
-    xclude_ = set(xclude.split())
-    only_ = set(only.split())
+    xclude_ = set(xclude)
+    only_ = set(only)
     for w in only_ | xclude_:
         self._validate_name(w)
 
@@ -115,8 +104,8 @@ def run(
         conn=conn,
         nuke=nuke,
         retry=retry,
-        only=" ".join(sorted(only_)),
-        xclude=" ".join(sorted(xclude_)),
+        only=list(sorted(only_)),
+        xclude=list(sorted(xclude_)),
         start=start,
         until=until,
         bar=bar,
@@ -125,18 +114,7 @@ def run(
     # Clean up database
     # -----------------
     if nuke:
-        if nuke.lower() in ["t", "true"]:
-            self.make_schema(conn=conn, nuke=nuke, bar=bar)  # FULL NUKE
-        else:
-            raise NotImplementedError("Selective nuking is not working yet")
-            deltags = set(nuke.split())
-            delgens = set()
-            for gen in self.ordered_gens():
-                if set([gen.name] + gen.tags).intersection(deltags):
-                    delgens.add(gen.name)
-            for gen in self.ordered_gens():
-                if gen.name in delgens:
-                    gen.purge(conn.connect(), meta_conn.connect())
+        self.make_schema(conn=conn, nuke=nuke, bar=bar)
     elif add:
         msg = """
 #######################################################################
@@ -155,7 +133,9 @@ I hope you know what you are doing!!!
 #######################################################################
         """
         run_logger.warning(msg)
-        for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False):
+        for ta in tqdm(
+            self.objs.values(), desc="Adding new tables", leave=False, disable=not bar
+        ):
             for sqlexpr in ta.create():
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -173,7 +153,9 @@ I hope you know what you are doing!!!
                         pass
                     else:
                         raise Error(e)
-        for v in tqdm(self.viewlist, desc="Adding new views", leave=False):
+        for v in tqdm(
+            self.viewlist, desc="Adding new views", leave=False, disable=not bar
+        ):
             try:
                 sqlexecute(conn.connect(), v.create())
             except Error as e:
@@ -184,7 +166,9 @@ I hope you know what you are doing!!!
                 else:
                     raise Error(e)
 
-        for ta in tqdm(self.objs.values(), desc="Adding new columns", leave=False):
+        for ta in tqdm(
+            self.objs.values(), desc="Adding new columns", leave=False, disable=not bar
+        ):
             for sqlexpr in self.add_cols(ta):
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
