@@ -23,10 +23,7 @@ ERROR_NOT_MODEL = trim_error(ERROR_NOT_MODEL)
 ERROR_NOT_MODEL_FUNCTION = trim_error(ERROR_NOT_MODEL_FUNCTION)
 ERROR_RUNNING_MODEL_FACT = trim_error(ERROR_RUNNING_MODEL_FACT)
 
-no_colons = st.text(
-    st.characters(whitelist_categories=("Lu", "Ll"), blacklist_characters=(":")),
-    min_size=1,
-)
+no_colons = st.text(st.characters(whitelist_categories=("Lu", "Ll"), blacklist_characters=(":")), min_size=1,)
 
 
 @given(no_colons, no_colons)

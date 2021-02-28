@@ -5,9 +5,7 @@ import configparser
 
 
 def get_config():
-    config = configparser.ConfigParser(
-        interpolation=configparser.ExtendedInterpolation()
-    )
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     def_pth = join(dirname(__file__), "model.cfg")
     config_pth = environ.get("MODEL_CONFIG", def_pth)
     if exists(config_pth):

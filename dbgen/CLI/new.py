@@ -74,9 +74,7 @@ dirs = [
 parser = ArgumentParser(description="Initialize a dbGen model", allow_abbrev=True)
 parser.add_argument("--pth", type=str, help="Root folder", required=True)
 parser.add_argument("--name", type=str, help="Name of model", required=True)
-parser.add_argument(
-    "--env", default=".env/bin/activate", type=str, help="Name of model"
-)
+parser.add_argument("--env", default=".env/bin/activate", type=str, help="Name of model")
 parser.add_argument("--create-env", action="store_true", help="Create a virtual env")
 
 ################################################################################

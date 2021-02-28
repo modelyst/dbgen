@@ -49,12 +49,7 @@ class Load(Base):
     """
 
     def __init__(
-        self,
-        obj: str,
-        attrs: D[str, ArgLike],
-        fks: D[str, "Load"],
-        pk: Arg = None,
-        insert: bool = False,
+        self, obj: str, attrs: D[str, ArgLike], fks: D[str, "Load"], pk: Arg = None, insert: bool = False,
     ) -> None:
         """
         Initializes Load object with relevant Objects and nested Loads. This is
@@ -118,11 +113,7 @@ class Load(Base):
     def newcols(self, universe: D[str, "Obj"]) -> L[str]:
         """All attributes that could be populated by this load"""
         obj = universe[self.obj]
-        out = [
-            self.obj + "." + a
-            for a in self.attrs.keys()
-            if (self.insert or (a not in obj.ids()))
-        ]
+        out = [self.obj + "." + a for a in self.attrs.keys() if (self.insert or (a not in obj.ids()))]
         for k, a in self.fks.items():
             if self.insert or (k not in obj.id_fks()):
                 try:
@@ -133,9 +124,7 @@ class Load(Base):
                     pdb.set_trace()
         return out
 
-    def act(
-        self, cxn: Conn, universe: "UNIVERSE_TYPE", rows: L[dict], gen_name: str,
-    ) -> None:
+    def act(self, cxn: Conn, universe: "UNIVERSE_TYPE", rows: L[dict], gen_name: str,) -> None:
         """
         Top level call from a Generator to execute an load (top level is
         always insert or update, never just a select)
@@ -156,15 +145,9 @@ class Load(Base):
     def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
 
-        common_load_kwargs = dict(
-            obj=nonempty, attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),
-        )
+        common_load_kwargs = dict(obj=nonempty, attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),)
         load_ = builds(
-            cls,
-            fks=just(dict()),
-            pk=Arg._strat(),
-            insert=just(False),
-            **common_load_kwargs,  # type: ignore
+            cls, fks=just(dict()), pk=Arg._strat(), insert=just(False), **common_load_kwargs,  # type: ignore
         )
         load0 = builds(
             cls,
@@ -220,9 +203,7 @@ class Load(Base):
                 elif isinstance(val, list) and isinstance(val[0], int):
                     pass
                 else:
-                    raise ValueError(
-                        f"Primary Key is not an int or None: {row}\n{vv}\n{vv.pk}\n{val}"
-                    )
+                    raise ValueError(f"Primary Key is not an int or None: {row}\n{vv}\n{vv.pk}\n{val}")
             else:
                 val, fk_adata = vv._getvals(universe, row)
 
@@ -239,17 +220,13 @@ class Load(Base):
                 idata_prime = [pkdata]
             elif isinstance(pkdata, list) and isinstance(pkdata[0], int):  # HACKY
                 idata_prime = pkdata
-            elif isinstance(pkdata, str) or (
-                isinstance(pkdata, list) and isinstance(pkdata[0], str)
-            ):
+            elif isinstance(pkdata, str) or (isinstance(pkdata, list) and isinstance(pkdata[0], str)):
                 raise TypeError(
                     f"While looking for the PK on {self.obj}, we found a string or list of strings: {pkdata}\n"
                     "PK's should be integers for hashing purposes."
                 )
             else:
-                raise TypeError(
-                    "PK should either receive an int or a list of ints", vars(self)
-                )
+                raise TypeError("PK should either receive an int or a list of ints", vars(self))
         else:
             idata_prime = []
             idata_dict = {}  # type: D[tuple,int]
@@ -269,9 +246,7 @@ class Load(Base):
         assert len(idata_prime) == len(adata), lenerr % (len(idata_prime), len(adata))
         return idata_prime, adata
 
-    def _data_to_stringIO(
-        self, pk: L[int], data: L[tuple], obj_pk_name: str,
-    ) -> StringIO:
+    def _data_to_stringIO(self, pk: L[int], data: L[tuple], obj_pk_name: str,) -> StringIO:
         """
         Function takes in a path to a delimited file and returns a IO object
         where the identifying columns have been hashed into a primary key in the
@@ -297,12 +272,7 @@ class Load(Base):
         return output_file_obj
 
     def _load(
-        self,
-        cxn: Conn,
-        universe: "UNIVERSE_TYPE",
-        rows: L[dict],
-        insert: bool,
-        test: bool = False,
+        self, cxn: Conn, universe: "UNIVERSE_TYPE", rows: L[dict], insert: bool, test: bool = False,
     ) -> L[int]:
         """
         Helpful docstring
@@ -331,9 +301,7 @@ class Load(Base):
 
         return [int(x) for x in pk]
 
-    def _load_data(
-        self, cxn: Conn, obj_pk_name: str, io_obj: StringIO, insert: bool
-    ) -> None:
+    def _load_data(self, cxn: Conn, obj_pk_name: str, io_obj: StringIO, insert: bool) -> None:
         """
         Function that quickly loads an io_obj import the database specified
         obj_pk_name. Insert flag determines whether we update or insert.
@@ -366,11 +334,7 @@ class Load(Base):
             obj=self.obj, temp_table_name=temp_table_name
         )
 
-        cols = (
-            [obj_pk_name]
-            + list(sorted(self.attrs.keys()))
-            + list(sorted(self.fks.keys()))
-        )
+        cols = [obj_pk_name] + list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
         escaped_cols = ['"' + col + '"' for col in cols]
         from dbgen.templates import jinja_env
 
@@ -403,9 +367,7 @@ class Load(Base):
                 if query_fail_count == NUM_QUERY_TRIES:
                     raise ValueError("Query Cancel fail max reached")
                 try:
-                    curs.copy_from(
-                        io_obj, temp_table_name, null="None", columns=escaped_cols
-                    )
+                    curs.copy_from(io_obj, temp_table_name, null="None", columns=escaped_cols)
                     break
                 except QueryCanceled:
                     print("Query cancel failed")
@@ -421,21 +383,15 @@ class Load(Base):
             self._logger.debug("transfer from temp table to main table")
             while True:
                 if fk_fail_count == 10:
-                    raise ValueError(
-                        "User Canceled due to large number of FK violations"
-                    )
+                    raise ValueError("User Canceled due to large number of FK violations")
                 # check for ForeignKeyViolation error
                 try:
                     curs.execute(load_statement)
                     break
                 except psycopg2.errors.ForeignKeyViolation as exc:
-                    pattern = (
-                        'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
-                    )
+                    pattern = 'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
                     fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
-                    delete_statement = (
-                        f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
-                    )
+                    delete_statement = f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
                     curs.execute(delete_statement)
                     print(
                         f"ForeignKeyViolation: tried to insert {fk_pk} into"
@@ -478,19 +434,13 @@ class Load(Base):
 
         io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
 
-        cols = (
-            [obj_pk_name]
-            + list(sorted(self.attrs.keys()))
-            + list(sorted(self.fks.keys()))
-        )
+        cols = [obj_pk_name] + list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
         table_rows = []
         while True:
             line = io_obj.readline()
             if not line:
                 break
-            table_rows.append(
-                {col: val for col, val in zip(cols, line.strip("\n").split("\t"))}
-            )
+            table_rows.append({col: val for col, val in zip(cols, line.strip("\n").split("\t"))})
 
         output = {self.obj + ("_insert" if self.insert else ""): table_rows}
         # Save the rows of recursive loads
@@ -506,15 +456,11 @@ class Load(Base):
         """
         Output a stringified version of load that can be run in an Airflow PythonOperator
         """
-        attrs = ",".join(
-            ["%s=%s" % (k, v.make_src(meta=True)) for k, v in self.attrs.items()]
-        )
+        attrs = ",".join(["%s=%s" % (k, v.make_src(meta=True)) for k, v in self.attrs.items()])
         template = (
             "Load(obj= '{{ obj }}',attrs= dict({{attrs}}),"
             "fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})"
         )
         fks = ",".join(["%s=%s" % (k, v.make_src()) for k, v in self.fks.items()])
         pk = None if self.pk is None else self.pk.make_src(meta=True)
-        return Template(template).render(
-            obj=self.obj, attrs=attrs, fks=fks, pk=pk, insert=self.insert
-        )
+        return Template(template).render(obj=self.obj, attrs=attrs, fks=fks, pk=pk, insert=self.insert)

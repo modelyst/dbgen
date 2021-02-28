@@ -75,9 +75,7 @@ class Arg(ArgLike):
         except KeyError:
             if self.key not in dic:
                 raise DBgenMissingInfo(
-                    "could not find hash, looking for {} at this hash {}".format(
-                        self.name, self.key
-                    )
+                    "could not find hash, looking for {} at this hash {}".format(self.name, self.key)
                 )
             else:
                 err = "could not find '%s' in %s "
@@ -175,11 +173,7 @@ class PyBlock(Base):
             output = self.func(*inputvars)
             if isinstance(output, tuple):
                 l1, l2 = len(output), len(self.outnames)
-                assert l1 == l2, "Expected %d outputs from %s, got %d" % (
-                    l2,
-                    self.func.name,
-                    l1,
-                )
+                assert l1 == l2, "Expected %d outputs from %s, got %d" % (l2, self.func.name, l1,)
                 return {o: val for val, o in zip(output, self.outnames)}
             else:
                 assert len(self.outnames) == 1
@@ -197,9 +191,7 @@ class PyBlock(Base):
 
     def _constargs(self) -> L[Func]:
         """all callable constant args"""
-        return [
-            c.val for c in self.args if isinstance(c, Const) and isinstance(c.val, Func)
-        ]
+        return [c.val for c in self.args if isinstance(c, Const) and isinstance(c.val, Func)]
 
     def validate_inputs(self) -> None:
         # Check for iterability
@@ -217,9 +209,7 @@ class PyBlock(Base):
             if dups:
                 err = f"No duplicates in outnames for func {self.func.name}: {dups}"
                 raise DBgenInvalidArgument(err)
-        invalid_args = [
-            i for i, arg in enumerate(self.args) if not isinstance(arg, ArgLike)
-        ]
+        invalid_args = [i for i, arg in enumerate(self.args) if not isinstance(arg, ArgLike)]
         if invalid_args:
             raise DBgenMissingInfo(
                 f"Argument(s) {' ,'.join(map(str,invalid_args))} to {self.func.name} are not ArgLike:\n Did you forget to wrap a Const around a PyBlock Arguement?"
@@ -246,9 +236,7 @@ class PyBlock(Base):
         # Prepare the template args
         args = [a.make_src() for a in self.args]
         name = self.func.name.replace("<lambda>", "func")
-        src = ("func=" if "<lambda>" in self.func.name else "") + self.func.src.replace(
-            "\t", "   "
-        )
+        src = ("func=" if "<lambda>" in self.func.name else "") + self.func.src.replace("\t", "   ")
 
         # Set the template args
         template_kwargs = dict(src=src, outnames=self.outnames, args=args, name=name)

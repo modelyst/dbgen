@@ -44,9 +44,7 @@ def interact_gen(
     valid_responses = ("s", "c", "q", "m")
     # Initialize the response to user input and formatting delimiter func
     answer: Opt[str] = ""
-    delimiter = lambda: print(
-        "#----------------------------------------------------------------------------"
-    )
+    delimiter = lambda: print("#----------------------------------------------------------------------------")
     # Pretty table for displaying input row data
     if input_rows:
         x = PrettyTable(field_names=list(input_rows[0].keys()))
@@ -56,9 +54,7 @@ def interact_gen(
     while len(input_rows) > 0 and answer != "q":
         print_len = 200
         next_row = dict(input_rows.pop(0))
-        next_row_str = lambda x: (
-            str(next_row)[:x] + "..." if len(str(next_row)) > x else dict(next_row)
-        )
+        next_row_str = lambda x: (str(next_row)[:x] + "..." if len(str(next_row)) > x else dict(next_row))
         system("clear")
         print("Next Row:")
         x.add_row(next_row.values())
@@ -74,9 +70,7 @@ def interact_gen(
                 delimiter()
             else:
                 delimiter()
-            answer = input(
-                "Continue(c), quit (q), skip (s), or expand current row(m)?\n"
-            ).lower()
+            answer = input("Continue(c), quit (q), skip (s), or expand current row(m)?\n").lower()
             if answer == "q":
                 print("Quitting...")
                 return post_pyblocks, load_dicts
@@ -86,9 +80,7 @@ def interact_gen(
             continue
         delimiter()
         print("Processing Row...")
-        list_of_processed_namespaces, curr_load_dicts = gen.test(
-            objs, [next_row], verbose=True
-        )
+        list_of_processed_namespaces, curr_load_dicts = gen.test(objs, [next_row], verbose=True)
         curr_output = list_of_processed_namespaces[0]
         curr_load_dict = curr_load_dicts[0]
         system("clear")
@@ -105,9 +97,7 @@ def interact_gen(
             for key in curr_output.keys():
                 print("\t- " + key)
             delimiter()
-            display = input(
-                "What pyblock to display? (tab to see options/q to quit)\n"
-            ).lower()
+            display = input("What pyblock to display? (tab to see options/q to quit)\n").lower()
             if display in curr_output:
                 delimiter()
                 if display == "query":
@@ -143,9 +133,7 @@ def interact_gen(
                 print("\t- " + key + f" ({len(curr_load_dict[key])} rows)")
 
             delimiter()
-            display = input(
-                "What load to display? (tab to see options/q to quit)\n"
-            ).lower()
+            display = input("What load to display? (tab to see options/q to quit)\n").lower()
             if display in curr_load_dict:
                 delimiter()
                 print(f"Table Name: {display}")
@@ -159,9 +147,7 @@ def interact_gen(
                         table = PrettyTable(field_names=list(all_keys))
                         for row in curr_load_dict[display][:max_rows]:
                             row_data = list(row.get(key) for key in all_keys)
-                            row_data = [
-                                (data if data != "" else '""') for data in row_data
-                            ]
+                            row_data = [(data if data != "" else '""') for data in row_data]
                             table.add_row(row_data)
                         print(table)
                     else:

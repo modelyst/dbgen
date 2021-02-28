@@ -47,23 +47,13 @@ def ObjStrat(
         a.name = attrs[i] if attrs is not None else xx[1 + i]
     fklist = draw(lists(UserRelStrat(), min_size=MIN_FK, max_size=MAX_FK))
     for i, f, in enumerate(fklist):
-        f.name, f.tar = (
-            fks[i] if fks is not None else (xx[1 + MAX_ATTR + i], xx[1 + MAX_ATTR + i])
-        )
-    b = builds(
-        Obj,
-        name=just(name if name else xx[0]),
-        desc=infer,
-        attrs=just(attrs),
-        fks=just(fklist),
-    )
+        f.name, f.tar = fks[i] if fks is not None else (xx[1 + MAX_ATTR + i], xx[1 + MAX_ATTR + i])
+    b = builds(Obj, name=just(name if name else xx[0]), desc=infer, attrs=just(attrs), fks=just(fklist),)
     return draw(b)
 
 
 @composite
-def SchemaStrat(
-    draw: C, MAX_OBJ: int = None, MAX_FK: int = None
-) -> SearchStrategy[Schema]:
+def SchemaStrat(draw: C, MAX_OBJ: int = None, MAX_FK: int = None) -> SearchStrategy[Schema]:
     """Strategy for DBgen Obj object"""
     MAX_OBJ = MAX_OBJ or 2
     MAX_FK = MAX_FK or 2
@@ -72,10 +62,6 @@ def SchemaStrat(
     for o in objnames:
         fktargets = draw(lists(sampled_from(objnames), min_size=1, max_size=MAX_FK))
         n = len(fktargets)
-        fknames = draw(
-            lists(letters, min_size=n, max_size=n, unique=True).filter(
-                lambda fkn: o not in fkn
-            )
-        )
+        fknames = draw(lists(letters, min_size=n, max_size=n, unique=True).filter(lambda fkn: o not in fkn))
         objlist.append(draw(ObjStrat(name=o, fks=list(zip(fknames, fktargets)))))
     return draw(builds(Schema, objlist=just(objlist)))

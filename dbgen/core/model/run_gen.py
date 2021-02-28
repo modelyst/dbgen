@@ -121,21 +121,15 @@ def run_gen(
             # If generator has the batch_size set then that will be used next
             elif gen.batch_size is not None:
                 batch_size = gen.batch_size
-                logger.info(
-                    f"Using the {gen.name} specified batch size: {gen.batch_size}"
-                )
+                logger.info(f"Using the {gen.name} specified batch size: {gen.batch_size}")
             elif skip_row_count:
                 batch_size = 1
-                logger.info(
-                    f"Using a default batch size of 1 since --skip-row-count flag is set"
-                )
+                logger.info(f"Using a default batch size of 1 since --skip-row-count flag is set")
             # Finally if nothing is the default is set to batchify the inputs into
             # 20 batches
             else:
                 batch_size = ceil(num_inputs / 20) if num_inputs > 0 else 1
-                logger.info(
-                    f"Using the default batch size to get 20 batches: {batch_size}"
-                )
+                logger.info(f"Using the default batch size to get 20 batches: {batch_size}")
 
             tq.update()
 
@@ -148,9 +142,7 @@ def run_gen(
             rpt_select_output = sqlselect(gmcxn, rpt_select, [a_id])
             rpt_select_output = [str(x[0]) for x in rpt_select_output]  # type: ignore
             rpt_select_output = set(rpt_select_output)  # type: ignore
-            for _ in tqdm(
-                range(ceil(num_inputs / batch_size)), desc="Applying", **bargs
-            ):
+            for _ in tqdm(range(ceil(num_inputs / batch_size)), desc="Applying", **bargs):
                 # fetch the current batch of inputs
                 if gen.query:
                     logger.debug(f"Fetching batch")
@@ -171,11 +163,7 @@ def run_gen(
                         # pair each input row with its hash
                         unfiltered_inputs = [(x, hasher(x)) for x in inputs]
                         # remove the hashes that are already in the processed_hashes
-                        inputs = [
-                            (x, hx)
-                            for x, hx in unfiltered_inputs
-                            if hx not in rpt_select_output
-                        ]
+                        inputs = [(x, hx) for x, hx in unfiltered_inputs if hx not in rpt_select_output]
                         tq.update()
 
                 # If we have no query or if we have any inputs we apply the ETL to the batch
@@ -231,9 +219,7 @@ def transform_func(
     return d, in_hash
 
 
-def delete_unused_keys(
-    namespace: D[str, Any], keys_to_save: D[str, S[str]]
-) -> D[str, Any]:
+def delete_unused_keys(namespace: D[str, Any], keys_to_save: D[str, S[str]]) -> D[str, Any]:
     new_namespace = {}
     for hash_loc, names in keys_to_save.items():
         try:
@@ -242,9 +228,7 @@ def delete_unused_keys(
             raise DBgenInternalError(
                 f"Looking for the namespace dict with keys: {names}, at location {hash_loc} but can't find it.\nDid you leave out the query?\nKeys:{list(namespace.keys())}"
             )
-        pruned_dict = {
-            key: val for key, val in names_space_dict.items() if key in names
-        }
+        pruned_dict = {key: val for key, val in names_space_dict.items() if key in names}
         new_namespace[hash_loc] = pruned_dict
     return new_namespace
 
@@ -280,13 +264,9 @@ def apply_batch(
     # Transform the data
     with tqdm(total=n_inputs, desc="Transforming", **bargs) as tq:
         transform_func_curr = partial(transform_func, pbs=f, qhsh=qhsh, logger=logger)
-        for i, (output_dict, output_hash) in enumerate(
-            mapper(transform_func_curr, inputs)
-        ):
+        for i, (output_dict, output_hash) in enumerate(mapper(transform_func_curr, inputs)):
             if output_dict:
-                processed_namespaces.append(
-                    delete_unused_keys(output_dict, keys_to_save)
-                )
+                processed_namespaces.append(delete_unused_keys(output_dict, keys_to_save))
                 if output_hash is not None:
                     processed_hashes.append(output_hash)
             logger.debug(f"Transformed {i}/{n_inputs}")
@@ -297,10 +277,7 @@ def apply_batch(
     with tqdm(total=len(acts), desc="Loading", **bargs) as tq:
         for i, a in enumerate(acts):
             a.act(
-                cxn=open_db,
-                universe=universe,
-                rows=processed_namespaces,
-                gen_name=gen_name,
+                cxn=open_db, universe=universe, rows=processed_namespaces, gen_name=gen_name,
             )
             logger.debug(f"Loaded {i+1}/{n_loads}")
             tq.update()
@@ -308,9 +285,7 @@ def apply_batch(
     # Store the repeats
     logger.info("Storing Repeats")
     with tqdm(total=1, desc="Storing Repeats", **bargs) as tq:
-        repeat_values: T[L[str], L[int], L[str]] = broadcast(
-            [a_id, run_id, processed_hashes]
-        )
+        repeat_values: T[L[str], L[int], L[str]] = broadcast([a_id, run_id, processed_hashes])
         table_name = "repeats"
         col_names = ["gen", "run", "repeats_id"]
         obj_pk_name = "repeats_id"

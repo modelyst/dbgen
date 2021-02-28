@@ -253,12 +253,7 @@ class Dep(Base):
         a, b, c, d = tuple(
             map(
                 lambda x: ",".join(sorted(x)),
-                [
-                    self.tabs_needed,
-                    self.cols_needed,
-                    self.tabs_yielded,
-                    self.cols_yielded,
-                ],
+                [self.tabs_needed, self.cols_needed, self.tabs_yielded, self.cols_yielded,],
             )
         )
         return a, b, c, d
@@ -267,9 +262,7 @@ class Dep(Base):
         return pformat(self.__dict__)
 
     def __bool__(self) -> bool:
-        return bool(
-            self.tabs_needed | self.cols_needed | self.tabs_yielded | self.cols_yielded
-        )
+        return bool(self.tabs_needed | self.cols_needed | self.tabs_yielded | self.cols_yielded)
 
     # Public Methods #
 
@@ -300,9 +293,7 @@ class Test(object):
     function. This prints a message: "Not Executed (string of object)"
     """
 
-    def __init__(
-        self, test: C[["Generator", Any], bool], message: C[[Any], str]
-    ) -> None:
+    def __init__(self, test: C[["Generator", Any], bool], message: C[[Any], str]) -> None:
         """
         Initialize test object with callable that takes in a generator and
         returns a bool and a helpful error message.

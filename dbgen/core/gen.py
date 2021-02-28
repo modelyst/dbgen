@@ -107,9 +107,7 @@ class Generator(Base):
     # Public Methods #
     ##################
 
-    def update_status(
-        self, conn: Conn, run_id: int, status: str, err: str = ""
-    ) -> None:
+    def update_status(self, conn: Conn, run_id: int, status: str, err: str = "") -> None:
         """Update this gens status in the meta-database, also set error if provided"""
         cols = ["status", "error"] if err else ["status"]
         binds = [status, err, run_id, self.name] if err else [status, run_id, self.name]
@@ -202,11 +200,7 @@ class Generator(Base):
             sqlexecute(mconn, "DELETE FROM repeats WHERE gen_id = %s", [gid])
 
     def test(
-        self,
-        universe,
-        input_rows: L[D[str, Any]],
-        rename_dict: bool = True,
-        verbose: bool = False,
+        self, universe, input_rows: L[D[str, Any]], rename_dict: bool = True, verbose: bool = False,
     ) -> T[L[dict], L[D[str, L[D[str, Any]]]]]:
         # Apply the
         output_dicts = []
@@ -240,9 +234,7 @@ class Generator(Base):
                 else:
                     # Need to account for multiple pyblocks using same function
                     if name_count[name] > 0:
-                        func_name_dict[pb.hash] = "_".join(
-                            [name, str(name_count[name])]
-                        )
+                        func_name_dict[pb.hash] = "_".join([name, str(name_count[name])])
                     else:
                         func_name_dict[pb.hash] = name
                     name_count[name] += 1
@@ -258,9 +250,7 @@ class Generator(Base):
         # Rename PyBlocks
         if rename_dict:
             for i, row in enumerate(output_dicts):
-                output_dicts[i] = {
-                    func_name_dict.get(key, "query"): val for key, val in row.items()
-                }
+                output_dicts[i] = {func_name_dict.get(key, "query"): val for key, val in row.items()}
 
         return output_dicts, [load_dicts]
 
@@ -276,14 +266,10 @@ class Generator(Base):
         assert limit <= 200, "Don't allow for more than 200 rows with test with db"
         assert (
             db is not None or input_rows
-        ) or self.query is None, (
-            "Need to provide a db connection if generator has a query"
-        )
+        ) or self.query is None, "Need to provide a db connection if generator has a query"
 
         if db is not None and self.query is not None:
-            cursor = db.connect(auto_commit=False).cursor(
-                f"test-{self.name}", cursor_factory=DictCursor
-            )
+            cursor = db.connect(auto_commit=False).cursor(f"test-{self.name}", cursor_factory=DictCursor)
             # If there is a query get the row count and execute it
             query_str = self.query.showQ(limit=limit)
             print("Executing Query...")
@@ -334,9 +320,7 @@ class Generator(Base):
         saved_keys = {}  # type: D[str,S[str]]
         for act in self.loads:
             for hash_loc, name_set in self._get_saved_key_dict(act).items():
-                saved_keys.update(
-                    {hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])}
-                )
+                saved_keys.update({hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])})
 
         return saved_keys
 
@@ -346,21 +330,15 @@ class Generator(Base):
             if isinstance(load.pk, Arg):
                 hash_loc = load.pk.key
                 arg_name = load.pk.name
-                saved_keys.update(
-                    {hash_loc: set([arg_name, *saved_keys.get(hash_loc, set())])}
-                )
+                saved_keys.update({hash_loc: set([arg_name, *saved_keys.get(hash_loc, set())])})
 
         for val in load.attrs.values():
             if isinstance(val, Arg):
-                saved_keys.update(
-                    {val.key: set([val.name, *saved_keys.get(val.key, set())])}
-                )
+                saved_keys.update({val.key: set([val.name, *saved_keys.get(val.key, set())])})
 
         for fk_load in load.fks.values():
             for hash_loc, name_set in self._get_saved_key_dict(fk_load).items():
-                saved_keys.update(
-                    {hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])}
-                )
+                saved_keys.update({hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])})
 
         return saved_keys
 
@@ -375,15 +353,9 @@ class Generator(Base):
         gen_template = jinja_env.get_template("generator.py.jinja")
 
         # Prepare the rendered arguments
-        pbs = [
-            ("pb" + str(pb.hash).replace("-", "neg"), pb.hash, pb.make_src())
-            for pb in self.transforms
-        ]
+        pbs = [("pb" + str(pb.hash).replace("-", "neg"), pb.hash, pb.make_src()) for pb in self.transforms]
         loaders = [loader.make_src() for loader in self.loads]
-        objs = {
-            oname: (o.id_str, repr(o.ids()), repr(o.id_fks()))
-            for oname, o in universe.items()
-        }
+        objs = {oname: (o.id_str, repr(o.ids()), repr(o.id_fks())) for oname, o in universe.items()}
         consttransforms = [cf.src for cf in self._constargs()]
 
         # Set the template arguements

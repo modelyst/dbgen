@@ -26,7 +26,7 @@ def run_airflow(
     bar: bool = True,
     clean: bool = False,
     batch: int = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """
     Create an airflow DAG, then execute it.
@@ -54,9 +54,7 @@ def run_airflow(
 
     # Check if the schema exists
     if not self.check_schema_exists(connI):
-        raise ValueError(
-            "Your Schema doesn't exist yet, please run with --nuke=T the first time"
-        )
+        raise ValueError("Your Schema doesn't exist yet, please run with --nuke=T the first time")
 
     # Make metatables
     # ----------------
@@ -73,10 +71,7 @@ def run_airflow(
     )
 
     gen_hash_dict = {gen_name: gen.hash for gen_name, gen in self.gens.items()}
-    objs = {
-        oname: (o.id_str, repr(o.ids()), repr(o.id_fks()))
-        for oname, o in self.objs.items()
-    }
+    objs = {oname: (o.id_str, repr(o.ids()), repr(o.id_fks())) for oname, o in self.objs.items()}
     deps = list(self._gen_graph().edges())
     template_kwargs = dict(
         user=environ["USER"],

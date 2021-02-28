@@ -63,16 +63,10 @@ class RunOperator(BaseOperator):
         gcxn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         mgcxn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
-        conn_info = ConnI.from_postgres_hook(
-            PostgresHook.get_connection(self.db_conn_id)
-        )
-        mconn_info = ConnI.from_postgres_hook(
-            PostgresHook.get_connection(self.mdb_conn_id)
-        )
+        conn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.db_conn_id))
+        mconn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.mdb_conn_id))
 
-        assert (
-            gen.hash == self.gen_hash
-        ), "Serialization error, The gen hash has changed!"
+        assert gen.hash == self.gen_hash, "Serialization error, The gen hash has changed!"
 
         run_gen_args: D[str, Any] = dict(
             self=None,

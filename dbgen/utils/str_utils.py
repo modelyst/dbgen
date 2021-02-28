@@ -1,6 +1,23 @@
-from typing import Any
-from json import dumps
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from hashlib import sha256
+from json import dumps
+from typing import Any
 
 Any
 ################################################################################
@@ -13,7 +30,6 @@ def hash_(x: "Any") -> str:
     NEW: Take a list of showable things and generate a unique hash value in
        longint range (-9223372036854775808 to +9223372036854775807)
     """
-
     json_string = dumps(x, sort_keys=True, indent=4, separators=(",", ": "))
     return hashdata_(json_string)
 
@@ -56,15 +72,6 @@ def levenshteinDistance(s1: str, s2: str) -> int:
             if c1 == c2:
                 distances_.append(distances[i1])
             else:
-                distances_.append(
-                    1 + min((distances[i1], distances[i1 + 1], distances_[-1]))
-                )
+                distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
         distances = distances_
     return distances[-1]
-
-
-if __name__ == "__main__":
-    from dbgen.core.expr.sqltypes import Decimal
-
-    test = Decimal().hash
-    print(test)

@@ -93,9 +93,7 @@ def narystrat(x: SearchStrategy) -> SearchStrategy:
 
 
 def exprstrat() -> SearchStrategy:
-    return recursive(
-        nullarystrat(), lambda x: unarystrat(x) | binarystrat(x) | narystrat(x)
-    )
+    return recursive(nullarystrat(), lambda x: unarystrat(x) | binarystrat(x) | narystrat(x))
 
 
 if __name__ == "__main__":

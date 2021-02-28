@@ -53,13 +53,9 @@ class Path(Base):
         if fks and fks[0]:
             if isinstance(fks[0], list):
                 for fk in fks[0]:
-                    assert self.end in fk[0].objs, err.format(
-                        self.end, fk[0].objs, fk[0], self.fks
-                    )
+                    assert self.end in fk[0].objs, err.format(self.end, fk[0].objs, fk[0], self.fks)
             else:
-                assert self.end in fks[0].objs, err.format(
-                    self.end, fks[0].objs, fks[0], self.fks
-                )
+                assert self.end in fks[0].objs, err.format(self.end, fks[0].objs, fks[0], self.fks)
         super().__init__()
 
     def __str__(self) -> str:
@@ -75,9 +71,7 @@ class Path(Base):
         P1 (A --> B), P2 (B --> C) ==> P1 + P2 (A --> C)
         """
         assert other.linear, "Cannot concatenate paths if the second path branches"
-        assert (
-            self.end == other.base
-        ), "Cannot concatenate paths unless head/tail matches"
+        assert self.end == other.base, "Cannot concatenate paths unless head/tail matches"
         return Path(other.end, other.fks + self.fks)
 
     def __sub__(self, other: "Path") -> "Path":
@@ -197,9 +191,7 @@ class Join(Base):
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
-        return builds(
-            cls, obj=nonempty, conds=dictionaries(Join._strat(), Rel._strat())
-        )
+        return builds(cls, obj=nonempty, conds=dictionaries(Join._strat(), Rel._strat()))
 
     # Public Methods
     def add(self, j: "Join", e: "SuperRel") -> None:
@@ -262,13 +254,9 @@ class Join(Base):
         conds = []  # type: L[str]
         for fk in rels:
             o = fk.other(self.obj)
-            forward = (
-                o == fk.source
-            )  # Rel in forward direction. Self.obj is the 'old table'
+            forward = o == fk.source  # Rel in forward direction. Self.obj is the 'old table'
             aliases = [j.alias, self.alias]
-            cols = (
-                [fk.name, fk.target_id_str] if forward else [fk.target_id_str, fk.name]
-            )
+            cols = [fk.name, fk.target_id_str] if forward else [fk.target_id_str, fk.name]
             args = [aliases[0], cols[0], aliases[1], cols[1]]
             new = ' "{}"."{}" = "{}"."{}" '.format(*args)
             conds.append(new)
@@ -323,8 +311,5 @@ class From(Base):
     def pks(self, agg: bool = False) -> str:
         col = 'MAX("{0}"."{1}_id")' if agg else '"{0}"."{1}_id"'
         return ",\n\t".join(
-            [
-                (col + ' AS "{0}" ').format(a, j.obj)
-                for a, j in sorted(zip(self.aliases(), self.joins))
-            ]
+            [(col + ' AS "{0}" ').format(a, j.obj) for a, j in sorted(zip(self.aliases(), self.joins))]
         )

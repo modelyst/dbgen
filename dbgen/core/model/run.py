@@ -133,9 +133,7 @@ I hope you know what you are doing!!!
 #######################################################################
         """
         run_logger.warning(msg)
-        for ta in tqdm(
-            self.objs.values(), desc="Adding new tables", leave=False, disable=not bar
-        ):
+        for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False, disable=not bar):
             for sqlexpr in ta.create():
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -146,16 +144,12 @@ I hope you know what you are doing!!!
                         pass
                     # Error code for when a relation doesn't exist on a table we
                     # are adding
-                    elif re.match(
-                        'column "\w+" of relation "\w+" does not exist', str(e)
-                    ):
+                    elif re.match('column "\w+" of relation "\w+" does not exist', str(e)):
                         run_logger.debug(f"PGERROR: {e}")
                         pass
                     else:
                         raise Error(e)
-        for v in tqdm(
-            self.viewlist, desc="Adding new views", leave=False, disable=not bar
-        ):
+        for v in tqdm(self.viewlist, desc="Adding new views", leave=False, disable=not bar):
             try:
                 sqlexecute(conn.connect(), v.create())
             except Error as e:
@@ -166,9 +160,7 @@ I hope you know what you are doing!!!
                 else:
                     raise Error(e)
 
-        for ta in tqdm(
-            self.objs.values(), desc="Adding new columns", leave=False, disable=not bar
-        ):
+        for ta in tqdm(self.objs.values(), desc="Adding new columns", leave=False, disable=not bar):
             for sqlexpr in self.add_cols(ta):
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -278,10 +270,7 @@ I hope you know what you are doing!!!
     gcxn.close()
     gmcxn.close()
     if bar:
-        run_logger.info(
-            "\nFinished.\n\t"
-            + ("did not run %s" % not_run if not_run else "Ran all Rules")
-        )
+        run_logger.info("\nFinished.\n\t" + ("did not run %s" % not_run if not_run else "Ran all Rules"))
 
 
 def validate_name(self: "Model", w: str) -> None:

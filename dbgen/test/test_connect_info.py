@@ -19,16 +19,9 @@ def test_parse_dsn():
 
 
 @given(
-    letters,
-    letters,
-    st.integers(min_value=0, max_value=9999),
-    letters_complex,
-    letters,
-    letters,
+    letters, letters, st.integers(min_value=0, max_value=9999), letters_complex, letters, letters,
 )
-def test_parse_dsn_hypo(
-    user: str, host: str, port: int, password: str, schema: str, dbname: str
-):
+def test_parse_dsn_hypo(user: str, host: str, port: int, password: str, schema: str, dbname: str):
     """Hypothesis driven string with basic inputs"""
     db_string = f"postgresql://{user}:{quote_plus(password)}@{host}:{port}/{dbname}"
     conn = ConnectInfo.from_dsn(db_string, schema=schema)

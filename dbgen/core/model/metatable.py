@@ -44,13 +44,7 @@ objs = [
     Obj(
         "temp",
         desc="Temporary table that is populated and truncated after checking for repeat values",
-        attrs=[
-            Attr(
-                "ind",
-                identifying=True,
-                desc="Index to a list of query-generated inputs",
-            )
-        ],
+        attrs=[Attr("ind", identifying=True, desc="Index to a list of query-generated inputs",)],
     ),
     Obj(
         "object",
@@ -68,11 +62,7 @@ objs = [
         ],
         fks=[Rel("object", identifying=True)],
     ),
-    Obj(
-        "view",
-        "SQL view",
-        attrs=[Attr("name", Varchar(), identifying=True), Attr("query", Text("long"))],
-    ),
+    Obj("view", "SQL view", attrs=[Attr("name", Varchar(), identifying=True), Attr("query", Text("long"))],),
     Obj(
         "func",
         "Python functions that get used during generation of Objects/Attributes",
@@ -87,28 +77,16 @@ objs = [
             Attr("gen_json", Text()),
         ],
     ),
-    Obj(
-        "pyblock",
-        "decorated python function",
-        attrs=[],
-        fks=[Rel("gen", identifying=True), Rel("func")],
-    ),
+    Obj("pyblock", "decorated python function", attrs=[], fks=[Rel("gen", identifying=True), Rel("func")],),
     Obj(
         "const",
         "A constant injected into the namespace of an generator",
-        attrs=[
-            Attr("dtype", Varchar(), identifying=True),
-            Attr("val", Text(), identifying=True),
-        ],
+        attrs=[Attr("dtype", Varchar(), identifying=True), Attr("val", Text(), identifying=True),],
     ),
     Obj(
         "arg",
         "How a PyBlock refers to a namespace",
-        attrs=[
-            Attr("ind", Int(), identifying=True),
-            Attr("keyname", Varchar()),
-            Attr("name", Varchar()),
-        ],
+        attrs=[Attr("ind", Int(), identifying=True), Attr("keyname", Varchar()), Attr("name", Varchar()),],
         fks=[Rel("const")],
     ),
     Obj(

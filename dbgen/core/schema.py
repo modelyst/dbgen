@@ -199,9 +199,7 @@ class QView(View):
 
 
 class RawView(View):
-    def __init__(
-        self, name: str, q: str, deps: L[str] = None, new: L[str] = None
-    ) -> None:
+    def __init__(self, name: str, q: str, deps: L[str] = None, new: L[str] = None) -> None:
         self.name = name
         self.raw = q
         self.deps = deps or []
@@ -229,11 +227,7 @@ class UserRel(Base):
     """
 
     def __init__(
-        self,
-        name: str,
-        tar: str = None,
-        identifying: bool = False,
-        desc: str = "<No description>",
+        self, name: str, tar: str = None, identifying: bool = False, desc: str = "<No description>",
     ) -> None:
         self.name = name.lower()
         self.desc = desc
@@ -246,25 +240,14 @@ class UserRel(Base):
         return "{}{} -> {}".format(self.name, idstr, self.tar)
 
     def to_rel(self, obj: str) -> "Rel":
-        return Rel(
-            name=self.name,
-            o1=obj,
-            o2=self.tar,
-            identifying=self.identifying,
-            desc=self.desc,
-        )
+        return Rel(name=self.name, o1=obj, o2=self.tar, identifying=self.identifying, desc=self.desc,)
 
 
 class Obj(Base):
     """Object with attributes. Basic entity of a model"""
 
     def __init__(
-        self,
-        name: str,
-        desc: str = None,
-        attrs: L[Attr] = None,
-        fks: L[UserRel] = None,
-        id_str: str = None,
+        self, name: str, desc: str = None, attrs: L[Attr] = None, fks: L[UserRel] = None, id_str: str = None,
     ) -> None:
 
         self.name = name.lower()
@@ -306,8 +289,7 @@ class Obj(Base):
         """
         invalid_args = list(
             filter(
-                lambda keyval: keyval[0] != "insert"
-                and not isinstance(keyval[1], (ArgLike, Load)),
+                lambda keyval: keyval[0] != "insert" and not isinstance(keyval[1], (ArgLike, Load)),
                 kwargs.items(),
             )
         )
@@ -318,10 +300,7 @@ class Obj(Base):
         insert = kwargs.pop("insert", False)
 
         if not pk:  # if we don't have a PK reference
-            err = (
-                "Cannot refer to a row in {} without a PK or essential data."
-                " Missing essential data: {}"
-            )
+            err = "Cannot refer to a row in {} without a PK or essential data." " Missing essential data: {}"
             missing = set(self.ids() + self.id_fks()) - set(kwargs)
             if missing:
                 raise DBgenMissingInfo(err.format(self.name, missing))
@@ -407,16 +386,10 @@ class Obj(Base):
         deld = "deleted BOOLEAN NOT NULL DEFAULT FALSE"
         full_cols = [pk, deld] + list(cols)
 
-        tabdesc = "comment on table \"{}\" is '{}'".format(
-            self.name, self.desc.replace("'", "''")
-        )
+        tabdesc = "comment on table \"{}\" is '{}'".format(self.name, self.desc.replace("'", "''"))
         fmt_args = [create_str, "\n\t,".join(full_cols)]
         cmd = "{}\n\t({})".format(*fmt_args)
-        sqls = (
-            [cmd, tabdesc]
-            + list(coldescs)
-            + list(filter(lambda x: x != "", colindexes))
-        )
+        sqls = [cmd, tabdesc] + list(coldescs) + list(filter(lambda x: x != "", colindexes))
         return sqls
 
     def id(self, path: "AP" = None) -> PK:
@@ -494,12 +467,7 @@ class Rel(Base):
     """
 
     def __init__(
-        self,
-        name: str,
-        o1: str,
-        o2: str = None,
-        identifying: bool = False,
-        desc: str = "<No description>",
+        self, name: str, o1: str, o2: str = None, identifying: bool = False, desc: str = "<No description>",
     ) -> None:
         self.name = name.lower()
         self.desc = desc
@@ -509,12 +477,7 @@ class Rel(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "Rel<%s%s,%s -> %s>" % (
-            self.name,
-            "(id)" if self.identifying else "",
-            self.o1,
-            self.o2,
-        )
+        return "Rel<%s%s,%s -> %s>" % (self.name, "(id)" if self.identifying else "", self.o1, self.o2,)
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -587,12 +550,7 @@ class SuperRel(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "SuperRel<%s,%s -> %s.%s>" % (
-            self.name,
-            self.source,
-            self.target,
-            self.target_id_str,
-        )
+        return "SuperRel<%s,%s -> %s.%s>" % (self.name, self.source, self.target, self.target_id_str,)
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -658,9 +616,7 @@ class Path(Base):
 
     @classmethod
     def _strat(cls) -> "SearchStrategy":
-        return builds(
-            cls, rels=lists(RelTup._strat(), max_size=2), attr=AttrTup._strat()
-        )
+        return builds(cls, rels=lists(RelTup._strat(), max_size=2), attr=AttrTup._strat())
 
     def start(self) -> str:
         """Starting point of a path, always an object (name is returned)"""
@@ -710,9 +666,7 @@ class Path(Base):
 
     def _path_end(self, m: "Schema") -> str:
         """Determine the datatype of the end of a path."""
-        if (not self.attr) or (
-            AttrTup(m[self.attr.obj].id_str, self.attr.obj) == self.attr
-        ):
+        if (not self.attr) or (AttrTup(m[self.attr.obj].id_str, self.attr.obj) == self.attr):
             return "id"
         else:
             o = m[self.attr.obj]

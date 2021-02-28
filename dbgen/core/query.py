@@ -129,9 +129,7 @@ class Query(Expr):
                 import pdb
 
                 pdb.set_trace()
-        return (
-            [o.obj for o in self.option] + self.basis + [a.obj for a in self.allattr()]
-        )
+        return [o.obj for o in self.option] + self.basis + [a.obj for a in self.allattr()]
 
     def allattr(self) -> S[PathAttr]:
         """All path+attributes that are mentioned in query"""
@@ -158,9 +156,7 @@ class Query(Expr):
             f = f | a.path._from()
         return f
 
-    def showQ(
-        self, not_deleted: bool = False, not_null: bool = True, limit: int = None
-    ) -> str:
+    def showQ(self, not_deleted: bool = False, not_null: bool = True, limit: int = None) -> str:
         """
         Render a query
 
@@ -172,24 +168,14 @@ class Query(Expr):
 
         # What we select for
         # -------------------
-        cols = ",\n\t".join(
-            ['%s AS "%s"' % (e, k) for k, e in self.exprs.items()]  # .show(shower)
-        )
+        cols = ",\n\t".join(['%s AS "%s"' % (e, k) for k, e in self.exprs.items()])  # .show(shower)
         cols = "" + cols if cols else ""
         # WHERE and HAVING clauses
         # ---------------------------------
         # Aggregations refered to in WHERE are treated specially
         where = str(self.constr)  # self.show_constr({})
-        notdel = "\n\t".join(
-            ['AND NOT COALESCE("%s".deleted, False)' % o for o in f.aliases()]
-        )
-        notnul = "\n\t".join(
-            [
-                "AND %s IS NOT NULL" % (x)
-                for x in self.allattr()
-                if x not in self.opt_attr
-            ]
-        )
+        notdel = "\n\t".join(['AND NOT COALESCE("%s".deleted, False)' % o for o in f.aliases()])
+        notnul = "\n\t".join(["AND %s IS NOT NULL" % (x) for x in self.allattr() if x not in self.opt_attr])
         where_args = [where]
         where_args += [notdel] if not_deleted else []
         where_args += [notnul] if not_null else []

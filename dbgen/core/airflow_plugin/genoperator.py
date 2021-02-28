@@ -72,17 +72,11 @@ class GenOperator(BaseOperator):
         gcxn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         mgcxn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
-        conn_info = ConnI.from_postgres_hook(
-            PostgresHook.get_connection(self.db_conn_id)
-        )
-        mconn_info = ConnI.from_postgres_hook(
-            PostgresHook.get_connection(self.mdb_conn_id)
-        )
+        conn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.db_conn_id))
+        mconn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.mdb_conn_id))
 
         gen = self._get_gen(mgcxn)
-        assert (
-            gen.hash == self.gen_hash
-        ), "Serialization error, The gen hash doesn't has changed!"
+        assert gen.hash == self.gen_hash, "Serialization error, The gen hash doesn't has changed!"
 
         run_gen_args = dict(
             self=None,
@@ -106,9 +100,7 @@ class GenOperator(BaseOperator):
 
 
 if __name__ == "__main__":
-    test = GenOperator(
-        Generator(name="test_gen"), run_id=1, db_conn_id="", mdb_conn_id=""
-    )
+    test = GenOperator(Generator(name="test_gen"), run_id=1, db_conn_id="", mdb_conn_id="")
     import pdb
 
     pdb.set_trace()

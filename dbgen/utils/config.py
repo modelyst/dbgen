@@ -1,10 +1,28 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Functions for parsing a config file for dbgen environmental variables"""
+import pathlib
+
 # External Imports
 import shlex
 import subprocess
 import sys
 import tempfile
-import pathlib
 from collections import OrderedDict
 from configparser import ConfigParser
 from dataclasses import dataclass, field, fields
@@ -38,9 +56,7 @@ def _read_default_config_file(file_name: str) -> Tuple[str, str]:
         return config_file.read(), file_path
 
 
-DEFAULT_CONFIG, DEFAULT_CONFIG_FILE_PATH = _read_default_config_file(
-    "default_dbgen.cfg"
-)
+DEFAULT_CONFIG, DEFAULT_CONFIG_FILE_PATH = _read_default_config_file("default_dbgen.cfg")
 
 
 def expand_env_var(env_var):
@@ -62,15 +78,9 @@ def expand_env_var(env_var):
 def run_command(command):
     """Runs command and returns stdout"""
     process = subprocess.Popen(
-        shlex.split(command),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        close_fds=True,
+        shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True,
     )
-    output, stderr = [
-        stream.decode(sys.getdefaultencoding(), "ignore")
-        for stream in process.communicate()
-    ]
+    output, stderr = [stream.decode(sys.getdefaultencoding(), "ignore") for stream in process.communicate()]
 
     if process.returncode != 0:
         raise DBgenConfigException(
@@ -122,9 +132,7 @@ class DBgenConfigParser(ConfigParser):
         if env_var_secret_path in environ:
             # if this is a valid secret path...
             if (section, key) in self.sensitive_config_values:
-                return _get_config_value_from_secret_backend(
-                    environ[env_var_secret_path]
-                )
+                return _get_config_value_from_secret_backend(environ[env_var_secret_path])
         return None
 
     def _get_cmd_option(self, section, key):
@@ -154,27 +162,19 @@ class DBgenConfigParser(ConfigParser):
             (section, key), (None, None, None)
         )
 
-        option = self._get_environment_variables(
-            deprecated_key, deprecated_section, key, section
-        )
+        option = self._get_environment_variables(deprecated_key, deprecated_section, key, section)
         if option is not None:
             return option
 
-        option = self._get_option_from_config_file(
-            deprecated_key, deprecated_section, key, kwargs, section
-        )
+        option = self._get_option_from_config_file(deprecated_key, deprecated_section, key, kwargs, section)
         if option is not None:
             return option
 
-        option = self._get_option_from_commands(
-            deprecated_key, deprecated_section, key, section
-        )
+        option = self._get_option_from_commands(deprecated_key, deprecated_section, key, section)
         if option is not None:
             return option
 
-        option = self._get_option_from_secrets(
-            deprecated_key, deprecated_section, key, section
-        )
+        option = self._get_option_from_secrets(deprecated_key, deprecated_section, key, section)
         if option is not None:
             return option
 
@@ -188,13 +188,9 @@ class DBgenConfigParser(ConfigParser):
         else:
             logger.warning("section/key [%s/%s] not found in config", section, key)
 
-            raise DBgenConfigException(
-                f"section/key [{section}/{key}] not found in config"
-            )
+            raise DBgenConfigException(f"section/key [{section}/{key}] not found in config")
 
-    def _get_option_from_secrets(
-        self, deprecated_key, deprecated_section, key, section
-    ):
+    def _get_option_from_secrets(self, deprecated_key, deprecated_section, key, section):
         # ...then from secret backends
         option = self._get_secret_option(section, key)
         if option:
@@ -206,9 +202,7 @@ class DBgenConfigParser(ConfigParser):
                 return option
         return None
 
-    def _get_option_from_commands(
-        self, deprecated_key, deprecated_section, key, section
-    ):
+    def _get_option_from_commands(self, deprecated_key, deprecated_section, key, section):
         # ...then commands
         option = self._get_cmd_option(section, key)
         if option:
@@ -220,9 +214,7 @@ class DBgenConfigParser(ConfigParser):
                 return option
         return None
 
-    def _get_option_from_config_file(
-        self, deprecated_key, deprecated_section, key, kwargs, section
-    ):
+    def _get_option_from_config_file(self, deprecated_key, deprecated_section, key, kwargs, section):
         # ...then the config file
         if super().has_option(section, key):
             # Use the parent's methods to get the actual config here to be able to
@@ -231,14 +223,10 @@ class DBgenConfigParser(ConfigParser):
         if deprecated_section:
             if super().has_option(deprecated_section, deprecated_key):
                 self._warn_deprecate(section, key, deprecated_section, deprecated_key)
-                return expand_env_var(
-                    super().get(deprecated_section, deprecated_key, **kwargs)
-                )
+                return expand_env_var(super().get(deprecated_section, deprecated_key, **kwargs))
         return None
 
-    def _get_environment_variables(
-        self, deprecated_key, deprecated_section, key, section
-    ):
+    def _get_environment_variables(self, deprecated_key, deprecated_section, key, section):
         # first check environment variables
         option = self._get_env_var_option(section, key)
         if option is not None:
@@ -250,9 +238,7 @@ class DBgenConfigParser(ConfigParser):
                 return option
         return None
 
-    def getsection(
-        self, section: str
-    ) -> Optional[Dict[str, Union[str, int, float, bool]]]:
+    def getsection(self, section: str) -> Optional[Dict[str, Union[str, int, float, bool]]]:
         """
         Returns the section as a dict. Values are converted to int, float, bool
         as required.
@@ -260,9 +246,7 @@ class DBgenConfigParser(ConfigParser):
         :param section: section from the config
         :rtype: dict
         """
-        if not self.has_section(section) and not self.dbgen_defaults.has_section(
-            section
-        ):
+        if not self.has_section(section) and not self.dbgen_defaults.has_section(section):
             return None
 
         if self.dbgen_defaults.has_section(section):
@@ -338,9 +322,7 @@ class RunConfig:
         return set(map(lambda x: x.name, fields(self)))
 
 
-DEFAULT_CONFIG, DEFAULT_CONFIG_FILE_PATH = _read_default_config_file(
-    "default_dbgen.cfg"
-)
+DEFAULT_CONFIG, DEFAULT_CONFIG_FILE_PATH = _read_default_config_file("default_dbgen.cfg")
 
 
 def get_dbgen_home():
@@ -377,21 +359,15 @@ def get_config(config_file: Optional[Path] = None) -> DBgenConfigParser:
     if config_file:
         config.read(config_file.absolute())
     else:
-        logger.debug(
-            f"No Config file provided. Using default values for DBgen variables"
-        )
+        logger.debug(f"No Config file provided. Using default values for DBgen variables")
     return config
 
 
 config = get_config(Path(DBGEN_CONFIG))
 # TODO DEFAULT_ENV and DBGEN_TMP cannot be overwritten at runtime must be stored in env var or config file
 # Would be nice to make these changeable at runtime
-default_env_str = environ.get("DEFAULT_ENV") or config.get(
-    "core", "default_env", fallback=None
-)
+default_env_str = environ.get("DEFAULT_ENV") or config.get("core", "default_env", fallback=None)
 DEFAULT_ENV = Path(default_env_str) if default_env_str else None
-DBGEN_TMP_STR = environ.get("DBGEN_TMP") or config.get(
-    "core", "dbgen_tmp", fallback=tempfile.gettempdir()
-)
+DBGEN_TMP_STR = environ.get("DBGEN_TMP") or config.get("core", "dbgen_tmp", fallback=tempfile.gettempdir())
 DBGEN_TMP = Path(DBGEN_TMP_STR)
 DBGEN_TMP.mkdir(exist_ok=True, parents=True)

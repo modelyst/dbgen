@@ -16,9 +16,7 @@ STRATEGIES: Dict[str, U[SearchStrategy[SearchStrategy[Base]], SearchStrategy[Bas
 }
 
 
-def get_strategy(
-    dbgen_object,
-) -> U[SearchStrategy[SearchStrategy[Base]], SearchStrategy[Base]]:
+def get_strategy(dbgen_object,) -> U[SearchStrategy[SearchStrategy[Base]], SearchStrategy[Base]]:
     """
     Retrieve the hypothesis strategy for a given object
 

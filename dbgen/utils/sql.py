@@ -129,11 +129,7 @@ def batched_cursor(cursor: Any, arraysize: int = 1000) -> Any:
 
 
 def fast_load(
-    conn: Connection,
-    rows: T[List[Any], ...],
-    table_name: str,
-    col_names: List[str],
-    obj_pk_name: str,
+    conn: Connection, rows: T[List[Any], ...], table_name: str, col_names: List[str], obj_pk_name: str,
 ) -> None:
 
     # write rows to string io object to allow copy_from to be used

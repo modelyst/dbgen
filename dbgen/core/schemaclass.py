@@ -34,9 +34,7 @@ if TYPE_CHECKING:
 class Schema(Base):
     """Unnamed collection of Objects, Views, Relations, Path Equations"""
 
-    def __init__(
-        self, objlist: L[Obj] = None, viewlist: L[View] = None, pes: L[PathEQ] = None,
-    ) -> None:
+    def __init__(self, objlist: L[Obj] = None, viewlist: L[View] = None, pes: L[PathEQ] = None,) -> None:
 
         self.objlist = objlist or []
         self.viewlist = viewlist or []
@@ -223,9 +221,7 @@ class Schema(Base):
 
     def _obj_all_fks(self, o: Obj) -> S[Rel]:
         """ Relations that start OR end on a given object """
-        inward = set.union(
-            *[d["fks"] for _, _, d in self._fks.in_edges(o.name, data=True)]
-        )
+        inward = set.union(*[d["fks"] for _, _, d in self._fks.in_edges(o.name, data=True)])
         return set(o.fkdict.values()) | inward
 
     def get_rel(self, r: U[Rel, RelTup]) -> Rel:

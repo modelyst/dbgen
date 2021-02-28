@@ -66,12 +66,7 @@ class Import(Base):
 
         err = "Can't import %s as %s AND import specific terms (%s,%s) at once"
         terms = unaliased_imports or aliased_imports
-        assert not (lib_alias and terms), err % (
-            lib,
-            lib_alias,
-            unaliased_imports,
-            aliased_imports,
-        )
+        assert not (lib_alias and terms), err % (lib, lib_alias, unaliased_imports, aliased_imports,)
 
         self.lib = lib
         self.lib_alias = lib_alias
@@ -166,11 +161,7 @@ class Env(Base):
                     else:
                         unaliased_imports.append(module.name)
                 imports.append(
-                    Import(
-                        lib,
-                        unaliased_imports=unaliased_imports,
-                        aliased_imports=aliased_imports,
-                    )
+                    Import(lib, unaliased_imports=unaliased_imports, aliased_imports=aliased_imports,)
                 )
             elif isinstance(node, ast.Import):
                 assert len(node.names) == 1, f"Bad Import String! {import_string}"
@@ -188,9 +179,7 @@ class Env(Base):
 emptyEnv = Env()
 # Default environement is read from file if environmental variable is set
 # otherwise no default is used
-defaultEnv = (
-    Env.from_file(DEFAULT_ENV) if DEFAULT_ENV and DEFAULT_ENV.exists() else emptyEnv
-)
+defaultEnv = Env.from_file(DEFAULT_ENV) if DEFAULT_ENV and DEFAULT_ENV.exists() else emptyEnv
 
 ################################################################################
 class Func(Base):
@@ -269,9 +258,7 @@ class Func(Base):
 
     @property
     def inTypes(self) -> L[DataType]:
-        return [
-            DataType.get_datatype(x.annotation) for x in self.sig.parameters.values()
-        ]
+        return [DataType.get_datatype(x.annotation) for x in self.sig.parameters.values()]
 
     @property
     def path(self) -> Path:
@@ -361,15 +348,8 @@ class Func(Base):
             mod = module_from_spec(spec)
             assert spec and spec.loader, "Spec or Spec.loader are broken"
             spec.loader.exec_module(mod)  # type: ignore
-            transforms = [
-                o
-                for o in getmembers(mod)
-                if isfunction(o[1]) and getsourcefile(o[1]) == pth
-            ]
-            assert len(transforms) == 1, "Bad input file %s has %d functions, not 1" % (
-                pth,
-                len(transforms),
-            )
+            transforms = [o for o in getmembers(mod) if isfunction(o[1]) and getsourcefile(o[1]) == pth]
+            assert len(transforms) == 1, "Bad input file %s has %d functions, not 1" % (pth, len(transforms),)
             return transforms[0][1]
 
         except Exception as e:
@@ -389,9 +369,7 @@ class Func(Base):
             # assert not getattr(env,'imports',False)
             return f
         else:
-            assert callable(f), "tried to instantiate Func, but not callable %s" % (
-                type(f)
-            )
+            assert callable(f), "tried to instantiate Func, but not callable %s" % (type(f))
             return Func(src=cls.get_source(f), env=env)
 
     @staticmethod

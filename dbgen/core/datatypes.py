@@ -202,11 +202,7 @@ class Callable(DataType):
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
-        return builds(
-            cls,
-            out=DataType._strat(),
-            c_args=lists(DataType._strat(), min_size=1, max_size=2),
-        )
+        return builds(cls, out=DataType._strat(), c_args=lists(DataType._strat(), min_size=1, max_size=2),)
 
 
 ################################################################################

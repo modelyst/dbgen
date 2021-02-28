@@ -36,16 +36,9 @@ def analysis(m: Model) -> None:
         "electrode_composition",
     ]
 
-    (
-        Scientist,
-        Procedures,
-        History,
-        Electrode,
-        Anode,
-        Fuel_cell,
-        Element,
-        Electrode_compostion,
-    ) = map(m.get, tabs)
+    (Scientist, Procedures, History, Electrode, Anode, Fuel_cell, Element, Electrode_compostion,) = map(
+        m.get, tabs
+    )
 
     rels = [
         History.r("operator"),
@@ -86,9 +79,7 @@ def analysis(m: Model) -> None:
         constr=GT(LEN(Procedures["procedure_name"](ppath)), Literal(3)),
     )
     ssnpb = PyBlock(
-        lambda ssn, step: ssn % step == 0,
-        args=[ssnquery["ssn"], ssnquery["step"]],
-        outnames=["answer"],
+        lambda ssn, step: ssn % step == 0, args=[ssnquery["ssn"], ssnquery["step"]], outnames=["answer"],
     )
 
     ssn_divided = Generator(
@@ -106,13 +97,7 @@ def analysis(m: Model) -> None:
 
     pp = m.make_path(
         "procedures",
-        [
-            history__expt_type,
-            history__sample,
-            electrode__sample,
-            anode__electrode,
-            fuel_cell__anode,
-        ],
+        [history__expt_type, history__sample, electrode__sample, anode__electrode, fuel_cell__anode,],
     )
 
     calcined_anode = EQ(proc_name(pp), Literal("Calcination"))
@@ -126,8 +111,7 @@ def analysis(m: Model) -> None:
 
     c_query = Query(
         exprs=dict(
-            f=MAX(Fuel_cell.id()),
-            calc=CONVERT(int2bool(MAX(bool_to_tinyint(calcined_anode))), Boolean()),
+            f=MAX(Fuel_cell.id()), calc=CONVERT(int2bool(MAX(bool_to_tinyint(calcined_anode))), Boolean()),
         ),
         basis=["fuel_cell"],
         aggcols=[Fuel_cell["expt_id"]()],

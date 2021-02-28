@@ -36,11 +36,7 @@ hist = Obj(
 hd = Obj(
     "history_detail",
     "RDF triplestore",
-    attrs=[
-        Attr("name", Varchar(), identifying=True),
-        Attr("value", Text()),
-        Attr("dtype", Varchar()),
-    ],
+    attrs=[Attr("name", Varchar(), identifying=True), Attr("value", Text()), Attr("dtype", Varchar()),],
     fks=[Rel("history", identifying=True)],
 )
 #####

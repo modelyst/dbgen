@@ -66,27 +66,17 @@ def input_to_level(logging_level: str) -> int:
 parser = ArgumentParser(description="Run a DBG update", allow_abbrev=True)
 
 parser.add_argument(
-    "--nuke",
-    default="",
-    type=str,
-    help="Reset the DB - needed if you make schema changes",
+    "--nuke", default="", type=str, help="Reset the DB - needed if you make schema changes",
 )
 
 parser.add_argument(
-    "--add",
-    action="store_true",
-    help="Try to add columns (if you make benign schema additions)",
+    "--add", action="store_true", help="Try to add columns (if you make benign schema additions)",
 )
 
-parser.add_argument(
-    "--only", default="", help="Run only the (space separated) generators/tags"
-)
+parser.add_argument("--only", default="", help="Run only the (space separated) generators/tags")
 
 parser.add_argument(
-    "--xclude",
-    type=str,
-    default="",
-    help="Run only the (space separated) generators/tags",
+    "--xclude", type=str, default="", help="Run only the (space separated) generators/tags",
 )
 
 parser.add_argument("--start", default="", help="Start at the designed Generator")
@@ -98,10 +88,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--serial",
-    default=False,
-    type=lambda x: bool(strtobool(x)),
-    help='Ignore any "parallel" flags',
+    "--serial", default=False, type=lambda x: bool(strtobool(x)), help='Ignore any "parallel" flags',
 )
 
 parser.add_argument(
@@ -114,19 +101,14 @@ parser.add_argument(
     "--skip-row-count", action="store_true", help="Skip Row count for large queries",
 )
 
-parser.add_argument(
-    "--batch", default=None, type=lambda x: int(float(x)), help="Set default batch_size"
-)
+parser.add_argument("--batch", default=None, type=lambda x: int(float(x)), help="Set default batch_size")
 
 parser.add_argument(
     "--write-logs", action="store_true", help="write logs to local file",
 )
 
 parser.add_argument(
-    "--log-level",
-    default=logging.DEBUG,
-    type=input_to_level,
-    help="Set default batch_size",
+    "--log-level", default=logging.DEBUG, type=input_to_level, help="Set default batch_size",
 )
 
 parser.add_argument(

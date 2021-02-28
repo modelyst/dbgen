@@ -140,9 +140,7 @@ class Model(Schema):
     def test_gen(
         self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
     ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
-        assert (
-            gen_name in self.gens
-        ), f"Generator {gen_name} not in model:\n{self.gens.keys()}"
+        assert gen_name in self.gens, f"Generator {gen_name} not in model:\n{self.gens.keys()}"
 
         return self.gens[gen_name].test_with_db(
             universe=self._get_universe(), db=db, interact=interact, limit=limit
@@ -177,10 +175,7 @@ class Model(Schema):
                 if isinstance(rel_or_list, Rel):
                     res.append(
                         SuperRel(
-                            rel_or_list.name,
-                            rel_or_list.o1,
-                            rel_or_list.o2,
-                            self[rel_or_list.o2].id_str,
+                            rel_or_list.name, rel_or_list.o1, rel_or_list.o2, self[rel_or_list.o2].id_str,
                         )
                     )
                 else:
@@ -195,9 +190,7 @@ class Model(Schema):
         """Get an object by name"""
         return self[objname]
 
-    def rename(
-        self, x: U[Obj, Rel, RelTup, AttrTup, str, Generator], name: str
-    ) -> None:
+    def rename(self, x: U[Obj, Rel, RelTup, AttrTup, str, Generator], name: str) -> None:
         """Rename an Objects / Relations / Generators / Attr """
         if isinstance(x, (Obj, str)):
             if isinstance(x, str):

@@ -141,9 +141,7 @@ def parse_ssn(pth: str) -> T[L[str], L[str], L[int]]:
 # Parse procedures.csv
 
 
-def parse_proc_csv(
-    pth: str,
-) -> T[L[int], L[int], L[str], L[int], L[int], L[str], L[str], L[str]]:
+def parse_proc_csv(pth: str,) -> T[L[int], L[int], L[str], L[int], L[int], L[str], L[str], L[str]]:
     """Expects CSV: Sample,Step,Procedure,Timestamp,Researcher,Notes"""
     output = defaultdict(list)  # type: AnyD
     with open(pth, "r") as f:
@@ -199,9 +197,7 @@ def parse_sqlite(pth: str) -> T[L[int]]:
     """Get sample history data stored in a relational db"""
     db = connect(pth).cursor()
     cols = ",".join(["sample", "step", "procedure", "firstname", "lastname", "ssn"])
-    output = db.execute(
-        "SELECT %s FROM test JOIN scientist USING (scientist_id)" % cols
-    )
+    output = db.execute("SELECT %s FROM test JOIN scientist USING (scientist_id)" % cols)
     return tuple(map(list, zip(*output)))  # type: ignore
 
 

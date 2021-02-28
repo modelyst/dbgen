@@ -129,9 +129,7 @@ class Constraint(Base):
                 # Possible FKs to join on
                 for edge in schema[path.base]:
                     seen = set() if self.backtrack else path.all_rels()
-                    fks = sorted(
-                        set(schema[path.base][edge]["fks"]) - self.xclude - seen
-                    )
+                    fks = sorted(set(schema[path.base][edge]["fks"]) - self.xclude - seen)
                     for fk in fks:
 
                         if reqs:

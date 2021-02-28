@@ -35,61 +35,31 @@ def io(model: Model) -> None:
         "fuel_cell",
     ]
 
-    (
-        Sample,
-        Scientist,
-        Procedures,
-        History_details,
-        History,
-        Electrode,
-        Anode,
-        Cathode,
-        Fuel_cell,
-    ) = map(model.get, tabs)
-
-    ############################################################################
-    ############################################################################
-
-    pb1 = PyBlock(
-        func=parse_ssn,
-        args=[Const(root + "ssn.json")],
-        outnames=["firstname", "lastname", "ssn"],
+    (Sample, Scientist, Procedures, History_details, History, Electrode, Anode, Cathode, Fuel_cell,) = map(
+        model.get, tabs
     )
+
+    ############################################################################
+    ############################################################################
+
+    pb1 = PyBlock(func=parse_ssn, args=[Const(root + "ssn.json")], outnames=["firstname", "lastname", "ssn"],)
 
     scientists = Generator(
         name="scientists",
         desc="populates Scientist table",
         transforms=[pb1],
-        loads=[
-            Scientist(
-                insert=True,
-                ssn=pb1["ssn"],
-                firstname=pb1["firstname"],
-                lastname=pb1["lastname"],
-            )
-        ],
+        loads=[Scientist(insert=True, ssn=pb1["ssn"], firstname=pb1["firstname"], lastname=pb1["lastname"],)],
     )
 
     ############################################################################
 
-    dd_env = defaultEnv + Env(
-        [Import("collections", "defaultdict"), Import("csv", "DictReader")]
-    )
+    dd_env = defaultEnv + Env([Import("collections", "defaultdict"), Import("csv", "DictReader")])
 
     ghcpb = PyBlock(
         func=parse_proc_csv,
         env=dd_env,
         args=[Const(root + "procedures.csv")],
-        outnames=[
-            "id",
-            "step",
-            "procedure_name",
-            "timestamp",
-            "ssn",
-            "value",
-            "dtype",
-            "name",
-        ],
+        outnames=["id", "step", "procedure_name", "timestamp", "ssn", "value", "dtype", "name",],
     )
 
     sample_load = Sample(insert=True, id=ghcpb["id"])
@@ -99,19 +69,11 @@ def io(model: Model) -> None:
     sci_load = Scientist(insert=True, ssn=ghcpb["ssn"])
 
     hist_load = History(
-        insert=True,
-        step=ghcpb["step"],
-        sample=sample_load,
-        expt_type=proc_load,
-        operator=sci_load,
+        insert=True, step=ghcpb["step"], sample=sample_load, expt_type=proc_load, operator=sci_load,
     )
 
     histd_load = History_details(
-        insert=True,
-        name=ghcpb["name"],
-        value=ghcpb["value"],
-        dtype=ghcpb["dtype"],
-        history=hist_load,
+        insert=True, name=ghcpb["name"], value=ghcpb["value"], dtype=ghcpb["dtype"], history=hist_load,
     )
     get_history_csv = Generator(
         name="get_history_csv",
@@ -160,27 +122,18 @@ def io(model: Model) -> None:
 
     samact = Sample(insert=True, id=ghd["id"])
 
-    sciact = Scientist(
-        insert=True, ssn=ghd["ssn"], firstname=ghd["fname"], lastname=ghd["lname"]
-    )
+    sciact = Scientist(insert=True, ssn=ghd["ssn"], firstname=ghd["fname"], lastname=ghd["lname"])
 
     proact = Procedures(insert=True, procedure_name=ghd["pname"])
 
-    hact = History(
-        insert=True, step=ghd["step"], sample=samact, expt_type=proact, operator=sciact
-    )
+    hact = History(insert=True, step=ghd["step"], sample=samact, expt_type=proact, operator=sciact)
 
     get_history_db = Generator(
-        name="get_history_db",
-        desc="Parse SQLite file with History data",
-        transforms=[ghd],
-        loads=[hact],
+        name="get_history_db", desc="Parse SQLite file with History data", transforms=[ghd], loads=[hact],
     )
     ############################################################################
     details = ["expt_id", "timestamp", "capacity", "electrolyte"]
-    fd_pb = PyBlock(
-        parse_expt, args=[Const(root + "experiment.json")], outnames=details
-    )
+    fd_pb = PyBlock(parse_expt, args=[Const(root + "experiment.json")], outnames=details)
     fuel_details = Generator(
         name="fuel_details",
         desc="other details about fuel cell experiments",
@@ -191,6 +144,4 @@ def io(model: Model) -> None:
     ############################################################################
     ############################################################################
 
-    model.add(
-        [scientists, get_history_csv, cathode, anode, get_history_db, fuel_details]
-    )
+    model.add([scientists, get_history_csv, cathode, anode, get_history_db, fuel_details])
