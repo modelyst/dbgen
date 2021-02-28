@@ -1,26 +1,41 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Airflow Operator for the intitialization of a run"""
 # External imports
-from typing import Any, TYPE_CHECKING, Dict as D
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from dbgen.core.gen import Generator
+    from dbgen.core.misc import ConnectInfo as ConnI
+    from dbgen.core.model.model import Model
     from dbgen.utils.sql import Connection as Conn
-    from ..misc import ConnectInfo as ConnI
-    from ..model.model import Model
 
     Model
     ConnI
     Conn
 
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from airflow.hooks.postgres_hook import PostgresHook
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Internal Imports
-from ..misc import ConnectInfo as ConnI
-from ..model.run_gen import run_gen
-from ...utils.exceptions import DBgenGeneratorError
+from dbgen.core.misc import ConnectInfo as ConnI
 
 
 class RunOperator(BaseOperator):
@@ -41,7 +56,7 @@ class RunOperator(BaseOperator):
         user_batch_size: int = None,
         **kwargs: dict,
     ) -> None:
-        super(RunOperator, self).__init__(task_id="Start Run", **kwargs)
+        super()
         # Initialize variables
         self.run_id = run_id
         self.retry = retry
@@ -54,7 +69,7 @@ class RunOperator(BaseOperator):
     def _get_run_variable(self, mcxn: "Conn") -> "Generator":
         raise NotImplementedError
 
-    def execute(self, context: Any, gen: "Generator") -> None:
+    def execute(self, context: Any) -> None:
 
         # Get the db connections
         gcxn = PostgresHook(self.db_conn_id).get_conn()
@@ -63,27 +78,5 @@ class RunOperator(BaseOperator):
         gcxn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         mgcxn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
-        conn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.db_conn_id))
-        mconn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.mdb_conn_id))
-
-        assert gen.hash == self.gen_hash, "Serialization error, The gen hash has changed!"
-
-        run_gen_args: D[str, Any] = dict(
-            self=None,
-            objs=self.objs,
-            gen=gen,
-            run_id=self.run_id,
-            gcxn=gcxn,
-            gmcxn=mgcxn,
-            conn_info=conn_info,
-            mconn_info=mconn_info,
-            retry=self.retry,
-            serial=self.serial,
-            bar=self.bar,
-            user_batch_size=self.user_batch_size,
-            gen_hash=self.gen_hash,
-        )
-
-        err = run_gen(**run_gen_args)
-        if err:
-            raise DBgenGeneratorError(f"{self.gen_name} failed")
+        # conn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.db_conn_id))
+        # mconn_info = ConnI.from_postgres_hook(PostgresHook.get_connection(self.mdb_conn_id))

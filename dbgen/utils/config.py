@@ -33,8 +33,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 # Internal imports
-from .exceptions import DBgenConfigException
-from .module_loading import import_string
+from dbgen.utils.exceptions import DBgenConfigException
+from dbgen.utils.module_loading import import_string
 
 logger = getLogger("dbgen.config")
 
@@ -78,7 +78,10 @@ def expand_env_var(env_var):
 def run_command(command):
     """Runs command and returns stdout"""
     process = subprocess.Popen(
-        shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True,
+        shlex.split(command),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        close_fds=True,
     )
     output, stderr = [stream.decode(sys.getdefaultencoding(), "ignore") for stream in process.communicate()]
 

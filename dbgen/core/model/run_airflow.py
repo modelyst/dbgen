@@ -1,9 +1,27 @@
-# External imports
-from typing import TYPE_CHECKING, Any
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
+from datetime import datetime
 from os import environ
 from os.path import join
-from datetime import datetime
+
+# External imports
+from typing import TYPE_CHECKING, Any
+from typing import List as L
 
 # Internal Imports
 if TYPE_CHECKING:
@@ -12,15 +30,16 @@ if TYPE_CHECKING:
 from dbgen.core.misc import ConnectInfo
 from dbgen.templates import jinja_env
 
+
 ##################################
 def run_airflow(
     self: "Model",
     sched: str = "@once",
-    nuke: str = "",
-    start: str = "",
-    until: str = "",
-    xclude: str = "",
-    only: str = "",
+    nuke: bool = False,
+    start: str = None,
+    until: str = None,
+    xclude: L[str] = [],
+    only: L[str] = [],
     retry: bool = False,
     serial: bool = False,
     bar: bool = True,
@@ -36,8 +55,8 @@ def run_airflow(
     assert not start or start in self.gens, startErr
     tillErr = 'Final generator ("until") must be a Generator name'
     assert not until or until in self.gens, tillErr
-    xclude_ = set(xclude.split())
-    only_ = set(only.split())
+    xclude_ = set(xclude)
+    only_ = set(only)
     for w in only_ | xclude_:
         self._validate_name(w)
 
@@ -63,8 +82,8 @@ def run_airflow(
         conn=connI,
         nuke=nuke,
         retry=False,
-        only=" ".join(sorted(only_)),
-        xclude=" ".join(sorted(xclude_)),
+        only=sorted(only_),
+        xclude=sorted(xclude_),
         start=start,
         until=until,
         bar=False,

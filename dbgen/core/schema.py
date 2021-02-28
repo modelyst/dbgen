@@ -1,38 +1,49 @@
-# External
-from typing import (
-    Any,
-    TYPE_CHECKING,
-    Set as S,
-    List as L,
-    Dict as D,
-    Tuple as T,
-    Iterator as Iter,
-)
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from abc import ABCMeta, abstractmethod
+
+# External
+from typing import TYPE_CHECKING, Any
+from typing import Dict as D
+from typing import Iterator as Iter
+from typing import List as L
+from typing import Set as S
+from typing import Tuple as T
+
 from hypothesis.strategies import SearchStrategy, builds, lists
 
-from dbgen.core.expr.sqltypes import SQLType, Int
+from dbgen.core.expr.expr import PK
+from dbgen.core.expr.sqltypes import Int, SQLType
+from dbgen.core.funclike import Arg, ArgLike, Const, PyBlock
 from dbgen.core.load import Load
 from dbgen.core.misc import Dep
-from dbgen.core.expr.expr import PK
-from dbgen.core.funclike import Arg, PyBlock, Const, ArgLike
+from dbgen.utils.exceptions import DBgenInvalidArgument, DBgenMissingInfo
 from dbgen.utils.misc import Base
-from dbgen.utils.sql import (
-    Connection as Conn,
-    mkSelectCmd,
-    sqlselect,
-    mkInsCmd,
-    sqlexecute,
-)
-from dbgen.utils.exceptions import DBgenMissingInfo, DBgenInvalidArgument
+from dbgen.utils.sql import Connection as Conn
+from dbgen.utils.sql import mkInsCmd, mkSelectCmd, sqlexecute, sqlselect
 
 # Internal
 if TYPE_CHECKING:
+    from dbgen.core.expr.pathattr import PathAttr
     from dbgen.core.model.model import Model
+    from dbgen.core.pathconstraint import Path as AP
     from dbgen.core.query import Query
     from dbgen.core.schemaclass import Schema
-    from dbgen.core.expr.pathattr import PathAttr
-    from dbgen.core.pathconstraint import Path as AP
 
     Model, Query, Schema, PathAttr, AP
 """
@@ -81,7 +92,7 @@ class RelTup(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "Rel(%s,%s)" % (self.obj, self.rel)
+        return f"Rel({self.obj},{self.rel})"
 
     @classmethod
     def _strat(cls) -> "SearchStrategy":
@@ -113,7 +124,7 @@ class Attr(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "Attr<%s,%s>" % (self.name, self.dtype)
+        return f"Attr<{self.name},{self.dtype}>"
 
     ####################
     # Public methods #
@@ -124,7 +135,7 @@ class Attr(Base):
         Create statement for column when creating a table.
         """
         dt = str(self.dtype)
-        dflt = "" if self.default is None else "DEFAULT %s" % (self.default)
+        dflt = "" if self.default is None else f"DEFAULT {self.default}"
         desc = 'comment on column "{}"."{}" is \'{}\''.format(
             tabname, self.name, self.desc.replace("'", "''")
         )
@@ -141,7 +152,7 @@ class Attr(Base):
 
 class View(Base, metaclass=ABCMeta):
     def __str__(self) -> str:
-        return "View(%s)" % (self.name)
+        return f"View({self.name})"
 
     name = ""
 
@@ -177,7 +188,7 @@ class View(Base, metaclass=ABCMeta):
         """
         Generate SQL necessary to create an object's corresponding table
         """
-        return "CREATE VIEW {} AS {}".format(self.name, self.qstr())
+        return f"CREATE VIEW {self.name} AS {self.qstr()}"
 
 
 class QView(View):
@@ -189,8 +200,8 @@ class QView(View):
         return self.q.toJSON()
 
     def dep(self) -> Dep:
-        cd = ["%s.%s" % (a.obj, a.name) for a in self.q.allattr()]
-        nc = ["%s.%s" % (self.name, x) for x in self.q.exprs]
+        cd = [f"{a.obj}.{a.name}" for a in self.q.allattr()]
+        nc = [f"{self.name}.{x}" for x in self.q.exprs]
         return Dep(self.q.allobj(), cd, [self.name], nc)
 
     @classmethod
@@ -211,7 +222,7 @@ class RawView(View):
     def dep(self) -> Dep:
         td = [d for d in self.deps if "." not in d]
         cd = [d for d in self.deps if "." in d]
-        nc = ["%s.%s" % (self.name, x) for x in self.new]
+        nc = [f"{self.name}.{x}" for x in self.new]
         return Dep(td, cd, [self.name], nc)
 
     @classmethod
@@ -227,7 +238,11 @@ class UserRel(Base):
     """
 
     def __init__(
-        self, name: str, tar: str = None, identifying: bool = False, desc: str = "<No description>",
+        self,
+        name: str,
+        tar: str = None,
+        identifying: bool = False,
+        desc: str = "<No description>",
     ) -> None:
         self.name = name.lower()
         self.desc = desc
@@ -237,17 +252,28 @@ class UserRel(Base):
 
     def __str__(self) -> str:
         idstr = "(id)" if self.identifying else ""
-        return "{}{} -> {}".format(self.name, idstr, self.tar)
+        return f"{self.name}{idstr} -> {self.tar}"
 
     def to_rel(self, obj: str) -> "Rel":
-        return Rel(name=self.name, o1=obj, o2=self.tar, identifying=self.identifying, desc=self.desc,)
+        return Rel(
+            name=self.name,
+            o1=obj,
+            o2=self.tar,
+            identifying=self.identifying,
+            desc=self.desc,
+        )
 
 
 class Obj(Base):
     """Object with attributes. Basic entity of a model"""
 
     def __init__(
-        self, name: str, desc: str = None, attrs: L[Attr] = None, fks: L[UserRel] = None, id_str: str = None,
+        self,
+        name: str,
+        desc: str = None,
+        attrs: L[Attr] = None,
+        fks: L[UserRel] = None,
+        id_str: str = None,
     ) -> None:
 
         self.name = name.lower()
@@ -314,16 +340,11 @@ class Obj(Base):
 
         fks = {k: v for k, v in kwargs.items() if k not in attrs}
         for fk in fks:
-            assert fk in self.fkdict, 'unknown "%s" kwarg in Load of %s' % (fk, self,)
+            assert fk in self.fkdict, f'unknown "{fk}" kwarg in Load of {self}'
         for k, v in fks.items():
             if not isinstance(v, Load):
                 # We OUGHT have a reference to a FK from a query
-                try:
-                    assert isinstance(v, (Arg, Const))
-                except AssertionError:
-                    import pdb
-
-                    pdb.set_trace()
+                assert isinstance(v, (Arg, Const))
                 rel = self.fkdict[k]
                 # Check for relations with names that are different from table_names
                 if rel.o2 != k:
@@ -337,7 +358,7 @@ class Obj(Base):
         if key in self.attrdict:
             return AttrTup(key, self.name)
         else:
-            raise KeyError(key + " not found in %s" % self)
+            raise KeyError(key + f" not found in {self}")
 
     # Public methods #
 
@@ -380,10 +401,11 @@ class Obj(Base):
         """
         Generate SQL necessary to create an object's corresponding table
         """
-        create_str = 'CREATE TABLE IF NOT EXISTS "%s" ' % self.name
+        create_str = f'CREATE TABLE IF NOT EXISTS "{self.name}" '
         if len(self.attrs) != 0:
             cols, coldescs, colindexes = map(
-                lambda x: list(x), zip(*[a.create_col(self.name) for a in self.attrs]),
+                lambda x: list(x),
+                zip(*[a.create_col(self.name) for a in self.attrs]),
             )
         else:
             cols, coldescs, colindexes = [], [], []
@@ -466,8 +488,8 @@ class Obj(Base):
 
     def default_load(self, pb: PyBlock) -> Load:
         """Assuming there is some pyblock with all the info we need to insert
-            this object (in some standardized naming scheme), use it to insert
-            instances of this object"""
+        this object (in some standardized naming scheme), use it to insert
+        instances of this object"""
         raise NotImplementedError
 
 
@@ -479,7 +501,12 @@ class Rel(Base):
     """
 
     def __init__(
-        self, name: str, o1: str, o2: str = None, identifying: bool = False, desc: str = "<No description>",
+        self,
+        name: str,
+        o1: str,
+        o2: str = None,
+        identifying: bool = False,
+        desc: str = "<No description>",
     ) -> None:
         self.name = name.lower()
         self.desc = desc
@@ -489,7 +516,12 @@ class Rel(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "Rel<%s%s,%s -> %s>" % (self.name, "(id)" if self.identifying else "", self.o1, self.o2,)
+        return "Rel<{}{},{} -> {}>".format(
+            self.name,
+            "(id)" if self.identifying else "",
+            self.o1,
+            self.o2,
+        )
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -497,7 +529,7 @@ class Rel(Base):
     # Public methods #
 
     def print(self) -> str:
-        return "%s.%s" % (self.o1, self.name)
+        return f"{self.o1}.{self.name}"
 
     def tup(self) -> RelTup:
         """Throw away info to make a RelTup"""
@@ -510,14 +542,14 @@ class Rel(Base):
 
     @property
     def objs(self) -> S[str]:
-        return set([self.o1, self.o2])
+        return {self.o1, self.o2}
 
     def other(self, obj: str) -> str:
         """
         Often we don't know which direction we are traversing on a FK
         We know which end we're coming from and simply want the other end
         """
-        assert obj in self.objs, "%s not found in %s" % (obj, self)
+        assert obj in self.objs, f"{obj} not found in {self}"
 
         out = [o for o in self.objs if o != obj]
 
@@ -562,7 +594,12 @@ class SuperRel(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "SuperRel<%s,%s -> %s.%s>" % (self.name, self.source, self.target, self.target_id_str,)
+        return "SuperRel<{},{} -> {}.{}>".format(
+            self.name,
+            self.source,
+            self.target,
+            self.target_id_str,
+        )
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -570,7 +607,7 @@ class SuperRel(Base):
     # Public methods #
 
     def print(self) -> str:
-        return "%s.%s" % (self.source, self.name)
+        return f"{self.source}.{self.name}"
 
     def tup(self) -> RelTup:
         """Throw away info to make a RelTup"""
@@ -583,14 +620,14 @@ class SuperRel(Base):
 
     @property
     def objs(self) -> S[str]:
-        return set([self.source, self.target])
+        return {self.source, self.target}
 
     def other(self, obj: str) -> str:
         """
         Often we don't know which direction we are traversing on a FK
         We know which end we're coming from and simply want the other end
         """
-        assert obj in self.objs, "%s not found in %s" % (obj, self)
+        assert obj in self.objs, f"{obj} not found in {self}"
 
         out = [o for o in self.objs if o != obj]
 
@@ -608,6 +645,11 @@ class SuperRel(Base):
     def _strat(cls) -> "SearchStrategy":
         return builds(cls)
 
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, self.__class__):
+            raise ValueError(f"Comparing {type(other)} to type {self.__class__}")
+        return repr(self) < repr(other)
+
 
 class Path(Base):
     """
@@ -621,10 +663,10 @@ class Path(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        p = "[%s]" % ",".join(map(str, self.rels)) if self.rels else ""
+        p = f"[{','.join(map(str, self.rels))}]" if self.rels else ""
         comma = "," if self.rels else ""
         a = comma + str(self.attr) if self.attr else ""
-        return "Path(%s%s)" % (p, a)
+        return f"Path({p}{a})"
 
     @classmethod
     def _strat(cls) -> "SearchStrategy":
@@ -644,7 +686,7 @@ class Path(Base):
         for r in self.rels:
             alias += "$" + r.rel
         col = self._end_attr(m).name
-        return '"%s"."%s"' % (alias, col)
+        return f'"{alias}"."{col}"'
 
     def joins(self, ids: D[str, str], m: "Model") -> L[str]:
         """From clause that makes self.select() defined in query"""
@@ -686,9 +728,6 @@ class Path(Base):
             assert len(a) < 2
             if not a:
                 err = "Could not find %s in %s: Path %s"
-                import pdb
-
-                pdb.set_trace()
                 raise ValueError(err % (a, o, self))
             return str(a[0].dtype)
 
@@ -699,7 +738,7 @@ class PathEQ(Base):
     def __init__(self, p1: Path, p2: Path) -> None:
         assert p1 != p2, "Cannot do pathEQ between things that are literally equivalent"
         assert p1.start() == p2.start(), "Paths must have same start point"
-        self.paths = set([p1, p2])
+        self.paths = {p1, p2}
         super().__init__()
 
     def __str__(self) -> str:

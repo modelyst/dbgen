@@ -1,19 +1,35 @@
-from typing import (
-    TYPE_CHECKING,
-    List as L,
-    Union as U,
-    Iterator as Iter,
-)
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
-from networkx import DiGraph
+from typing import TYPE_CHECKING
+from typing import Iterator as Iter
+from typing import List as L
+from typing import Union as U
+
 from infinite import product
+from networkx import DiGraph
+
+from dbgen.core.fromclause import Path
 
 # Internal
 from dbgen.utils.misc import Base
-from dbgen.core.fromclause import Path
 
 if TYPE_CHECKING:
-    from dbgen.core.schema import Rel, RelTup, Obj
+    from dbgen.core.schema import Obj, Rel, RelTup
     from dbgen.core.schemaclass import Schema
 
     Schema, Rel, RelTup, Obj
@@ -53,7 +69,7 @@ class Constraint(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "Constraint<%s>" % self.tab
+        return f"Constraint<{self.tab}>"
 
     @property
     def branch_obj(self) -> str:
@@ -88,9 +104,9 @@ class Constraint(Base):
         # underline important things
         l1, l2, l3, l4 = 25, len(bstr), 4, len(self.tab)
         under = " " * l1 + "#" * l2 + " " * l3 + "#" * l4
-        constrstr = "(constraints %s)" % (self.reqs) if self.reqs else ""
-        branchstr = "(branch %s)" % (self.branch) if self.branch else ""
-        linkstr = "(bypass chickenfeet for %s)" % links if links else ""
+        constrstr = f"(constraints {self.reqs})" if self.reqs else ""
+        branchstr = f"(branch {self.branch})" if self.branch else ""
+        linkstr = f"(bypass chickenfeet for {links})" if links else ""
 
         print(msg % (bstr, self.tab, under, constrstr, branchstr, linkstr))
         for path in self.find_path(ig, base):

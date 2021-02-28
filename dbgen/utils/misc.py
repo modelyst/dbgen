@@ -28,15 +28,7 @@ from typing import Type, TypeVar
 from typing import Union as U
 
 from hypothesis import infer
-from hypothesis.strategies import (
-    SearchStrategy,
-    booleans,
-    builds,
-    integers,
-    none,
-    one_of,
-    text,
-)
+from hypothesis.strategies import SearchStrategy, booleans, builds, integers, none, one_of, text
 
 from dbgen.utils.str_utils import hash_
 

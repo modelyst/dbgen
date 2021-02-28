@@ -1,9 +1,29 @@
-from typing import Any, Tuple as T, List as L, Dict as D
-from json import load
-from csv import DictReader
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from collections import defaultdict
-from sqlite3 import connect
+from csv import DictReader
+from json import load
 from re import findall
+from sqlite3 import connect
+from typing import Any
+from typing import Dict as D
+from typing import List as L
+from typing import Tuple as T
 
 AnyD = D[str, Any]
 ################################################################################
@@ -131,7 +151,7 @@ chemical_symbols = [
 # Parse ssn.json
 def parse_ssn(pth: str) -> T[L[str], L[str], L[int]]:
     """Expects a JSON file with <<"firstName lastName" : SSN#>> entries"""
-    with open(pth, "r") as f:
+    with open(pth) as f:
         data = load(f)
     firstnames, lastnames = map(list, zip(*[d.split() for d in data.keys()]))
     ssns = list(map(int, data.values()))
@@ -141,10 +161,12 @@ def parse_ssn(pth: str) -> T[L[str], L[str], L[int]]:
 # Parse procedures.csv
 
 
-def parse_proc_csv(pth: str,) -> T[L[int], L[int], L[str], L[int], L[int], L[str], L[str], L[str]]:
+def parse_proc_csv(
+    pth: str,
+) -> T[L[int], L[int], L[str], L[int], L[int], L[str], L[str], L[str]]:
     """Expects CSV: Sample,Step,Procedure,Timestamp,Researcher,Notes"""
     output = defaultdict(list)  # type: AnyD
-    with open(pth, "r") as f:
+    with open(pth) as f:
         reader = DictReader(f)
         for row in reader:
             for k, v in row.items():
@@ -161,7 +183,7 @@ def parse_proc_csv(pth: str,) -> T[L[int], L[int], L[str], L[int], L[int], L[str
 def parse_expt(pth: str) -> T[L[int], L[str], L[float], L[str]]:
     """Parse JSON file with experiments containing anode/cathode/capacity/date"""
     expt_ids, dates, capacities, solvents = [], [], [], []
-    with open(pth, "r") as f:
+    with open(pth) as f:
         data = load(f).items()
 
     for expt_id, expt in data:
@@ -197,7 +219,7 @@ def parse_sqlite(pth: str) -> T[L[int]]:
     """Get sample history data stored in a relational db"""
     db = connect(pth).cursor()
     cols = ",".join(["sample", "step", "procedure", "firstname", "lastname", "ssn"])
-    output = db.execute("SELECT %s FROM test JOIN scientist USING (scientist_id)" % cols)
+    output = db.execute(f"SELECT {cols} FROM test JOIN scientist USING (scientist_id)")
     return tuple(map(list, zip(*output)))  # type: ignore
 
 

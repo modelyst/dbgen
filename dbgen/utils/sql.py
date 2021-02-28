@@ -1,11 +1,31 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Common utilities for interfacing with SQL Databases."""
-# External Modules
-from typing import List, Any, Tuple as T
-from time import sleep
 from io import StringIO
+from random import getrandbits
+from time import sleep
+
+# External Modules
+from typing import Any, List
+from typing import Tuple as T
+
 from psycopg2 import Error, ProgrammingError  # type: ignore
 from psycopg2.extras import DictCursor, execute_batch  # type: ignore
-from random import getrandbits
 
 Connection = Any
 # ##############################################################################
@@ -29,7 +49,7 @@ def mkInsCmd(tabName: str, names: List[str], pk: str = None) -> str:
     Returns:
         str: Sql statement for the insertion with correct formmatting
     """
-    dup = " ON CONFLICT ({}) DO NOTHING".format(pk or tabName + "_id")
+    dup = f" ON CONFLICT ({pk or tabName + '_id'}) DO NOTHING"
     ins_names = ",".join(['"%s"' % (n) for n in names])
     fmt_args = [tabName, ins_names, ",".join(["%s"] * len(names)), dup]
     return "INSERT INTO {} ({}) VALUES ({}) {}".format(*fmt_args)
@@ -115,7 +135,7 @@ def addQs(xs: list, delim: str) -> str:
     """
     Ex: ['a','b','c'] + ',' ==> 'a = %s, b = %s, c = %s'
     """
-    return delim.join(["{0} = %s".format(x) for x in xs])
+    return delim.join([f"{x} = %s" for x in xs])
 
 
 def batched_cursor(cursor: Any, arraysize: int = 1000) -> Any:
@@ -124,12 +144,15 @@ def batched_cursor(cursor: Any, arraysize: int = 1000) -> Any:
         results = cursor.fetchmany(arraysize)
         if not results:
             break
-        for result in results:
-            yield result
+        yield from results
 
 
 def fast_load(
-    conn: Connection, rows: T[List[Any], ...], table_name: str, col_names: List[str], obj_pk_name: str,
+    conn: Connection,
+    rows: T[List[Any], ...],
+    table_name: str,
+    col_names: List[str],
+    obj_pk_name: str,
 ) -> None:
 
     # write rows to string io object to allow copy_from to be used

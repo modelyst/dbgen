@@ -1,18 +1,28 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Store the hypothesis strategies for core dbgen objects"""
+from typing import Callable as C
 from typing import List as L
 from typing import Tuple as T
-from typing import Callable as C
 from typing import Union as U
 
-from hypothesis import infer, assume
-from hypothesis.strategies import (
-    SearchStrategy,
-    builds,
-    just,
-    lists,
-    composite,
-    sampled_from,
-)
+from hypothesis import assume, infer
+from hypothesis.strategies import SearchStrategy, builds, composite, just, lists, sampled_from
 
 from dbgen.core.schema import Attr, Obj, UserRel
 from dbgen.core.schemaclass import Schema
@@ -23,7 +33,13 @@ def AttrStrat(name: U[str, SearchStrategy[str]] = None) -> SearchStrategy[Attr]:
     """Strategy for DBgen load object"""
     name = name or letters
     name_strat = just(name) if isinstance(name, str) else name
-    return builds(Attr, name=name_strat, identifying=infer, desc=infer, dtype=infer,)
+    return builds(
+        Attr,
+        name=name_strat,
+        identifying=infer,
+        desc=infer,
+        dtype=infer,
+    )
 
 
 def UserRelStrat() -> SearchStrategy[UserRel]:
@@ -33,7 +49,10 @@ def UserRelStrat() -> SearchStrategy[UserRel]:
 
 @composite
 def ObjStrat(
-    draw: C, name: str = None, attrs: L[str] = None, fks: L[T[str, str]] = None,
+    draw: C,
+    name: str = None,
+    attrs: L[str] = None,
+    fks: L[T[str, str]] = None,
 ) -> SearchStrategy[Obj]:
     """Strategy for DBgen Obj object"""
     MIN_ATTR, MAX_ATTR = [0, 2] if attrs is None else [len(attrs)] * 2
@@ -46,9 +65,18 @@ def ObjStrat(
     for i, a in enumerate(attrlist):
         a.name = attrs[i] if attrs is not None else xx[1 + i]
     fklist = draw(lists(UserRelStrat(), min_size=MIN_FK, max_size=MAX_FK))
-    for i, f, in enumerate(fklist):
+    for (
+        i,
+        f,
+    ) in enumerate(fklist):
         f.name, f.tar = fks[i] if fks is not None else (xx[1 + MAX_ATTR + i], xx[1 + MAX_ATTR + i])
-    b = builds(Obj, name=just(name if name else xx[0]), desc=infer, attrs=just(attrs), fks=just(fklist),)
+    b = builds(
+        Obj,
+        name=just(name if name else xx[0]),
+        desc=infer,
+        attrs=just(attrs),
+        fks=just(fklist),
+    )
     return draw(b)
 
 

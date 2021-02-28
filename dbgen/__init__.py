@@ -1,5 +1,23 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Welcome to dbgen"""
 import os
+
 from dbgen import version
 
 __author__ = "Modelyst LLC"
@@ -14,10 +32,10 @@ git_ver_str = f"GITVERSION: {__gitversion__}\n" if __gitversion__ else ""
 LOGO = f"""
 -------------------------------
     ____  ____
-   / __ \/ __ )____ ____  ____
-  / / / / __  / __ `/ _ \/ __ \\
+   / __ \\/ __ )____ ____  ____
+  / / / / __  / __ `/ _ \\/ __ \\
  / /_/ / /_/ / /_/ /  __/ / / /
-/_____/_____/\__, /\___/_/ /_/
+/_____/_____/\\__, /\\___/_/ /_/
             /____/
 -------------------------------
 VERSION: {__version__}
@@ -28,6 +46,8 @@ VERSION: {__version__}
 from dbgen.core.expr.expr import (
     ABS,
     AND,
+    ARRAY,
+    ARRAY_AGG,
     AVG,
     BINARY,
     CASE,
@@ -37,8 +57,6 @@ from dbgen.core.expr.expr import (
     COUNT,
     EQ,
     GE,
-    ARRAY_AGG,
-    ARRAY,
     GROUP_CONCAT,
     GT,
     IF_ELSE,
@@ -93,7 +111,6 @@ from dbgen.core.funclike import Arg, Const, PyBlock
 from dbgen.core.gen import Generator
 from dbgen.core.gen import Generator as Gen
 from dbgen.core.misc import ConnectInfo
-
 from dbgen.core.model.model import Model
 from dbgen.core.query import Query
 from dbgen.core.schema import Attr, Obj, Path, PathEQ, QView, RawView

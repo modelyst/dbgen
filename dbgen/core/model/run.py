@@ -1,17 +1,37 @@
-from typing import TYPE_CHECKING, List as L
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
-from tqdm import tqdm
+import logging
 import re
 from bdb import BdbQuit
-import logging
+from typing import TYPE_CHECKING
+from typing import List as L
+
+from tqdm import tqdm
+
+from dbgen.core.gen import Generator
 
 # Internal imports
-from dbgen.core.misc import ConnectInfo as ConnI, Test, onlyTest, xTest
-from dbgen.core.gen import Generator
+from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.core.misc import Test, onlyTest, xTest
 from dbgen.core.schema import PathEQ
-from dbgen.utils.sql import sqlexecute, sqlselect, Error
-from dbgen.utils.str_utils import levenshteinDistance
 from dbgen.utils.lists import concat_map
+from dbgen.utils.sql import Error, sqlexecute, sqlselect
+from dbgen.utils.str_utils import levenshteinDistance
 
 # Internal
 if TYPE_CHECKING:
@@ -133,7 +153,12 @@ I hope you know what you are doing!!!
 #######################################################################
         """
         run_logger.warning(msg)
-        for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False, disable=not bar,):
+        for ta in tqdm(
+            self.objs.values(),
+            desc="Adding new tables",
+            leave=False,
+            disable=not bar,
+        ):
             for sqlexpr in ta.create():
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -144,7 +169,7 @@ I hope you know what you are doing!!!
                         pass
                     # Error code for when a relation doesn't exist on a table we
                     # are adding
-                    elif re.match('column "\w+" of relation "\w+" does not exist', str(e)):
+                    elif re.match(r'column "\w+" of relation "\w+" does not exist', str(e)):
                         run_logger.debug(f"PGERROR: {e}")
                         pass
                     else:
@@ -160,7 +185,12 @@ I hope you know what you are doing!!!
                 else:
                     raise Error(e)
 
-        for ta in tqdm(self.objs.values(), desc="Adding new columns", leave=False, disable=not bar,):
+        for ta in tqdm(
+            self.objs.values(),
+            desc="Adding new columns",
+            leave=False,
+            disable=not bar,
+        ):
             for sqlexpr in self.add_cols(ta):
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -236,7 +266,12 @@ I hope you know what you are doing!!!
                         user_batch_size=batch,
                         skip_row_count=skip_row_count,
                     )
-                except (Exception, KeyboardInterrupt, SystemExit, BdbQuit,) as exc:
+                except (
+                    Exception,
+                    KeyboardInterrupt,
+                    SystemExit,
+                    BdbQuit,
+                ) as exc:
                     # If a critical error is hit that doesn't raise
                     # ExternalError() we need to clean up
                     # Update the run
@@ -264,13 +299,13 @@ I hope you know what you are doing!!!
     if clean:
         for o in self.objs:
             for c in ["deleted"]:
-                q = "ALTER TABLE {} DROP COLUMN {}".format(o, c)
+                q = f"ALTER TABLE {o} DROP COLUMN {c}"
                 sqlexecute(gcxn, q)
 
     gcxn.close()
     gmcxn.close()
     if bar:
-        run_logger.info("\nFinished.\n\t" + ("did not run %s" % not_run if not_run else "Ran all Rules"))
+        run_logger.info("\nFinished.\n\t" + (f"did not run {not_run}" if not_run else "Ran all Rules"))
 
 
 def validate_name(self: "Model", w: str) -> None:
@@ -293,8 +328,8 @@ def validate_name(self: "Model", w: str) -> None:
         elif d < 5 or w[:upW] == n[:upN]:
             close.append(n)  # keep track of near-misses
     if not match:
-        did_you = "Did you mean %s" % close if close else ""
-        raise ValueError("No match found for %s\n%s" % (w, did_you))
+        did_you = f"Did you mean {close}" if close else ""
+        raise ValueError(f"No match found for {w}\n{did_you}")
 
 
 def check_patheq(self: "Model", p: PathEQ, db: ConnI) -> None:

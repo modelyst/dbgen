@@ -1,21 +1,38 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from dbgen import (
-    Model,
-    Generator,
-    Query,
-    PyBlock,
-    MAX,
-    LEN,
-    IF_ELSE,
-    Literal,
-    true,
-    false,
-    One,
-    Zero,
-    Expr,
+    CONVERT,
     EQ,
     GT,
-    CONVERT,
+    IF_ELSE,
+    LEN,
+    MAX,
     Boolean,
+    Expr,
+    Generator,
+    Literal,
+    Model,
+    One,
+    PyBlock,
+    Query,
+    Zero,
+    false,
+    true,
 )
 
 ################################################################################
@@ -36,9 +53,16 @@ def analysis(m: Model) -> None:
         "electrode_composition",
     ]
 
-    (Scientist, Procedures, History, Electrode, Anode, Fuel_cell, Element, Electrode_compostion,) = map(
-        m.get, tabs
-    )
+    (
+        Scientist,
+        Procedures,
+        History,
+        Electrode,
+        Anode,
+        Fuel_cell,
+        Element,
+        Electrode_compostion,
+    ) = map(m.get, tabs)
 
     rels = [
         History.r("operator"),
@@ -79,7 +103,9 @@ def analysis(m: Model) -> None:
         constr=GT(LEN(Procedures["procedure_name"](ppath)), Literal(3)),
     )
     ssnpb = PyBlock(
-        lambda ssn, step: ssn % step == 0, args=[ssnquery["ssn"], ssnquery["step"]], outnames=["answer"],
+        lambda ssn, step: ssn % step == 0,
+        args=[ssnquery["ssn"], ssnquery["step"]],
+        outnames=["answer"],
     )
 
     ssn_divided = Generator(
@@ -97,7 +123,13 @@ def analysis(m: Model) -> None:
 
     pp = m.make_path(
         "procedures",
-        [history__expt_type, history__sample, electrode__sample, anode__electrode, fuel_cell__anode,],
+        [
+            history__expt_type,
+            history__sample,
+            electrode__sample,
+            anode__electrode,
+            fuel_cell__anode,
+        ],
     )
 
     calcined_anode = EQ(proc_name(pp), Literal("Calcination"))
@@ -111,7 +143,8 @@ def analysis(m: Model) -> None:
 
     c_query = Query(
         exprs=dict(
-            f=MAX(Fuel_cell.id()), calc=CONVERT(int2bool(MAX(bool_to_tinyint(calcined_anode))), Boolean()),
+            f=MAX(Fuel_cell.id()),
+            calc=CONVERT(int2bool(MAX(bool_to_tinyint(calcined_anode))), Boolean()),
         ),
         basis=["fuel_cell"],
         aggcols=[Fuel_cell["expt_id"]()],

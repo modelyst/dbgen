@@ -1,16 +1,30 @@
-# External Modules
-from typing import TypeVar as TV
-from typing import List as L, Type
-from abc import abstractmethod, ABCMeta
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from abc import ABCMeta, abstractmethod
 from ast import literal_eval
 from inspect import _empty  # type: ignore
-from hypothesis.strategies import (
-    SearchStrategy,
-    builds,
-    lists,
-    one_of,
-    just,
-)
+
+# External Modules
+from typing import List as L
+from typing import Type
+from typing import TypeVar as TV
+
+from hypothesis.strategies import SearchStrategy, builds, just, lists, one_of
 
 # Internal modules
 from dbgen.utils.misc import Base
@@ -122,11 +136,7 @@ class DataType(Base, metaclass=ABCMeta):
             return AnyType()
 
         else:
-            print("NEW DATATYPE FOUND %s" % strt)
-            import pdb
-
-            pdb.set_trace()
-            raise NotImplementedError()
+            raise NotImplementedError(f"NEW DATATYPE FOUND {strt}")
 
 
 ################################################################################
@@ -164,7 +174,7 @@ class BaseType(DataType):
         super().__init__()
 
     def __str__(self) -> str:
-        return '"%s"' % self.unBase
+        return f'"{self.unBase}"'
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -180,7 +190,7 @@ class TypeVar(DataType):
         super().__init__()
 
     def __str__(self) -> str:
-        return '"%s"' % self.name
+        return f'"{self.name}"'
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -202,7 +212,11 @@ class Callable(DataType):
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
-        return builds(cls, out=DataType._strat(), c_args=lists(DataType._strat(), min_size=1, max_size=2),)
+        return builds(
+            cls,
+            out=DataType._strat(),
+            c_args=lists(DataType._strat(), min_size=1, max_size=2),
+        )
 
 
 ################################################################################
@@ -230,7 +244,7 @@ class Tuple(DataType):
         super().__init__()
 
     def __str__(self) -> str:
-        return "(%s)" % (",".join(map(str, self.args)))
+        return f"({','.join(map(str, self.args))})"
 
     def __len__(self) -> int:
         return len(self.args)
@@ -249,7 +263,7 @@ class List(DataType):
         super().__init__()
 
     def __str__(self) -> str:
-        return "[%s]" % (str(self.content))
+        return f"[{str(self.content)}]"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -266,7 +280,7 @@ class Dict(DataType):
         super().__init__()
 
     def __str__(self) -> str:
-        return "{ %s : %s }" % (str(self.key), str(self.val))
+        return f"{{ {str(self.key)} : {str(self.val)} }}"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:

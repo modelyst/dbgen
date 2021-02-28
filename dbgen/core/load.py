@@ -1,37 +1,49 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Define the Load Object for inserting transformed data into the Database."""
-# External Modules
-from typing import TYPE_CHECKING, List as L, Dict as D, Tuple as T
 import logging
-import psycopg2
-from psycopg2.errors import QueryCanceled
 import re
-from jinja2 import Template
 from io import StringIO
 from random import getrandbits
-from hypothesis.strategies import (
-    SearchStrategy,
-    builds,
-    just,
-    one_of,
-    dictionaries,
-)
 
-from dbgen.core.funclike import ArgLike, Arg, Const
-from dbgen.utils.exceptions import (
-    Psycopg2Error,
-    DBgenExternalError,
-    DBgenTypeError,
-)
-from dbgen.utils.misc import Base, nonempty
-from dbgen.utils.str_utils import hashdata_
+# External Modules
+from typing import TYPE_CHECKING
+from typing import Dict as D
+from typing import List as L
+from typing import Tuple as T
+from typing import Union as U
+
+import psycopg2
+from hypothesis.strategies import SearchStrategy, builds, dictionaries, just, one_of
+from jinja2 import Template
+from psycopg2.errors import QueryCanceled
+
+from dbgen.core.funclike import Arg, ArgLike, Const
+from dbgen.utils.exceptions import DBgenExternalError, DBgenTypeError, Psycopg2Error
 from dbgen.utils.lists import broadcast
+from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.sql import Connection as Conn
-
+from dbgen.utils.str_utils import hashdata_
 
 # Internal Modules
 if TYPE_CHECKING:
-    from dbgen.core.schema import Obj
     from dbgen.core.model.model import UNIVERSE_TYPE
+    from dbgen.core.schema import Obj
 
 """
 Defines the class of modifications to a database
@@ -53,7 +65,12 @@ class Load(Base):
     """
 
     def __init__(
-        self, obj: str, attrs: D[str, ArgLike], fks: D[str, "Load"], pk: Arg = None, insert: bool = False,
+        self,
+        obj: str,
+        attrs: D[str, ArgLike],
+        fks: D[str, "Load"],
+        pk: U[Arg, Const] = None,
+        insert: bool = False,
     ) -> None:
         """
         Initializes Load object with relevant Objects and nested Loads. This is
@@ -120,15 +137,16 @@ class Load(Base):
         out = [self.obj + "." + a for a in self.attrs.keys() if (self.insert or (a not in obj.ids()))]
         for k, a in self.fks.items():
             if self.insert or (k not in obj.id_fks()):
-                try:
-                    out.extend([self.obj + "." + k] + a.newcols(universe))
-                except KeyError:
-                    import pdb
-
-                    pdb.set_trace()
+                out.extend([self.obj + "." + k] + a.newcols(universe))
         return out
 
-    def act(self, cxn: Conn, universe: "UNIVERSE_TYPE", rows: L[dict], gen_name: str,) -> None:
+    def act(
+        self,
+        cxn: Conn,
+        universe: "UNIVERSE_TYPE",
+        rows: L[dict],
+        gen_name: str,
+    ) -> None:
         """
         Top level call from a Generator to execute an load (top level is
         always insert or update, never just a select)
@@ -149,9 +167,16 @@ class Load(Base):
     def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
 
-        common_load_kwargs = dict(obj=nonempty, attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),)
+        common_load_kwargs = dict(
+            obj=nonempty,
+            attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),
+        )
         load_ = builds(
-            cls, fks=just(dict()), pk=Arg._strat(), insert=just(False), **common_load_kwargs,  # type: ignore
+            cls,
+            fks=just(dict()),
+            pk=Arg._strat(),
+            insert=just(False),
+            **common_load_kwargs,  # type: ignore
         )
         load0 = builds(
             cls,
@@ -173,7 +198,11 @@ class Load(Base):
     # Private methods #
     ###################
 
-    def _getvals(self, universe: "UNIVERSE_TYPE", row: dict,) -> T[L[int], L[tuple]]:
+    def _getvals(
+        self,
+        universe: "UNIVERSE_TYPE",
+        row: dict,
+    ) -> T[L[int], L[tuple]]:
         """
         Get a broadcasted list of INSERT/UPDATE values for an object, given
         Pyblock+Query output
@@ -181,7 +210,9 @@ class Load(Base):
 
         idattr, allattr = [], []
         obj_pk_name, ids, id_fks, dtype_dict = universe[self.obj]
-        for k, v in sorted(self.attrs.items(),):
+        for k, v in sorted(
+            self.attrs.items(),
+        ):
             val = v.arg_get(row)
             dtype = dtype_dict[k]
             if isinstance(val, (list, tuple)):
@@ -231,7 +262,8 @@ class Load(Base):
                 )
             else:
                 raise TypeError(
-                    "PK should either receive an int or a list of ints", vars(self),
+                    "PK should either receive an int or a list of ints",
+                    vars(self),
                 )
         else:
             idata_prime = []
@@ -249,10 +281,18 @@ class Load(Base):
             idata_prime *= len(adata)  # broadcast
 
         lenerr = "Cannot match IDs to data: %d!=%d"
-        assert len(idata_prime) == len(adata), lenerr % (len(idata_prime), len(adata),)
+        assert len(idata_prime) == len(adata), lenerr % (
+            len(idata_prime),
+            len(adata),
+        )
         return idata_prime, adata
 
-    def _data_to_stringIO(self, pk: L[int], data: L[tuple], obj_pk_name: str,) -> StringIO:
+    def _data_to_stringIO(
+        self,
+        pk: L[int],
+        data: L[tuple],
+        obj_pk_name: str,
+    ) -> StringIO:
         """
         Function takes in a path to a delimited file and returns a IO object
         where the identifying columns have been hashed into a primary key in the
@@ -278,7 +318,12 @@ class Load(Base):
         return output_file_obj
 
     def _load(
-        self, cxn: Conn, universe: "UNIVERSE_TYPE", rows: L[dict], insert: bool, test: bool = False,
+        self,
+        cxn: Conn,
+        universe: "UNIVERSE_TYPE",
+        rows: L[dict],
+        insert: bool,
+        test: bool = False,
     ) -> L[int]:
         """
         Helpful docstring
@@ -374,7 +419,10 @@ class Load(Base):
                     raise ValueError("Query Cancel fail max reached")
                 try:
                     curs.copy_from(
-                        io_obj, temp_table_name, null="None", columns=escaped_cols,
+                        io_obj,
+                        temp_table_name,
+                        null="None",
+                        columns=escaped_cols,
                     )
                     break
                 except QueryCanceled:
@@ -397,7 +445,7 @@ class Load(Base):
                     curs.execute(load_statement)
                     break
                 except psycopg2.errors.ForeignKeyViolation as exc:
-                    pattern = 'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
+                    pattern = r'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
                     fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
                     delete_statement = f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
                     curs.execute(delete_statement)
@@ -410,7 +458,7 @@ class Load(Base):
                     fk_fail_count += 1
                     continue
             if fk_fail_count:
-                print("Fail count = {}".format(fk_fail_count))
+                print(f"Fail count = {fk_fail_count}")
 
         io_obj.close()
         self._logger.debug("loading finished")
@@ -464,11 +512,11 @@ class Load(Base):
         """
         Output a stringified version of load that can be run in an Airflow PythonOperator
         """
-        attrs = ",".join(["%s=%s" % (k, v.make_src(meta=True)) for k, v in self.attrs.items()])
+        attrs = ",".join(["{}={}".format(k, v.make_src(meta=True)) for k, v in self.attrs.items()])
         template = (
             "Load(obj= '{{ obj }}',attrs= dict({{attrs}}),"
             "fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})"
         )
-        fks = ",".join(["%s=%s" % (k, v.make_src()) for k, v in self.fks.items()])
+        fks = ",".join([f"{k}={v.make_src()}" for k, v in self.fks.items()])
         pk = None if self.pk is None else self.pk.make_src(meta=True)
         return Template(template).render(obj=self.obj, attrs=attrs, fks=fks, pk=pk, insert=self.insert)

@@ -166,10 +166,21 @@ def run(
         envvar="DBGEN_CONFIG",
         callback=file_existence,
     ),
-    nuke: bool = typer.Option(None, help="Delete the entire db and meta schema.", callback=confirm_nuke,),
-    no_conf: bool = typer.Option(False, "--no-confirm", "-y", is_eager=True, callback=set_confirm,),
+    nuke: bool = typer.Option(
+        None,
+        help="Delete the entire db and meta schema.",
+        callback=confirm_nuke,
+    ),
+    no_conf: bool = typer.Option(
+        False,
+        "--no-confirm",
+        "-y",
+        is_eager=True,
+        callback=set_confirm,
+    ),
     bar: bool = typer.Option(
-        None, help="Show tqdm progress bar for the run. Best to disable for Airflow Runs",
+        None,
+        help="Show tqdm progress bar for the run. Best to disable for Airflow Runs",
     ),
     skip_row_count: bool = typer.Option(False, help="Skip the row count"),
     batch: int = typer.Option(None, help="Batch size for the run. Overrides any Gen-level batch size"),
@@ -178,7 +189,8 @@ def run(
         LogLevel.INFO, "--log-level", "-L", help="Set the level of logging"
     ),
     log_path: Path = typer.Option(
-        None, help="Location for log file, overrides the default of $HOME/.dbgen/dbgen.log.",
+        None,
+        help="Location for log file, overrides the default of $HOME/.dbgen/dbgen.log.",
     ),
     print_logo: bool = False,
     version: bool = typer.Option(None, "--version", callback=version_callback, is_eager=True),
@@ -258,7 +270,10 @@ def serialize(
         ...,
         help="An import string in MODULE:PACKAGE format where the package is either a dbgen model variable or a function that produces one",
     ),
-    out_pth: Path = typer.Argument(Path("./model.json"), help="Output path to write the model.json to",),
+    out_pth: Path = typer.Argument(
+        Path("./model.json"),
+        help="Output path to write the model.json to",
+    ),
 ):
     """
     Serializes the DBgen model into a json
@@ -272,7 +287,10 @@ def serialize(
 
 @app.command()
 def deserialize(
-    model_path: Path = typer.Argument(..., help="Location of stored model.json file to read in",),
+    model_path: Path = typer.Argument(
+        ...,
+        help="Location of stored model.json file to read in",
+    ),
 ):
     """
     Reads a model.json to check for model errors
@@ -286,6 +304,8 @@ def deserialize(
     assert isinstance(model, Model)
     typer.echo(f"Parsed Model: {model}")
     typer.echo(f"Hash: {model.hash}")
+    with open("test.json", "w") as f:
+        f.write(model.toJSON())
 
 
 if __name__ == "__main__":

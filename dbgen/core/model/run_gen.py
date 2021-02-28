@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # External modules
 import logging
 from functools import partial
@@ -16,27 +33,17 @@ from tqdm import tqdm
 from dbgen.core.funclike import PyBlock
 from dbgen.core.load import Load
 from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.utils.exceptions import (
-    DBgenExternalError,
-    DBgenInternalError,
-    DBgenSkipException,
-)
+from dbgen.utils.exceptions import DBgenExternalError, DBgenInternalError, DBgenSkipException
 from dbgen.utils.lists import broadcast
 from dbgen.utils.numeric import safe_div
 from dbgen.utils.sql import Connection as Conn
-from dbgen.utils.sql import (
-    DictCursor,
-    fast_load,
-    mkUpdateCmd,
-    sqlexecute,
-    sqlselect,
-)
+from dbgen.utils.sql import DictCursor, fast_load, mkUpdateCmd, sqlexecute, sqlselect
 from dbgen.utils.str_utils import hash_
 
 # Internal
 if TYPE_CHECKING:
     from dbgen.core.gen import Generator
-    from dbgen.core.model.model import Model, UNIVERSE_TYPE
+    from dbgen.core.model.model import UNIVERSE_TYPE, Model
 ###########################################
 
 
@@ -203,7 +210,7 @@ def run_gen(
         return 0  # don't change error count
 
     except DBgenExternalError as e:
-        msg = "\n\nError when running generator %s\n" % gen.name
+        msg = f"\n\nError when running generator {gen.name}\n"
         logger.error(msg)
         q = mkUpdateCmd("gens", ["error", "status"], ["run", "name"])
         sqlexecute(gmcxn, q, [str(e), "failed", run_id, gen.name])
@@ -283,7 +290,10 @@ def apply_batch(
     with tqdm(total=len(acts), desc="Loading", **bargs) as tq:
         for i, a in enumerate(acts):
             a.act(
-                cxn=open_db, universe=universe, rows=processed_namespaces, gen_name=gen_name,
+                cxn=open_db,
+                universe=universe,
+                rows=processed_namespaces,
+                gen_name=gen_name,
             )
             logger.debug(f"Loaded {i+1}/{n_loads}")
             tq.update()

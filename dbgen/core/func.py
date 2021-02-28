@@ -1,35 +1,53 @@
-# External Modules
-from typing import Any, List as L, Dict as D, Union as U, Callable as C
-from re import findall
-from os.path import exists
-from pathlib import Path
-from sys import version_info
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 import ast
+from importlib.util import module_from_spec, spec_from_file_location
 from inspect import (
     getdoc,
-    signature,
+    getmembers,
     getsourcefile,
     getsourcelines,
-    getmembers,
-    isfunction,
     isbuiltin,
     isclass,
+    isfunction,
+    signature,
 )
-from importlib.util import spec_from_file_location, module_from_spec
+from os.path import exists
+from pathlib import Path
+from re import findall
+from sys import version_info
+
+# External Modules
+from typing import Any
+from typing import Callable as C
+from typing import Dict as D
+from typing import List as L
+from typing import Union as U
+
 from hypothesis.strategies import SearchStrategy, builds
 
 # Iternal Modules
 from dbgen.core.datatypes import DataType, Tuple
+from dbgen.utils.config import DBGEN_TMP, DEFAULT_ENV
 from dbgen.utils.exceptions import DBgenInternalError, DBgenInvalidArgument
-from dbgen.utils.misc import hash_, Base
-from dbgen.utils.sql import (
-    sqlexecute,
-    mkInsCmd,
-    sqlselect,
-    mkSelectCmd,
-    Connection as Conn,
-)
-from ..utils.config import DBGEN_TMP, DEFAULT_ENV
+from dbgen.utils.misc import Base, hash_
+from dbgen.utils.sql import Connection as Conn
+from dbgen.utils.sql import mkInsCmd, mkSelectCmd, sqlexecute, sqlselect
 
 """
 Defines the Func class, which is initialized with any Python callable but gets
@@ -66,7 +84,12 @@ class Import(Base):
 
         err = "Can't import %s as %s AND import specific terms (%s,%s) at once"
         terms = unaliased_imports or aliased_imports
-        assert not (lib_alias and terms), err % (lib, lib_alias, unaliased_imports, aliased_imports,)
+        assert not (lib_alias and terms), err % (
+            lib,
+            lib_alias,
+            unaliased_imports,
+            aliased_imports,
+        )
 
         self.lib = lib
         self.lib_alias = lib_alias
@@ -80,18 +103,23 @@ class Import(Base):
 
     def __str__(self) -> str:
         if not (self.unaliased_imports or self.aliased_imports):
-            alias = ("as %s" % self.lib_alias) if self.lib_alias else ""
-            return "import %s %s" % (self.lib, alias)
+            alias = f"as {self.lib_alias}" if self.lib_alias else ""
+            return f"import {self.lib} {alias}"
         else:
-            als = ["%s as %s" % (k, v) for k, v in self.aliased_imports.items()]
+            als = [f"{k} as {v}" for k, v in self.aliased_imports.items()]
             terms = list(self.unaliased_imports) + als
-            return "from %s import %s" % (self.lib, ", ".join(terms))
+            return f"from {self.lib} import {', '.join(terms)}"
 
     def __eq__(self, other: object) -> bool:
         return False if not isinstance(other, Import) else vars(self) == vars(other)
 
     def __hash__(self) -> int:
         return int(self.hash)
+
+    def __lt__(self, other: Any) -> bool:
+        if type(self) == type(other):
+            return repr(self) < repr(other)
+        raise TypeError(f"'<' not supported between instances of '{type(self)}' and '{type(other)}'")
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -130,7 +158,10 @@ class Env(Base):
             assert isinstance(
                 imports, list
             ), "Env takes in a list of imports. If there is 1 import wrap it in a list"
-        self.imports = imports or []
+
+            self.imports = sorted(imports)
+        else:
+            self.imports = []
         super().__init__()
 
     def __str__(self) -> str:
@@ -161,7 +192,11 @@ class Env(Base):
                     else:
                         unaliased_imports.append(module.name)
                 imports.append(
-                    Import(lib, unaliased_imports=unaliased_imports, aliased_imports=aliased_imports,)
+                    Import(
+                        lib,
+                        unaliased_imports=unaliased_imports,
+                        aliased_imports=aliased_imports,
+                    )
                 )
             elif isinstance(node, ast.Import):
                 assert len(node.names) == 1, f"Bad Import String! {import_string}"
@@ -172,7 +207,7 @@ class Env(Base):
 
     @classmethod
     def from_file(cls, pth: Path) -> "Env":
-        with open(pth, "r") as f:
+        with open(pth) as f:
             return cls.from_str(f.read())
 
 
@@ -188,12 +223,12 @@ class Func(Base):
     """
 
     def __init__(self, src: str, env: Env = None) -> None:
-        assert isinstance(src, str), "Expected src str, but got %s" % type(src)
+        assert isinstance(src, str), f"Expected src str, but got {type(src)}"
 
         self.src = src
 
         if env:
-            assert isinstance(env, Env), "Expected Env, but got %s" % type(env)
+            assert isinstance(env, Env), f"Expected Env, but got {type(env)}"
             self.env = env
         else:
             self.env = defaultEnv
@@ -349,7 +384,10 @@ class Func(Base):
             assert spec and spec.loader, "Spec or Spec.loader are broken"
             spec.loader.exec_module(mod)  # type: ignore
             transforms = [o for o in getmembers(mod) if isfunction(o[1]) and getsourcefile(o[1]) == pth]
-            assert len(transforms) == 1, "Bad input file %s has %d functions, not 1" % (pth, len(transforms),)
+            assert len(transforms) == 1, "Bad input file %s has %d functions, not 1" % (
+                pth,
+                len(transforms),
+            )
             return transforms[0][1]
 
         except Exception as e:
@@ -369,7 +407,7 @@ class Func(Base):
             # assert not getattr(env,'imports',False)
             return f
         else:
-            assert callable(f), "tried to instantiate Func, but not callable %s" % (type(f))
+            assert callable(f), f"tried to instantiate Func, but not callable {type(f)}"
             return Func(src=cls.get_source(f), env=env)
 
     @staticmethod
@@ -386,7 +424,7 @@ class Func(Base):
 
         try:
             source_lines, _ = getsourcelines(f)
-        except (IOError, TypeError,) as e:
+        except (OSError, TypeError) as e:
             # functions defined in pdb / REPL / eval / some other way in which
             # source code not clear
             raise ValueError("from_callable: ", f, e)

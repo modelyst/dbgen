@@ -1,30 +1,41 @@
-# External
-from typing import (
-    TYPE_CHECKING,
-    Set as S,
-    List as L,
-    Dict as D,
-    Tuple as T,
-    Union as U,
-    Sequence,
-)
-from hashlib import md5
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from base64 import b64encode
-from hypothesis.strategies import (
-    SearchStrategy,
-    builds,
-    dictionaries,
-    lists,
-    sets,
-)
+from hashlib import md5
 
+# External
+from typing import TYPE_CHECKING
+from typing import Dict as D
+from typing import List as L
+from typing import Sequence
+from typing import Set as S
+from typing import Tuple as T
+from typing import Union as U
 
-from dbgen.utils.misc import Base, nonempty
+from hypothesis.strategies import SearchStrategy, builds, dictionaries, lists, sets
+
+from dbgen.test.strategies import UserRelStrat
 from dbgen.utils.lists import flatten
+from dbgen.utils.misc import Base, nonempty
 
 # Internal
 if TYPE_CHECKING:
-    from dbgen.core.schema import Rel, SuperRel, RelTup, Obj
+    from dbgen.core.schema import Obj, Rel, RelTup, SuperRel
 
     Rel, SuperRel, RelTup, Obj
 ################################################################################
@@ -62,7 +73,7 @@ class Path(Base):
         return str(self.join())
 
     def __repr__(self) -> str:
-        return 'JPath("%s", %s)' % (self.end, self.fks)
+        return f'JPath("{self.end}", {self.fks})'
 
     def __add__(self, other: "Path") -> "Path":
         """
@@ -180,7 +191,7 @@ class Join(Base):
         return self.alias
 
     def __repr__(self) -> str:
-        return "JOIN %s (%s)" % (self.obj, ",".join(map(str, self.conds)))
+        return f"JOIN {self.obj} ({','.join(map(str, self.conds))})"
 
     def __lt__(self, other: "Join") -> bool:
         return str(self) < str(other)
@@ -191,7 +202,7 @@ class Join(Base):
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
-        return builds(cls, obj=nonempty, conds=dictionaries(Join._strat(), Rel._strat()))
+        return builds(cls, obj=nonempty, conds=dictionaries(Join._strat(), UserRelStrat()))
 
     # Public Methods
     def add(self, j: "Join", e: "SuperRel") -> None:
@@ -212,12 +223,12 @@ class Join(Base):
         s = ""
         for j, fks in sorted(self.conds):
             fkstr = "|".join([fk.print() for fk in sorted(fks)])
-            s += "[(%s)#(%s)]" % (fkstr, j.alias)
+            s += f"[({fkstr})#({j.alias})]"
 
         data = s + self.obj
         m = md5(data.encode("ascii"))
         out = b64encode(m.digest()).decode("ascii")[:3]
-        return self.obj + "(%s)" % out
+        return self.obj + f"({out})"
 
     def print(self, optional: L["RelTup"] = None) -> str:
         """Render JOIN statement in FROM clause"""
@@ -245,11 +256,11 @@ class Join(Base):
 
     def _cond(self, j: "Join", rels: S["SuperRel"]) -> str:
         """Assume the alias defined by the arg's Join has already been defined
-            in the FROM statement. Write a SQL JOIN condition that will be used
-            to define the current Join object's alias
+        in the FROM statement. Write a SQL JOIN condition that will be used
+        to define the current Join object's alias
 
-            NEED TO MODIFY EVERYTHING SO THAT WE USE <object>.id, not <object>.name + '_id'
-            """
+        NEED TO MODIFY EVERYTHING SO THAT WE USE <object>.id, not <object>.name + '_id'
+        """
 
         conds = []  # type: L[str]
         for fk in rels:

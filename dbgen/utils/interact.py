@@ -1,17 +1,33 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 import readline
 from functools import reduce
 from os import system
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+from typing import Callable as C
+from typing import Dict as D
 from typing import List as L
 from typing import Optional as Opt
-from typing import Any
-from typing import Callable as C
 from typing import Set as S
-from typing import Dict as D
 from typing import Tuple as T
 
 if TYPE_CHECKING:
-    from ..core.gen import Generator
+    from dbgen.core.gen import Generator
 
 
 def interact_gen(
@@ -34,6 +50,7 @@ def interact_gen(
     # Attempt to import necessary functions for formmatting
     try:
         from pprint import pprint
+
         from prettytable import PrettyTable  # type: ignore
     except ImportError:
         raise ImportError("Need pprint and prettytable for interact mode")
@@ -60,7 +77,10 @@ def interact_gen(
         x.add_row(next_row.values())
         pprint(next_row_str(print_len))
         answer = None
-        while answer not in ("c", "s",):
+        while answer not in (
+            "c",
+            "s",
+        ):
             if answer == "m":
                 print_len += 200
                 pprint(next_row_str(print_len))
@@ -142,7 +162,9 @@ def interact_gen(
                     rows = curr_load_dict[display]
                     if rows:
                         all_keys: S[str] = reduce(
-                            lambda prev, next: prev.union(set(next.keys())), rows, set(),
+                            lambda prev, next: prev.union(set(next.keys())),
+                            rows,
+                            set(),
                         )
                         table = PrettyTable(field_names=list(all_keys))
                         for row in curr_load_dict[display][:max_rows]:

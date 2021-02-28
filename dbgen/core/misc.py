@@ -1,24 +1,46 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Uncategorized utilities for core dbgen functionality"""
-# External Modules
-from typing import Any, List as L, Callable as C, TYPE_CHECKING, Tuple as T
-from time import sleep
 import re
+from contextlib import suppress
+from json import dump, load
 from os import environ
 from os.path import exists
-from json import load, dump
 from pprint import pformat
-from contextlib import suppress
 
-from psycopg2 import connect, Error, OperationalError
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, parse_dsn
+# External Modules
+from typing import TYPE_CHECKING, Any
+from typing import Callable as C
+from typing import List as L
+from typing import Tuple as T
+
 from hypothesis.strategies import SearchStrategy, builds
+from psycopg2 import Error, OperationalError, connect
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, parse_dsn
+
 from dbgen.utils.misc import Base
 
 # Internal Modules
 if TYPE_CHECKING:
-    from dbgen.core.gen import Generator
-    from sshtunnel import SSHTunnelForwarder
     from airflow.hooks.connections import Connection
+    from sshtunnel import SSHTunnelForwarder
+
+    from dbgen.core.gen import Generator
 
 
 class ConnectInfo(Base):
@@ -92,7 +114,10 @@ class ConnectInfo(Base):
                 (self.ssh, self.ssh_port),
                 ssh_username=self.ssh_username,
                 ssh_pkey=self.ssh_pkey,
-                remote_bind_address=(self.remote_bind_address, self.remote_bind_port,),
+                remote_bind_address=(
+                    self.remote_bind_address,
+                    self.remote_bind_port,
+                ),
             )
             if self.ssh
             else suppress()
@@ -123,12 +148,8 @@ class ConnectInfo(Base):
                         "please check connection or create DB before running DBgen or first time"
                     )
                 raise exc
-            except Error as exc:
-                print(exc)
-                import pdb
-
-                pdb.set_trace()
-                sleep(1)
+            # except Error as exc:
+            #     sleep(1)
         raise Error(
             f"Exceeded number of attempts to connect to host using credentials."
             "Please make sure the database is running and you have provided the correct credentials."
@@ -145,7 +166,7 @@ class ConnectInfo(Base):
         Create from path to file with ConnectInfo fields in JSON format
         """
         assert exists(pth), "Error loading connection info: no file at " + pth
-        with open(pth, "r") as f:
+        with open(pth) as f:
             return ConnectInfo(**load(f))
 
     @staticmethod
@@ -253,7 +274,12 @@ class Dep(Base):
         a, b, c, d = tuple(
             map(
                 lambda x: ",".join(sorted(x)),
-                [self.tabs_needed, self.cols_needed, self.tabs_yielded, self.cols_yielded,],
+                [
+                    self.tabs_needed,
+                    self.cols_needed,
+                    self.tabs_yielded,
+                    self.cols_yielded,
+                ],
             )
         )
         return a, b, c, d
@@ -286,7 +312,7 @@ class Dep(Base):
 
 
 ################################################################################
-class Test(object):
+class Test:
     """
     Execute a test before running action. If it returns True, the test is
     passed, otherwise it returns an object which is fed into the "message"

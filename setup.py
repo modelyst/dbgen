@@ -36,9 +36,7 @@ def get_git_version(version_: str):
             logger.warning(".git directory not found: Cannot compute the git version")
             return ""
         except git.InvalidGitRepositoryError:
-            logger.warning(
-                "Invalid .git directory not found: Cannot compute the git version"
-            )
+            logger.warning("Invalid .git directory not found: Cannot compute the git version")
             return ""
     except ImportError:
         logger.warning("gitpython not found: Cannot compute the git version.")
@@ -66,7 +64,7 @@ def dbgen_tests():
     return test_suite
 
 
-# Requirements
+# Start dependencies group
 docs = [
     "mkdocs",
     "mkdocs-material",
@@ -74,6 +72,9 @@ docs = [
     "markdown-include",
     "mkdocstrings",
 ]
+
+airflow = ["apache-airflow>=2.0.0"]
+# End dependencies group
 
 INSTALL_REQUIREMENTS = [
     "hypothesis>=5.23.7",
@@ -87,7 +88,7 @@ INSTALL_REQUIREMENTS = [
     "typer>=0.3.1",
 ]
 
-EXTRAS_REQUIREMENTS = {"airflow": ["apache-airflow"], "docs": docs}
+EXTRAS_REQUIREMENTS = {"airflow": airflow, "docs": docs}
 
 
 def do_setup():

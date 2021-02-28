@@ -1,37 +1,46 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # External Modules
-from typing import TYPE_CHECKING, Any, List as L, Optional
+from typing import TYPE_CHECKING, Any
+from typing import List as L
+from typing import Optional
+
 from tqdm import tqdm
 
 # Internal Modules
-from dbgen.core.expr.sqltypes import (
-    Varchar,
-    Decimal,
-    Text,
-    Timestamp,
-    Int,
-    Boolean,
-)
-from dbgen.core.schema import Obj, UserRel as Rel, Attr
+from dbgen.core.expr.sqltypes import Boolean, Decimal, Int, Text, Timestamp, Varchar
+from dbgen.core.schema import Attr, Obj
+from dbgen.core.schema import UserRel as Rel
+from dbgen.utils.sql import mkInsCmd, mkSelectCmd, sqlexecute, sqlselect
 from dbgen.utils.str_utils import hash_
-from dbgen.utils.sql import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
 
 # Internal Modules
 if TYPE_CHECKING:
-    from dbgen.core.model.model import Model
-    from dbgen.core.misc import ConnectInfo as ConnI
     from dbgen.core.gen import Generator
+    from dbgen.core.misc import ConnectInfo as ConnI
+    from dbgen.core.model.model import Model
 
     ConnI, Model, Generator
 
 
 #############################################################################
 def safex(conn: Any, q: str, binds: list) -> None:
-    try:
-        sqlexecute(conn, q, binds)
-    except Exception:
-        import pdb
-
-        pdb.set_trace()
+    sqlexecute(conn, q, binds)
 
 
 ###########
@@ -51,12 +60,21 @@ objs = [
     Obj(
         "temp",
         desc="Temporary table that is populated and truncated after checking for repeat values",
-        attrs=[Attr("ind", identifying=True, desc="Index to a list of query-generated inputs",)],
+        attrs=[
+            Attr(
+                "ind",
+                identifying=True,
+                desc="Index to a list of query-generated inputs",
+            )
+        ],
     ),
     Obj(
         "object",
         "All static info about a given class of entities being modeled",
-        attrs=[Attr("name", Varchar(), identifying=True), Attr("description", Text()),],
+        attrs=[
+            Attr("name", Varchar(), identifying=True),
+            Attr("description", Text()),
+        ],
     ),
     Obj(
         "attr",
@@ -69,11 +87,21 @@ objs = [
         ],
         fks=[Rel("object", identifying=True)],
     ),
-    Obj("view", "SQL view", attrs=[Attr("name", Varchar(), identifying=True), Attr("query", Text("long")),],),
+    Obj(
+        "view",
+        "SQL view",
+        attrs=[
+            Attr("name", Varchar(), identifying=True),
+            Attr("query", Text("long")),
+        ],
+    ),
     Obj(
         "func",
         "Python functions that get used during generation of Objects/Attributes",
-        attrs=[Attr("source", Text(), identifying=True), Attr("name", Varchar()),],
+        attrs=[
+            Attr("source", Text(), identifying=True),
+            Attr("name", Varchar()),
+        ],
     ),
     Obj(
         "gen",
@@ -84,16 +112,28 @@ objs = [
             Attr("gen_json", Text()),
         ],
     ),
-    Obj("pyblock", "decorated python function", attrs=[], fks=[Rel("gen", identifying=True), Rel("func")],),
+    Obj(
+        "pyblock",
+        "decorated python function",
+        attrs=[],
+        fks=[Rel("gen", identifying=True), Rel("func")],
+    ),
     Obj(
         "const",
         "A constant injected into the namespace of an generator",
-        attrs=[Attr("dtype", Varchar(), identifying=True), Attr("val", Text(), identifying=True),],
+        attrs=[
+            Attr("dtype", Varchar(), identifying=True),
+            Attr("val", Text(), identifying=True),
+        ],
     ),
     Obj(
         "arg",
         "How a PyBlock refers to a namespace",
-        attrs=[Attr("ind", Int(), identifying=True), Attr("keyname", Varchar()), Attr("name", Varchar()),],
+        attrs=[
+            Attr("ind", Int(), identifying=True),
+            Attr("keyname", Varchar()),
+            Attr("name", Varchar()),
+        ],
         fks=[Rel("const")],
     ),
     Obj(

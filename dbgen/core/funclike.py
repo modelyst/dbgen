@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # Extenral
 from abc import ABCMeta, abstractmethod
 from traceback import format_exc
@@ -5,26 +22,24 @@ from typing import Any
 from typing import Callable as C
 from typing import Dict as D
 from typing import List as L
+from typing import Sequence
 from typing import Tuple as T
 from typing import Union as U
-from typing import Sequence
 
 from hypothesis.strategies import SearchStrategy, builds, just, one_of
 
 # Internal
 from dbgen.core.func import Env, Func
 from dbgen.core.misc import ConnectInfo as Conn
-
 from dbgen.utils.exceptions import (
     DBgenExternalError,
-    DBgenSkipException,
     DBgenInvalidArgument,
     DBgenMissingInfo,
+    DBgenSkipException,
 )
+from dbgen.utils.lists import is_iterable
 from dbgen.utils.misc import Base, anystrat
 from dbgen.utils.sql import mkInsCmd, sqlexecute
-from dbgen.utils.lists import is_iterable
-
 
 """
 The "T" of ETL: things that are like functions.
@@ -58,7 +73,7 @@ class Arg(ArgLike):
         self.name = name.lower()
 
     def __str__(self) -> str:
-        return "Arg(%s...,%s)" % (str(self.key)[:4], self.name)
+        return f"Arg({str(self.key)[:4]}...,{self.name})"
 
     # Public methods #
     @classmethod
@@ -75,7 +90,7 @@ class Arg(ArgLike):
         except KeyError:
             if self.key not in dic:
                 raise DBgenMissingInfo(
-                    "could not find hash, looking for {} at this hash {}".format(self.name, self.key)
+                    f"could not find hash, looking for {self.name} at this hash {self.key}"
                 )
             else:
                 err = "could not find '%s' in %s "
@@ -88,9 +103,9 @@ class Arg(ArgLike):
     def make_src(self, meta: bool = False) -> str:
         key = repr(self.key) if isinstance(self.key, str) else self.key
         if meta:
-            return "Arg(%s,'%s')" % (key, self.name)
+            return f"Arg({key},'{self.name}')"
         else:
-            return 'namespace[%s]["%s"]' % (key, self.name)
+            return f'namespace[{key}]["{self.name}"]'
 
 
 class Const(ArgLike):
@@ -100,7 +115,7 @@ class Const(ArgLike):
         self.val = val
 
     def __str__(self) -> str:
-        return "Const<%s>" % self.val
+        return f"Const<{self.val}>"
 
     def arg_get(self, _: dict) -> Any:
         return self.val
@@ -143,7 +158,13 @@ class PyBlock(Base):
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
-        return just(cls(func=lambda x: x + 1, args=[Const(1)], outnames=["x"],))
+        return just(
+            cls(
+                func=lambda x: x + 1,
+                args=[Const(1)],
+                outnames=["x"],
+            )
+        )
 
     def __str__(self) -> str:
         return "PyBlock<%d args>" % (len(self.args))
@@ -173,7 +194,11 @@ class PyBlock(Base):
             output = self.func(*inputvars)
             if isinstance(output, tuple):
                 l1, l2 = len(output), len(self.outnames)
-                assert l1 == l2, "Expected %d outputs from %s, got %d" % (l2, self.func.name, l1,)
+                assert l1 == l2, "Expected %d outputs from %s, got %d" % (
+                    l2,
+                    self.func.name,
+                    l1,
+                )
                 return {o: val for val, o in zip(output, self.outnames)}
             else:
                 assert len(self.outnames) == 1
@@ -181,7 +206,7 @@ class PyBlock(Base):
         except DBgenSkipException:
             raise
         except Exception:
-            msg = "\tApplying func %s in tempfunc:\n\t" % (self.func.name)
+            msg = f"\tApplying func {self.func.name} in tempfunc:\n\t"
             raise DBgenExternalError(msg + format_exc())
 
     def __getitem__(self, key: str) -> Arg:

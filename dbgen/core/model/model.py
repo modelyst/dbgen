@@ -1,32 +1,44 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Module for the DBgen Model object"""
 # External
-from typing import Set as S, List as L, Dict as D, Union as U, Tuple as T
-from networkx import DiGraph
+from typing import Dict as D
+from typing import List as L
+from typing import Set as S
+from typing import Tuple as T
+from typing import Union as U
+
 from hypothesis.strategies import SearchStrategy, just
+from networkx import DiGraph
+
+from dbgen.core.expr.sqltypes import SQLType
+from dbgen.core.fromclause import Path as JPath
+from dbgen.core.gen import Generator
+from dbgen.core.load import Load
+from dbgen.core.misc import ConnectInfo as ConnI
+from dbgen.core.model.metatable import make_meta
+from dbgen.core.model.run import check_patheq, run, validate_name
 
 # Internal
 from dbgen.core.model.run_gen import run_gen
-from dbgen.core.model.run import run, check_patheq, validate_name
-from dbgen.core.model.metatable import make_meta
-
-from dbgen.core.gen import Generator
-from dbgen.core.load import Load
-from dbgen.core.schema import (
-    Obj,
-    Rel,
-    RelTup,
-    PathEQ,
-    Attr,
-    View,
-    AttrTup,
-    UserRel,
-    SuperRel,
-)
-from dbgen.core.expr.sqltypes import SQLType
+from dbgen.core.schema import Attr, AttrTup, Obj, PathEQ, Rel, RelTup, SuperRel, UserRel, View
 from dbgen.core.schemaclass import Schema
-from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.core.fromclause import Path as JPath
-
+from dbgen.utils.exceptions import DBgenInternalError
 
 ################################################################################
 # Type Synonyms
@@ -100,7 +112,7 @@ class Model(Schema):
         e = "%d PathEQs" % len(self.pes) if self.pes else ""
 
         things = ", ".join(filter(None, [p, r, m, e]))
-        return "Model<%s,%s>" % (self.name, things)
+        return f"Model<{self.name},{things}>"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -138,7 +150,11 @@ class Model(Schema):
     # Public methods #
     ##################
     def test_gen(
-        self, gen_name: str, db: ConnI, interact: bool = True, limit: int = 5,
+        self,
+        gen_name: str,
+        db: ConnI,
+        interact: bool = True,
+        limit: int = 5,
     ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
         assert gen_name in self.gens, f"Generator {gen_name} not in model:\n{self.gens.keys()}"
 
@@ -175,7 +191,10 @@ class Model(Schema):
                 if isinstance(rel_or_list, Rel):
                     res.append(
                         SuperRel(
-                            rel_or_list.name, rel_or_list.o1, rel_or_list.o2, self[rel_or_list.o2].id_str,
+                            rel_or_list.name,
+                            rel_or_list.o1,
+                            rel_or_list.o2,
+                            self[rel_or_list.o2].id_str,
                         )
                     )
                 else:
@@ -206,7 +225,7 @@ class Model(Schema):
         elif isinstance(x, AttrTup):
             self._rename_attr(x, name)
         else:
-            raise TypeError("A %s (%s) was passed to rename" % (type(x), x))
+            raise TypeError(f"A {type(x)} ({x}) was passed to rename")
 
     def add(self, stuff: Stuff) -> None:
         """Add a list containing Objects / Relations / Generators / PathEQs """
@@ -230,7 +249,7 @@ class Model(Schema):
                 assert isinstance(x[0], str)
                 self._add_attr(x[0], x[1])
             else:
-                raise TypeError("A %s (%s) was passed to add" % (type(x), x))
+                raise TypeError(f"A {type(x)} ({x}) was passed to add")
 
     def remove(self, stuff: Stuff) -> None:
         """Remove items given a list of Objects / Relations / Gens / PathEQs"""
@@ -253,7 +272,7 @@ class Model(Schema):
             elif isinstance(x, PathEQ):
                 self._del_patheq(x)
             else:
-                raise TypeError("A %s (%s) was passed to remove" % (type(x), x))
+                raise TypeError(f"A {type(x)} ({x}) was passed to remove")
 
     ###################
     # Private Methods #
@@ -281,7 +300,7 @@ class Model(Schema):
 
     def _rename_object(self, o: Obj, n: str) -> None:
         """Probably buggy"""
-        assert o in self.objs.values(), "Cannot delete %s: not found in model" % o
+        assert o in self.objs.values(), f"Cannot delete {o}: not found in model"
         oc = o.copy()
         oc.name = n
         del self.objs[o.name]
@@ -361,7 +380,7 @@ class Model(Schema):
         # Validate
         # --------
         if g.name in self.gens:
-            raise ValueError("Cannot add %s, name already taken!" % g)
+            raise ValueError(f"Cannot add {g}, name already taken!")
         # Add
         # ----
         for a in g.loads:
@@ -395,6 +414,7 @@ class Model(Schema):
 
         # Check for cycles:
         from networkx.algorithms import simple_cycles
+
         from dbgen.utils.graphs import topsort_with_dict
 
         sc = list(simple_cycles(self._gen_graph()))
@@ -407,10 +427,7 @@ class Model(Schema):
                 print("\n################\n", g.name)
                 for k, v in vars(g.dep(self.objs)).items():
                     print(k, v)
-            import pdb
-
-            pdb.set_trace()
-            assert False
+            raise DBgenInternalError("Found Cycle")
 
         # Use topological sort to order
         return list(topsort_with_dict(self._gen_graph(), self.gens))

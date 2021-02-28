@@ -1,8 +1,26 @@
-from typing import Optional, Tuple
-from re import finditer, MULTILINE, search, DOTALL
-from distutils.util import strtobool
-from argparse import ArgumentParser
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 import logging
+from argparse import ArgumentParser
+from distutils.util import strtobool
+from re import DOTALL, MULTILINE, finditer, search
+from typing import Optional, Tuple
+
 
 ################################################################################
 def parse_line(string: str, substr: str, index: int = 0) -> Optional[str]:
@@ -26,12 +44,10 @@ def parse_line(string: str, substr: str, index: int = 0) -> Optional[str]:
 
 
 def btw(s: str, begin: str, end: str, off: int = 0) -> Tuple[str, int]:
-    result = search("%s(.*?)%s" % (begin, end), s[off:], DOTALL)
+    result = search(f"{begin}(.*?){end}", s[off:], DOTALL)
     if result:
         if result.group(1) is None:
-            import pdb
-
-            pdb.set_trace()
+            raise ValueError(f"No Match: {s}")
         return result.group(1), result.end() + off
     else:
         return "", 0
@@ -66,17 +82,25 @@ def input_to_level(logging_level: str) -> int:
 parser = ArgumentParser(description="Run a DBG update", allow_abbrev=True)
 
 parser.add_argument(
-    "--nuke", default="", type=str, help="Reset the DB - needed if you make schema changes",
+    "--nuke",
+    default="",
+    type=str,
+    help="Reset the DB - needed if you make schema changes",
 )
 
 parser.add_argument(
-    "--add", action="store_true", help="Try to add columns (if you make benign schema additions)",
+    "--add",
+    action="store_true",
+    help="Try to add columns (if you make benign schema additions)",
 )
 
 parser.add_argument("--only", default="", help="Run only the (space separated) generators/tags")
 
 parser.add_argument(
-    "--xclude", type=str, default="", help="Run only the (space separated) generators/tags",
+    "--xclude",
+    type=str,
+    default="",
+    help="Run only the (space separated) generators/tags",
 )
 
 parser.add_argument("--start", default="", help="Start at the designed Generator")
@@ -84,11 +108,16 @@ parser.add_argument("--start", default="", help="Start at the designed Generator
 parser.add_argument("--until", default="", help="Stop at the designed Generator")
 
 parser.add_argument(
-    "--retry", action="store_true", help="Ignore repeat checking",
+    "--retry",
+    action="store_true",
+    help="Ignore repeat checking",
 )
 
 parser.add_argument(
-    "--serial", default=False, type=lambda x: bool(strtobool(x)), help='Ignore any "parallel" flags',
+    "--serial",
+    default=False,
+    type=lambda x: bool(strtobool(x)),
+    help='Ignore any "parallel" flags',
 )
 
 parser.add_argument(
@@ -98,21 +127,33 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--skip-row-count", action="store_true", help="Skip Row count for large queries",
+    "--skip-row-count",
+    action="store_true",
+    help="Skip Row count for large queries",
 )
 
 parser.add_argument(
-    "--batch", default=None, type=lambda x: int(float(x)), help="Set default batch_size",
+    "--batch",
+    default=None,
+    type=lambda x: int(float(x)),
+    help="Set default batch_size",
 )
 
 parser.add_argument(
-    "--write-logs", action="store_true", help="write logs to local file",
+    "--write-logs",
+    action="store_true",
+    help="write logs to local file",
 )
 
 parser.add_argument(
-    "--log-level", default=logging.DEBUG, type=input_to_level, help="Set default batch_size",
+    "--log-level",
+    default=logging.DEBUG,
+    type=input_to_level,
+    help="Set default batch_size",
 )
 
 parser.add_argument(
-    "--log-path", default=None, help="Set path of output log file",
+    "--log-path",
+    default=None,
+    help="Set path of output log file",
 )

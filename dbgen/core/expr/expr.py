@@ -1,30 +1,36 @@
-# External Modules
-from abc import abstractmethod, ABCMeta
-from typing import (
-    Any,
-    TYPE_CHECKING,
-    Union as U,
-    List as L,
-    Tuple as T,
-    Callable as C,
-)
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
+# External Modules
+from abc import ABCMeta, abstractmethod
 from functools import reduce
 from operator import add
-from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just
+from typing import TYPE_CHECKING, Any
+from typing import Callable as C
+from typing import List as L
+from typing import Tuple as T
+from typing import Union as U
+
+from hypothesis.strategies import SearchStrategy, builds, just, lists, one_of
 
 # Internal Modules
-from dbgen.core.expr.sqltypes import (
-    SQLType,
-    Decimal,
-    Varchar,
-    Text,
-    Int,
-    Boolean,
-)
+from dbgen.core.expr.sqltypes import Boolean, Decimal, Int, SQLType, Text, Varchar
 from dbgen.utils.lists import concat_map
 from dbgen.utils.misc import Base, anystrat
-
 
 if TYPE_CHECKING:
     from dbgen.core.expr.pathattr import PathAttr
@@ -89,7 +95,7 @@ class Expr(Base, metaclass=ABCMeta):
         return self.show(lambda x: str(x))
 
     def __repr__(self) -> str:
-        return "Expr<%s>" % (str(self))
+        return f"Expr<{str(self)}>"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -165,7 +171,7 @@ class Unary(Expr):
 
     def show(self, f: Fn) -> str:
         x = f(self.x)
-        return "%s(%s)" % (self.name, x)
+        return f"{self.name}({x})"
 
     # Class-specific init
     # -------------------
@@ -204,9 +210,9 @@ class Binary(Expr):
     def show(self, f: Fn) -> str:
         x, y = f(self.x), f(self.y)
         if self.infix:
-            return "(%s %s %s)" % (x, self.name, y)
+            return f"({x} {self.name} {y})"
         else:
-            return "%s(%s,%s)" % (self.name, x, y)
+            return f"{self.name}({x},{y})"
 
     # Class-specific init
     # -------------------
@@ -246,7 +252,7 @@ class Ternary(Expr):
 
     def show(self, f: Fn) -> str:
         x, y, z = f(self.x), f(self.y), f(self.z)
-        return "%s(%s,%s,%s)" % (self.name, x, y, z)
+        return f"{self.name}({x},{y},{z})"
 
     # Class-specific init
     # -------------------
@@ -288,8 +294,8 @@ class Nary(Expr):
 
     def show(self, f: Fn) -> str:
         xs = map(f, self.xs)
-        d = " %s " % self.delim
-        return "%s(%s)" % (self.name, d.join(xs))
+        d = f" {self.delim} "
+        return f"{self.name}({d.join(xs)})"
 
     @classmethod
     def _strat(cls, strat: SearchStrategy = None) -> SearchStrategy:
@@ -476,14 +482,14 @@ class NOT(Named, Unary):
 
 class NULL(Named, Unary):
     def show(self, f: Fn) -> str:
-        return "%s is NULL" % f(self.x)
+        return f"{f(self.x)} is NULL"
 
 
 class ARRAY(Named, Nary):
     def show(self, f: Fn) -> str:
         xs = map(f, self.xs)
-        d = " %s " % self.delim
-        return "%s[%s]" % (self.name, d.join(xs))
+        d = f" {self.delim} "
+        return f"{self.name}[{d.join(xs)}]"
 
 
 # Ones that need to be implemented from scratch
@@ -505,7 +511,7 @@ class Literal(Expr):
             return "(NULL)"
         else:
             x = f(self.x)
-            return "(%s)" % x
+            return f"({x})"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -522,7 +528,7 @@ class IN(Named):
 
     def show(self, f: Fn) -> str:
         xs = map(f, self.xs)
-        return "%s IN (%s)" % (f(self.x), ",".join(xs))
+        return f"{f(self.x)} IN ({','.join(xs)})"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -540,8 +546,8 @@ class CASE(Expr):
         return k + v + [self.else_]
 
     def show(self, f: Fn) -> str:
-        body = " ".join(["WHEN (%s) THEN (%s)" % (f(k), f(v)) for k, v in self.cases])
-        end = " ELSE (%s) END" % (f(self.else_))
+        body = " ".join(["WHEN ({}) THEN ({})".format(f(k), f(v)) for k, v in self.cases])
+        end = f" ELSE ({f(self.else_)}) END"
         return "CASE  " + body + end
 
     @classmethod
@@ -560,7 +566,7 @@ class IF_ELSE(Expr):
 
     def show(self, f: Fn) -> str:
         c, i, e = map(f, self.fields())
-        return "CASE WHEN (%s) THEN (%s) ELSE (%s) END" % (c, i, e)
+        return f"CASE WHEN ({c}) THEN ({i}) ELSE ({e}) END"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -580,7 +586,7 @@ class CONVERT(Expr):
 
     def show(self, f: Fn) -> str:
         e = f(self.expr)
-        return "CAST(%s AS %s)" % (e, self.dtype)
+        return f"CAST({e} AS {self.dtype})"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -589,7 +595,7 @@ class CONVERT(Expr):
 
 class SUBSELECT(Expr):
     """Hacky way of getting in subselect ... will not automatically detect
-        dependencies."""
+    dependencies."""
 
     def __init__(self, expr: Expr, tab: str, where: str = "1") -> None:
         self.expr = expr
@@ -601,7 +607,7 @@ class SUBSELECT(Expr):
 
     def show(self, f: Fn) -> str:
         e = f(self.expr)
-        return "(SELECT %s FROM %s WHERE %s )" % (e, self.tab, self.where)
+        return f"(SELECT {e} FROM {self.tab} WHERE {self.where} )"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -624,7 +630,7 @@ class GROUP_CONCAT(Agg):
     def show(self, f: Fn) -> str:
         ord = "ORDER BY " + f(self.order) if self.order is not None else ""
 
-        return "string_agg(%s :: TEXT,'%s' %s)" % (f(self.expr), self.delim, ord,)
+        return f"string_agg({f(self.expr)} :: TEXT,'{self.delim}' {ord})"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -646,7 +652,7 @@ class ARRAY_AGG(Agg):
     def show(self, f: Fn) -> str:
         ord = "ORDER BY " + f(self.order) if self.order is not None else ""
 
-        return "array_agg(%s %s)" % (f(self.expr), ord)
+        return f"array_agg({f(self.expr)} {ord})"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -659,7 +665,7 @@ class STD(Agg, Unary):
 
 class POSITION(Named, Binary):
     def show(self, f: Fn) -> str:
-        return "POSITION(%s in %s)" % (f(self.x), f(self.y))
+        return f"POSITION({f(self.x)} in {f(self.y)})"
 
 
 ##############################################################################

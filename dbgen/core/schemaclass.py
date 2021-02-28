@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # External
 from copy import deepcopy
 from typing import TYPE_CHECKING
@@ -9,18 +26,7 @@ from typing import Union as U
 from tqdm import tqdm
 
 from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.core.schema import (
-    Attr,
-    AttrTup,
-    Obj,
-    Path,
-    PathEQ,
-    QView,
-    RawView,
-    Rel,
-    RelTup,
-    View,
-)
+from dbgen.core.schema import Attr, AttrTup, Obj, Path, PathEQ, QView, RawView, Rel, RelTup, View
 
 # Internal
 from dbgen.utils.misc import Base
@@ -34,7 +40,12 @@ if TYPE_CHECKING:
 class Schema(Base):
     """Unnamed collection of Objects, Views, Relations, Path Equations"""
 
-    def __init__(self, objlist: L[Obj] = None, viewlist: L[View] = None, pes: L[PathEQ] = None,) -> None:
+    def __init__(
+        self,
+        objlist: L[Obj] = None,
+        viewlist: L[View] = None,
+        pes: L[PathEQ] = None,
+    ) -> None:
 
         self.objlist = objlist or []
         self.viewlist = viewlist or []
@@ -86,7 +97,7 @@ class Schema(Base):
             sqlexecute(cxn, self._create_fk(r))
 
         for vn in tqdm(self.views, desc="adding views", **tqargs):
-            q = 'CREATE OR REPLACE VIEW "{}" AS {};'.format(vn, self._show_view(vn))
+            q = f'CREATE OR REPLACE VIEW "{vn}" AS {self._show_view(vn)};'
             sqlexecute(cxn, q)
 
     def check_schema_exists(self, conn: ConnI) -> bool:
@@ -108,7 +119,7 @@ class Schema(Base):
         """Add to model"""
 
         if o.name in self:  # Validate
-            raise ValueError("Cannot add %s, name is already taken!" % o)
+            raise ValueError(f"Cannot add {o}, name is already taken!")
         else:
             self.objlist.append(o)  # Add
             self._fks.add_node(o.name)
@@ -121,7 +132,7 @@ class Schema(Base):
         # Validate
         # --------
         if v.name in self.views or v.name in self.objs:
-            raise ValueError("Cannot add %s, name already taken!" % v)
+            raise ValueError(f"Cannot add {v}, name already taken!")
         # Add
         # ----
         self.viewlist.append(v)
@@ -180,7 +191,7 @@ class Schema(Base):
         attr_stmts = []
         for c in obj.attrs:
             col_name, col_desc, c_index = c.create_col(obj.name)
-            stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name,)
+            stmt = f"ALTER TABLE {obj.name} ADD COLUMN IF NOT EXISTS {col_name}"
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
             if c_index:
@@ -236,12 +247,12 @@ class Schema(Base):
 
     def _info_graph(self, links: L[U[Rel, RelTup]]) -> "DiGraph":
         """Natural paths of information propagation, which includes the normal
-            Rel relationships but also taking into account a
-            user-specified list of relationships that are allowed to propagate
-            information in the 'reverse' direction
+        Rel relationships but also taking into account a
+        user-specified list of relationships that are allowed to propagate
+        information in the 'reverse' direction
 
-            Furthermore, 1-1 relationships are identified and information is
-            allowed to propagate in opposite direction there, too.
+        Furthermore, 1-1 relationships are identified and information is
+        allowed to propagate in opposite direction there, too.
         """
         G = self._fks.copy()
 

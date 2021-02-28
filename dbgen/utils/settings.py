@@ -1,10 +1,28 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """Initialize dbgen"""
 import logging
-from typing import Optional
 from pathlib import Path
-from ..core.misc import ConnectInfo
-from .config import config
-from .log import setup_logger
+from typing import Optional
+
+from dbgen.core.misc import ConnectInfo
+from dbgen.utils.config import config
+from dbgen.utils.log import setup_logger
 
 logger = logging.getLogger("dbgen.settings")
 # Initalize variables
@@ -32,7 +50,7 @@ def configure_connections():
     Cycles through database connection variables until first on set is found.
 
     Order is db_connection_str
-    !TODO! Implement airflow_conn_id 
+    !TODO! Implement airflow_conn_id
     """
     global CONN
     global META_CONN

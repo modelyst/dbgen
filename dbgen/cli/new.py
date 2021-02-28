@@ -1,12 +1,31 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import configparser
+
 # External imports
 import sys
-from venv import create  # type: ignore
-from os import mkdir, environ, system
-from os.path import join, exists, dirname, abspath
-from shutil import copyfile, rmtree
 from argparse import ArgumentParser
+from os import environ, mkdir, system
+from os.path import abspath, dirname, exists, join
+from shutil import copyfile, rmtree
+from venv import create  # type: ignore
+
 from dbgen import __file__ as DBGEN_ROOT
-import configparser
 
 """
 Initialize a dbgen model
@@ -29,14 +48,14 @@ user = environ["USER"]
 ################################################################################
 
 
-class File(object):
+class File:
     def __init__(self, pth: str, template: str, fill_content: bool = True) -> None:
         self.pth = pth
         self.template = template
         self.fill_content = fill_content
 
     def content(self, kwargs: dict) -> str:
-        with open(join(root, "dbgen/CLI/newfiles", self.template), "r") as f:
+        with open(join(root, "dbgen/CLI/newfiles", self.template)) as f:
             if self.fill_content:
                 return f.read().format(**kwargs)
             return f.read()
@@ -55,7 +74,7 @@ man = File("main.py", "main.py")
 data = File("data/example.csv", "data.csv")
 parse = File("scripts/io/parse_employees.py", "parse.py")
 utils = File("utils.py", "utils.py")
-dev, log = [File("dbgen_files/%s.json" % x, x) for x in ["dev", "log"]]
+dev, log = [File(f"dbgen_files/{x}.json", x) for x in ["dev", "log"]]
 
 files = [sch, ginit, default, man, io, data, parse, dev, log, utils, ana]
 inits = ["", "scripts/", "scripts/io/"]
@@ -98,7 +117,7 @@ def create_config(model_name: str, model_root: str):
 def main(pth: str, name: str, env: str, create_env: bool = True) -> None:
     """
     Initialize a DbGen model
-    # """
+    #"""
     if exists(pth):
         print(pth, " already exists")
         while True:

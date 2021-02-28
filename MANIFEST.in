@@ -16,9 +16,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-include *.rst 
+include *.rst
 include LICENSE
-include requirements*.txt 
+include requirements*.txt
 include dbgen/git_version
 include dbgen/example/data/*
 include dbgen/cli/newfiles/*

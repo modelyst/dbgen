@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 from typing import Dict as D
@@ -7,7 +24,7 @@ from typing import Set as S
 from typing import Tuple as T
 
 import hypothesis.strategies as st
-from hypothesis.strategies import SearchStrategy, builds, lists, text, none
+from hypothesis.strategies import SearchStrategy, builds, lists, text
 
 from dbgen.core.func import Env, Func, defaultEnv
 from dbgen.core.funclike import Arg, PyBlock
@@ -15,19 +32,12 @@ from dbgen.core.load import Load
 from dbgen.core.misc import Dep
 from dbgen.core.query import Query
 from dbgen.core.schema import Obj
-from dbgen.utils.lists import concat_map
-from dbgen.utils.misc import Base, nonempty
-from dbgen.utils.sql import Connection as Conn
-from dbgen.utils.sql import (
-    DictCursor,
-    mkInsCmd,
-    mkSelectCmd,
-    mkUpdateCmd,
-    sqlexecute,
-    sqlselect,
-)
-from dbgen.utils.str_utils import hash_
 from dbgen.utils.exceptions import DBgenSkipException
+from dbgen.utils.lists import concat_map
+from dbgen.utils.misc import Base
+from dbgen.utils.sql import Connection as Conn
+from dbgen.utils.sql import DictCursor, mkInsCmd, mkSelectCmd, mkUpdateCmd, sqlexecute, sqlselect
+from dbgen.utils.str_utils import hash_
 
 # Internal
 if TYPE_CHECKING:
@@ -87,7 +97,7 @@ class Generator(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return "Gen<%s>" % self.name
+        return f"Gen<{self.name}>"
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -137,7 +147,7 @@ class Generator(Base):
         # Analyze allattr and allobj to get query dependencies
         if self.query:
             tabdeps = self.query.allobj()
-            coldeps = ["%s.%s" % (a.obj, a.name) for a in self.query.allattr()]
+            coldeps = [f"{a.obj}.{a.name}" for a in self.query.allattr()]
             for r in self.query.allrels():
                 coldeps.append(r.obj + "." + r.rel)
         else:
@@ -190,17 +200,21 @@ class Generator(Base):
         d = self.dep(universe)
         tabs, cols = d.tabs_yielded, d.cols_yielded
         for t in tabs:
-            sqlexecute(conn, "TRUNCATE {} CASCADE".format(t))
+            sqlexecute(conn, f"TRUNCATE {t} CASCADE")
 
         for t, c in map(lambda x: x.split("."), cols):
-            sqlexecute(mconn, "UPDATE {} SET {} = NULL".format(t, c))
+            sqlexecute(mconn, f"UPDATE {t} SET {c} = NULL")
 
         gids = sqlselect(mconn, "SELECT gen_id FROM gen WHERE name = %s", [self.name])
         for gid in gids:
             sqlexecute(mconn, "DELETE FROM repeats WHERE gen_id = %s", [gid])
 
     def test(
-        self, universe, input_rows: L[D[str, Any]], rename_dict: bool = True, verbose: bool = False,
+        self,
+        universe,
+        input_rows: L[D[str, Any]],
+        rename_dict: bool = True,
+        verbose: bool = False,
     ) -> T[L[dict], L[D[str, L[D[str, Any]]]]]:
         # Apply the
         output_dicts = []
@@ -320,7 +334,7 @@ class Generator(Base):
         saved_keys = {}  # type: D[str,S[str]]
         for act in self.loads:
             for hash_loc, name_set in self._get_saved_key_dict(act).items():
-                saved_keys.update({hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])})
+                saved_keys.update({hash_loc: {*name_set, *saved_keys.get(hash_loc, set())}})
 
         return saved_keys
 
@@ -330,15 +344,15 @@ class Generator(Base):
             if isinstance(load.pk, Arg):
                 hash_loc = load.pk.key
                 arg_name = load.pk.name
-                saved_keys.update({hash_loc: set([arg_name, *saved_keys.get(hash_loc, set())])})
+                saved_keys.update({hash_loc: {arg_name, *saved_keys.get(hash_loc, set())}})
 
         for val in load.attrs.values():
             if isinstance(val, Arg):
-                saved_keys.update({val.key: set([val.name, *saved_keys.get(val.key, set())])})
+                saved_keys.update({val.key: {val.name, *saved_keys.get(val.key, set())}})
 
         for fk_load in load.fks.values():
             for hash_loc, name_set in self._get_saved_key_dict(fk_load).items():
-                saved_keys.update({hash_loc: set([*name_set, *saved_keys.get(hash_loc, set())])})
+                saved_keys.update({hash_loc: {*name_set, *saved_keys.get(hash_loc, set())}})
 
         return saved_keys
 

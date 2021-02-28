@@ -1,24 +1,26 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # External
-from os.path import join, dirname
+from os.path import dirname, join
 
 # INternal
-from dbgen import (
-    Model,
-    Generator,
-    Const,
-    PyBlock,
-    Env,
-    Import,
-    defaultEnv,
-    __file__,
-)
-from dbgen.example.scripts.parsers import (
-    parse_ssn,
-    parse_proc_csv,
-    parse_expt,
-    get_electrode,
-    parse_sqlite,
-)
+from dbgen import Const, Env, Generator, Import, Model, PyBlock, __file__, defaultEnv
+from dbgen.example.scripts.parsers import get_electrode, parse_expt, parse_proc_csv, parse_sqlite, parse_ssn
 
 ############################################################################
 ############################################################################
@@ -44,20 +46,39 @@ def io(model: Model) -> None:
         "fuel_cell",
     ]
 
-    (Sample, Scientist, Procedures, History_details, History, Electrode, Anode, Cathode, Fuel_cell,) = map(
-        model.get, tabs
+    (
+        Sample,
+        Scientist,
+        Procedures,
+        History_details,
+        History,
+        Electrode,
+        Anode,
+        Cathode,
+        Fuel_cell,
+    ) = map(model.get, tabs)
+
+    ############################################################################
+    ############################################################################
+
+    pb1 = PyBlock(
+        func=parse_ssn,
+        args=[Const(root + "ssn.json")],
+        outnames=["firstname", "lastname", "ssn"],
     )
-
-    ############################################################################
-    ############################################################################
-
-    pb1 = PyBlock(func=parse_ssn, args=[Const(root + "ssn.json")], outnames=["firstname", "lastname", "ssn"],)
 
     scientists = Generator(
         name="scientists",
         desc="populates Scientist table",
         transforms=[pb1],
-        loads=[Scientist(insert=True, ssn=pb1["ssn"], firstname=pb1["firstname"], lastname=pb1["lastname"],)],
+        loads=[
+            Scientist(
+                insert=True,
+                ssn=pb1["ssn"],
+                firstname=pb1["firstname"],
+                lastname=pb1["lastname"],
+            )
+        ],
     )
 
     ############################################################################
@@ -68,7 +89,16 @@ def io(model: Model) -> None:
         func=parse_proc_csv,
         env=dd_env,
         args=[Const(root + "procedures.csv")],
-        outnames=["id", "step", "procedure_name", "timestamp", "ssn", "value", "dtype", "name",],
+        outnames=[
+            "id",
+            "step",
+            "procedure_name",
+            "timestamp",
+            "ssn",
+            "value",
+            "dtype",
+            "name",
+        ],
     )
 
     sample_load = Sample(insert=True, id=ghcpb["id"])
@@ -78,11 +108,19 @@ def io(model: Model) -> None:
     sci_load = Scientist(insert=True, ssn=ghcpb["ssn"])
 
     hist_load = History(
-        insert=True, step=ghcpb["step"], sample=sample_load, expt_type=proc_load, operator=sci_load,
+        insert=True,
+        step=ghcpb["step"],
+        sample=sample_load,
+        expt_type=proc_load,
+        operator=sci_load,
     )
 
     histd_load = History_details(
-        insert=True, name=ghcpb["name"], value=ghcpb["value"], dtype=ghcpb["dtype"], history=hist_load,
+        insert=True,
+        name=ghcpb["name"],
+        value=ghcpb["value"],
+        dtype=ghcpb["dtype"],
+        history=hist_load,
     )
     get_history_csv = Generator(
         name="get_history_csv",
@@ -112,7 +150,7 @@ def io(model: Model) -> None:
         ca.append(
             Generator(
                 name=x,
-                desc="Extract %s info from an experiment.json" % x,
+                desc=f"Extract {x} info from an experiment.json",
                 transforms=[capb],
                 loads=[fc_load],
             )
@@ -131,14 +169,28 @@ def io(model: Model) -> None:
 
     samact = Sample(insert=True, id=ghd["id"])
 
-    sciact = Scientist(insert=True, ssn=ghd["ssn"], firstname=ghd["fname"], lastname=ghd["lname"],)
+    sciact = Scientist(
+        insert=True,
+        ssn=ghd["ssn"],
+        firstname=ghd["fname"],
+        lastname=ghd["lname"],
+    )
 
     proact = Procedures(insert=True, procedure_name=ghd["pname"])
 
-    hact = History(insert=True, step=ghd["step"], sample=samact, expt_type=proact, operator=sciact,)
+    hact = History(
+        insert=True,
+        step=ghd["step"],
+        sample=samact,
+        expt_type=proact,
+        operator=sciact,
+    )
 
     get_history_db = Generator(
-        name="get_history_db", desc="Parse SQLite file with History data", transforms=[ghd], loads=[hact],
+        name="get_history_db",
+        desc="Parse SQLite file with History data",
+        transforms=[ghd],
+        loads=[hact],
     )
     ############################################################################
     details = ["expt_id", "timestamp", "capacity", "electrolyte"]
@@ -154,5 +206,12 @@ def io(model: Model) -> None:
     ############################################################################
 
     model.add(
-        [scientists, get_history_csv, cathode, anode, get_history_db, fuel_details,]
+        [
+            scientists,
+            get_history_csv,
+            cathode,
+            anode,
+            get_history_db,
+            fuel_details,
+        ]
     )

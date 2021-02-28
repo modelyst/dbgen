@@ -1,15 +1,34 @@
-from hypothesis import strategies as st, given, example
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import pytest
+from hypothesis import example, given
+from hypothesis import strategies as st
 from typer import BadParameter
 from typer.testing import CliRunner
-import pytest
+
 from dbgen.cli.main import (
-    app,
-    validate_model_str,
     ERROR_FORMAT,
     ERROR_MODULE,
     ERROR_NOT_MODEL,
     ERROR_NOT_MODEL_FUNCTION,
     ERROR_RUNNING_MODEL_FACT,
+    app,
+    validate_model_str,
 )
 from dbgen.core.model.model import Model
 
@@ -23,7 +42,10 @@ ERROR_NOT_MODEL = trim_error(ERROR_NOT_MODEL)
 ERROR_NOT_MODEL_FUNCTION = trim_error(ERROR_NOT_MODEL_FUNCTION)
 ERROR_RUNNING_MODEL_FACT = trim_error(ERROR_RUNNING_MODEL_FACT)
 
-no_colons = st.text(st.characters(whitelist_categories=("Lu", "Ll"), blacklist_characters=(":")), min_size=1,)
+no_colons = st.text(
+    st.characters(whitelist_categories=("Lu", "Ll"), blacklist_characters=(":")),
+    min_size=1,
+)
 
 
 @given(no_colons, no_colons)
