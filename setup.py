@@ -73,7 +73,7 @@ docs = [
     "mkdocstrings",
 ]
 
-airflow = ["apache-airflow>=2.0.0"]
+airflow = ["apache-airflow[postgres]>=2.0.0"]
 # End dependencies group
 
 INSTALL_REQUIREMENTS = [
@@ -88,7 +88,9 @@ INSTALL_REQUIREMENTS = [
     "typer>=0.3.1",
 ]
 
-EXTRAS_REQUIREMENTS = {"airflow": airflow, "docs": docs}
+devel = ["pre-commit"]
+
+EXTRAS_REQUIREMENTS = {"airflow": airflow, "docs": docs, "devel": docs + airflow + devel}
 
 
 def do_setup():
