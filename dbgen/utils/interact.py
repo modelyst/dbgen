@@ -41,8 +41,7 @@ def interact_gen(
         input_rows (L[dict]): list of input rows that simulate the query input
 
     Raises:
-        ImportError: if prettytable, pprint and readline not installed (didn't
-        want to require these in the requirements.txt just for this function)
+        ImportError: if prettytable, pprint and readline not installed (didn't want to require these in the requirements.txt just for this function)
 
     Returns:
         L[dict]: output of the generator

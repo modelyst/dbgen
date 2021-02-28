@@ -96,7 +96,6 @@ nav:
           - dbgen.example:
               - Module Contents: reference/dbgen/example/index.md
               - dbgen.example.main: reference/dbgen/example/main.md
-              - dbgen.example.model: reference/dbgen/example/model.md
               - dbgen.example.generators.index: reference/dbgen/example/generators/index.md
               - dbgen.example.generators.analysis: reference/dbgen/example/generators/analysis.md
               - dbgen.example.generators.io: reference/dbgen/example/generators/io.md

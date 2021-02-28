@@ -118,7 +118,7 @@ repos:
         entry: yamllint -c yamllint-config.yml --strict
         types: [yaml]
         exclude:
-          ^.*init_git_sync\.template\.yaml$|^.*airflow\.template\.yaml$|^chart/(?:templates|files)/.*\.yaml
+          ^.*init_git_sync\.template\.yaml$|^chart/(?:templates|files)/.*\.yaml
   - repo: https://github.com/timothycrosley/isort
     rev: 5.7.0
     hooks:

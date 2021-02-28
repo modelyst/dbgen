@@ -35,7 +35,7 @@ connecting raw data, scientific theories, and relational databases.
 These are some of the main features:
 
 1.  Very easy to work with
-2.  Integration with the PostGres databases.
+2.  Integration with the PostgreSQL databases.
 
 DBgen was initially developed by [Modelyst](https://www.modelyst.com/).
 
@@ -104,7 +104,7 @@ Quick Start)
 <div class="termy">
 
 ```console
-$ pip install uvicorn[standard]
+$ pip install dbgen
 
 ---> 100%
 ```
