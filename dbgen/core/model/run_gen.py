@@ -24,7 +24,13 @@ from dbgen.utils.exceptions import (
 from dbgen.utils.lists import broadcast
 from dbgen.utils.numeric import safe_div
 from dbgen.utils.sql import Connection as Conn
-from dbgen.utils.sql import DictCursor, fast_load, mkUpdateCmd, sqlexecute, sqlselect
+from dbgen.utils.sql import (
+    DictCursor,
+    fast_load,
+    mkUpdateCmd,
+    sqlexecute,
+    sqlselect,
+)
 from dbgen.utils.str_utils import hash_
 
 # Internal

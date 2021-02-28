@@ -180,7 +180,7 @@ class Schema(Base):
         attr_stmts = []
         for c in obj.attrs:
             col_name, col_desc, c_index = c.create_col(obj.name)
-            stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name)
+            stmt = "ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s" % (obj.name, col_name,)
             attr_stmts.append(stmt)
             attr_stmts.append(col_desc)
             if c_index:

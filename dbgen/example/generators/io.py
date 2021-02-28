@@ -2,7 +2,16 @@
 from os.path import join, dirname
 
 # INternal
-from dbgen import Model, Generator, Const, PyBlock, Env, Import, defaultEnv, __file__
+from dbgen import (
+    Model,
+    Generator,
+    Const,
+    PyBlock,
+    Env,
+    Import,
+    defaultEnv,
+    __file__,
+)
 from dbgen.example.scripts.parsers import (
     parse_ssn,
     parse_proc_csv,
@@ -122,11 +131,11 @@ def io(model: Model) -> None:
 
     samact = Sample(insert=True, id=ghd["id"])
 
-    sciact = Scientist(insert=True, ssn=ghd["ssn"], firstname=ghd["fname"], lastname=ghd["lname"])
+    sciact = Scientist(insert=True, ssn=ghd["ssn"], firstname=ghd["fname"], lastname=ghd["lname"],)
 
     proact = Procedures(insert=True, procedure_name=ghd["pname"])
 
-    hact = History(insert=True, step=ghd["step"], sample=samact, expt_type=proact, operator=sciact)
+    hact = History(insert=True, step=ghd["step"], sample=samact, expt_type=proact, operator=sciact,)
 
     get_history_db = Generator(
         name="get_history_db", desc="Parse SQLite file with History data", transforms=[ghd], loads=[hact],
@@ -144,4 +153,6 @@ def io(model: Model) -> None:
     ############################################################################
     ############################################################################
 
-    model.add([scientists, get_history_csv, cathode, anode, get_history_db, fuel_details])
+    model.add(
+        [scientists, get_history_csv, cathode, anode, get_history_db, fuel_details,]
+    )

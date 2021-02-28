@@ -92,7 +92,7 @@ class ConnectInfo(Base):
                 (self.ssh, self.ssh_port),
                 ssh_username=self.ssh_username,
                 ssh_pkey=self.ssh_pkey,
-                remote_bind_address=(self.remote_bind_address, self.remote_bind_port),
+                remote_bind_address=(self.remote_bind_address, self.remote_bind_port,),
             )
             if self.ssh
             else suppress()

@@ -133,7 +133,7 @@ I hope you know what you are doing!!!
 #######################################################################
         """
         run_logger.warning(msg)
-        for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False, disable=not bar):
+        for ta in tqdm(self.objs.values(), desc="Adding new tables", leave=False, disable=not bar,):
             for sqlexpr in ta.create():
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -160,7 +160,7 @@ I hope you know what you are doing!!!
                 else:
                     raise Error(e)
 
-        for ta in tqdm(self.objs.values(), desc="Adding new columns", leave=False, disable=not bar):
+        for ta in tqdm(self.objs.values(), desc="Adding new columns", leave=False, disable=not bar,):
             for sqlexpr in self.add_cols(ta):
                 try:
                     sqlexecute(conn.connect(), sqlexpr)
@@ -236,7 +236,7 @@ I hope you know what you are doing!!!
                         user_batch_size=batch,
                         skip_row_count=skip_row_count,
                     )
-                except (Exception, KeyboardInterrupt, SystemExit, BdbQuit) as exc:
+                except (Exception, KeyboardInterrupt, SystemExit, BdbQuit,) as exc:
                     # If a critical error is hit that doesn't raise
                     # ExternalError() we need to clean up
                     # Update the run

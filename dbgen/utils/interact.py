@@ -142,7 +142,7 @@ def interact_gen(
                     rows = curr_load_dict[display]
                     if rows:
                         all_keys: S[str] = reduce(
-                            lambda prev, next: prev.union(set(next.keys())), rows, set()
+                            lambda prev, next: prev.union(set(next.keys())), rows, set(),
                         )
                         table = PrettyTable(field_names=list(all_keys))
                         for row in curr_load_dict[display][:max_rows]:

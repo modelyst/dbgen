@@ -123,7 +123,7 @@ class Boolean(SQLType):
 class Int(SQLType):
     def __init__(self, kind: str = "medium", signed: bool = True) -> None:
         kinds = ["small", "medium", "big"]
-        assert kind in kinds, "Invalid Int type: %s not found in %s" % (kind, kinds)
+        assert kind in kinds, "Invalid Int type: %s not found in %s" % (kind, kinds,)
         self.kind = kind
         self.signed = signed
 

@@ -101,7 +101,9 @@ parser.add_argument(
     "--skip-row-count", action="store_true", help="Skip Row count for large queries",
 )
 
-parser.add_argument("--batch", default=None, type=lambda x: int(float(x)), help="Set default batch_size")
+parser.add_argument(
+    "--batch", default=None, type=lambda x: int(float(x)), help="Set default batch_size",
+)
 
 parser.add_argument(
     "--write-logs", action="store_true", help="write logs to local file",

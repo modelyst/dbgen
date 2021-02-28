@@ -58,7 +58,17 @@ def concat_map(f: C[[A], L[B]], args: L[A]) -> L[B]:
 
 
 ##############################################################
-valid_types = (int, str, tuple, float, list, bytes, datetime, Decimal, type(None))
+valid_types = (
+    int,
+    str,
+    tuple,
+    float,
+    list,
+    bytes,
+    datetime,
+    Decimal,
+    type(None),
+)
 
 
 def broadcast(args: L[U[L[B], A]]):
@@ -77,7 +87,7 @@ def broadcast(args: L[U[L[B], A]]):
         if isinstance(a, (list, tuple)):
             if maxlen != 1:  # variable has been set
                 # preconditions for broadcasting
-                assert len(a) in [1, maxlen], broad_err % (maxlen, len(a), str(a))
+                assert len(a) in [1, maxlen], broad_err % (maxlen, len(a), str(a),)
             else:
                 maxlen = len(a)  # set variable for first (and last) time
 

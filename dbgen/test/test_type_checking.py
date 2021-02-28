@@ -27,7 +27,7 @@ def gens(objects):
     def get_gen(type_to_check):
         pb = PyBlock(transform, args=[Const([type_to_check(x) for x in [1, 2, 3]])])
         load = parent(insert=True, col_int=pb["out"])
-        return Gen(f"test_addition_{type_to_check.__name__}", loads=[load], transforms=[pb])
+        return Gen(f"test_addition_{type_to_check.__name__}", loads=[load], transforms=[pb],)
 
     return [get_gen(int), get_gen(str), get_gen(float), get_gen(bool)]
 

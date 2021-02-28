@@ -3,7 +3,14 @@ from typing import TYPE_CHECKING, Any, List as L, Optional
 from tqdm import tqdm
 
 # Internal Modules
-from dbgen.core.expr.sqltypes import Varchar, Decimal, Text, Timestamp, Int, Boolean
+from dbgen.core.expr.sqltypes import (
+    Varchar,
+    Decimal,
+    Text,
+    Timestamp,
+    Int,
+    Boolean,
+)
 from dbgen.core.schema import Obj, UserRel as Rel, Attr
 from dbgen.utils.str_utils import hash_
 from dbgen.utils.sql import mkInsCmd, sqlexecute, mkSelectCmd, sqlselect
@@ -49,7 +56,7 @@ objs = [
     Obj(
         "object",
         "All static info about a given class of entities being modeled",
-        attrs=[Attr("name", Varchar(), identifying=True), Attr("description", Text())],
+        attrs=[Attr("name", Varchar(), identifying=True), Attr("description", Text()),],
     ),
     Obj(
         "attr",
@@ -62,11 +69,11 @@ objs = [
         ],
         fks=[Rel("object", identifying=True)],
     ),
-    Obj("view", "SQL view", attrs=[Attr("name", Varchar(), identifying=True), Attr("query", Text("long"))],),
+    Obj("view", "SQL view", attrs=[Attr("name", Varchar(), identifying=True), Attr("query", Text("long")),],),
     Obj(
         "func",
         "Python functions that get used during generation of Objects/Attributes",
-        attrs=[Attr("source", Text(), identifying=True), Attr("name", Varchar())],
+        attrs=[Attr("source", Text(), identifying=True), Attr("name", Varchar()),],
     ),
     Obj(
         "gen",

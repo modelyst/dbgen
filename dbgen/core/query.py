@@ -156,7 +156,7 @@ class Query(Expr):
             f = f | a.path._from()
         return f
 
-    def showQ(self, not_deleted: bool = False, not_null: bool = True, limit: int = None) -> str:
+    def showQ(self, not_deleted: bool = False, not_null: bool = True, limit: int = None,) -> str:
         """
         Render a query
 

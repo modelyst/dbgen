@@ -17,7 +17,11 @@ from hypothesis.strategies import (
 )
 
 from dbgen.core.funclike import ArgLike, Arg, Const
-from dbgen.utils.exceptions import Psycopg2Error, DBgenExternalError, DBgenTypeError
+from dbgen.utils.exceptions import (
+    Psycopg2Error,
+    DBgenExternalError,
+    DBgenTypeError,
+)
 from dbgen.utils.misc import Base, nonempty
 from dbgen.utils.str_utils import hashdata_
 from dbgen.utils.lists import broadcast
@@ -226,7 +230,9 @@ class Load(Base):
                     "PK's should be integers for hashing purposes."
                 )
             else:
-                raise TypeError("PK should either receive an int or a list of ints", vars(self))
+                raise TypeError(
+                    "PK should either receive an int or a list of ints", vars(self),
+                )
         else:
             idata_prime = []
             idata_dict = {}  # type: D[tuple,int]
@@ -243,7 +249,7 @@ class Load(Base):
             idata_prime *= len(adata)  # broadcast
 
         lenerr = "Cannot match IDs to data: %d!=%d"
-        assert len(idata_prime) == len(adata), lenerr % (len(idata_prime), len(adata))
+        assert len(idata_prime) == len(adata), lenerr % (len(idata_prime), len(adata),)
         return idata_prime, adata
 
     def _data_to_stringIO(self, pk: L[int], data: L[tuple], obj_pk_name: str,) -> StringIO:
@@ -367,7 +373,9 @@ class Load(Base):
                 if query_fail_count == NUM_QUERY_TRIES:
                     raise ValueError("Query Cancel fail max reached")
                 try:
-                    curs.copy_from(io_obj, temp_table_name, null="None", columns=escaped_cols)
+                    curs.copy_from(
+                        io_obj, temp_table_name, null="None", columns=escaped_cols,
+                    )
                     break
                 except QueryCanceled:
                     print("Query cancel failed")

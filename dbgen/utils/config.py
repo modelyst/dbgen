@@ -99,7 +99,10 @@ class DBgenConfigParser(ConfigParser):
         configparser ([type]): [description]
     """
 
-    sensitive_config_values = {("core", "sql_alchemy_conn"), ("logging", "log_path")}
+    sensitive_config_values = {
+        ("core", "sql_alchemy_conn"),
+        ("logging", "log_path"),
+    }
 
     deprecated_options: Dict[Tuple[str, str], Tuple[str, str, str]] = {}
     ENV_VAR_PREFIX = "DBGEN__"

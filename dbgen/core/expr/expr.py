@@ -1,13 +1,27 @@
 # External Modules
 from abc import abstractmethod, ABCMeta
-from typing import Any, TYPE_CHECKING, Union as U, List as L, Tuple as T, Callable as C
+from typing import (
+    Any,
+    TYPE_CHECKING,
+    Union as U,
+    List as L,
+    Tuple as T,
+    Callable as C,
+)
 
 from functools import reduce
 from operator import add
 from hypothesis.strategies import SearchStrategy, builds, lists, one_of, just
 
 # Internal Modules
-from dbgen.core.expr.sqltypes import SQLType, Decimal, Varchar, Text, Int, Boolean
+from dbgen.core.expr.sqltypes import (
+    SQLType,
+    Decimal,
+    Varchar,
+    Text,
+    Int,
+    Boolean,
+)
 from dbgen.utils.lists import concat_map
 from dbgen.utils.misc import Base, anystrat
 
@@ -197,7 +211,12 @@ class Binary(Expr):
     # Class-specific init
     # -------------------
     def __init__(self, x: Expr, y: Expr) -> None:
-        assert all([isinstance(a, Expr) for a in [x, y]]), [x, type(x), y, type(y)]
+        assert all([isinstance(a, Expr) for a in [x, y]]), [
+            x,
+            type(x),
+            y,
+            type(y),
+        ]
         self.x, self.y = x, y
 
     @classmethod
@@ -605,7 +624,7 @@ class GROUP_CONCAT(Agg):
     def show(self, f: Fn) -> str:
         ord = "ORDER BY " + f(self.order) if self.order is not None else ""
 
-        return "string_agg(%s :: TEXT,'%s' %s)" % (f(self.expr), self.delim, ord)
+        return "string_agg(%s :: TEXT,'%s' %s)" % (f(self.expr), self.delim, ord,)
 
     @classmethod
     def _strat(cls) -> SearchStrategy:

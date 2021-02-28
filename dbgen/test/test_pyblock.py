@@ -64,4 +64,6 @@ class TestPyBlock(TestCase):
         for pyblock in (pyblock_1, pyblock_2):
             namespace.update({str(hash(pyblock)): pyblock(namespace)})
         self.assertEqual(namespace[str(hash(pyblock_1))]["out"], "input transformed")
-        self.assertEqual(namespace[str(hash(pyblock_2))]["out"], "input transformed transformed")
+        self.assertEqual(
+            namespace[str(hash(pyblock_2))]["out"], "input transformed transformed",
+        )

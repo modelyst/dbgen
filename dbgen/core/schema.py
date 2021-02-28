@@ -256,7 +256,12 @@ class Obj(Base):
         self.fks = fks or []
         self.id_str = id_str if id_str else self.name + "_id"
         # Validate
-        self.forbidden = [self.id_str, "deleted", "insert", self.name]  # RESERVED
+        self.forbidden = [
+            self.id_str,
+            "deleted",
+            "insert",
+            self.name,
+        ]  # RESERVED
         assert not any([a.name in self.forbidden for a in self.attrs]), (
             self.attrs,
             self.forbidden,
@@ -309,7 +314,7 @@ class Obj(Base):
 
         fks = {k: v for k, v in kwargs.items() if k not in attrs}
         for fk in fks:
-            assert fk in self.fkdict, 'unknown "%s" kwarg in Load of %s' % (fk, self)
+            assert fk in self.fkdict, 'unknown "%s" kwarg in Load of %s' % (fk, self,)
         for k, v in fks.items():
             if not isinstance(v, Load):
                 # We OUGHT have a reference to a FK from a query
@@ -378,7 +383,7 @@ class Obj(Base):
         create_str = 'CREATE TABLE IF NOT EXISTS "%s" ' % self.name
         if len(self.attrs) != 0:
             cols, coldescs, colindexes = map(
-                lambda x: list(x), zip(*[a.create_col(self.name) for a in self.attrs])
+                lambda x: list(x), zip(*[a.create_col(self.name) for a in self.attrs]),
             )
         else:
             cols, coldescs, colindexes = [], [], []
@@ -436,7 +441,14 @@ class Obj(Base):
 
             for c in self.attrs:
                 # Insert info about an attribute
-                binds = [tab_id, c.name, str(c.dtype), c.desc, str(c.default), c.hash]
+                binds = [
+                    tab_id,
+                    c.name,
+                    str(c.dtype),
+                    c.desc,
+                    str(c.default),
+                    c.hash,
+                ]
 
                 cmd = mkInsCmd("attr", ins_cols)
                 sqlexecute(cxn, cmd, binds)
