@@ -144,7 +144,7 @@ class Model(Schema):
                 "feature right now)"
             )
             raise exc
-        run_airflow(*args, **kwargs)
+        run_airflow(self, *args, **kwargs)
 
     ##################
     # Public methods #

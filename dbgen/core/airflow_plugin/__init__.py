@@ -18,6 +18,8 @@
 # External imports
 from airflow.plugins_manager import AirflowPlugin
 
+from dbgen.core.airflow_plugin.dummy_genoperator import DummyGenOperator
+
 # Operators
 from dbgen.core.airflow_plugin.genoperator import GenOperator
 
@@ -25,4 +27,4 @@ from dbgen.core.airflow_plugin.genoperator import GenOperator
 # Defining the plugin class
 class DBgenPlugin(AirflowPlugin):
     name = "dbgen_plugin"
-    operators = [GenOperator]
+    operators = [GenOperator, DummyGenOperator]

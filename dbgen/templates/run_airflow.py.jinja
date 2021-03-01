@@ -25,7 +25,7 @@ from datetime import datetime
 
 # Internal Imports
 from dbgen import Gen
-from dbgen.core.airflow_plugin import GenOperator # type: ignore
+from dbgen.core.airflow_plugin import {{operator_name}} # type: ignore
 
 # Written by {{ user }}
 
@@ -43,7 +43,7 @@ default_args ={
 default_args.update({{ dag_args }})
 with DAG('{{ modelname }}',schedule_interval = '{{ schedule_interval }}', default_args = default_args) as dag:
     {% for gen_name, gen_hash in gen_hash_dict.items() %}
-    {{gen_name}}  = GenOperator(
+    {{gen_name}}  = {{operator_name}}(
                                objs            = objs,
                                gen_name        = '{{gen_name}}',
                                gen_hash        = {{gen_hash}},
@@ -59,7 +59,7 @@ with DAG('{{ modelname }}',schedule_interval = '{{ schedule_interval }}', defaul
 
 # Add dependencies
 {% for child,parent in deps %}
-{{ parent }}.set_upstream({{ child}})
+    {{ parent }}.set_upstream({{ child}})
 {% endfor %}
 
 if __name__ == '__main__':
