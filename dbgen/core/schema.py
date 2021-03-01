@@ -243,11 +243,13 @@ class UserRel(Base):
         tar: str = None,
         identifying: bool = False,
         desc: str = "<No description>",
+        delete_trigger: str = "NO ACTION",
     ) -> None:
         self.name = name.lower()
         self.desc = desc
         self.tar = tar.lower() if tar else self.name
         self.identifying = identifying
+        self.delete_trigger = delete_trigger
         super().__init__()
 
     def __str__(self) -> str:
@@ -261,6 +263,7 @@ class UserRel(Base):
             o2=self.tar,
             identifying=self.identifying,
             desc=self.desc,
+            delete_trigger=self.delete_trigger,
         )
 
 
@@ -500,6 +503,8 @@ class Rel(Base):
     Can be identifying or non-identifying
     """
 
+    _valid_triggers = ("NO ACTION", "CASCADE", "SET NULL")
+
     def __init__(
         self,
         name: str,
@@ -507,12 +512,18 @@ class Rel(Base):
         o2: str = None,
         identifying: bool = False,
         desc: str = "<No description>",
+        delete_trigger: str = "NO ACTION",
     ) -> None:
         self.name = name.lower()
         self.desc = desc
         self.o1 = o1.lower()
         self.o2 = o2.lower() if o2 else self.name
         self.identifying = identifying
+        if delete_trigger:
+            assert (
+                delete_trigger in self._valid_triggers
+            ), f"Invalid delete trigger value {delete_trigger} please use one of: {self._valid_triggers}"
+            self.delete_trigger = delete_trigger
         super().__init__()
 
     def __str__(self) -> str:

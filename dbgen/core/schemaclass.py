@@ -214,11 +214,16 @@ class Schema(Base):
     ################
     def _create_fk(self, fk: Rel) -> str:
         """create SQL FK statement"""
-        args = [fk.o1, fk.name, fk.o2, self[fk.o2].id_str]
+        # Check rel for a non-default trigger
+        if fk.delete_trigger != "NO ACTION":
+            trigger = f" ON DELETE {fk.delete_trigger}"
+        else:
+            trigger = ""
+        args = [fk.o1, fk.name, fk.o2, self[fk.o2].id_str, trigger]
         stmt = 'ALTER TABLE "{0}" ADD COLUMN IF NOT EXISTS "{1}" BIGINT;'
         stmt += 'ALTER TABLE "{0}" DROP CONSTRAINT IF EXISTS fk__{0}__{1}__{2}__{3};'
         stmt += 'ALTER TABLE "{0}" ADD CONSTRAINT fk__{0}__{1}__{2}__{3}\
-        FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}");'
+        FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}") {4};'
         stmt += 'CREATE INDEX IF NOT EXISTS "{0}__{1}__fkey" ON "{0}"("{1}");'
         return stmt.format(*args)
 
