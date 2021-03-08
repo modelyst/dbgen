@@ -103,7 +103,7 @@ class DBgenConfigParser(ConfigParser):
     """
 
     sensitive_config_values = {
-        ("core", "sql_alchemy_conn"),
+        ("core", "db_conn_str"),
         ("logging", "log_path"),
     }
 
