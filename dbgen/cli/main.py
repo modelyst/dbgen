@@ -308,5 +308,28 @@ def deserialize(
         f.write(model.toJSON())
 
 
+@app.command()
+def airflow(
+    model_str: str = typer.Argument(
+        ...,
+        help="An import string in MODULE:PACKAGE format where the package is either a dbgen model variable or a function that produces one",
+    ),
+    out_pth: Path = typer.Option(
+        None,
+        help="Output path to write the model.json to",
+    ),
+):
+    """
+    Serializes the DBgen model into a json
+    """
+    model = validate_model_str(model_str)
+    if not out_pth:
+        out_pth = Path(f"./{model.name}.py")
+    with open(out_pth, "w") as f:
+        f.write(model.run_airflow())
+    typer.echo(f"Finished! Your model is serialized at {out_pth.absolute()}")
+    typer.echo(f"Hash: {model.hash}")
+
+
 if __name__ == "__main__":
     app()
