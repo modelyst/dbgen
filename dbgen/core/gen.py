@@ -66,6 +66,7 @@ class Generator(Base):
         tags: L[str] = None,
         env: Env = None,
         batch_size: int = None,
+        additional_deps: Dep = None,
     ) -> None:
         """
         Initializes generator object.
@@ -92,6 +93,7 @@ class Generator(Base):
         self.tags = [t.lower() for t in tags or []]
         self.env = env or defaultEnv
         self.batch_size: Opt[int] = batch_size
+        self.additional_deps = additional_deps
         for func in self.transforms:
             self.env += func.func.env
         super().__init__()
@@ -166,7 +168,13 @@ class Generator(Base):
             if t[:4] == "dep ":
                 coldeps.append(t[4:])
 
-        return Dep(tabdeps, coldeps, newtabs, newcols)
+        implicit_deps = Dep(tabdeps, coldeps, newtabs, newcols)
+        # check if we have additional explicit dependencies
+        if self.additional_deps:
+            total_deps = Dep.merge([implicit_deps, self.additional_deps])
+        else:
+            total_deps = implicit_deps
+        return total_deps
 
     def add(self, cxn: "Conn") -> int:
         """
