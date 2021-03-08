@@ -104,6 +104,7 @@ class DBgenConfigParser(ConfigParser):
 
     sensitive_config_values = {
         ("core", "db_conn_str"),
+        ("core", "metadb_conn_str"),
         ("logging", "log_path"),
     }
 
@@ -318,6 +319,7 @@ class RunConfig:
     retry: bool = False
     start: Optional[str] = None
     until: Optional[str] = None
+    serial: bool = False
     nuke: bool = False
     bar: bool = True
     skip_row_count: bool = True
