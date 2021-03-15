@@ -8,7 +8,7 @@ from setuptools import find_packages, setup  # type: ignore
 
 logger = logging.getLogger(__name__)
 DBGEN_DIR = dirname(__file__)
-version = "0.4.1"
+version = "0.4.2"
 # Set long description as readme file text
 try:
     with open(join(DBGEN_DIR, "README.md"), encoding="utf-8") as f:

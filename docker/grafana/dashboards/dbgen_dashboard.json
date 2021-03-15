@@ -696,8 +696,8 @@
         "allValue": null,
         "current": {
           "selected": true,
-          "text": "0",
-          "value": "0"
+          "text": "1",
+          "value": "1"
         },
         "datasource": "${datasource}",
         "definition": "set search_path = $schema;\nselect run_id  as run_id from run \nunion all\nselect 0\norder by 1 desc;",
