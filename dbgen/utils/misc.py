@@ -77,8 +77,10 @@ def to_dict(x: Any, id_only: bool = False) -> U[L, int, float, str, D[str, Any],
             return {k: to_dict(v, id_only) for k, v in x.items() if not (k == "_uid" and id_only)}
         elif ptype == "list":
             return [to_dict(xx, id_only) for xx in x]
-        elif ptype in ["tuple", "set"]:
+        elif ptype == "tuple":
             return dict(**metadata, _value=[to_dict(xx, id_only) for xx in x])
+        elif ptype == "set":
+            return dict(**metadata, _value=[to_dict(xx, id_only) for xx in sorted(x)])
         else:
             raise TypeError(x)
     else:
