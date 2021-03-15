@@ -103,7 +103,6 @@ def create_config(model_name: str, model_root: str):
         MODEL_NAME=model_name,
         MODEL_ROOT=model_root,
         MODEL_TMP=f"{model_root}/dbgen_files/tmp",
-        DEFAULT_ENV=f"{model_root}/dbgen_files/default.py",
     )
     config = configparser.ConfigParser()
     config["dbgen"] = envvars

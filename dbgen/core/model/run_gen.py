@@ -211,6 +211,7 @@ def run_gen(
     except DBgenExternalError as e:
         msg = f"\n\nError when running generator {gen.name}\n"
         logger.error(msg)
+        logger.error(f"\n{e}")
         q = mkUpdateCmd("gens", ["error", "status"], ["run", "name"])
         sqlexecute(gmcxn, q, [str(e), "failed", run_id, gen.name])
         return 1  # increment error count

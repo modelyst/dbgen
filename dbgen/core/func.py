@@ -43,7 +43,7 @@ from hypothesis.strategies import SearchStrategy, builds
 
 # Iternal Modules
 from dbgen.core.datatypes import DataType, Tuple
-from dbgen.utils.config import DBGEN_TMP, DEFAULT_ENV
+from dbgen.utils.config import DBGEN_TMP
 from dbgen.utils.exceptions import DBgenInternalError, DBgenInvalidArgument
 from dbgen.utils.misc import Base, hash_
 from dbgen.utils.sql import Connection as Conn
@@ -211,27 +211,18 @@ class Env(Base):
             return cls.from_str(f.read())
 
 
-emptyEnv = Env()
-# Default environement is read from file if environmental variable is set
-# otherwise no default is used
-defaultEnv = Env.from_file(DEFAULT_ENV) if DEFAULT_ENV and DEFAULT_ENV.exists() else emptyEnv
-
 ################################################################################
 class Func(Base):
     """
     A function that can be used during the DB generation process.
     """
 
-    def __init__(self, src: str, env: Env = None) -> None:
+    def __init__(self, src: str, env: Env) -> None:
         assert isinstance(src, str), f"Expected src str, but got {type(src)}"
+        assert isinstance(env, Env), f"Expected Env, but got {type(env)}"
 
         self.src = src
-
-        if env:
-            assert isinstance(env, Env), f"Expected Env, but got {type(env)}"
-            self.env = env
-        else:
-            self.env = defaultEnv
+        self.env = env
         super().__init__()
 
     def __str__(self) -> str:
@@ -314,12 +305,12 @@ class Func(Base):
 
     # Private methods #
 
-    def _from_src(self) -> C:
+    def _from_src(self, force: bool = False) -> C:
         """
         Execute source code to get a callable
         """
 
-        if not exists(self.path):
+        if force or not exists(self.path):
             with open(self.path, "w") as t:
                 t.write(self.file())
 
@@ -328,11 +319,11 @@ class Func(Base):
         return f
 
     # Public methods #
-    def store_func(self) -> None:
+    def store_func(self, force: bool = False) -> None:
         """Load func from source code and store as attribute (better performance
         but object is no longer serializable / comparable for equality )
         """
-        self._func = self._from_src()
+        self._func = self._from_src(force)
 
     def del_func(self) -> None:
         """Remove callable attribute after performance is no longer needed"""
@@ -399,7 +390,7 @@ class Func(Base):
             )
 
     @classmethod
-    def from_callable(cls, f: U[C, "Func"], env: Env = None) -> "Func":
+    def from_callable(cls, f: U[C, "Func"], env: Env = Env()) -> "Func":
         """
         Generate a func from a variety of possible input data types.
         """

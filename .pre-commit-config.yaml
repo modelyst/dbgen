@@ -210,7 +210,7 @@ repos:
         additional_dependencies: ['flynt']
         files: \.py$
       - id: pytest
-        name: Convert to f-strings with pytest
+        name: Run all tests
         entry: pytest
         language: system
         pass_filenames: false
@@ -226,4 +226,6 @@ repos:
     hooks:
       - id: mypy
         args: ["--config", "setup.cfg", "--ignore-missing-imports"]
+        language: python
+        language_version: 3.9.2
         files: \.py$

@@ -28,6 +28,7 @@ from networkx import DiGraph
 
 from dbgen.core.expr.sqltypes import SQLType
 from dbgen.core.fromclause import Path as JPath
+from dbgen.core.func import Env
 from dbgen.core.gen import Generator
 from dbgen.core.load import Load
 from dbgen.core.misc import ConnectInfo as ConnI
@@ -89,6 +90,7 @@ class Model(Schema):
         self.objlist = objlist or []
         self.genlist = genlist or []
         self.viewlist = viewlist or []
+        self.env = Env()
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objs)  # nodes are object NAMES
@@ -385,6 +387,9 @@ class Model(Schema):
         # ----
         for a in g.loads:
             self._validate_load(a)
+
+        for transform in g.transforms:
+            self.env += transform.env
 
         self.genlist.append(g)
 

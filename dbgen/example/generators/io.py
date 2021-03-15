@@ -19,7 +19,8 @@
 from os.path import dirname, join
 
 # INternal
-from dbgen import Const, Env, Generator, Import, Model, PyBlock, __file__, defaultEnv
+from dbgen import Const, Env, Generator, Import, Model, PyBlock, __file__
+from dbgen.example.constants import defaultEnv
 from dbgen.example.scripts.parsers import get_electrode, parse_expt, parse_proc_csv, parse_sqlite, parse_ssn
 
 ############################################################################
@@ -64,6 +65,7 @@ def io(model: Model) -> None:
     pb1 = PyBlock(
         func=parse_ssn,
         args=[Const(root + "ssn.json")],
+        env=defaultEnv,
         outnames=["firstname", "lastname", "ssn"],
     )
 
@@ -83,11 +85,11 @@ def io(model: Model) -> None:
 
     ############################################################################
 
-    dd_env = defaultEnv + Env([Import("collections", "defaultdict"), Import("csv", "DictReader")])
+    dd_env = Env([Import("collections", "defaultdict"), Import("csv", "DictReader")])
 
     ghcpb = PyBlock(
         func=parse_proc_csv,
-        env=dd_env,
+        env=defaultEnv + dd_env,
         args=[Const(root + "procedures.csv")],
         outnames=[
             "id",
@@ -136,6 +138,7 @@ def io(model: Model) -> None:
     for x in ["Cathode", "Anode"]:
         capb = PyBlock(
             func=get_electrode,
+            env=defaultEnv,
             args=[Const(root + "experiment.json"), Const(x)],
             outnames=["id", "expt_id", "comp"],
         )
@@ -158,11 +161,11 @@ def io(model: Model) -> None:
 
     cathode, anode = ca
     ############################################################################
-    sqlite_env = defaultEnv + Env([Import("sqlite3", "connect")])
+    sqlite_env = Env([Import("sqlite3", "connect")])
 
     ghd = PyBlock(
         parse_sqlite,
-        env=sqlite_env,
+        env=defaultEnv + sqlite_env,
         args=[Const(root + "procedure.db")],
         outnames=["id", "step", "pname", "fname", "lname", "ssn"],
     )
@@ -194,7 +197,7 @@ def io(model: Model) -> None:
     )
     ############################################################################
     details = ["expt_id", "timestamp", "capacity", "electrolyte"]
-    fd_pb = PyBlock(parse_expt, args=[Const(root + "experiment.json")], outnames=details)
+    fd_pb = PyBlock(parse_expt, env=defaultEnv, args=[Const(root + "experiment.json")], outnames=details)
     fuel_details = Generator(
         name="fuel_details",
         desc="other details about fuel cell experiments",

@@ -26,7 +26,7 @@ from typing import Tuple as T
 import hypothesis.strategies as st
 from hypothesis.strategies import SearchStrategy, builds, lists, text
 
-from dbgen.core.func import Env, Func, defaultEnv
+from dbgen.core.func import Env, Func
 from dbgen.core.funclike import Arg, PyBlock
 from dbgen.core.load import Load
 from dbgen.core.misc import Dep
@@ -64,7 +64,7 @@ class Generator(Base):
         transforms: L[PyBlock] = None,
         loads: L[Load] = None,
         tags: L[str] = None,
-        env: Env = None,
+        env: Env = Env(),
         batch_size: int = None,
         additional_deps: Dep = None,
     ) -> None:
@@ -91,7 +91,7 @@ class Generator(Base):
         self.transforms = self._order_transforms(transforms or [], query)
         self.loads = loads or []
         self.tags = [t.lower() for t in tags or []]
-        self.env = env or defaultEnv
+        self.env = env
         self.batch_size: Opt[int] = batch_size
         self.additional_deps = additional_deps
         for func in self.transforms:

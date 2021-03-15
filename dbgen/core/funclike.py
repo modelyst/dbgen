@@ -139,7 +139,7 @@ class PyBlock(Base):
     def __init__(
         self,
         func: U[C, Func],
-        env: Env = None,
+        env: Env = Env(),
         args: Sequence[ArgLike] = [],
         outnames: L[str] = None,
         tests: L[T[tuple, Any]] = [],

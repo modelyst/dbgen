@@ -361,8 +361,15 @@ def parameterized_config(template):
     return template.format(**all_vars)  # noqa
 
 
-def get_config(config_file: Optional[Path] = None) -> DBgenConfigParser:
+def get_config(config_file: Path) -> DBgenConfigParser:
     config = DBgenConfigParser(default_config=parameterized_config(DEFAULT_CONFIG))
+    if not config_file.exists():
+        TEMPLATE_START = '# ----------------------- TEMPLATE BEGINS HERE -----------------------'
+        logger.info('Creating new DBgen config file in: %s', config_file)
+        with open(config_file, 'w') as file:
+            cfg = parameterized_config(DEFAULT_CONFIG)
+            cfg = cfg.split(TEMPLATE_START)[-1].strip()
+            file.write(cfg)
     # Read the path if it exists
     if config_file:
         config.read(config_file.absolute())
@@ -374,8 +381,6 @@ def get_config(config_file: Optional[Path] = None) -> DBgenConfigParser:
 config = get_config(Path(DBGEN_CONFIG))
 # TODO DEFAULT_ENV and DBGEN_TMP cannot be overwritten at runtime must be stored in env var or config file
 # Would be nice to make these changeable at runtime
-default_env_str = environ.get("DEFAULT_ENV") or config.get("core", "default_env", fallback=None)
-DEFAULT_ENV = Path(default_env_str) if default_env_str else None
 DBGEN_TMP_STR = environ.get("DBGEN_TMP") or config.get("core", "dbgen_tmp", fallback=tempfile.gettempdir())
 DBGEN_TMP = Path(DBGEN_TMP_STR)
 DBGEN_TMP.mkdir(exist_ok=True, parents=True)

@@ -105,7 +105,7 @@ from dbgen.core.expr.sqltypes import (
     Varchar,
 )
 from dbgen.core.fromclause import Path as JPath
-from dbgen.core.func import Env, Func, Import, defaultEnv
+from dbgen.core.func import Env, Func, Import
 from dbgen.core.funclike import Arg, Const, PyBlock
 from dbgen.core.gen import Generator
 from dbgen.core.gen import Generator as Gen
