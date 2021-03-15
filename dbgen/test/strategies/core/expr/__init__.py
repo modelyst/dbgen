@@ -14,20 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from typing import Any
-
-# Numeric functions
-# ------------------
-
-
-def roundfloat(x: Any) -> float:
-    output = round(float(x), 3)
-    return abs(output) if output == 0 else output
-
-
-def safe_div(x: float, y: float) -> float:
-    try:
-        return x / y
-    except ZeroDivisionError:
-        return 0.0

@@ -343,10 +343,10 @@ class Test:
 
 onlyTest = Test(
     lambda t, o: (len(o) == 0) or (t.name in o) or any([g in t.tags for g in o]),  # type: ignore
-    lambda x: "Rule not in 'Only' input specification",
+    lambda x: "excluded",
 )
 
 xTest = Test(
     lambda t, x: (t.name not in x) and (not any([g in t.tags for g in x])),  # type: ignore
-    lambda x: "Excluded",
+    lambda x: "excluded",
 )

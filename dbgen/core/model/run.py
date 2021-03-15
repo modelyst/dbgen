@@ -212,8 +212,8 @@ I hope you know what you are doing!!!
     err_tot = 0  # total # of failed generators
     start_flag = False if start else True
     until_flag = True
-    start_test = Test(lambda _, __: start_flag, lambda _: 'Excluded because of "start"')
-    until_test = Test(lambda _, __: until_flag, lambda _: 'Excluded because of "until"')
+    start_test = Test(lambda _, __: start_flag, lambda _: 'excluded')
+    until_test = Test(lambda _, __: until_flag, lambda _: 'excluded')
     testdict = {xTest: [xclude_], start_test: [None], until_test: [None]}
 
     universe = self._get_universe()
@@ -240,7 +240,13 @@ I hope you know what you are doing!!!
 
             # Run tests to see whether or not the Generator should be run
             if only:  # only trumps everything else, if it's defined
-                run = (onlyTest(gen, only_) is True) and (xTest(gen, xclude_) is True)
+                only_result = onlyTest(gen, only_)
+                xclude_result = xTest(gen, xclude_)
+                run = (only_result is True) and (xclude_result is True)
+                if only_result is not True:
+                    gen.update_status(gmcxn, run_id, only_result)
+                elif xclude_result is not True:
+                    gen.update_status(gmcxn, run_id, xclude_result)
             else:
                 run = True  # flag for passing all tests
                 for test, args in testdict.items():

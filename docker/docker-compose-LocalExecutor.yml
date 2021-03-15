@@ -37,3 +37,23 @@ services:
             - DEFAULT_ENV=/home/dbgen/dbgen_files/default.py
             - DBGEN__LOGGING__LOG_TO_STDOUT=true
         command: run dbgen.example.main:model --no-bar -y --nuke
+    grafana:
+        image: grafana/grafana:latest
+        depends_on:
+            - postgres
+        ports:
+            - 3000:3000
+        volumes:
+            - ./grafana/provisioning:/etc/grafana/provisioning
+            - ./grafana/dashboards:/var/lib/grafana/dashboards
+    dbgen_run:
+        image: dbgen:test
+        depends_on:
+            - postgres
+            - dbgen
+        environment:
+            - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
+            - DBGEN__CORE__DB_SCHEMA=test
+            - DEFAULT_ENV=/home/dbgen/dbgen_files/default.py
+            - DBGEN__LOGGING__LOG_TO_STDOUT=true
+        command: sleep 10; dbgen run dbgen.example.main:model --no-bar

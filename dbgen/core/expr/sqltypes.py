@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from random import choice
@@ -24,8 +25,6 @@ from string import ascii_lowercase, ascii_uppercase, digits
 # External Modules
 from typing import Any
 from typing import Optional as O
-
-from hypothesis.strategies import SearchStrategy, from_type
 
 from dbgen.utils.exceptions import DBgenTypeError
 from dbgen.utils.misc import Base
@@ -43,10 +42,6 @@ class SQLType(Base, metaclass=ABCMeta):
     """
 
     data = {}  # type: dict
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return from_type(cls)
 
     @abstractmethod
     def __str__(self) -> str:
@@ -74,7 +69,7 @@ class SQLType(Base, metaclass=ABCMeta):
             return Decimal(int(prec), int(scale))
         elif "INT" in s:
             if "TINY" in s:
-                kind = "tiny"
+                kind = "small"
             elif "BIG" in s:
                 kind = "big"
             else:
@@ -141,7 +136,11 @@ class Boolean(SQLType):
 
 
 class Int(SQLType):
-    def __init__(self, kind: str = "medium", signed: bool = True) -> None:
+    def __init__(
+        self,
+        kind: str = "medium",
+        signed: bool = True,
+    ) -> None:
         kinds = ["small", "medium", "big"]
         assert kind in kinds, f"Invalid Int type: {kind} not found in {kinds}"
         self.kind = kind

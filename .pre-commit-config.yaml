@@ -209,6 +209,12 @@ repos:
         language_version: python3
         additional_dependencies: ['flynt']
         files: \.py$
+      - id: pytest
+        name: Convert to f-strings with pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
     hooks:

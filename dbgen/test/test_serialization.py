@@ -20,7 +20,7 @@ import unittest
 
 from hypothesis import given, settings
 
-from dbgen import Generator, Model, PyBlock, Query, SQLType, Varchar
+from dbgen import Generator, Model, PyBlock, Query
 from dbgen.core.datatypes import DataType
 from dbgen.core.expr.exprstrat import exprstrat
 from dbgen.core.load import Load
@@ -34,14 +34,6 @@ def serialtest(x):
 
 class TestSerialization(unittest.TestCase):
     """Test the reversability of JSON serialization"""
-
-    @given(Varchar._strat())
-    def test_varchar(self, x):
-        serialtest(x)
-
-    @given(SQLType._strat())
-    def test_sqltype(self, x):
-        serialtest(x)
 
     @given(DataType._strat())
     def test_datatype(self, x):

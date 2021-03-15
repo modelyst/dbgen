@@ -70,7 +70,6 @@ def run_gen(
     # Initialize Variables
     # --------------------
     logger = logging.getLogger(f"dbgen.run.{gen.name}")
-    logger.setLevel(logging.DEBUG)
 
     gen.update_status(gmcxn, run_id, "running")
     start = time()
@@ -264,7 +263,6 @@ def apply_batch(
 
     # Initialize variables
     logger = logging.getLogger(f"dbgen.run.{gen_name}.apply_batch")
-    logger.setLevel(logging.DEBUG)
 
     open_mdb, open_db = cxns
     n_inputs = len(inputs)
