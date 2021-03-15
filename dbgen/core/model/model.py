@@ -16,6 +16,8 @@
 # under the License.
 
 """Module for the DBgen Model object"""
+from functools import reduce
+
 # External
 from typing import Dict as D
 from typing import List as L
@@ -90,7 +92,6 @@ class Model(Schema):
         self.objlist = objlist or []
         self.genlist = genlist or []
         self.viewlist = viewlist or []
-        self.env = Env()
 
         self._fks = DiGraph()
         self._fks.add_nodes_from(self.objs)  # nodes are object NAMES
@@ -105,6 +106,10 @@ class Model(Schema):
     @property
     def gens(self) -> D[str, Generator]:
         return {g.name: g for g in self.genlist}
+
+    @property
+    def env(self) -> Env:
+        return reduce(lambda first, second: first + second.env, self.genlist, Env())
 
     def __str__(self) -> str:
         p = "%d objs" % len(self.objs)
@@ -387,9 +392,6 @@ class Model(Schema):
         # ----
         for a in g.loads:
             self._validate_load(a)
-
-        for transform in g.transforms:
-            self.env += transform.env
 
         self.genlist.append(g)
 

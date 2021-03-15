@@ -90,15 +90,12 @@ def to_dict(x: Any, id_only: bool = False) -> U[L, int, float, str, D[str, Any],
             for k, v in sorted(vars(x).items())
             if (k in kwargs(x)) or (not id_only and k[0] != "_")
         }
-        # if ' at 0x' in str(v):  raise ValueError('serializing an object with
-        # reference to memory:'+ str(vars(self)))
         if not id_only:
             hashdict = {
                 **metadata,
                 **{k: to_dict(v, True) for k, v in sorted(vars(x).items()) if (k in kwargs(x))},
             }
             metadata["_uid"] = hash_(hashdict)
-
         return {**metadata, **data}
 
 

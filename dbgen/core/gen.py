@@ -64,7 +64,6 @@ class Generator(Base):
         transforms: L[PyBlock] = None,
         loads: L[Load] = None,
         tags: L[str] = None,
-        env: Env = Env(),
         batch_size: int = None,
         additional_deps: Dep = None,
     ) -> None:
@@ -91,11 +90,8 @@ class Generator(Base):
         self.transforms = self._order_transforms(transforms or [], query)
         self.loads = loads or []
         self.tags = [t.lower() for t in tags or []]
-        self.env = env
         self.batch_size: Opt[int] = batch_size
         self.additional_deps = additional_deps
-        for func in self.transforms:
-            self.env += func.func.env
         super().__init__()
 
     def __str__(self) -> str:
@@ -311,6 +307,13 @@ class Generator(Base):
 
             return self.test(universe, input_rows, rename_dict)
 
+    @property
+    def env(self) -> Env:
+        self._env = Env()
+        for pyblock in self.transforms:
+            self._env += pyblock.func.env
+        return self._env
+
     ##################
     # Private Methods #
     ##################
@@ -385,7 +388,6 @@ class Generator(Base):
             name=self.name,
             pyblocks=pbs,
             genname=self.name,
-            env=str(self.env) if self.env else "",
             loads=loaders,
             objs=objs,
             query=self.query.showQ() if self.query else False,
