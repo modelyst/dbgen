@@ -192,14 +192,11 @@ repos:
         additional_dependencies: ['pyyaml']
         require_serial: true
         pass_filenames: false
-      # - id: markdownlint
-      #   name: Run markdownlint
-      #   description: "Checks the style of Markdown files."
-      #   entry: markdownlint
-      #   language: node
-      #   types: [markdown]
-      #   files: \.(md|mdown|markdown)$
-      #   additional_dependencies: ['markdownlint-cli']
+      - id: mypy
+        name: Run mypy
+        entry: ./scripts/ci/pre_commit/pre_commit_check_mypy.sh
+        language: system
+        files: \.py$
       - id: flynt
         name: Convert to f-strings with flynt
         entry: flynt
