@@ -114,14 +114,12 @@ def do_setup():
             "Environment :: Console",
             "Intended Audience :: Scientists",
             "Intended Audience :: Developers",
-            "Programming Language :: Python :: 3.6",
-            "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
         ],
         author="Modelyst LLC",
         author_email="info@modelyst.io",
         url="http://www.modelyst.com",
-        python_requires="~=3.6",
+        python_requires=">=3.8,<4.0",
         test_suite="setup.dbgen_tests",
     )
 

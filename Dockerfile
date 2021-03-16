@@ -8,7 +8,8 @@ ARG RUNTIME_APT_DEPS="\
     postgresql-client \
     sudo "
 
-ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS}
+ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS} \
+    POETRY_VERSION==1.1.5
 
 ARG ADDITIONAL_RUNTIME_APT_DEPS=""
 ENV ADDITIONAL_RUNTIME_APT_DEPS=${ADDITIONAL_RUNTIME_APT_DEPS}
@@ -39,29 +40,45 @@ RUN apt-get install -y --no-install-recommends dumb-init
 # set working directory
 RUN mkdir -p /home/dbgen
 WORKDIR /home/dbgen
+# Install poetry
+RUN pip install "poetry==$POETRY_VERSION"
+# Add the lock file
+COPY poetry.lock pyproject.toml /home/dbgen/
 
-COPY ./requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+# Set environment
+ARG YOUR_ENV="development"
+ENV YOUR_ENV=${YOUR_ENV}
 
+# Project initialization:
+RUN poetry config virtualenvs.create false \
+    && poetry install $(test $YOUR_ENV = "production" && echo "--no-dev")  --no-interaction --no-ansi
+
+# add entrypoint.sh
+COPY docker/config/dbgen_files /home/dbgen/dbgen_files
+COPY scripts/in_container/entrypoint_prod.sh /entrypoint
+RUN chmod a+x /entrypoint
+
+# Set DBGEN EnvVars
 ARG DBGEN_VERSION
 ENV DBGEN_VERSION=${DBGEN_VERSION}
+ARG DBGEN_HOME=/home/dbgen
+ENV DBGEN_HOME=${DBGEN_HOME}
 # DBGEN
 COPY ./dist/dbgen-${DBGEN_VERSION}.tar.gz /tmp/dbgen.tar.gz
 RUN pip install  /tmp/dbgen.tar.gz
-COPY docker/config/dbgen_files /home/dbgen/dbgen_files
-COPY  scripts/in_container/entrypoint_prod.sh /entrypoint
-RUN chmod a+x /entrypoint
-# add entrypoint.sh
-ARG DBGEN_HOME=/home/dbgen
-ENV DBGEN_HOME=${DBGEN_HOME}
+
 
 # Make DBgen files belong to the root group and are accessible. This is to accommodate the guidelines from
 # OpenShift https://docs.openshift.com/enterprise/3.0/creating_images/guidelines.html
 RUN mkdir -pv "${DBGEN_HOME}"; \
     mkdir -pv "${DBGEN_HOME}/dags"; \
-    mkdir -pv "${DBGEN_HOME}/logs";
+    mkdir -pv "${DBGEN_HOME}/logs"; \
+    mkdir -pv "${DBGEN_HOME}/dbgen_src";
 
 # Set entrypoint
-WORKDIR /home/dbgen
+WORKDIR /home/dbgen/dbgen_src/
+# DBGEN
+# Creating folders, and files for a project:
+WORKDIR /home/dbgen/
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/entrypoint"]
 CMD ["--help"]
