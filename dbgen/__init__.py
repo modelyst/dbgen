@@ -1,31 +1,28 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+#   Copyright 2021 Modelyst LLC
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 
 """Welcome to dbgen"""
 import os
 
-from dbgen import version
+from dbgen.version import git_version, version
 
 __author__ = "Modelyst LLC"
 __email__ = "info@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = version.version
-__gitversion__ = version.git_version
+__version__ = version
+__gitversion__ = git_version
 # Build Logo for easy CLI version checking
 git_ver_str = f"GITVERSION: {__gitversion__}\n" if __gitversion__ else ""
 LOGO = f"""

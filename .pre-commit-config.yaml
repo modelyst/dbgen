@@ -1,19 +1,17 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+#   Copyright 2021 Modelyst LLC
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 ---
 default_stages: [commit, push]
 default_language_version:
@@ -186,7 +184,7 @@ repos:
         files: \.py$
       - id: pre-commit-hook-names
         name: Ensure hook ids are not overly long
-        entry: ./scripts/ci/pre_commit/pre_commit_check_pre_commit_hook_names.py
+        entry: python3 ./scripts/ci/pre_commit/pre_commit_check_pre_commit_hook_names.py
         args:
           - --max-length=70
         language: python
@@ -220,12 +218,4 @@ repos:
     hooks:
       - id: flake8
         args: ["--config", "setup.cfg", "dbgen"]
-        files: \.py$
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v0.812'  # Use the sha / tag you want to point at
-    hooks:
-      - id: mypy
-        args: ["--config", "setup.cfg", "--ignore-missing-imports"]
-        language: python
-        language_version: 3.9.2
         files: \.py$

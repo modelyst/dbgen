@@ -1,25 +1,22 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+#   Copyright 2021 Modelyst LLC
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 
 # External modules
 from os.path import join
 
 # Internal Modules
-from dbgen import Const, Env, Generator, Import, Model, PyBlock, defaultEnv
+from dbgen import Const, Env, Generator, Import, Model, PyBlock
 
 from ..scripts.io.parse_employees import parse_employees  # type: ignore
 from ..utils import get_config  # type: ignore
@@ -39,7 +36,7 @@ def io(mod: Model) -> None:
 
     pe_func = PyBlock(
         parse_employees,
-        env=defaultEnv + Env([Import("csv", "reader")]),
+        env=Env([Import("csv", "reader")]),
         args=[Const(join(config["dbgen"]["model_root"], "data/example.csv"))],
         outnames=["ename", "sal", "man", "dname", "sec"],
     )

@@ -9,12 +9,16 @@ from setuptools import find_packages, setup  # type: ignore
 logger = logging.getLogger(__name__)
 DBGEN_DIR = dirname(__file__)
 version = "0.4.2"
-# Set long description as readme file text
-try:
-    with open(join(DBGEN_DIR, "README.md"), encoding="utf-8") as f:
-        long_description = f.read()
-except FileNotFoundError:
-    long_description = ""
+
+
+def get_long_desc() -> str:
+    # Set long description as readme file text
+    try:
+        with open(join(DBGEN_DIR, "README.md"), encoding="utf-8") as f:
+            long_description = f.read()
+    except FileNotFoundError:
+        long_description = ""
+    return long_description
 
 
 def get_git_version(version_: str):
@@ -99,7 +103,7 @@ def do_setup():
     setup(
         name="dbgen",
         description="Tool for defining complex schema and ETL pipelines",
-        long_description=long_description,
+        long_description=get_long_desc(),
         long_description_content_type="text/markdown",
         license="Apache License 2.0",
         version=version,
