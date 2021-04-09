@@ -155,9 +155,10 @@ class PyBlock(Base):
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
+        func = lambda x: x + 1
         return just(
             cls(
-                func=lambda x: x + 1,
+                func=func,
                 args=[Const(1)],
                 outnames=["x"],
             )

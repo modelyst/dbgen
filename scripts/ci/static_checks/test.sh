@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,5 +12,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+ls $(dirname "${BASH_SOURCE[0]}")/../libraries/_script_init.sh
+. "$( dirname "${BASH_SOURCE[0]}" )/../libraries/_script_init.sh"
 
-python setup.py sdist
+
+# build_images::prepare_ci_build

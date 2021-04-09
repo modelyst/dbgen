@@ -23,8 +23,9 @@ from hypothesis.strategies import SearchStrategy, builds, composite, just, lists
 
 from dbgen.core.schema import Attr, Obj, UserRel
 from dbgen.core.schemaclass import Schema
-from dbgen.test.strategies.core.expr.sqltypes import SQLTypeStrat
-from dbgen.test.strategies.utils import letters
+
+from ..utils import letters
+from .expr.sqltypes import SQLTypeStrat
 
 
 def AttrStrat(name: U[str, SearchStrategy[str]] = None) -> SearchStrategy[Attr]:

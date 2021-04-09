@@ -40,14 +40,15 @@
 !requirements.txt
 !poetry.lock
 !pyproject.toml
-!dbgen/cli/
-!dbgen/*.py
-!dbgen/git_version
-!dbgen/utils/
-!dbgen/test/
-!dbgen/core/
-!dbgen/example/
-!dbgen/templates/
+!src/dbgen/cli/
+!src/dbgen/*.py
+!src/dbgen/git_version
+!src/dbgen/utils/
+!src/dbgen
+!src/dbgen/core/
+!src/dbgen/example/
+!src/dbgen/templates/
+!tests
 
 !dist/*
 !docker/config/*

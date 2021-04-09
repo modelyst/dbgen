@@ -16,7 +16,7 @@
 default_stages: [commit, push]
 default_language_version:
   # force all unspecified python hooks to run python3
-  python: python3
+  python: python3.9
 minimum_pre_commit_version: "1.20.0"
 repos:
   - repo: meta
@@ -30,7 +30,7 @@ repos:
         exclude: ^docs/Makefile$|^clients/gen/go.sh|\.gitmodules$
       - id: insert-license
         name: Add license for all JINJA template files
-        files: "^dbgen/templates/.*\\.jinja$"
+        files: ^src/.*\.jinja$
         exclude: ^\.github/.*$
         args:
           - --comment-style
@@ -137,7 +137,6 @@ repos:
           (?x)
           ^tests/.*\.py$|
           ^scripts/.*\.py$|
-          ^dbgen/test/.*\.py$|
           ^dev|
           ^provider_packages|
           ^kubernetes_tests|
@@ -165,17 +164,7 @@ repos:
         entry: "^\\s*from\\s+\\."
         pass_filenames: true
         files: \.py$
-        exclude: ^dbgen/test/|^dbgen/cli/newfiles/
-      - id: language-matters
-        language: pygrep
-        name: Check for language that we do not accept as community
-        description: Please use "deny_list" or "allow_list"  instead.
-        entry: "(?i)(black|white)[_-]?list"
-        pass_filenames: true
-        exclude: >
-          (?x)
-          ^dbgen/test/test_cli/test_main.py$|
-          ^CHANGELOG.txt$
+        exclude: ^src/dbgen/cli/newfiles/|^tests/
       - id: consistent-pylint
         language: pygrep
         name: Check for inconsistent pylint disable/enable without space
@@ -196,6 +185,7 @@ repos:
         name: Run mypy
         entry: ./scripts/ci/pre_commit/pre_commit_check_mypy.sh
         language: system
+        exclude: ^src/dbgen/cli/newfiles/|^tests/
         files: \.py$
       - id: flynt
         name: Convert to f-strings with flynt
@@ -205,7 +195,7 @@ repos:
         additional_dependencies: ['flynt']
         files: \.py$
       - id: pytest
-        name: Run all tests
+        name: Run pytest
         entry: pytest
         language: system
         pass_filenames: false
@@ -214,5 +204,5 @@ repos:
     rev: 3.8.4
     hooks:
       - id: flake8
-        args: ["--config", "setup.cfg", "dbgen"]
+        args: ["--config", "setup.cfg", "src/dbgen"]
         files: \.py$

@@ -26,8 +26,8 @@ except metadata.PackageNotFoundError:
     import logging
 
     log = logging.getLogger(__name__)
-    log.warning("Package metadata could not be found. Overriding it with version found in setup.py")
-    from setup import version
+    log.debug("Package metadata could not be found. Overriding it with version found in setup.py")
+    version = "0.4.2"
 
 try:
     curr_dir = dirname(__file__)

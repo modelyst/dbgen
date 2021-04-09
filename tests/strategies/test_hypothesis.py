@@ -16,8 +16,9 @@
 import pytest
 from hypothesis import given
 
-from ...core.schema import Attr, Obj, UserRel
-from ...core.schemaclass import Schema
+from dbgen.core.schema import Attr, Obj, UserRel
+from dbgen.core.schemaclass import Schema
+
 from . import get_strategy
 from .config import settings  # noqa: F401
 

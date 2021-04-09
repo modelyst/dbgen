@@ -32,12 +32,13 @@ def objects():
     return [parent]
 
 
+def transform(input_list):
+    return [x for x in input_list]
+
+
 @pytest.fixture
 def gens(objects):
     parent = objects[0]
-
-    def transform(input_list):
-        return [x for x in input_list]
 
     def get_gen(type_to_check):
         pb = PyBlock(transform, args=[Const([type_to_check(x) for x in [1, 2, 3]])])

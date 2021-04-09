@@ -26,9 +26,9 @@ from typing import Union as U
 
 from hypothesis.strategies import SearchStrategy, builds, dictionaries, lists, sets
 
-from dbgen.test.strategies import UserRelStrat
 from dbgen.utils.lists import flatten
 from dbgen.utils.misc import Base, nonempty
+from tests.strategies.core.schema import UserRelStrat
 
 # Internal
 if TYPE_CHECKING:

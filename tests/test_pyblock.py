@@ -26,6 +26,10 @@ def transform_method(input_str: str) -> str:
     return input_str + " transformed"
 
 
+def transform_list(x):
+    return [i + 1 for i in x]
+
+
 class TestPyBlock(TestCase):
     """Test Cases for the PyBlock object of dbgen."""
 
@@ -34,7 +38,7 @@ class TestPyBlock(TestCase):
         return input_str + " transformed"
 
     def setUp(self):
-        self.transform = lambda x: [i + 1 for i in x]
+        self.transform = transform_list
 
     def test_simple_creation(self):
         """test the creation of a simple PyBlock"""
