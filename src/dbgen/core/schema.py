@@ -61,7 +61,7 @@ class AttrTup(Base):
         super().__init__()
 
     def __str__(self) -> str:
-        return self.name + "." + self.obj
+        return self.obj + "." + self.name
 
     def __call__(self, x: "AP" = None) -> "PathAttr":
         from dbgen.core.expr.pathattr import PathAttr

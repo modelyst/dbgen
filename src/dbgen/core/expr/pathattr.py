@@ -40,7 +40,7 @@ class PathAttr(Expr):
         return f'"{self.path}"."{self.attr.name}"'
 
     def __repr__(self) -> str:
-        return f"PathAttr<{self.path}.{self.attr}>"
+        return f"PathAttr<{self.path}.{self.attr.name}>"
 
     @classmethod
     def _strat(cls) -> "SearchStrategy":

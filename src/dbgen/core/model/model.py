@@ -177,7 +177,7 @@ class Model(Schema):
         for pe in self.pes:
             self._check_patheq(pe, db)
 
-    def make_path(self, end: U[str, "Obj"], rels: list = None) -> JPath:
+    def make_path(self, end: U[str, "Obj"], rels: list = None, name: str = None) -> JPath:
         # Upgrade End
         # Change end into object if it is a string
         if isinstance(end, str):
@@ -207,7 +207,7 @@ class Model(Schema):
 
         upgraded_fks = upgrade_rels(rels) if rels else []
 
-        return JPath(upgraded_end, upgraded_fks)
+        return JPath(upgraded_end, upgraded_fks, name=name)
 
     def get(self, objname: str) -> Obj:
         """Get an object by name"""

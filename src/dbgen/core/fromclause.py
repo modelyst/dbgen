@@ -53,9 +53,10 @@ class Path(Base):
                           ]])
     """
 
-    def __init__(self, end: U[str, "Obj"], fks: list = None) -> None:
+    def __init__(self, end: U[str, "Obj"], fks: list = None, name: str = None) -> None:
         self.end = end if isinstance(end, str) else end.name
         self.fks = fks or []
+        self.name = name
         err = "expected {} in {} (objs of {})\nall fks: {}"
 
         if fks and fks[0]:
@@ -80,7 +81,8 @@ class Path(Base):
         """
         assert other.linear, "Cannot concatenate paths if the second path branches"
         assert self.end == other.base, "Cannot concatenate paths unless head/tail matches"
-        return Path(other.end, other.fks + self.fks)
+        assert self.name == other.name, "Cannot concatenate paths with different names"
+        return Path(other.end, other.fks + self.fks, name=self.name)
 
     def __sub__(self, other: "Path") -> "Path":
         """
@@ -92,7 +94,8 @@ class Path(Base):
         l2 = len(other.fks)
         err = "Cannot take path difference: latter path is not subset of first"
         assert self.fks[-l2:] == other.fks, err
-        return Path(self.end, self.fks[:l2])
+        assert self.name == other.name, "Cannot take path difference with different names"
+        return Path(self.end, self.fks[:l2], name=self.name)
 
     @classmethod
     def _strat(cls) -> SearchStrategy:
@@ -143,16 +146,16 @@ class Path(Base):
 
     def join(self) -> "Join":
         """Get top-level join that is implied by this path."""
-        j = Join(self.end)
+        j = Join(self.end, name=self.name)
         if self.fks:
             nextfk = self.fks[0]
             if isinstance(nextfk, list):
                 for nex in nextfk:
-                    p = Path(nex[0].other(self.end), nex[1:])
+                    p = Path(nex[0].other(self.end), nex[1:], name=self.name)
                     j.add(p.join(), nex[0])
             else:
                 nextab = nextfk.other(self.end)
-                nextpath = Path(nextab, self.fks[1:])
+                nextpath = Path(nextab, self.fks[1:], name=self.name)
                 j.add(nextpath.join(), nextfk)
         return j
 
@@ -178,10 +181,11 @@ class Join(Base):
         (accounting for multiple linear paths)
     """
 
-    def __init__(self, obj: str, conds: L[T["Join", S["SuperRel"]]] = None) -> None:
+    def __init__(self, obj: str, conds: L[T["Join", S["SuperRel"]]] = None, name: str = None) -> None:
         assert isinstance(obj, str)
         self.obj = obj
         self.conds = conds or []
+        self.name = name
         super().__init__()
 
     def __str__(self) -> str:
@@ -225,7 +229,8 @@ class Join(Base):
         data = s + self.obj
         m = md5(data.encode("ascii"))
         out = b64encode(m.digest()).decode("ascii")[:3]
-        return self.obj + f"({out})"
+        out_name = f"{self.name}-" if self.name is not None else ""
+        return self.obj + f"({out_name}{out})"
 
     def print(self, optional: L["RelTup"] = None) -> str:
         """Render JOIN statement in FROM clause"""
