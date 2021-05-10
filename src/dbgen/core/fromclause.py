@@ -24,11 +24,8 @@ from typing import Set as S
 from typing import Tuple as T
 from typing import Union as U
 
-from hypothesis.strategies import SearchStrategy, builds, dictionaries, lists, sets
-
 from dbgen.utils.lists import flatten
-from dbgen.utils.misc import Base, nonempty
-from tests.strategies.core.schema import UserRelStrat
+from dbgen.utils.misc import Base
 
 # Internal
 if TYPE_CHECKING:
@@ -96,10 +93,6 @@ class Path(Base):
         assert self.fks[-l2:] == other.fks, err
         assert self.name == other.name, "Cannot take path difference with different names"
         return Path(self.end, self.fks[:l2], name=self.name)
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls, end=nonempty)
 
     @property
     def linear(self) -> bool:
@@ -201,10 +194,6 @@ class Join(Base):
     def conddict(self) -> D["Join", S["SuperRel"]]:
         return dict(self.conds)
 
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls, obj=nonempty, conds=dictionaries(Join._strat(), UserRelStrat()))
-
     # Public Methods
     def add(self, j: "Join", e: "SuperRel") -> None:
         if j in self.conddict:
@@ -295,14 +284,6 @@ class From(Base):
 
     def __or__(self, f: "From") -> "From":
         return From(joins=self.joins | f.joins)
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(
-            cls,
-            basis=lists(nonempty, min_size=1, max_size=2),
-            conds=sets(Join._strat(), min_size=1, max_size=2),
-        )
 
     def print(self, optional: Sequence["RelTup"] = None) -> str:
         from dbgen.utils.graphs import DiGraph, topsort_with_dict

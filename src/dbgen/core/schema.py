@@ -761,10 +761,6 @@ class PathEQ(Base):
         else:
             raise TypeError("add to this to support more types of searching")
 
-    @classmethod
-    def _strat(cls) -> "SearchStrategy":
-        return builds(cls, p1=Path._strat(), p2=Path._strat())
-
     def any(self) -> Path:
         """Gives one of the paths, doesn't matter which"""
         return next(iter(self))
