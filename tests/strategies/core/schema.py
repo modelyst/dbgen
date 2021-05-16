@@ -21,7 +21,7 @@ from typing import Union as U
 from hypothesis import assume, infer
 from hypothesis.strategies import SearchStrategy, builds, composite, just, lists, sampled_from
 
-from dbgen.core.schema import Attr, Obj, UserRel
+from dbgen.core.schema import Attr, Entity, UserRel
 from dbgen.core.schemaclass import Schema
 
 from ..utils import letters
@@ -52,8 +52,8 @@ def ObjStrat(
     name: str = None,
     attrs: L[str] = None,
     fks: L[T[str, str]] = None,
-) -> SearchStrategy[Obj]:
-    """Strategy for DBgen Obj object"""
+) -> SearchStrategy[Entity]:
+    """Strategy for DBgen Entity object"""
     MIN_ATTR, MAX_ATTR = [0, 2] if attrs is None else [len(attrs)] * 2
     MIN_FK, MAX_FK = [0, 2] if fks is None else [len(fks)] * 2
     size = 1 + MAX_ATTR + MAX_FK
@@ -70,7 +70,7 @@ def ObjStrat(
     ) in enumerate(fklist):
         f.name, f.tar = fks[i] if fks is not None else (xx[1 + MAX_ATTR + i], xx[1 + MAX_ATTR + i])
     b = builds(
-        Obj,
+        Entity,
         name=just(name if name else xx[0]),
         desc=infer,
         attrs=just(attrs),
@@ -81,11 +81,11 @@ def ObjStrat(
 
 @composite
 def SchemaStrat(draw: C, MAX_OBJ: int = None, MAX_FK: int = None) -> SearchStrategy[Schema]:
-    """Strategy for DBgen Obj object"""
+    """Strategy for DBgen Entity object"""
     MAX_OBJ = MAX_OBJ or 2
     MAX_FK = MAX_FK or 2
     objnames = draw(lists(letters, min_size=1, max_size=MAX_OBJ, unique=True))
-    objlist: L[Obj] = []
+    objlist: L[Entity] = []
     for o in objnames:
         fktargets = draw(lists(sampled_from(objnames), min_size=1, max_size=MAX_FK))
         n = len(fktargets)

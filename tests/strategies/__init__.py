@@ -17,7 +17,7 @@ from typing import Union as U
 
 from hypothesis.strategies import SearchStrategy
 
-from dbgen.core.schema import Attr, Obj, UserRel
+from dbgen.core.schema import Attr, Entity, UserRel
 from dbgen.core.schemaclass import Schema
 from dbgen.utils.misc import Base
 
@@ -26,7 +26,7 @@ from .core.schema import AttrStrat, ObjStrat, SchemaStrat, UserRelStrat
 STRATEGIES: Dict[str, U[SearchStrategy[SearchStrategy[Base]], SearchStrategy[Base]]] = {
     UserRel.canonical_name(): UserRelStrat(),
     Attr.canonical_name(): AttrStrat(),
-    Obj.canonical_name(): ObjStrat(),
+    Entity.canonical_name(): ObjStrat(),
     Schema.canonical_name(): SchemaStrat(),
 }
 

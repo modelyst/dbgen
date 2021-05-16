@@ -28,7 +28,7 @@ from dbgen.core.funclike import Arg, PyBlock
 from dbgen.core.load import Load
 from dbgen.core.misc import Dep
 from dbgen.core.query import Query
-from dbgen.core.schema import Obj
+from dbgen.core.schema import Entity
 from dbgen.utils.exceptions import DBgenSkipException
 from dbgen.utils.lists import concat_map
 from dbgen.utils.misc import Base
@@ -129,12 +129,12 @@ class Generator(Base):
         """Unique hash function to this Generator"""
         return hash_(str(self.hash) + str(x))
 
-    def dep(self, universe: D[str, Obj]) -> Dep:
+    def dep(self, universe: D[str, Entity]) -> Dep:
         """
         Determine the tabs/cols that are both inputs and outputs to the Gen
 
         Args:
-            universe (D[str, Obj]): Mapping of object name to DBgen
+            universe (D[str, Entity]): Mapping of object name to DBgen
 
         Returns:
             Dep
@@ -183,7 +183,7 @@ class Generator(Base):
             aid = self.get_id(cxn)
             return aid[0][0]
 
-    def rename_object(self, o: Obj, n: str) -> "Generator":
+    def rename_object(self, o: Entity, n: str) -> "Generator":
         """Change all references to an object to account for name change"""
         g = self.copy()
         if g.query:
@@ -192,7 +192,7 @@ class Generator(Base):
             g.loads[i] = a.rename_object(o, n)
         return g
 
-    def purge(self, conn: Conn, mconn: Conn, universe: D[str, Obj]) -> None:
+    def purge(self, conn: Conn, mconn: Conn, universe: D[str, Entity]) -> None:
         """
         If a generator is purged, then any
         tables it populates will be truncated. Any columns it populates will be set all
@@ -367,7 +367,7 @@ class Generator(Base):
     # ######################
     # # Airflow Operator Exports
     # # --------------------
-    def operator(self, model_name: str, run: int, universe: D[str, Obj]) -> str:
+    def operator(self, model_name: str, run: int, universe: D[str, Entity]) -> str:
 
         # Get the necessary template
         from dbgen.templates import jinja_env

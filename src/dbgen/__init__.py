@@ -109,7 +109,7 @@ from dbgen.core.gen import Generator as Gen
 from dbgen.core.misc import ConnectInfo
 from dbgen.core.model.model import Model
 from dbgen.core.query import Query
-from dbgen.core.schema import Attr, Obj, Path, PathEQ, QView, RawView
+from dbgen.core.schema import Attr, Entity, Path, PathEQ, QView, RawView
 from dbgen.core.schema import UserRel as Rel
 from dbgen.utils.lists import concat_map, flatten, merge_dicts, nub
 from dbgen.utils.parsing import parser

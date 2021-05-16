@@ -13,13 +13,13 @@
 #   limitations under the License.
 
 from dbgen.core.expr.sqltypes import Boolean, Decimal, Text, Varchar
-from dbgen.core.schema import Attr, Obj
+from dbgen.core.schema import Attr, Entity
 from dbgen.core.schema import UserRel as Rel
 
 ####
-sample = Obj("sample", attrs=[Attr("id", identifying=True)])
+sample = Entity("sample", attrs=[Attr("id", identifying=True)])
 ####
-science = Obj(
+science = Entity(
     "scientist",
     attrs=[
         Attr("firstname", Varchar()),
@@ -28,10 +28,10 @@ science = Obj(
     ],
 )
 ####
-proced = Obj("procedures", attrs=[Attr("procedure_name", Varchar(), identifying=True)])
+proced = Entity("procedures", attrs=[Attr("procedure_name", Varchar(), identifying=True)])
 
 ####
-hist = Obj(
+hist = Entity(
     "history",
     "mapping table",
     attrs=[
@@ -50,7 +50,7 @@ hist = Obj(
 )
 
 ####
-hd = Obj(
+hd = Entity(
     "history_detail",
     "RDF triplestore",
     attrs=[
@@ -61,7 +61,7 @@ hd = Obj(
     fks=[Rel("history", identifying=True)],
 )
 #####
-elec = Obj(
+elec = Entity(
     "electrode",
     "Either an anode or cathode",
     attrs=[Attr("composition", Varchar())],
@@ -69,11 +69,11 @@ elec = Obj(
 )
 #####
 
-anode = Obj("anode", fks=[Rel("electrode", identifying=True)])
-cathode = Obj("cathode", fks=[Rel("electrode", identifying=True)])
+anode = Entity("anode", fks=[Rel("electrode", identifying=True)])
+cathode = Entity("cathode", fks=[Rel("electrode", identifying=True)])
 
 #####
-fc = Obj(
+fc = Entity(
     "fuel_cell",
     "Combination of a particular anode and cathode sample during an expt",
     attrs=[
@@ -86,14 +86,14 @@ fc = Obj(
     fks=[Rel("anode"), Rel("cathode")],
 )
 #####
-ec = Obj(
+ec = Entity(
     "electrode_composition",
     "mapping table",
     attrs=[Attr("frac", Decimal())],
     fks=[Rel("electrode"), Rel("element")],
 )
 #####
-elem = Obj(
+elem = Entity(
     "element",
     "Atomic elements",
     attrs=[

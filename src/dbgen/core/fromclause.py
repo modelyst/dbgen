@@ -29,9 +29,9 @@ from dbgen.utils.misc import Base
 
 # Internal
 if TYPE_CHECKING:
-    from dbgen.core.schema import Obj, Rel, RelTup, SuperRel
+    from dbgen.core.schema import Entity, Rel, RelTup, SuperRel
 
-    Rel, SuperRel, RelTup, Obj
+    Rel, SuperRel, RelTup, Entity
 ################################################################################
 
 
@@ -50,7 +50,7 @@ class Path(Base):
                           ]])
     """
 
-    def __init__(self, end: U[str, "Obj"], fks: list = None, name: str = None) -> None:
+    def __init__(self, end: U[str, "Entity"], fks: list = None, name: str = None) -> None:
         self.end = end if isinstance(end, str) else end.name
         self.fks = fks or []
         self.name = name

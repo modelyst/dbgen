@@ -15,7 +15,7 @@
 """Test the Load object's type checking"""
 import pytest
 
-from dbgen import Attr, ConnectInfo, Const, Gen, Int, Model, Obj, PyBlock
+from dbgen import Attr, ConnectInfo, Const, Entity, Gen, Int, Model, PyBlock
 from dbgen.utils.exceptions import DBgenTypeError
 
 int_hashes = {
@@ -28,7 +28,7 @@ int_hashes = {
 
 @pytest.fixture
 def objects():
-    parent = Obj("parent", attrs=[Attr("col_int", Int(), identifying=True)])
+    parent = Entity("parent", attrs=[Attr("col_int", Int(), identifying=True)])
     return [parent]
 
 

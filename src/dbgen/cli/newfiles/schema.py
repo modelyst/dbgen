@@ -13,12 +13,12 @@
 #   limitations under the License.
 
 # Internal Modules
-from dbgen import Attr, Decimal, Model, Obj, Rel, Varchar
+from dbgen import Attr, Decimal, Entity, Model, Rel, Varchar
 
 from .generators import add_generators  # type: ignore
 
 emp_rels = [Rel("department"), Rel("manager", "employee")]
-emp = Obj(
+emp = Entity(
     name="employee",
     desc="an example entity",
     attrs=[
@@ -29,7 +29,7 @@ emp = Obj(
 )
 
 
-dept = Obj(
+dept = Entity(
     name="department",
     desc="collection of employees",
     attrs=[

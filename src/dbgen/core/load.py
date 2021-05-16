@@ -40,7 +40,7 @@ from dbgen.utils.str_utils import hashdata_
 # Internal Modules
 if TYPE_CHECKING:
     from dbgen.core.model.model import UNIVERSE_TYPE
-    from dbgen.core.schema import Obj
+    from dbgen.core.schema import Entity
 
 """
 Defines the class of modifications to a database
@@ -72,7 +72,7 @@ class Load(Base):
         """
         Initializes Load object with relevant Objects and nested Loads. This is
         not intended to be called by users, but rather called through the
-        Obj.__call__ method (Obj()).
+        Entity.__call__ method (Entity()).
 
         Args:
             obj (str): [description]
@@ -128,7 +128,7 @@ class Load(Base):
             out.extend(a.newtabs())
         return out
 
-    def newcols(self, universe: D[str, "Obj"]) -> L[str]:
+    def newcols(self, universe: D[str, "Entity"]) -> L[str]:
         """All attributes that could be populated by this load"""
         obj = universe[self.obj]
         out = [self.obj + "." + a for a in self.attrs.keys() if (self.insert or (a not in obj.ids()))]
@@ -151,7 +151,7 @@ class Load(Base):
         # Initialize logger
         self._load(cxn, universe, rows, insert=self.insert)
 
-    def rename_object(self, o: "Obj", n: str) -> "Load":
+    def rename_object(self, o: "Entity", n: str) -> "Load":
         """Replaces all references to a given object to one having a new name"""
         a = self.copy()
         if a.obj == o.name:
@@ -509,7 +509,7 @@ class Load(Base):
         """
         Output a stringified version of load that can be run in an Airflow PythonOperator
         """
-        attrs = ",".join(["{}={}".format(k, v.make_src(meta=True)) for k, v in self.attrs.items()])
+        attrs = ",".join([f"{k}={v.make_src(meta=True)}" for k, v in self.attrs.items()])
         template = (
             "Load(obj= '{{ obj }}',attrs= dict({{attrs}}),"
             "fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})"

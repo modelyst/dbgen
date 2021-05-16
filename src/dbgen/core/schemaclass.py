@@ -23,7 +23,7 @@ from typing import Union as U
 from tqdm import tqdm
 
 from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.core.schema import Attr, AttrTup, Obj, Path, PathEQ, QView, RawView, Rel, RelTup, View
+from dbgen.core.schema import Attr, AttrTup, Entity, Path, PathEQ, QView, RawView, Rel, RelTup, View
 
 # Internal
 from dbgen.utils.misc import Base
@@ -39,7 +39,7 @@ class Schema(Base):
 
     def __init__(
         self,
-        objlist: L[Obj] = None,
+        objlist: L[Entity] = None,
         viewlist: L[View] = None,
         pes: L[PathEQ] = None,
     ) -> None:
@@ -62,14 +62,14 @@ class Schema(Base):
     def __str__(self) -> str:
         return "Schema<%d objs, %d rels>" % (len(self.objlist), len(self._fks))
 
-    def __getitem__(self, key: str) -> Obj:
+    def __getitem__(self, key: str) -> Entity:
         return self.objs[key.lower()]
 
     def __contains__(self, key: str) -> bool:
         return key.lower() in self.objs
 
     @property
-    def objs(self) -> D[str, Obj]:
+    def objs(self) -> D[str, Entity]:
         return {o.name.lower(): o for o in self.objlist}
 
     @property
@@ -112,7 +112,7 @@ class Schema(Base):
         """Add to model"""
         self[oname].attrs.append(a)
 
-    def _add_object(self, o: Obj) -> None:
+    def _add_object(self, o: Entity) -> None:
         """Add to model"""
 
         if o.name in self:  # Validate
@@ -184,7 +184,7 @@ class Schema(Base):
     ###########
     # Objects #
     ###########
-    def add_cols(self, obj: Obj) -> L[str]:
+    def add_cols(self, obj: Entity) -> L[str]:
         attr_stmts = []
         for c in obj.attrs:
             col_name, col_desc, c_index = c.create_col(obj.name)
@@ -232,7 +232,7 @@ class Schema(Base):
                 fks.add(fk)
         return fks
 
-    def _obj_all_fks(self, o: Obj) -> S[Rel]:
+    def _obj_all_fks(self, o: Entity) -> S[Rel]:
         """ Relations that start OR end on a given object """
         inward = set.union(*[d["fks"] for _, _, d in self._fks.in_edges(o.name, data=True)])
         return set(o.fkdict.values()) | inward

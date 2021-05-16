@@ -61,7 +61,7 @@ class TestSerialization(unittest.TestCase):
     def test_gen(self, x):
         serialtest(x)
 
-    # @given(Obj._strat())
+    # @given(Entity._strat())
     # def test_obj(self, x):
     #     serialtest(x)
 

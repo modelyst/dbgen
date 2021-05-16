@@ -16,13 +16,13 @@
 import pytest
 from hypothesis import given
 
-from dbgen.core.schema import Attr, Obj, UserRel
+from dbgen.core.schema import Attr, Entity, UserRel
 from dbgen.core.schemaclass import Schema
 
 from . import get_strategy
 from .config import settings  # noqa: F401
 
-dbgen_objects_to_test = (Attr, Obj, UserRel, Schema)
+dbgen_objects_to_test = (Attr, Entity, UserRel, Schema)
 
 
 @pytest.mark.filterwarnings("ignore")
@@ -44,9 +44,9 @@ class TestClass:
     def test_user_rel_strat(self, user_rel):
         assert isinstance(user_rel, UserRel)
 
-    @given(get_strategy(Obj))
+    @given(get_strategy(Entity))
     def test_obj_strat(self, obj):
-        assert isinstance(obj, Obj)
+        assert isinstance(obj, Entity)
 
     @given(get_strategy(Schema))
     def test_schema_strat(self, schema: Schema):

@@ -19,7 +19,7 @@ import unittest
 import dbgen.utils.exceptions as exceptions
 
 # Internal Modules
-from dbgen import Attr, Const, Model, Obj, Rel
+from dbgen import Attr, Const, Entity, Model, Rel
 
 
 class TestLoad(unittest.TestCase):
@@ -27,11 +27,11 @@ class TestLoad(unittest.TestCase):
 
     def setUp(self) -> None:
         self.model = Model("test_model")
-        parent_obj = Obj(
+        parent_obj = Entity(
             "parent",
             attrs=[Attr("test_id_col", identifying=True)],
         )
-        test_object = Obj(
+        test_object = Entity(
             "child",
             attrs=[Attr("test_id_col", identifying=True), Attr("test_col")],
             fks=[Rel("parent", identifying=True)],
@@ -39,12 +39,12 @@ class TestLoad(unittest.TestCase):
         self.model.add([parent_obj, test_object])
 
     def test_simple_load_creation(self) -> None:
-        """Creates an example load from an Obj with no expected errors"""
+        """Creates an example load from an Entity with no expected errors"""
         test_object = self.model.get("child")
         test_object(parent=Const(None), test_id_col=Const(1), test_col=Const(None))
 
     def test_load_exceptions(self) -> None:
-        """Creates an example load from an Obj and tests for the error messaging"""
+        """Creates an example load from an Entity and tests for the error messaging"""
         test_object = self.model.get("child")
         with self.assertRaises(exceptions.DBgenMissingInfo):
             test_object()

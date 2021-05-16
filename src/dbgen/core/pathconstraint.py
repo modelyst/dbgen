@@ -26,10 +26,10 @@ from dbgen.core.fromclause import Path
 from dbgen.utils.misc import Base
 
 if TYPE_CHECKING:
-    from dbgen.core.schema import Obj, Rel, RelTup
+    from dbgen.core.schema import Entity, Rel, RelTup
     from dbgen.core.schemaclass import Schema
 
-    Schema, Rel, RelTup, Obj
+    Schema, Rel, RelTup, Entity
 ##############################################################################
 
 
@@ -47,7 +47,7 @@ class Constraint(Base):
 
     def __init__(
         self,
-        tab: U[str, "Obj"],
+        tab: U[str, "Entity"],
         reqs: L[U["Rel", "RelTup"]] = None,  # constraints on final 'linear' sequence
         xclude: L[U["Rel", "RelTup"]] = None,  # Never use these
         backtrack: bool = False,  # allow the
@@ -76,7 +76,7 @@ class Constraint(Base):
     def find(
         self,
         m: "Schema",
-        basis: U[str, "Obj", L[U[str, "Obj"]]],
+        basis: U[str, "Entity", L[U[str, "Entity"]]],
         links: L[U["Rel", "RelTup"]] = None,
         quit: bool = True,
     ) -> None:

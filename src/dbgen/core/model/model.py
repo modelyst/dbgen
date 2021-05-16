@@ -36,14 +36,14 @@ from dbgen.core.model.run import check_patheq, run, validate_name
 
 # Internal
 from dbgen.core.model.run_gen import run_gen
-from dbgen.core.schema import Attr, AttrTup, Obj, PathEQ, Rel, RelTup, SuperRel, UserRel, View
+from dbgen.core.schema import Attr, AttrTup, Entity, PathEQ, Rel, RelTup, SuperRel, UserRel, View
 from dbgen.core.schemaclass import Schema
 from dbgen.utils.exceptions import DBgenInternalError
 
 ################################################################################
 # Type Synonyms
 Stuff = U[
-    L[Obj],
+    L[Entity],
     L[Rel],
     L[str],
     L[AttrTup],
@@ -52,7 +52,7 @@ Stuff = U[
     L[View],
     L[PathEQ],
     L[T[str, Attr]],
-    L[U[Obj, Rel, RelTup, AttrTup, str, Generator, PathEQ, View]],
+    L[U[Entity, Rel, RelTup, AttrTup, str, Generator, PathEQ, View]],
 ]
 UNIVERSE_TYPE = D[str, T[str, S[str], S[str], D[str, SQLType]]]
 ##########################################################################################
@@ -68,7 +68,7 @@ class Model(Schema):
     def __init__(
         self,
         name: str,
-        objlist: L[Obj] = None,
+        objlist: L[Entity] = None,
         genlist: L[Generator] = None,
         viewlist: L[View] = None,
         pes: L[PathEQ] = None,
@@ -80,7 +80,7 @@ class Model(Schema):
 
         Args:
             name (str): Name of the model used to uniquely identify the model
-            objlist (L[Obj], optional): List of Obj objects. Defaults to [].
+            objlist (L[Entity], optional): List of Entity objects. Defaults to [].
             genlist (L[Gen], optional): List of Generator objects. Defaults to [].
             viewlist (L[View], optional): List of View objects. Defaults to [].
             pes (L[PathEQ], optional): List of path equivalency objects. Defaults to [].
@@ -122,8 +122,8 @@ class Model(Schema):
     def _strat(cls) -> SearchStrategy:
         """A hypothesis strategy for generating random examples."""
         objs = [
-            Obj("a", attrs=[Attr("aa")], fks=[UserRel("ab", "b")]),
-            Obj("b", attrs=[Attr("bb")]),
+            Entity("a", attrs=[Attr("aa")], fks=[UserRel("ab", "b")]),
+            Entity("b", attrs=[Attr("bb")]),
         ]
         gens = [Generator(name="pop_a", transforms=[], loads=[], tags=["io"])]
         return just(cls(name="model", objlist=objs, genlist=gens))
@@ -177,13 +177,13 @@ class Model(Schema):
         for pe in self.pes:
             self._check_patheq(pe, db)
 
-    def make_path(self, end: U[str, "Obj"], rels: list = None, name: str = None) -> JPath:
+    def make_path(self, end: U[str, "Entity"], rels: list = None, name: str = None) -> JPath:
         # Upgrade End
         # Change end into object if it is a string
         if isinstance(end, str):
             upgraded_end = self[end]
         else:
-            assert isinstance(end, Obj)
+            assert isinstance(end, Entity)
             upgraded_end = end
 
         # UPGRADE FKS
@@ -209,13 +209,13 @@ class Model(Schema):
 
         return JPath(upgraded_end, upgraded_fks, name=name)
 
-    def get(self, objname: str) -> Obj:
+    def get(self, objname: str) -> Entity:
         """Get an object by name"""
         return self[objname]
 
-    def rename(self, x: U[Obj, Rel, RelTup, AttrTup, str, Generator], name: str) -> None:
+    def rename(self, x: U[Entity, Rel, RelTup, AttrTup, str, Generator], name: str) -> None:
         """Rename an Objects / Relations / Generators / Attr """
-        if isinstance(x, (Obj, str)):
+        if isinstance(x, (Entity, str)):
             if isinstance(x, str):
                 o = self[x]
             else:
@@ -234,7 +234,7 @@ class Model(Schema):
     def add(self, stuff: Stuff) -> None:
         """Add a list containing Objects / Relations / Generators / PathEQs """
         for x in stuff:
-            if isinstance(x, (Obj, str)):
+            if isinstance(x, (Entity, str)):
                 if isinstance(x, str):
                     o = self[x]
                 else:
@@ -258,7 +258,7 @@ class Model(Schema):
     def remove(self, stuff: Stuff) -> None:
         """Remove items given a list of Objects / Relations / Gens / PathEQs"""
         for x in stuff:
-            if isinstance(x, (Obj, str)):
+            if isinstance(x, (Entity, str)):
                 if isinstance(x, str):
                     o = self[x]
                 else:
@@ -302,7 +302,7 @@ class Model(Schema):
         # Make changes in generators?
         # Make changes in PathEQs?
 
-    def _rename_object(self, o: Obj, n: str) -> None:
+    def _rename_object(self, o: Entity, n: str) -> None:
         """Probably buggy"""
         assert o in self.objs.values(), f"Cannot delete {o}: not found in model"
         oc = o.copy()
@@ -351,7 +351,7 @@ class Model(Schema):
                     remove.add(pe)
         self.pes -= remove
 
-    def _del_object(self, o: Obj) -> None:
+    def _del_object(self, o: Entity) -> None:
         """Need to also remove all Generators that mention it?"""
         del self.objs[o.name]
         # Remove relations that mention object

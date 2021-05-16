@@ -264,7 +264,7 @@ class UserRel(Base):
         )
 
 
-class Obj(Base):
+class Entity(Base):
     """Object with attributes. Basic entity of a model"""
 
     def __init__(
@@ -477,7 +477,7 @@ class Obj(Base):
 
             return tab_id
 
-    def rename_attr(self, aname: str, newname: str) -> "Obj":
+    def rename_attr(self, aname: str, newname: str) -> "Entity":
         """ Copy of object with a renamed attribute """
         o = self.copy()
         newattr = o.attrdict[aname]

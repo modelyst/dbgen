@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 # Internal Modules
 from dbgen.core.expr.sqltypes import Boolean, Decimal, Int, Text, Timestamp, Varchar
-from dbgen.core.schema import Attr, Obj
+from dbgen.core.schema import Attr, Entity
 from dbgen.core.schema import UserRel as Rel
 from dbgen.utils.sql import mkInsCmd, mkSelectCmd, sqlexecute, sqlselect
 from dbgen.utils.str_utils import hash_
@@ -44,7 +44,7 @@ def safex(conn: Any, q: str, binds: list) -> None:
 # Constants
 ##########
 objs = [
-    Obj(
+    Entity(
         "connection",
         "Info required to connect to a PostGres DB",
         attrs=[
@@ -54,7 +54,7 @@ objs = [
             Attr("db", Varchar(), identifying=True),
         ],
     ),
-    Obj(
+    Entity(
         "temp",
         desc="Temporary table that is populated and truncated after checking for repeat values",
         attrs=[
@@ -65,7 +65,7 @@ objs = [
             )
         ],
     ),
-    Obj(
+    Entity(
         "object",
         "All static info about a given class of entities being modeled",
         attrs=[
@@ -73,7 +73,7 @@ objs = [
             Attr("description", Text()),
         ],
     ),
-    Obj(
+    Entity(
         "attr",
         "Property of an object",
         attrs=[
@@ -84,7 +84,7 @@ objs = [
         ],
         fks=[Rel("object", identifying=True)],
     ),
-    Obj(
+    Entity(
         "view",
         "SQL view",
         attrs=[
@@ -92,7 +92,7 @@ objs = [
             Attr("query", Text("long")),
         ],
     ),
-    Obj(
+    Entity(
         "func",
         "Python functions that get used during generation of Objects/Attributes",
         attrs=[
@@ -100,7 +100,7 @@ objs = [
             Attr("name", Varchar()),
         ],
     ),
-    Obj(
+    Entity(
         "gen",
         "Method for generating concrete data",
         attrs=[
@@ -109,13 +109,13 @@ objs = [
             Attr("gen_json", Text()),
         ],
     ),
-    Obj(
+    Entity(
         "pyblock",
         "decorated python function",
         attrs=[],
         fks=[Rel("gen", identifying=True), Rel("func")],
     ),
-    Obj(
+    Entity(
         "const",
         "A constant injected into the namespace of an generator",
         attrs=[
@@ -123,7 +123,7 @@ objs = [
             Attr("val", Text(), identifying=True),
         ],
     ),
-    Obj(
+    Entity(
         "arg",
         "How a PyBlock refers to a namespace",
         attrs=[
@@ -133,7 +133,7 @@ objs = [
         ],
         fks=[Rel("const")],
     ),
-    Obj(
+    Entity(
         "run",
         "Each time DbGen is run, a new Run instance is created",
         attrs=[
@@ -150,7 +150,7 @@ objs = [
         ],
         fks=[Rel("connection")],
     ),
-    Obj(
+    Entity(
         "gens",
         "A list of Generator instances associated with a given run",
         attrs=[
@@ -171,17 +171,17 @@ objs = [
         ],
         fks=[Rel("run", identifying=True), Rel("gen", identifying=True)],
     ),
-    Obj(
+    Entity(
         "objs",
         "A list of Object instances associated with a given run",
         fks=[Rel("object", identifying=True), Rel("run", identifying=True)],
     ),
-    Obj(
+    Entity(
         "views",
         "List of View instances associated with a given run",
         fks=[Rel("view", identifying=True), Rel("run", identifying=True)],
     ),
-    Obj(
+    Entity(
         "repeats",
         "A record of which inputs a given Load has already seen",
         fks=[Rel("gen", identifying=True), Rel("run")],
