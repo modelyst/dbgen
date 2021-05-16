@@ -50,7 +50,7 @@ def setup_logger(
     console_handler = logging.StreamHandler(stream=sys.stdout)
     console_handler.setFormatter(format)
     # Only log to screen if flag is set
-    console_level = level if log_to_stdout else logging.WARNING
+    console_level = level if log_to_stdout else logging.ERROR
     console_handler.setLevel(console_level)
     custom_logger.addHandler(console_handler)
     if write_logs:

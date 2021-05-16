@@ -29,7 +29,8 @@ from dbgen.utils.config import RunConfig, config
 
 # Errors
 ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"
-ERROR_MODULE = "Could not find module or package:\nModule: {0}\nPackage: {1}"
+ERROR_MODULE = "Could not find module:\nModule: {0}\nPackage: {1}\nError: {2}"
+ERROR_PACKAGE = "Could not find package within module:\nModule: {0}\nPackage: {1}\nError: {2}"
 ERROR_NOT_MODEL = "Import String is not for a DBgen Model: \nImport String: {0}\nClass: {1}"
 ERROR_NOT_MODEL_FUNCTION = "Import String is for a function that does not produce a DBgen Model: \nImport String: {0}\nOutput Class: {1}"
 ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1}"
@@ -135,8 +136,10 @@ def validate_model_str(model_str: str) -> Model:
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
 
         raise basic_error(ERROR_NOT_MODEL, [model_str, type(model).__name__])
-    except ModuleNotFoundError:
-        raise basic_error(ERROR_MODULE, [module, package])
+    except ModuleNotFoundError as exc:
+        if "No module" in str(exc):
+            raise basic_error(ERROR_MODULE, [module, package, str(exc)])
+        raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
     except AttributeError as exc:
         raise typer.BadParameter(str(exc))
     return model

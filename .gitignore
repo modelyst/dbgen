@@ -125,7 +125,7 @@ dmypy.json
 .pyre/
 
 .vscode
-data/
+/data/
 git_version
 # Documentation related ignores
 MakeFile
