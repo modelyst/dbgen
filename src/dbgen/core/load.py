@@ -110,31 +110,68 @@ class Load(Base):
     ##################
     # Public methods #
     ###################
-    def tabdeps(self) -> L[str]:
+    def tabdeps(self, universe: D[str, "Entity"]) -> L[str]:
         """All tables that are updated (they must already exist, is the logic)"""
-        deps = []
+        from dbgen.core.schema import Partition
+
         # Check if we are updating; if so we depend on
-        if not self.insert:
-            deps.append(self.obj)
+        entity = universe[self.obj]
+        out = [entity.name] if not self.insert else []
+
+        # Check for partitions on self table
+        # If so add partitions if Entity and add parent entity if partition
+        if out:
+            if isinstance(entity, Partition):
+                out.append(entity._parent_name)
+            elif entity.partition_attr:
+                partition_names = map(lambda x: x.name, entity.get_all_partitions())
+                out.extend(partition_names)
+
         for fk in self.fks.values():
             if fk.pk is not None:
-                deps.extend(fk.tabdeps())
-        return deps
+                out.extend(fk.tabdeps(universe))
+        return out
 
-    def newtabs(self) -> L[str]:
+    def newtabs(self, universe: D[str, "Entity"]) -> L[str]:
         """All tables that could be inserted into this load"""
-        out = [self.obj] if self.insert else []
+        from dbgen.core.schema import Partition
+
+        entity = universe[self.obj]
+        out = [entity.name] if self.insert else []
+
+        # Check for partitions on self table
+        # If so add partitions if Entity and add parent entity if partition
+        if out and isinstance(entity, Partition):
+            out.append(entity._parent_name)
+        elif out and entity.partition_attr:
+            partition_names = map(lambda x: x.name, entity.get_all_partitions())
+            out.extend(partition_names)
+
         for a in self.fks.values():
-            out.extend(a.newtabs())
+            out.extend(a.newtabs(universe))
         return out
 
     def newcols(self, universe: D[str, "Entity"]) -> L[str]:
         """All attributes that could be populated by this load"""
-        obj = universe[self.obj]
-        out = [self.obj + "." + a for a in self.attrs.keys() if (self.insert or (a not in obj.ids()))]
-        for k, a in self.fks.items():
-            if self.insert or (k not in obj.id_fks()):
-                out.extend([self.obj + "." + k] + a.newcols(universe))
+        from dbgen.core.schema import Partition
+
+        entity = universe[self.obj]
+        if isinstance(entity, Partition):
+            new_entities = [entity, universe[entity._parent_name]]
+        else:
+            new_entities = [entity, *entity.get_all_partitions()]
+        out: L[str] = []
+        for new_entity in new_entities:
+            out.extend(
+                [
+                    new_entity.name + "." + a
+                    for a in self.attrs.keys()
+                    if (self.insert or (a not in new_entity.ids()))
+                ]
+            )
+            for k, a in self.fks.items():
+                if self.insert or (k not in new_entity.id_fks()):
+                    out.extend([new_entity.name + "." + k] + a.newcols(universe))
         return out
 
     def act(

@@ -14,7 +14,7 @@
 
 # External
 from copy import deepcopy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from typing import Dict as D
 from typing import List as L
 from typing import Set as S
@@ -63,14 +63,29 @@ class Schema(Base):
         return "Schema<%d objs, %d rels>" % (len(self.objlist), len(self._fks))
 
     def __getitem__(self, key: str) -> Entity:
-        return self.objs[key.lower()]
+        # raise NotImplementedError
+        entity = self.objs[key.lower()]
+        # if partition_value:
+        #     return entity.get_partition(partition_value)
+        return entity
+
+    def get_entity(self, key: str, partition_value: Any) -> Entity:
+        entity = self.objs[key.lower()]
+        if partition_value:
+            return entity.get_partition(partition_value)
+        return entity
 
     def __contains__(self, key: str) -> bool:
         return key.lower() in self.objs
 
     @property
     def objs(self) -> D[str, Entity]:
-        return {o.name.lower(): o for o in self.objlist}
+        output: D[str, Entity] = {}
+        for o in self.objlist:
+            output[o.name] = o
+            if o.is_partitioned:
+                output.update({part.name: part for part in o.get_all_partitions()})
+        return output
 
     @property
     def views(self) -> D[str, View]:

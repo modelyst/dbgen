@@ -149,11 +149,12 @@ class Generator(Base):
             tabdeps, coldeps = [], []
 
         # Analyze loads to see what new cols and tabs are yielded
-        newtabs, newcols = [], []  # type: T[L[str],L[str]]
+        newtabs: L[str] = []
+        newcols: L[str] = []
 
         for a in self.loads:
-            tabdeps.extend(a.tabdeps())
-            newtabs.extend(a.newtabs())
+            tabdeps.extend(a.tabdeps(universe))
+            newtabs.extend(a.newtabs(universe))
             newcols.extend(a.newcols(universe))
 
         # Allow for unethical hacks

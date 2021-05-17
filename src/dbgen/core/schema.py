@@ -19,14 +19,15 @@ from typing import TYPE_CHECKING, Any
 from typing import Dict as D
 from typing import Iterator as Iter
 from typing import List as L
+from typing import Sequence
 from typing import Set as S
 from typing import Tuple as T
 
 from hypothesis.strategies import SearchStrategy, builds, lists
 
 from dbgen.core.expr.expr import PK
-from dbgen.core.expr.sqltypes import Int, SQLType
-from dbgen.core.funclike import Arg, ArgLike, Const, PyBlock
+from dbgen.core.expr.sqltypes import Int, SQLType, Text, Varchar
+from dbgen.core.funclike import Arg, ArgLike, Const
 from dbgen.core.load import Load
 from dbgen.core.misc import Dep
 from dbgen.utils.exceptions import DBgenInvalidArgument, DBgenMissingInfo
@@ -110,6 +111,9 @@ class Attr(Base):
         default: Any = None,
         desc: str = "<No description>",
         index: bool = False,
+        partition_on: bool = False,
+        partition_values: Sequence = None,
+        partition_default: bool = True,
     ) -> None:
         assert name
         self.name = name.lower()
@@ -118,6 +122,26 @@ class Attr(Base):
         self.identifying = identifying
         self.index = index
         self.default = default
+        # Partition Columns
+        # Use this Attribute for partitioning the Entity
+        self.partition_on = partition_on
+        if partition_on:
+            if not isinstance(self.dtype, (Text, Int, Varchar)):
+                raise NotImplementedError(
+                    f"Partitioning only implemented for Int, Text, and Varchar:\n{self.name}\n{dtype}"
+                )
+        # Set the partitioned values
+        if partition_on and not (partition_values or partition_default):
+            raise DBgenMissingInfo("Cannot partition column without default partition of default values")
+        # Check values can be cast to dtype
+        if partition_values:
+            for val in partition_values:
+                try:
+                    self.dtype.cast(val)
+                except ValueError:
+                    raise DBgenInvalidArgument(f"Invalid partition value for dtype {dtype}: \n{val}")
+        self.partition_values = partition_values or []
+        self.partition_default = partition_default
         super().__init__()
 
     def __str__(self) -> str:
@@ -297,6 +321,12 @@ class Entity(Base):
             set(attr_names)
         ), f"No duplicate column names allowed, \nObject: {self.name}"
         assert all([isinstance(x, str) for x in [self.name, self.desc, self.id_str]])
+        # Check at most one partitioned attr
+        partitioned_attrs = list(filter(lambda x: x.partition_on, self.attrs))
+        if len(partitioned_attrs) > 1:
+            raise DBgenInvalidArgument("Can only have at most 1 partitioned attributes!")
+        self.partition_attr = partitioned_attrs[0] if partitioned_attrs else None
+
         super().__init__()
 
     @property
@@ -307,8 +337,12 @@ class Entity(Base):
     def fkdict(self) -> D[str, "Rel"]:
         return {r.name: r.to_rel(self.name) for r in self.fks}
 
+    @property
+    def is_partitioned(self) -> bool:
+        return self.partition_attr is not None
+
     def __str__(self) -> str:
-        return "Object<%s, %d attrs>" % (self.name, len(self.attrs))
+        return "Entity<%s, %d attrs>" % (self.name, len(self.attrs))
 
     def __call__(self, **kwargs: Any) -> Load:
         """
@@ -374,18 +408,6 @@ class Entity(Base):
         load to insert any required parent objects recursively?"""
         return self(**kwargs)
 
-    def add_attrs(self, ats: L[Attr]) -> None:
-        for a in ats:
-            assert a.name not in self.attrs or a.name in self.forbidden, (
-                a.name,
-                self.attrs,
-                self.forbidden,
-            )
-        self.attrs.extend(ats)
-
-    def del_attrs(self, ats: L[str]) -> None:
-        self.attrs = [a for a in self.attrs if a.name not in ats]
-
     def r(self, relname: str) -> RelTup:
         """
         Refer to a relation of an object. Without a Model, we have to do with
@@ -409,15 +431,91 @@ class Entity(Base):
             )
         else:
             cols, coldescs, colindexes = [], [], []
-        pk = self.id_str + " BIGINT PRIMARY KEY "
+        pk = self.id_str + " BIGINT "
+
         deld = "deleted BOOLEAN NOT NULL DEFAULT FALSE"
         full_cols = [pk, deld] + list(cols)
+        partition_name = self.partition_attr.name if self.partition_attr else ""
+        primary_key = f",PRIMARY KEY ({self.id_str}"
+        primary_key += f",\"{partition_name}\")" if partition_name else ")"
 
-        tabdesc = "comment on table \"{}\" is '{}'".format(self.name, self.desc.replace("'", "''"))
-        fmt_args = [create_str, "\n\t,".join(full_cols)]
-        cmd = "{}\n\t({})".format(*fmt_args)
-        sqls = [cmd, tabdesc] + list(coldescs) + list(filter(lambda x: x != "", colindexes))
-        return sqls
+        columns = "\n\t,".join(full_cols)
+        partition_str = f" PARTITION BY LIST (\"{self.partition_attr.name}\")" if self.partition_attr else ""
+        create_cmd = f"{create_str}\n\t({columns}\n\t{primary_key}\n){partition_str}"
+        table_description = "comment on table \"{}\" is '{}'".format(self.name, self.desc.replace("'", "''"))
+        sql_statements = (
+            [create_cmd, table_description]
+            + self.create_partitions()
+            + list(coldescs)
+            + list(filter(lambda x: x != "", colindexes))
+        )
+        return sql_statements
+
+    def create_partitions(self) -> L[str]:
+        if not self.partition_attr:
+            return []
+        partition_statements = []
+        part_name = self.partition_attr.name
+        # Add default partition if flag set
+        if self.partition_attr.partition_default:
+            partition_statements.append(
+                f"CREATE TABLE \"{self.name}__{part_name}__default\" partition of \"{self.name}\" default"
+            )
+        # For each val, attach a  partition
+        if self.partition_attr.partition_values:
+            for val in self.partition_attr.partition_values:
+                partition_statements.append(
+                    f"CREATE TABLE \"{self.name}__{part_name}__{val}\" partition of \"{self.name}\" for values in ({val})"
+                )
+        return partition_statements
+
+    def get_partition(self, partition_value: Any = None, default: bool = False) -> 'Partition':
+        if self.partition_attr is None:
+            raise ValueError(f"Entity {self.name} is not partitioned!")
+        elif default:
+            Partition(
+                None,
+                default=True,
+                name=self.name,
+                desc=self.desc,
+                attrs=self.attrs,
+                fks=self.fks,
+                id_str=self.id_str,
+            )
+        elif partition_value not in self.partition_attr.partition_values and not default:
+            raise ValueError(
+                f"Requested partition value is not declared on the Partition Attribute:"
+                f"\nAttr: {self.partition_attr.name}"
+                f"\nPartition Values: {self.partition_attr.partition_values}"
+                f"\nRequested Value: {partition_value}"
+            )
+
+        return Partition(
+            partition_value,
+            default=False,
+            name=self.name,
+            desc=self.desc,
+            attrs=self.attrs,
+            fks=self.fks,
+            id_str=self.id_str,
+        )
+
+    def get_all_partitions(self) -> L['Partition']:
+        if not self.partition_attr:
+            return []
+        partitions = []
+        kwargs = dict(
+            name=self.name,
+            desc=self.desc,
+            attrs=self.attrs,
+            fks=self.fks,
+            id_str=self.id_str,
+        )
+        if self.partition_attr.partition_default:
+            partitions.append(Partition(None, default=True, **kwargs))  # type: ignore
+        partitions.extend(map(lambda val: self.get_partition(val), self.partition_attr.partition_values))
+
+        return partitions
 
     def id(self, path: "AP" = None) -> PK:
         """Main use case: GROUP BY an object, rather than a particular column"""
@@ -486,11 +584,32 @@ class Entity(Base):
         o.attrs.append(newattr)
         return o
 
-    def default_load(self, pb: PyBlock) -> Load:
-        """Assuming there is some pyblock with all the info we need to insert
-        this object (in some standardized naming scheme), use it to insert
-        instances of this object"""
-        raise NotImplementedError
+
+class Partition(Entity):
+    """Sub-Entity for a specific List Partition"""
+
+    def __init__(
+        self,
+        partition_value: Any,
+        default: bool,
+        name: str,
+        desc: str,
+        attrs: L[Attr],
+        fks: L[UserRel],
+        id_str: str,
+    ) -> None:
+        self.partition_value = partition_value
+        self.default = default
+        super().__init__(name, desc=desc, attrs=attrs, fks=fks, id_str=id_str)
+        assert self.partition_attr, "Trying to make partition out of unpartitioned Entity!"
+        # Set name of Partition Entity
+        if default:
+            self.name = f"{self.name}__{self.partition_attr.name}__default"
+            self._parent_name = name
+        else:
+            assert partition_value in self.partition_attr.partition_values
+            self.name = f"{self.name}__{self.partition_attr.name}__{self.partition_value}"
+            self._parent_name = name
 
 
 class Rel(Base):

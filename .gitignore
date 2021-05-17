@@ -133,3 +133,4 @@ make.bat
 docs-old/
 build_pdoc/
 bin/
+/scratch/

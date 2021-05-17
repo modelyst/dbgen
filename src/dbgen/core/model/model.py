@@ -16,6 +16,7 @@
 from functools import reduce
 
 # External
+from typing import Any
 from typing import Dict as D
 from typing import List as L
 from typing import Set as S
@@ -36,7 +37,7 @@ from dbgen.core.model.run import check_patheq, run, validate_name
 
 # Internal
 from dbgen.core.model.run_gen import run_gen
-from dbgen.core.schema import Attr, AttrTup, Entity, PathEQ, Rel, RelTup, SuperRel, UserRel, View
+from dbgen.core.schema import Attr, AttrTup, Entity, Partition, PathEQ, Rel, RelTup, SuperRel, UserRel, View
 from dbgen.core.schemaclass import Schema
 from dbgen.utils.exceptions import DBgenInternalError
 
@@ -182,6 +183,8 @@ class Model(Schema):
         # Change end into object if it is a string
         if isinstance(end, str):
             upgraded_end = self[end]
+        elif isinstance(end, Partition):
+            raise NotImplementedError()
         else:
             assert isinstance(end, Entity)
             upgraded_end = end
@@ -209,9 +212,9 @@ class Model(Schema):
 
         return JPath(upgraded_end, upgraded_fks, name=name)
 
-    def get(self, objname: str) -> Entity:
+    def get(self, objname: str, partition_val: Any = None) -> Entity:
         """Get an object by name"""
-        return self[objname]
+        return self.get_entity(objname, partition_val)
 
     def rename(self, x: U[Entity, Rel, RelTup, AttrTup, str, Generator], name: str) -> None:
         """Rename an Objects / Relations / Generators / Attr """
@@ -271,8 +274,6 @@ class Model(Schema):
                 self._del_gen(x)
             elif isinstance(x, View):
                 self._del_view(x)
-            elif isinstance(x, AttrTup):
-                self._del_attr(x)
             elif isinstance(x, PathEQ):
                 self._del_patheq(x)
             else:
@@ -332,10 +333,6 @@ class Model(Schema):
         """Delete a view"""
         del self.views[v.name]
         # need to delete generators/PathEQs
-
-    def _del_attr(self, a: AttrTup) -> None:
-        """Delete an attribute: Need to also remove all Generators that mention it?"""
-        self[a.obj].del_attrs([a.name])
 
     def _del_relation(self, r: Rel) -> None:
         """ Remove from internal FK graph. Need to also remove all Generators that mention it? """

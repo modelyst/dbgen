@@ -19,8 +19,7 @@ from re import split
 from string import ascii_lowercase, ascii_uppercase, digits
 
 # External Modules
-from typing import Any
-from typing import Optional as O
+from typing import Any, Optional
 
 from dbgen.utils.exceptions import DBgenTypeError
 from dbgen.utils.misc import Base
@@ -93,7 +92,7 @@ class Varchar(SQLType):
     def __str__(self) -> str:
         return "VARCHAR(%d)" % self.mem
 
-    def cast(self, val) -> O[str]:
+    def cast(self, val) -> Optional[str]:
         if val is None:
             return val
         return str(val)
@@ -107,7 +106,7 @@ class Decimal(SQLType):
     def __str__(self) -> str:
         return "DECIMAL(%d,%d)" % (self.prec, self.scale)
 
-    def cast(self, val) -> O[float]:
+    def cast(self, val) -> Optional[float]:
         if val is None:
             return val
         return float(val)
@@ -123,7 +122,7 @@ class Boolean(SQLType):
     def rand(self) -> Any:
         return choice(["true", "false"])
 
-    def cast(self, val) -> O[bool]:
+    def cast(self, val) -> Optional[bool]:
         if val is None:
             return val
         elif not isinstance(val, bool):
@@ -155,7 +154,7 @@ class Int(SQLType):
             raise ValueError(err % (self.kind, options))
         return core + ("" if self.signed else " UNSIGNED")
 
-    def cast(self, val) -> O[int]:
+    def cast(self, val) -> Optional[int]:
         if val is None:
             return val
         elif not isinstance(val, (int, float, str)) or isinstance(val, bool):
@@ -172,7 +171,7 @@ class Text(SQLType):
     def __str__(self) -> str:
         return "TEXT"
 
-    def cast(self, val) -> O[str]:
+    def cast(self, val) -> Optional[str]:
         return str(val)
 
 
@@ -180,7 +179,7 @@ class Date(SQLType):
     def __str__(self) -> str:
         return "DATE"
 
-    def cast(self, val) -> O[datetime]:
+    def cast(self, val) -> Optional[datetime]:
         if val is None:
             return val
         elif not isinstance(val, datetime):
@@ -192,7 +191,7 @@ class Timestamp(SQLType):
     def __str__(self) -> str:
         return "TIMESTAMP"
 
-    def cast(self, val) -> O[datetime]:
+    def cast(self, val) -> Optional[datetime]:
         if val is None:
             return val
         elif not isinstance(val, datetime):
@@ -204,7 +203,7 @@ class Double(SQLType):
     def __str__(self) -> str:
         return "DOUBLE"
 
-    def cast(self, val) -> O[float]:
+    def cast(self, val) -> Optional[float]:
         if val is None:
             return val
         elif not isinstance(val, float):
@@ -216,7 +215,7 @@ class JSON(SQLType):
     def __str__(self) -> str:
         return "JSON"
 
-    def cast(self, val) -> O[str]:
+    def cast(self, val) -> Optional[str]:
         if val is None:
             return val
         elif not isinstance(val, str):
@@ -228,7 +227,7 @@ class JSONB(SQLType):
     def __str__(self) -> str:
         return "JSONB"
 
-    def cast(self, val) -> O[str]:
+    def cast(self, val) -> Optional[str]:
         if val is None:
             return val
         elif not isinstance(val, str):
