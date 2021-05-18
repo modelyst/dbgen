@@ -128,7 +128,8 @@ class Load(Base):
                 out.extend(partition_names)
 
         for fk in self.fks.values():
-            if fk.pk is not None or not fk.insert:
+            # Check if we are simply setting the FK to null
+            if not isinstance(fk.pk, Const) or fk.pk != Const(None):
                 out.extend(fk.tabdeps(universe))
         return out
 

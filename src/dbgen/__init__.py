@@ -13,7 +13,6 @@
 #   limitations under the License.
 
 """Welcome to dbgen"""
-import os
 
 from dbgen.version import git_version, version
 
