@@ -128,7 +128,7 @@ class Load(Base):
                 out.extend(partition_names)
 
         for fk in self.fks.values():
-            if fk.pk is not None:
+            if fk.pk is not None or not fk.insert:
                 out.extend(fk.tabdeps(universe))
         return out
 
