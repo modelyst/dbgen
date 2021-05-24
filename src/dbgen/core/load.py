@@ -68,6 +68,7 @@ class Load(Base):
         fks: D[str, "Load"],
         pk: U[Arg, Const] = None,
         insert: bool = False,
+        partition_attr: str = None,
     ) -> None:
         """
         Initializes Load object with relevant Objects and nested Loads. This is
@@ -86,6 +87,7 @@ class Load(Base):
         self.fks = {k.lower(): v for k, v in fks.items()}
         self.pk = pk
         self.insert = insert
+        self.partition_attr = partition_attr
         self._logger = logging.getLogger(f"dbgen.run.loading.{self.obj}")
         self._logger.setLevel(logging.DEBUG)
         err = "Cant insert %s if we already have PK %s"
@@ -435,6 +437,7 @@ class Load(Base):
         template_args = dict(
             obj=self.obj,
             obj_pk_name=obj_pk_name,
+            partition_attr=self.partition_attr,
             temp_table_name=temp_table_name,
             all_column_names=cols,
             fk_cols=fk_cols,

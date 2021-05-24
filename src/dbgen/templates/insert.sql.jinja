@@ -28,7 +28,7 @@ FROM (
   FROM
     {{temp_table_name}}) AS X
 WHERE
-  row_number = 1 ON CONFLICT ({{obj_pk_name}})
+  row_number = 1 ON CONFLICT ({{obj_pk_name}}{{"," if partition_attr }}{{partition_attr or ""}})
   DO
   UPDATE
   SET

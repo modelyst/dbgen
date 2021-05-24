@@ -385,8 +385,9 @@ class Entity(Base):
                     fks[k] = Load(obj=rel.o2, attrs={}, fks={}, pk=v)
                 else:
                     fks[k] = Load(obj=k, attrs={}, fks={}, pk=v)
-
-        return Load(self.name, attrs=attrs, fks=fks, pk=pk, insert=insert)
+        # Need partition attribute name for resolving conflicts during insertion
+        partition_attr = self.partition_attr.name if self.partition_attr else None
+        return Load(self.name, attrs=attrs, fks=fks, pk=pk, insert=insert, partition_attr=partition_attr)
 
     def __getitem__(self, key: str) -> AttrTup:
         if key in self.attrdict:
