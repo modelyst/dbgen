@@ -459,13 +459,13 @@ class Entity(Base):
         # Add default partition if flag set
         if self.partition_attr.partition_default:
             partition_statements.append(
-                f"CREATE TABLE \"{self.name}__{part_name}__default\" partition of \"{self.name}\" default"
+                f"CREATE TABLE IF NOT EXISTS \"{self.name}__{part_name}__default\" partition of \"{self.name}\" default"
             )
         # For each val, attach a  partition
         if self.partition_attr.partition_values:
             for val in self.partition_attr.partition_values:
                 partition_statements.append(
-                    f"CREATE TABLE \"{self.name}__{part_name}__{val}\" partition of \"{self.name}\" for values in ({val})"
+                    f"CREATE TABLE IF NOT EXISTS \"{self.name}__{part_name}__{val}\" partition of \"{self.name}\" for values in ({val})"
                 )
         return partition_statements
 
