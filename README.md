@@ -17,7 +17,7 @@
 # DBgen
 
 <p align="center">
-  <a href="https://dbgen.modelyst.com"><img src="img/dbgen_logo.png" alt="DBgen"></a>
+  <a href="https://dbgen.modelyst.com"><img src="docs/img/dbgen_logo.png" alt="DBgen"></a>
 </p>
 ---
 
