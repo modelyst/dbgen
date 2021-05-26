@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -44,17 +42,18 @@ DBgen was designed to support scientific data analysis with the following
 characteristics:
 
 1.  Transparent
+
     - Because scientific efforts ought be shareable and mutually
-    understandable.
+      understandable.
 
 2.  Flexible
-    - Because scientific theories are under continuous flux.
 
+    - Because scientific theories are under continuous flux.
 
 3.  Maintainable
     - Because the underlying scientific models one works with are
-    complicated enough on their own, we can't afford to introduce
-    any more complexity via our framework.
+      complicated enough on their own, we can't afford to introduce
+      any more complexity via our framework.
 
 DBGen is an opinionated ETL tool. ETL tools exist but they rarely
 give the tools necessary for a scientific workflow. Opinionated
@@ -65,19 +64,20 @@ problem (extracting and ).
 Comparison to
 
 1. [Airflow](https://airflow.apache.org/)
-    -   Has a priority for ETL scalability
+
+   - Has a priority for ETL scalability
 
 2. [Fireworks](https://materialsproject.github.io/fireworks/)
 
-
 3. [AiiDA](http://www.aiida.net/) or [Atomate](https://atomate.org/)
-    -   We don't focus on the actual submission of computational
-        science workflows.
+   - We don't focus on the actual submission of computational
+     science workflows.
 
 ## What isn't DBgen?
 
 1. An [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) tool (see [Hibernate](http://hibernate.org/orm/) for Java or [SQLAlchemy](https://www.sqlalchemy.org/) for Python)
-    - DBgen operates at a higher level of abstrload, not exposing the user to low level SQL commands like SELECT or INSERT.
+
+   - DBgen operates at a higher level of abstrload, not exposing the user to low level SQL commands like SELECT or INSERT.
 
 2. A database manager (see
    [MySQLWorkbench](https://www.mysql.com/products/workbench/),
@@ -88,29 +88,11 @@ Comparison to
 
 ## Getting DBgen
 
-### Via pip
+### Via Github
 
-The easiest way to install the latest stable version of DBgen is to use
-pip:
+Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.8 to install the package.
 
-    pip install dbgen
-
-(Getting development version? If not, then just merge the above into
-Quick Start)
-
-### Quick start
-
-<div class="termy">
-
-```console
-$ pip install dbgen
-
----> 100%
-```
-
-</div>
-
-
+This installation process is still in development, please contact the DBgen if you encounter issues. Moving forward we plan to use make dbgen installable through `pip`.
 
 ### API documentation
 
