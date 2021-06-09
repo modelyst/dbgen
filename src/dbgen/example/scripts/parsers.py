@@ -146,7 +146,7 @@ chemical_symbols = [
     "Og",
 ]
 # Parse ssn.json
-def parse_ssn(pth: str) -> tuple[list[str], list[str], list[int]]:
+def parse_ssn(pth: str) -> T[L[str], L[str], L[int]]:
     """Expects a JSON file with <<"firstName lastName" : SSN#>> entries"""
     with open(pth) as f:
         data = load(f)
@@ -160,7 +160,7 @@ def parse_ssn(pth: str) -> tuple[list[str], list[str], list[int]]:
 
 def parse_proc_csv(
     pth: str,
-) -> tuple[list[int], list[int], list[str], list[int], list[int], list[str], list[str], list[str]]:
+) -> T[T[int], T[int], T[str], T[int], T[int], T[str], T[str], T[str]]:
     """Expects CSV: Sample,Step,Procedure,Timestamp,Researcher,Notes"""
     output = defaultdict(list)  # type: AnyD
     with open(pth) as f:
@@ -177,7 +177,7 @@ def parse_proc_csv(
 
 
 # Parse experiment.json
-def parse_expt(pth: str) -> tuple[list[int], list[str], list[float], list[str]]:
+def parse_expt(pth: str) -> T[L[int], L[str], L[float], L[str]]:
     """Parse JSON file with experiments containing anode/cathode/capacity/date"""
     expt_ids, dates, capacities, solvents = [], [], [], []
     with open(pth) as f:
@@ -193,7 +193,7 @@ def parse_expt(pth: str) -> tuple[list[int], list[str], list[float], list[str]]:
 
 
 # Parse experiment.json
-def get_electrode(pth: str, x: str) -> tuple[list[int], list[int], list[str]]:
+def get_electrode(pth: str, x: str) -> T[L[int], L[int], L[str]]:
     """Get either anode or cathode information about all battery experiments"""
     electrode = x.lower()
     assert electrode in ["anode", "cathode"]
@@ -212,7 +212,7 @@ def get_electrode(pth: str, x: str) -> tuple[list[int], list[int], list[str]]:
 
 
 # Parse procedure.db
-def parse_sqlite(pth: str) -> tuple[list[int]]:
+def parse_sqlite(pth: str) -> T[L[int]]:
     """Get sample history data stored in a relational db"""
     db = connect(pth).cursor()
     cols = ",".join(["sample", "step", "procedure", "firstname", "lastname", "ssn"])
@@ -221,7 +221,7 @@ def parse_sqlite(pth: str) -> tuple[list[int]]:
 
 
 # Extract element info from a chemical formula string
-def parse_formula(formula: str) -> tuple[list[int], list[str], list[float]]:
+def parse_formula(formula: str) -> T[L[int], L[str], L[float]]:
     """Parses simple chemical formulas like As2Ga3 and H2O"""
     matches = findall(r"([A-Z][a-z]?)(\d*)", formula)
     symbs, nums = map(list, zip(*matches))  # type: T[L[Any],L[Any]]
