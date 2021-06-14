@@ -134,3 +134,4 @@ docs-old/
 build_pdoc/
 bin/
 /scratch/
+.DS_STORE
