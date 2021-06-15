@@ -25,6 +25,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.tar.gz
 MANIFEST
 
 # PyInstaller
@@ -124,10 +125,13 @@ dmypy.json
 .pyre/
 
 .vscode
-data/
-
+/data/
+git_version
 # Documentation related ignores
 MakeFile
 make.bat
 docs-old/
 build_pdoc/
+bin/
+/scratch/
+.DS_STORE

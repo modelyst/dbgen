@@ -1,0 +1,42 @@
+{#
+   Copyright 2021 Modelyst LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+#}
+
+INSERT INTO {{obj}}
+({% for column in all_column_names %}"{{column}}"{{ ", " if not loop.last }}{% endfor %})
+SELECT
+{% for column in all_column_names %}"{{column}}"{{ "," if not loop.last }}
+{% endfor %}
+FROM (
+  SELECT
+    {% for column in all_column_names %}"{{column}}",
+    {% endfor %}
+    ROW_NUMBER() OVER (PARTITION BY {{obj_pk_name}}
+               ORDER BY auto_inc {{ "ASC" if first else "DESC"}}) AS row_number
+  FROM
+    {{temp_table_name}}) AS X
+WHERE
+  row_number = 1 ON CONFLICT ({{obj_pk_name}}{{"," if partition_attr }}{{partition_attr or ""}})
+  DO
+  UPDATE
+  SET
+  {% if not update %}
+    {{obj_pk_name}} = excluded.{{obj_pk_name}}
+  {% else %}
+    {% for column in all_column_names %}{{column}} = excluded.{{column}}{{ "," if not loop.last }}
+    {% endfor %}
+  {% endif %}
+  RETURNING
+    {{obj_pk_name}}

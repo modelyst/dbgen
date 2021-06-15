@@ -1,0 +1,78 @@
+
+[tool.black]
+line-length = 110
+skip-string-normalization = true
+target-version = ['py36', 'py37', 'py38']
+
+[tool.poetry]
+authors = ["Michael Statt <michael.statt@modelyst.io>", "Kristopher Brown <kris.brown@modelyst.io"]
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.8",
+]
+description = "DBgen (Database Generator) is an open-source Python library for connecting raw data, scientific theories, and relational databases"
+documentation = "https://www.dbgen.modelyst.com"
+exclude = ["tests*"]
+homepage = "https://www.dbgen.modelyst.com"
+include = ["requirements.txt", "LICENSE", "dbgen/git_version"]
+keywords = ["ETL", "Postgres", "Databases"]
+license = "Apache-2.0"
+maintainers = ["Michael Statt <michael.statt@modelyst.io>"]
+name = "modelyst-dbgen"
+packages = [
+  {include = "dbgen", from = "src"},
+]
+readme = "README.md"
+repository = "https://github.com/modelyst/dbgen"
+version = "0.4.3"
+
+[tool.poetry.dependencies]
+apache-airflow = {extras = ["postgres"], version = "^2.1.0", optional = true}
+hypothesis = ">=5.23.7"
+infinite = ">=0.1"
+jinja2 = ">=2.10.0"
+markdown-include = {version = "0.6.0", optional = true}
+mkdocs = {version = "^1.1.2", optional = true}
+mkdocs-autorefs = {version = "^0.1.1", optional = true}
+mkdocs-markdownextradata-plugin = {version = "^0.2.4", optional = true}
+mkdocs-material = {version = "^7.0.6", optional = true}
+mkdocstrings = {version = "^0.15.0", optional = true}
+networkx = ">=2.4"
+pathos = ">=0.2.6"
+pdocs = {version = "^1.1.1"}
+psycopg2-binary = ">=2.7.4"
+python = ">=3.8,<4.0"
+sshtunnel = "^0.1.5"
+tqdm = ">=4.48.0"
+typer = "^0.3.2"
+[tool.poetry.dev-dependencies]
+black = "^20.8b1"
+flake8 = "^3.9.2"
+hypothesis = ">=5.23.7"
+isort = "^5.8.0"
+mypy = "^0.812"
+pre-commit = "^2.11.1"
+pytest = "^6.2.2"
+pytest-sugar = "^0.9.4"
+[tool.poetry.extras]
+airflow = [
+  "apache-airflow",
+]
+docs = [
+  "mkdocs",
+  "mkdocs-autorefs",
+  "mkdocs-markdownextradata-plugin",
+  "mkdocs-material",
+  "markdown-include",
+  "mkdocstrings",
+  "pdocs",
+]
+
+[tool.poetry.scripts]
+dbgen = "dbgen.__main__:main"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]

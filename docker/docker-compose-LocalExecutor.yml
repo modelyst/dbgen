@@ -1,0 +1,45 @@
+#   Copyright 2021 Modelyst LLC
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+---
+version: '2.1'
+services:
+    postgres:
+        image: postgres:12
+        ports:
+            - "4000:5432"
+        expose:
+            - "5432"
+        environment:
+            - POSTGRES_USER=dbgen
+            - POSTGRES_PASSWORD=dbgen
+            - POSTGRES_DB=dbgen
+    dbgen:
+        image: dbgen:test
+        depends_on:
+            - postgres
+        environment:
+            - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
+            - DBGEN__CORE__DB_SCHEMA=test
+            - DBGEN__LOGGING__LOG_TO_STDOUT=true
+        command: run dbgen.example.main:model --no-bar -y --nuke
+    grafana:
+        image: grafana/grafana:latest
+        depends_on:
+            - postgres
+        ports:
+            - 3000:3000
+        volumes:
+            - ./grafana/provisioning:/etc/grafana/provisioning
+            - ./grafana/dashboards:/var/lib/grafana/dashboards

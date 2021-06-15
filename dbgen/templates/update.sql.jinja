@@ -1,9 +1,0 @@
-UPDATE
-    "{{obj}}"
-SET
-    {% for column in all_column_names %}"{{column}}" = "{{temp_table_name}}"."{{column}}"{{ "," if not loop.last }}
-    {% endfor %}
-FROM
-    {{temp_table_name}}
-WHERE
-    {{obj}}.{{obj_pk_name}} = {{temp_table_name}}.{{obj_pk_name}};
