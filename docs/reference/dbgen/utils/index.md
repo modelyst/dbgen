@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -27,7 +25,9 @@ Sub-modules
 * [dbgen.utils.lists](lists/)
 * [dbgen.utils.log](log/)
 * [dbgen.utils.misc](misc/)
+* [dbgen.utils.module_loading](module_loading/)
 * [dbgen.utils.numeric](numeric/)
 * [dbgen.utils.parsing](parsing/)
+* [dbgen.utils.settings](settings/)
 * [dbgen.utils.sql](sql/)
 * [dbgen.utils.str_utils](str_utils/)

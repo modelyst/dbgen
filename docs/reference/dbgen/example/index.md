@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -20,7 +18,8 @@
 
 Sub-modules
 -----------
+* [dbgen.example.constants](constants/)
 * [dbgen.example.generators](generators/)
 * [dbgen.example.main](main/)
-* [dbgen.example.model](model/)
+* [dbgen.example.schema](schema/)
 * [dbgen.example.scripts](scripts/)

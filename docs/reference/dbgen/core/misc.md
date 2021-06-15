@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -17,5 +15,6 @@
  -->
 
 # dbgen.core.misc
+Uncategorized utilities for core dbgen functionality
 
 :::dbgen.core.misc

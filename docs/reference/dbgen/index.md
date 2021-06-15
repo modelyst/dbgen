@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -21,7 +19,9 @@ Welcome to dbgen
 
 Sub-modules
 -----------
+* [dbgen.cli](cli/)
 * [dbgen.core](core/)
 * [dbgen.example](example/)
 * [dbgen.templates](templates/)
 * [dbgen.utils](utils/)
+* [dbgen.version](version/)

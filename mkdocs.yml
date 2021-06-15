@@ -24,28 +24,42 @@ theme:
   font:
     text: Roboto
   palette:
-    scheme: default
-    accent: indigo
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      accent: white
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   icon:
     repo: fontawesome/brands/github-alt
   logo: img/logo.png
   favicon: img/favicon.png
   language: en
 repo_name: modelyst/dbgen
-repo_url: https://github.com/astronomer/airflow-chart
+repo_url: https://github.com/modelyst/dbgen
 markdown_extensions:
   - toc:
       permalink: true
-  - markdown.extensions.codehilite:
-      guess_lang: false
   - markdown_include.include:
       base_path: docs
   - attr_list
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format ''
+  - pymdownx.tabbed
+  - markdown.extensions.codehilite:
+      guess_lang: true
+  - codehilite
 plugins:
   - search
   - mkdocstrings:
       watch:
-        - dbgen
+        - src/dbgen
       handlers:
         python:
           selection:

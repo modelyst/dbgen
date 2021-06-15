@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -20,14 +18,12 @@
 
 ## Installing with pip
 
-The easiest way to install dbgen is using pip.
+The easiest way to install dbgen is using pip. The name of the package on [pypi.com](https://pypi.org/project/modelyst-dbgen/) is `modelyst-dbgen`.
 
 <div class="termy">
-
 ```Console
-$ pip install dbgen
-
+$ pip install modelyst-dbgen
 ---> 100%
+Successfully installed dbgen
 ```
-
 </div>

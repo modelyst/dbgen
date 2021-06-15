@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -17,5 +15,6 @@
  -->
 
 # dbgen.utils.lists
+Common list utilities for flattening, concating, and broadcasting.
 
 :::dbgen.utils.lists

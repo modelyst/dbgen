@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -21,4 +19,5 @@
 Sub-modules
 -----------
 * [dbgen.core.airflow_plugin.RunOperator](RunOperator/)
+* [dbgen.core.airflow_plugin.dummy_genoperator](dummy_genoperator/)
 * [dbgen.core.airflow_plugin.genoperator](genoperator/)

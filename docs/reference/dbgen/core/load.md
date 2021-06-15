@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -16,6 +14,7 @@
    limitations under the License.
  -->
 
-# dbgen.core.laod
+# dbgen.core.load
+Define the Load Object for inserting transformed data into the Database.
 
 :::dbgen.core.load

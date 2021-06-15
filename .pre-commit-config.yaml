@@ -185,7 +185,7 @@ repos:
         name: Run mypy
         entry: ./scripts/ci/pre_commit/pre_commit_check_mypy.sh
         language: system
-        exclude: ^src/dbgen/cli/newfiles/|^tests/
+        exclude: ^src/dbgen/cli/newfiles/|^tests/|^docs_src/
         files: \.py$
       - id: flynt
         name: Convert to f-strings with flynt
@@ -206,3 +206,4 @@ repos:
       - id: flake8
         args: ["--config", "setup.cfg", "src/dbgen"]
         files: \.py$
+        exclude: ^docs_src/

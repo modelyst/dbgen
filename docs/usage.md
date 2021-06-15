@@ -55,46 +55,13 @@ below.
 ## Defining the Schema Graph
 
 The schema is specified by providing a list of entities (constructed
-with dbgen.Entity) , their attributes (with [`Attr`][dbgen.core.schema.attr]), and the relationships
+with dbgen.Entity) , their attributes (with [`Attr`][dbgen.core.schema.Attr]), and the relationships
 which hold between them. These are called _foreign keys_ and created via
 the constructor Rel. Attributes always have a specific datatype
 associated with them.
 
-```Python
-solarcell = Entity(
-    name  = 'solarcell',
-    desc  = 'a solar cell',
-    attrs = [
-        Attr('id',Int(),desc='Identifying number', identifying=True),
-        Attr('frac_La',Decimal(),desc='frload Lanthanum'),
-        Attr('frac_Co',Decimal(),desc='frload Cobalt')
-    ]
-)
-
-jvcurve = Entity(
-    name='jvcurve',
-    desc='A curve describing the current density vs voltage behavior of a solar cell',
-    attrs=[
-        # Attr('id',Int(),desc='Identifying number', id=True),
-        Attr('full_path',Varchar(),desc='Full path to the jv curve', identifying=True),
-        Attr('voc',Decimal(),desc='Open circuit voltage'),
-        Attr('jsc',Decimal(),desc='Short circuit current density'),
-        Attr('max_power_v',Decimal(),desc='Voltage of maximum power point'),
-        Attr('max_power_j',Decimal(),desc='Current density of maximum power point'),
-        Attr('fill_factor',Decimal(),desc='Fill factor')
-    ],
-    fks = [Rel('solarcell')]
-)
-
-#####################################################################
-
-objs = [solarcell, jvcurve]
-
-def make_model() -> Model:
-    m = Model('test_db')
-    m.add(objs); m.add(peqs)
-    add_generators(m)
-    return m
+```python3
+{!../docs_src/usage/tutorial000.py!}
 ```
 
 ## Defining the Fact Graph
@@ -110,117 +77,17 @@ begin. Below, the solar cell data process begins with the a Transform
 step which looks to the outside world for data.
 
 ```python
-def io(model : Model) -> None:
-
-    # Get tables
-    entities = ['jvcurve']
-
-    JVcurve = model.get('jvcurve')
-
-    ###########################################################################
-
-    load_data_paths_block = PyBlock(load_data_paths,
-                    env  = defaultEnv + Env([Import('os')]),
-                    args = [Const(join(root,'data/jvcurves'))],
-                    outnames = ['full_path'])
-
-    load_paths_generator =                                                           \
-        Gen(name = 'load_data_paths',
-            desc = 'loads the full path to all jvcurves',
-            funcs = [load_data_paths_block],
-            tags  = ['io'],
-            loads = [JVcurve(insert  = True,
-                        full_path   = load_data_paths_block['full_path'])]
-        )
-
-    ###########################################################################
-    gens = [load_paths_generator]
-    model.add(gens)
+{!../docs_src/usage/tutorial001.py!}
 ```
 
 ### JV-curve
 
 ```python
-def jsc(model : Model) -> None:
-
-    # Get tables
-    entities = ['jvcurve']
-
-    JVcurve = model.get('jvcurve')
-
-    ###########################################################################
-
-    query = Query(
-        exprs = {'full_path': JVcurve['full_path'](), 'jvcurve_id': JVcurve.id()}
-    )
-
-    ###########################################################################
-
-    get_jsc_block = PyBlock(get_jsc,
-                    env  = defaultEnv + Env([Import('os'), Import('numpy as np')]),
-                    args = [query['full_path']],
-                    outnames = ['jsc'])
-
-    get_jsc_generator =                                                           \
-        Gen(
-            name = 'get_jsc',
-            desc = 'finds the JSC',
-            query = query,
-            funcs = [get_jsc_block],
-            tags  = ['pure'],
-            loads = [JVcurve(
-                jvcurve = query['jvcurve_id'],
-                jsc       = get_jsc_block['jsc']
-        )]
-    )
-
-    ###########################################################################
-    gens = [get_jsc_generator]
-    model.add(gens)
+{!../docs_src/usage/tutorial002.py!}
 ```
 
 ### Fill-factor
 
 ```python
-def fill_factor(model : Model) -> None:
-
-    # Get tables
-    JVcurve = model.get('jvcurve')
-
-    #######################################################################
-    ### Query
-
-    query = Query(
-        exprs = {
-            'jvcurve_id': JVcurve.id(),
-            'voc': JVcurve['voc'](),
-            'jsc': JVcurve['jsc'](),
-            'max_power_v': JVcurve['max_power_v'](),
-            'max_power_j': JVcurve['max_power_j'](),
-        }
-    )
-
-    #######################################################################
-
-    get_ff_block = PyBlock(get_fill_factor,
-                    env  = defaultEnv,
-                    args = [query['voc'], query['jsc'], query['max_power_v'], query['max_power_j']],
-                    outnames = ['ff'])
-
-    get_ff_generator =                                                           \
-        Gen(
-            name = 'get_fill_factor',
-            desc = 'finds the VOC',
-            query = query,
-            funcs = [get_ff_block],
-            tags  = ['pure'],
-            loads = [JVcurve(
-                jvcurve         = query['jvcurve_id'],
-                fill_factor     = get_ff_block['ff']
-        )]
-    )
-
-    #######################################################################
-    gens = [get_ff_generator]
-    model.add(gens)
+{!../docs_src/usage/tutorial003.py!}
 ```

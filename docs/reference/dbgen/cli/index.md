@@ -14,10 +14,9 @@
    limitations under the License.
  -->
 
-# dbgen.core.query
-The Query class, as well as Ref (used to indirectly refer to an object in a
-query without knowing the exact join path)
+# dbgen.cli
 
-Furthermore some Model methods that are highly related to queries are defined.
-
-:::dbgen.core.query
+Sub-modules
+-----------
+* [dbgen.cli.main](main/)
+* [dbgen.cli.new](new/)

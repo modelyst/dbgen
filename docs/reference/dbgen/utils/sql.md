@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -17,5 +15,6 @@
  -->
 
 # dbgen.utils.sql
+Common utilities for interfacing with SQL Databases.
 
 :::dbgen.utils.sql

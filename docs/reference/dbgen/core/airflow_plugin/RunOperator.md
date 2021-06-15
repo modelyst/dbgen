@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -17,5 +15,6 @@
  -->
 
 # dbgen.core.airflow_plugin.RunOperator
+Airflow Operator for the intitialization of a run
 
 :::dbgen.core.airflow_plugin.RunOperator

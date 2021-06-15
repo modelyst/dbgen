@@ -1,5 +1,3 @@
-
-
 <!--
    Copyright 2021 Modelyst LLC
 
@@ -20,7 +18,6 @@
 
 Sub-modules
 -----------
-* [dbgen.core.load](load/)
 * [dbgen.core.airflow_plugin](airflow_plugin/)
 * [dbgen.core.datatypes](datatypes/)
 * [dbgen.core.expr](expr/)
@@ -28,6 +25,7 @@ Sub-modules
 * [dbgen.core.func](func/)
 * [dbgen.core.funclike](funclike/)
 * [dbgen.core.gen](gen/)
+* [dbgen.core.load](load/)
 * [dbgen.core.misc](misc/)
 * [dbgen.core.model](model/)
 * [dbgen.core.pathconstraint](pathconstraint/)
