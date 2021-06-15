@@ -78,7 +78,10 @@ def get_current_version():
                 return ret_val, error, None
             major, minor, patch = match.groups()
             new_version = f"{major}.{minor}.{int(patch)+1}"
-            print(f"You need to bump version from {curr_version} to {new_version}!")
+            print(
+                f"There are staged python files without a bump to the version.\nYou need to bump version at least from {curr_version} to {new_version}!"
+            )
+            return 1
     poetry_version = toml.load("pyproject.toml")["tool"]["poetry"]["version"]
     assert (
         curr_version == poetry_version
