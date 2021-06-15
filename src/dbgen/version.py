@@ -15,28 +15,15 @@
 __all__ = ["version"]
 from os.path import dirname, exists, join
 
-try:
-    import importlib_metadata as metadata  # type: ignore
-except ImportError:
-    from importlib import metadata
-
-try:
-    version = metadata.version("dbgen")
-except metadata.PackageNotFoundError:
-    import logging
-
-    log = logging.getLogger(__name__)
-    log.debug("Package metadata could not be found. Overriding it with version found in setup.py")
-    version = "0.4.2"
+version = "0.4.3"
 
 try:
     curr_dir = dirname(__file__)
     git_ver_file = join(curr_dir, "git_version")
-    if exists(git_ver_file) and False:
+    if exists(git_ver_file):
         with open(git_ver_file) as f:
             git_version: str = f.read().strip()
     else:
         git_version = ""
 except FileNotFoundError:
     git_version = ""
-del metadata
