@@ -14,4 +14,4 @@
 
 from dbgen import Env, Import
 
-defaultEnv = Env([Import("json", ["load"])])
+defaultEnv = Env([Import("json", ["load"]), Import("typing", aliased_imports={"List": "L", "Tuple": "T"})])

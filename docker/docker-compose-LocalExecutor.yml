@@ -13,33 +13,45 @@
 #   limitations under the License.
 
 ---
-version: '2.1'
+version: "3.8"
 services:
-    postgres:
-        image: postgres:12
-        ports:
-            - "4000:5432"
-        expose:
-            - "5432"
-        environment:
-            - POSTGRES_USER=dbgen
-            - POSTGRES_PASSWORD=dbgen
-            - POSTGRES_DB=dbgen
-    dbgen:
-        image: dbgen:test
-        depends_on:
-            - postgres
-        environment:
-            - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
-            - DBGEN__CORE__DB_SCHEMA=test
-            - DBGEN__LOGGING__LOG_TO_STDOUT=true
-        command: run dbgen.example.main:model --no-bar -y --nuke
-    grafana:
-        image: grafana/grafana:latest
-        depends_on:
-            - postgres
-        ports:
-            - 3000:3000
-        volumes:
-            - ./grafana/provisioning:/etc/grafana/provisioning
-            - ./grafana/dashboards:/var/lib/grafana/dashboards
+  postgres:
+    image: postgres:12
+    ports:
+      - "4000:5432"
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=dbgen
+      - POSTGRES_PASSWORD=dbgen
+      - POSTGRES_DB=dbgen
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbgen -d dbgen"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  dbgen:
+    build:
+      dockerfile: ${DBGEN_DOCKER_FILE:-./docker/dbgen/Dockerfile.poetry}
+      context: ../
+    image: dbgen:docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
+      - DBGEN__CORE__DB_SCHEMA=public
+      - DBGEN__LOGGING__LOG_TO_STDOUT=true
+    command: python -m dbgen run dbgen.example.main:model --no-bar -y --nuke
+    labels:
+      - dockerfile=${DBGEN_DOCKER_FILE}
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards

@@ -57,7 +57,7 @@ def get_git_version(version_: str):
 def write_version():
     full_version = get_git_version(version)
     if full_version:
-        with open(join(DBGEN_DIR, "dbgen", "git_version"), "w") as f:
+        with open(join(DBGEN_DIR, "src", "dbgen", "git_version"), "w") as f:
             f.write(full_version)
 
 

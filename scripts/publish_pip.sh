@@ -1,3 +1,4 @@
+#!/bin/bash
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +13,5 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-__all__ = ["version"]
-from os.path import dirname, exists, join
-
-version = "0.4.4"
-
-try:
-    curr_dir = dirname(__file__)
-    git_ver_file = join(curr_dir, "git_version")
-    if exists(git_ver_file):
-        with open(git_ver_file) as f:
-            git_version: str = f.read().strip()
-    else:
-        git_version = ""
-except FileNotFoundError:
-    git_version = ""
+python -c 'import setup; setup.write_version()'
+poetry publish

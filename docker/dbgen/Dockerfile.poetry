@@ -1,6 +1,11 @@
-# base image
-FROM python:3.8-slim-buster
+ARG PYTHON_VERSION="3.8"
 
+# base image
+FROM python:$PYTHON_VERSION-slim-buster as base
+
+ENV PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONUNBUFFERED=1
 
 ARG RUNTIME_APT_DEPS="\
     dumb-init \
@@ -36,36 +41,13 @@ RUN mkdir -pv /usr/share/man/man1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get install -y --no-install-recommends dumb-init
-
-# set working directory
-RUN mkdir -p /home/dbgen
-WORKDIR /home/dbgen
-# Install poetry
-RUN pip install "poetry==$POETRY_VERSION"
-# Add the lock file
-COPY poetry.lock pyproject.toml /home/dbgen/
-
-# Set environment
-ARG YOUR_ENV="development"
-ENV YOUR_ENV=${YOUR_ENV}
-
-# Project initialization:
-RUN poetry config virtualenvs.create false \
-    && poetry install $(test $YOUR_ENV = "production" && echo "--no-dev")  --no-interaction --no-ansi
-
 # add entrypoint.sh
-COPY docker/config/dbgen_files /home/dbgen/dbgen_files
 COPY scripts/in_container/entrypoint_prod.sh /entrypoint
 RUN chmod a+x /entrypoint
 
 # Set DBGEN EnvVars
-ARG DBGEN_VERSION
-ENV DBGEN_VERSION=${DBGEN_VERSION}
-ARG DBGEN_HOME=/home/dbgen
+ARG DBGEN_HOME=/home/dbgen-user
 ENV DBGEN_HOME=${DBGEN_HOME}
-# DBGEN
-COPY ./dist/dbgen-${DBGEN_VERSION}.tar.gz /tmp/dbgen.tar.gz
-RUN pip install  /tmp/dbgen.tar.gz
 
 
 # Make DBgen files belong to the root group and are accessible. This is to accommodate the guidelines from
@@ -75,10 +57,27 @@ RUN mkdir -pv "${DBGEN_HOME}"; \
     mkdir -pv "${DBGEN_HOME}/logs"; \
     mkdir -pv "${DBGEN_HOME}/dbgen_src";
 
-# Set entrypoint
-WORKDIR /home/dbgen/dbgen_src/
+# set working directory
+WORKDIR ${DBGEN_HOME}
+
+# Install poetry
+RUN pip install "poetry==$POETRY_VERSION"
+# Add the lock file
+COPY poetry.lock pyproject.toml  /home/dbgen-user/
+
+# Set environment
+ARG YOUR_ENV="development"
+ENV YOUR_ENV=${YOUR_ENV}
+ARG EXTRAS
+ENV EXTRAS ${EXTRAS}
+# Project initialization:
+# Need to touch these files or poetry complains!
+RUN mkdir -p /home/dbgen-user/src/dbgen && touch /home/dbgen-user/src/dbgen/__init__.py && touch /home/dbgen-user/README.md
+RUN poetry config virtualenvs.create false \
+    && poetry install $(test $YOUR_ENV = "production" && echo "--no-dev") $(test -n "${EXTRAS}" && echo "-E airflow -E docs") --no-interaction --no-ansi
+COPY . .
+
 # DBGEN
 # Creating folders, and files for a project:
-WORKDIR /home/dbgen/
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/entrypoint"]
 CMD ["--help"]
