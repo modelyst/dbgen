@@ -61,7 +61,7 @@ def io(model: Model) -> None:
 
     pb1 = PyBlock(
         func=parse_ssn,
-        args=[Const(root + "ssn.json")],
+        args=[Const("ssn.json")],
         env=defaultEnv,
         outnames=["firstname", "lastname", "ssn"],
     )
@@ -87,7 +87,7 @@ def io(model: Model) -> None:
     ghcpb = PyBlock(
         func=parse_proc_csv,
         env=defaultEnv + dd_env,
-        args=[Const(root + "procedures.csv")],
+        args=[Const("procedures.csv")],
         outnames=[
             "id",
             "step",
@@ -136,7 +136,7 @@ def io(model: Model) -> None:
         capb = PyBlock(
             func=get_electrode,
             env=defaultEnv,
-            args=[Const(root + "experiment.json"), Const(x)],
+            args=[Const("experiment.json"), Const(x)],
             outnames=["id", "expt_id", "comp"],
         )
 
@@ -163,7 +163,7 @@ def io(model: Model) -> None:
     ghd = PyBlock(
         parse_sqlite,
         env=defaultEnv + sqlite_env,
-        args=[Const(root + "procedure.db")],
+        args=[Const("procedure.db")],
         outnames=["id", "step", "pname", "fname", "lname", "ssn"],
     )
 
@@ -194,7 +194,7 @@ def io(model: Model) -> None:
     )
     ############################################################################
     details = ["expt_id", "timestamp", "capacity", "electrolyte"]
-    fd_pb = PyBlock(parse_expt, env=defaultEnv, args=[Const(root + "experiment.json")], outnames=details)
+    fd_pb = PyBlock(parse_expt, env=defaultEnv, args=[Const("experiment.json")], outnames=details)
     fuel_details = Generator(
         name="fuel_details",
         desc="other details about fuel cell experiments",

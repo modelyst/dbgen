@@ -15,12 +15,15 @@
 from collections import defaultdict
 from csv import DictReader
 from json import load
+from os.path import join
 from re import findall
 from sqlite3 import connect
 from typing import Any
 from typing import Dict as D
 from typing import List as L
 from typing import Tuple as T
+
+from dbgen.example.constants import ROOT
 
 AnyD = D[str, Any]
 ################################################################################
@@ -145,9 +148,11 @@ chemical_symbols = [
     "Ts",
     "Og",
 ]
+
 # Parse ssn.json
-def parse_ssn(pth: str) -> T[L[str], L[str], L[int]]:
+def parse_ssn(file_name: str) -> T[L[str], L[str], L[int]]:
     """Expects a JSON file with <<"firstName lastName" : SSN#>> entries"""
+    pth = join(ROOT, file_name)
     with open(pth) as f:
         data = load(f)
     firstnames, lastnames = map(list, zip(*[d.split() for d in data.keys()]))
@@ -159,9 +164,10 @@ def parse_ssn(pth: str) -> T[L[str], L[str], L[int]]:
 
 
 def parse_proc_csv(
-    pth: str,
+    file_name: str,
 ) -> T[T[int], T[int], T[str], T[int], T[int], T[str], T[str], T[str]]:
     """Expects CSV: Sample,Step,Procedure,Timestamp,Researcher,Notes"""
+    pth = join(ROOT, file_name)
     output = defaultdict(list)  # type: AnyD
     with open(pth) as f:
         reader = DictReader(f)
@@ -177,8 +183,9 @@ def parse_proc_csv(
 
 
 # Parse experiment.json
-def parse_expt(pth: str) -> T[L[int], L[str], L[float], L[str]]:
+def parse_expt(file_name: str) -> T[L[int], L[str], L[float], L[str]]:
     """Parse JSON file with experiments containing anode/cathode/capacity/date"""
+    pth = join(ROOT, file_name)
     expt_ids, dates, capacities, solvents = [], [], [], []
     with open(pth) as f:
         data = load(f).items()
@@ -193,8 +200,9 @@ def parse_expt(pth: str) -> T[L[int], L[str], L[float], L[str]]:
 
 
 # Parse experiment.json
-def get_electrode(pth: str, x: str) -> T[L[int], L[int], L[str]]:
+def get_electrode(file_name: str, x: str) -> T[L[int], L[int], L[str]]:
     """Get either anode or cathode information about all battery experiments"""
+    pth = join(ROOT, file_name)
     electrode = x.lower()
     assert electrode in ["anode", "cathode"]
 
@@ -212,8 +220,9 @@ def get_electrode(pth: str, x: str) -> T[L[int], L[int], L[str]]:
 
 
 # Parse procedure.db
-def parse_sqlite(pth: str) -> T[L[int]]:
+def parse_sqlite(file_name: str) -> T[L[int]]:
     """Get sample history data stored in a relational db"""
+    pth = join(ROOT, file_name)
     db = connect(pth).cursor()
     cols = ",".join(["sample", "step", "procedure", "firstname", "lastname", "ssn"])
     output = db.execute(f"SELECT {cols} FROM test JOIN scientist USING (scientist_id)")

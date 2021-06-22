@@ -38,6 +38,7 @@
 !.github
 !empty
 !requirements.txt
+!requirements.dev.txt
 !poetry.lock
 !pyproject.toml
 !src/dbgen/cli/

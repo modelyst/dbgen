@@ -33,10 +33,6 @@ def transform_list(x):
 class TestPyBlock(TestCase):
     """Test Cases for the PyBlock object of dbgen."""
 
-    @staticmethod
-    def transform_method(input_str: str) -> str:
-        return input_str + " transformed"
-
     def setUp(self):
         self.transform = transform_list
 

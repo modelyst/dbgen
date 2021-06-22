@@ -88,7 +88,7 @@ def run_airflow(
     objs = {oname: (o.id_str, repr(o.ids()), repr(o.id_fks())) for oname, o in self.objs.items()}
     deps = list(self._gen_graph().edges())
     template_kwargs = dict(
-        user=environ["USER"],
+        user=environ.get("USER", "dbgen"),
         objs=objs,
         modelname=self.name,
         run_id=run_id,

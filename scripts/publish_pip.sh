@@ -1,3 +1,4 @@
+#!/bin/bash
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +13,5 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Internal
-from dbgen import Model
-from dbgen.example.generators.analysis import analysis
-from dbgen.example.generators.io import io
-from dbgen.example.schema import all
-
-################################################################################
-
-
-def make_model() -> Model:
-    # Initialize model
-    m = Model("example")
-
-    # Add objects and relations
-    m.add(all)  # type: ignore
-
-    # Add Generators
-    io(m)
-    analysis(m)
-    return m
+python -c 'import setup; setup.write_version()'
+poetry publish

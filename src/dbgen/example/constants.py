@@ -11,7 +11,17 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+from os.path import dirname, join
 
 from dbgen import Env, Import
 
-defaultEnv = Env([Import("json", ["load"])])
+ROOT = join(dirname(__file__), 'data')
+
+defaultEnv = Env(
+    [
+        Import("json", ["load"]),
+        Import("typing", aliased_imports={"List": "L", "Tuple": "T"}),
+        Import("dbgen.example.constants", "ROOT"),
+        Import("os.path", "join"),
+    ]
+)

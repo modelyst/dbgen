@@ -70,7 +70,7 @@ def test_basic_import_notfound(model, package):
             validate_model_str(":".join([model, package]))
 
 
-@pytest.mark.parametrize("model,package", [("dbgen.example.main", "model")])
+@pytest.mark.parametrize("model,package", [("dbgen.example.main", "make_model")])
 def test_basic_import_found(model, package):
     """Tests a simple model package validation"""
     __import__(model, globals(), locals(), [package])

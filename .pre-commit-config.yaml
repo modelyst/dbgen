@@ -181,6 +181,12 @@ repos:
         additional_dependencies: ['pyyaml']
         require_serial: true
         pass_filenames: false
+      - id: pre-commit-bump-version
+        name: Ensure the version is bumped
+        entry: python3 ./scripts/ci/pre_commit/pre_commit_bump_version.py
+        language: system
+        files: ^src/.*\.py$|^pyproject.toml
+        pass_filenames: true
       - id: mypy
         name: Run mypy
         entry: ./scripts/ci/pre_commit/pre_commit_check_mypy.sh

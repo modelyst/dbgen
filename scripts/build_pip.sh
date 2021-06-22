@@ -14,11 +14,20 @@
 #   limitations under the License.
 # Write Git version
 python -c 'import setup; setup.write_version()'
-VERSION=$(python -c "from dbgen.version import version; print(version)")
-for PYTHON_VERSION in '3.7' '3.8' '3.9'
+SCRIPT_DIR=$(dirname "$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )")
+DBGEN_VERSION=$(python -c "from dbgen.version import version; print(version)")
+ENVIRONMENT=${1:-development}
+echo "Using Environment $ENVIRONMENT"
+echo $SCRIPT_DIR
+poetry build
+for PYTHON_VERSION in  '3.7' '3.8' '3.9'
 do
-echo $PYTHON_VERSION
-docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry-extras -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION --build-arg EXTRAS="true"
-docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION
+echo $PYTHON_VERSION-$EXTRAS
+docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-pip \
+    -f ./docker/dbgen/Dockerfile.pip \
+    --build-arg PYTHON_VERSION=$PYTHON_VERSION \
+    --build-arg DBGEN_VERSION=$VERSION \
+    --build-arg ENVIRONMENT=$ENVIRONMENT
+docker run --rm dbgen:$DBGEN_VERSION-py$PYTHON_VERSION-pip python -m pytest -q
 done
 exit 0
