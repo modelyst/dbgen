@@ -411,6 +411,7 @@ class Load(Base):
 
         # Need to create a temp table to copy data into
         # Add an auto_inc column so that data can be ordered by its insert location
+
         create_temp_table = """
         DROP TABLE IF EXISTS {temp_table_name};
         CREATE TEMPORARY TABLE {temp_table_name} AS
@@ -423,7 +424,6 @@ class Load(Base):
         )
 
         cols = [obj_pk_name] + list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
-        escaped_cols = ['"' + col + '"' for col in cols]
         from dbgen.templates import jinja_env
 
         if insert:
@@ -460,7 +460,7 @@ class Load(Base):
                         io_obj,
                         temp_table_name,
                         null="None",
-                        columns=escaped_cols,
+                        columns=cols,
                     )
                     break
                 except QueryCanceled:
@@ -487,16 +487,18 @@ class Load(Base):
                     fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
                     delete_statement = f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
                     curs.execute(delete_statement)
-                    print(
-                        f"ForeignKeyViolation: tried to insert {fk_pk} into"
-                        f"FK column {fk_name} of {self.obj}."
-                        f"But no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
+                    self._logger.error(
+                        "---\n"
+                        f"ForeignKeyViolation #({fk_fail_count+1}): tried to insert {fk_pk} into"
+                        f" FK column {fk_name} of {self.obj}."
+                        f"\nBut no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
                     )
-                    print(f"Moving on without inserting any rows with this {fk_pk}")
+                    self._logger.error(f"Moving on without inserting any rows with this {fk_pk}")
+                    self._logger.error(exc)
                     fk_fail_count += 1
                     continue
             if fk_fail_count:
-                print(f"Fail count = {fk_fail_count}")
+                self._logger.error(f"Fail count = {fk_fail_count}")
 
         io_obj.close()
         self._logger.debug("loading finished")

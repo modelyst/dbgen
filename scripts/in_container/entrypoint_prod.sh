@@ -178,6 +178,9 @@ function exec_to_bash_or_python_command_if_specified() {
     elif [[ ${DBGEN_COMMAND} == "python" ]]; then
        shift
        exec "python" "${@}"
+    elif [[ ${DBGEN_COMMAND} == "pytest" ]]; then
+       shift
+       exec "pytest" "${@}"
     fi
 }
 

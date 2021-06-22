@@ -16,7 +16,7 @@ description = "DBgen (Database Generator) is an open-source Python library for c
 documentation = "https://www.dbgen.modelyst.com"
 exclude = ["tests*"]
 homepage = "https://www.dbgen.modelyst.com"
-include = ["requirements.txt", "LICENSE", "dbgen/git_version"]
+include = ["requirements.txt", "LICENSE", "src/dbgen/git_version"]
 keywords = ["ETL", "Postgres", "Databases"]
 license = "Apache-2.0"
 maintainers = ["Michael Statt <michael.statt@modelyst.io>"]
@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.4.4"
+version = "0.4.5"
 
 [tool.poetry.dependencies]
 apache-airflow = {extras = ["postgres"], version = "^2.1.0", optional = true}
@@ -43,7 +43,7 @@ networkx = ">=2.4"
 pathos = ">=0.2.6"
 pdocs = {version = "^1.1.1"}
 psycopg2-binary = ">=2.7.4"
-python = ">=3.8,<4.0"
+python = ">=3.7,<4.0"
 sshtunnel = "^0.1.5"
 tqdm = ">=4.48.0"
 typer = "^0.3.2"

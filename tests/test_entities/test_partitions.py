@@ -179,6 +179,7 @@ def test_bad_dtype_partition(dtype):
 
 
 def test_complex_model_instantiation(partition_model):
+    """Test the ability to instantiate a complex parittion model."""
     assert len(partition_model.objs) == 6
 
     entity_c = partition_model.get("c")
@@ -233,6 +234,7 @@ def test_complex_model_instantiation(partition_model):
 
 
 def test_get_partitions(partition_model):
+    """Test the api for getting a partition from model."""
     entity_a = partition_model.get("a")
     entity_a_1 = partition_model.get("a", 1)
     entity_a_2 = partition_model.get("a", 2)
@@ -247,6 +249,7 @@ def test_get_partitions(partition_model):
 
 
 def test_query_dep(partition_model):
+    """Tests query dependencies for partitioned entity"""
     entity_a_1 = partition_model.get("a", 1)
     entity_c = partition_model.get("c")
     query = Query(
@@ -269,6 +272,7 @@ load_dep_answers = (
 
 @mark.parametrize("value,answer", load_dep_answers, ids=["a", "a_1", "a_2"])
 def test_load_dep(partition_model: 'Model', value: int, answer: List[str]):
+    """Tests the loading dependencies"""
     entity_a = partition_model.get("a", value)
     entity_c = partition_model.get("c")
     query = Query(

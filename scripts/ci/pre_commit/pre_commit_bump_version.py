@@ -22,25 +22,6 @@ import sys
 
 import toml
 
-# def main() -> int:
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('--max-length', help="Max length for hook names")
-#     args = parser.parse_args())
-#     max_length = int(args.max_length) or 70
-
-#     retval = 0
-
-#     with open('.pre-commit-config.yaml', 'rb') as f:
-#         content = yaml.safe_load(f)
-#         errors = get_errors(content, max_length)
-#     if errors:
-#         retval = 1
-#         print(f"found pre-commit hook names with length exceeding {max_length} characters")
-#         print("move add details in description if necessary")
-#     for hook_name in errors:
-#         print(f"    * '{hook_name}': length {len(hook_name)}")
-#     return retval
-
 
 def get_current_version():
     # Check if version has already been bumped
