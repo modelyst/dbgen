@@ -77,22 +77,39 @@ Comparison to
 
 1. An [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) tool (see [Hibernate](http://hibernate.org/orm/) for Java or [SQLAlchemy](https://www.sqlalchemy.org/) for Python)
 
-   - DBgen operates at a higher level of abstrload, not exposing the user to low level SQL commands like SELECT or INSERT.
+   - DBgen operates at a higher level of abstraction, not exposing the user to low level SQL commands like SELECT or INSERT.
 
 2. A database manager (see
    [MySQLWorkbench](https://www.mysql.com/products/workbench/),
    [DBeaver](https://dbeaver.io/), [TablePlus](https://tableplus.com/),
    etc.)
-3. An opinioniated tool with a particular schema for scientific data /
+3. An opinionated tool with a particular schema for scientific data /
    theories.
 
 ## Getting DBgen
 
 ### Via Github
 
-Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.8 to install the package.
+Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.7 to install the package.
 
-This installation process is still in development, please contact the DBgen if you encounter issues. Moving forward we plan to use make dbgen installable through `pip`.
+```Bash
+# Get DBgen
+git clone https://github.com/modelyst/dbgen
+cd ./dbgen
+# Get Poetry
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3 -
+# Install Poetrywhich ma
+poetry install
+poetry shell
+# Test dbgen
+dbgen serialize dbgen.example.main:make_model
+```
+
+### Via Pip
+
+```Bash
+pip install modelyst-dbgen
+```
 
 ### API documentation
 

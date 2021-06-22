@@ -27,3 +27,11 @@ $ pip install modelyst-dbgen
 Successfully installed dbgen
 ```
 </div>
+
+## Installing using Git
+
+The easiest way to install dbgen is using pip. The name of the package on [pypi.com](https://pypi.org/project/modelyst-dbgen/) is `modelyst-dbgen`.
+
+```Bash
+{!../docs_src/installation/git_installation.sh!}
+```
