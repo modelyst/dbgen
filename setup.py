@@ -6,9 +6,10 @@ from os.path import dirname, join
 
 from setuptools import find_packages, setup  # type: ignore
 
+from dbgen.version import version
+
 logger = logging.getLogger(__name__)
 DBGEN_DIR = dirname(__file__)
-version = "0.4.2"
 
 
 def get_long_desc() -> str:
