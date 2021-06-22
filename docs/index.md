@@ -77,13 +77,13 @@ Comparison to
 
 1. An [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) tool (see [Hibernate](http://hibernate.org/orm/) for Java or [SQLAlchemy](https://www.sqlalchemy.org/) for Python)
 
-   - DBgen operates at a higher level of abstrload, not exposing the user to low level SQL commands like SELECT or INSERT.
+   - DBgen operates at a higher level of abstraction, not exposing the user to low level SQL commands like SELECT or INSERT.
 
 2. A database manager (see
    [MySQLWorkbench](https://www.mysql.com/products/workbench/),
    [DBeaver](https://dbeaver.io/), [TablePlus](https://tableplus.com/),
    etc.)
-3. An opinioniated tool with a particular schema for scientific data /
+3. An opinionated tool with a particular schema for scientific data /
    theories.
 
 ## Getting DBgen

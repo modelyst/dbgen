@@ -50,7 +50,7 @@ repos:
           - --fuzzy-match-generates-todo
       - id: insert-license
         name: Add license for all python files
-        exclude: ^\.github/.*$
+        exclude: ^\.github/.*$|docs_src/
         types: [python]
         args:
           - --comment-style
