@@ -1,0 +1,70 @@
+ARG PYTHON_VERSION="3.8"
+
+# base image
+FROM python:$PYTHON_VERSION-slim-buster as base
+
+ENV PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONUNBUFFERED=1
+
+ARG RUNTIME_APT_DEPS="\
+    dumb-init \
+    postgresql \
+    postgresql-client \
+    sudo "
+
+ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS} \
+    POETRY_VERSION==1.1.5
+
+ARG ADDITIONAL_RUNTIME_APT_DEPS=""
+ENV ADDITIONAL_RUNTIME_APT_DEPS=${ADDITIONAL_RUNTIME_APT_DEPS}
+
+ARG RUNTIME_APT_COMMAND="echo"
+ENV RUNTIME_APT_COMMAND=${RUNTIME_APT_COMMAND}
+
+ARG ADDITIONAL_RUNTIME_APT_COMMAND=""
+ENV ADDITIONAL_RUNTIME_APT_COMMAND=${ADDITIONAL_RUNTIME_APT_COMMAND}
+
+ARG ADDITIONAL_RUNTIME_APT_ENV=""
+
+RUN mkdir -pv /usr/share/man/man1 \
+    && mkdir -pv /usr/share/man/man7 \
+    && export ${ADDITIONAL_RUNTIME_APT_ENV?} \
+    && bash -o pipefail -e -u -x -c "${RUNTIME_APT_COMMAND}" \
+    && bash -o pipefail -e -u -x -c "${ADDITIONAL_RUNTIME_APT_COMMAND}" \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    ${RUNTIME_APT_DEPS} \
+    ${ADDITIONAL_RUNTIME_APT_DEPS} \
+    && apt-get autoremove -yqq --purge \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+
+RUN apt-get install -y --no-install-recommends dumb-init
+
+# Set environment
+ARG ENVIRONMENT="development"
+ENV ENVIRONMENT=${ENVIRONMENT}
+
+# Project initialization:
+RUN if [ "$ENVIRONMENT" = "development" ] ; then pip install pytest ; else echo ; fi
+
+RUN pip install modelyst-dbgen
+RUN dbgen run --version > dbgen.version
+
+# add entrypoint.sh
+COPY scripts/in_container/entrypoint_prod.sh /entrypoint
+RUN chmod a+x /entrypoint
+
+ARG DBGEN_HOME=/home/dbgen-user
+ENV DBGEN_HOME=${DBGEN_HOME}
+RUN mkdir -pv "${DBGEN_HOME}"; \
+    mkdir -pv "${DBGEN_HOME}/dags"; \
+    mkdir -pv "${DBGEN_HOME}/logs";
+COPY ./tests ${DBGEN_HOME}/tests/
+WORKDIR ${DBGEN_HOME}
+# DBGEN
+# Creating folders, and files for a project:
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/entrypoint"]
+CMD ["--help"]

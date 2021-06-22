@@ -22,7 +22,7 @@ x-common: &common
       ENVIRONMENT: ${ENVIRONMENT:-development}
       PYTHON_VERSION: ${PYTHON_VERSION:-3.8}
       DBGEN_VERSION: ${DBGEN_VERSION:-0.4.4}
-  image: ${DBGEN_VERSION}-py${PYTHON_VERSION}-${INSTALLATION:-pip}
+  image: dbgen:${DBGEN_VERSION}-py${PYTHON_VERSION}-${INSTALLATION:-pip}
 services:
   postgres:
     image: postgres:12
