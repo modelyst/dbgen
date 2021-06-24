@@ -12,10 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import contextlib
 import json
 import logging
+import subprocess
 from dataclasses import asdict, replace
 from enum import Enum
+from io import StringIO
 from pathlib import Path
 from types import FunctionType
 from typing import List, Optional
@@ -25,7 +28,8 @@ import typer
 from dbgen import LOGO
 from dbgen.core.model.model import Model
 from dbgen.utils import settings
-from dbgen.utils.config import RunConfig, config
+from dbgen.utils.config import DBgenConfigParser, RunConfig, config
+from dbgen.utils.misc import which
 
 # Errors
 ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"
@@ -34,8 +38,8 @@ ERROR_PACKAGE = "Could not find package within module:\nModule: {0}\nPackage: {1
 ERROR_NOT_MODEL = "Import String is not for a DBgen Model: \nImport String: {0}\nClass: {1}"
 ERROR_NOT_MODEL_FUNCTION = "Import String is for a function that does not produce a DBgen Model: \nImport String: {0}\nOutput Class: {1}"
 ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1}"
+LOGO_STYLE = typer.style(LOGO, blink=True, fg=typer.colors.BRIGHT_CYAN)
 
-app = typer.Typer(help="DBgen Model Runner")
 state = {"confirm": True}
 logger = logging.getLogger(__name__)
 LOG_MAP = {
@@ -45,6 +49,13 @@ LOG_MAP = {
     "CRITICAL": logging.CRITICAL,
 }
 
+typer_print = lambda color: lambda msg: typer.echo(typer.style(msg, fg=color))
+delimiter = lambda: typer.echo(
+    typer.style("-----------------------------------", fg=typer.colors.BRIGHT_CYAN, bold=True)
+)
+good_typer_print = typer_print(typer.colors.GREEN)
+bad_typer_print = typer_print(typer.colors.RED)
+
 
 class LogLevel(str, Enum):
     """enum for setting logging level on CLI"""
@@ -53,6 +64,13 @@ class LogLevel(str, Enum):
     INFO = "INFO"
     WARNING = "WARNING"
     CRITICAL = "CRITICAL"
+
+
+class DBgenDatabase(str, Enum):
+    """enum for setting database to connect to"""
+
+    META = "meta"
+    MAIN = "main"
 
 
 def confirm_nuke(value: bool):
@@ -72,21 +90,6 @@ def confirm_nuke(value: bool):
 def set_confirm(value: bool):
     """Auto confirm all prompted values"""
     state["confirm"] = not value
-
-
-def version_callback(value: bool):
-    """
-    Eagerly print the version LOGO
-
-    Args:
-        value (bool): [description]
-
-    Raises:
-        typer.Exit: exits after showing version
-    """
-    if value:
-        typer.echo(LOGO)
-        raise typer.Exit()
 
 
 def file_existence(value: Path):
@@ -142,7 +145,61 @@ def validate_model_str(model_str: str) -> Model:
         raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
     except AttributeError as exc:
         raise typer.BadParameter(str(exc))
-    return model
+
+
+def print_config(config: DBgenConfigParser) -> None:
+    for section in config:
+        values = config.getsection(section) or {}
+        if section != "DEFAULT":
+            typer.echo("")
+            typer.echo(typer.style(f"[{section}]", fg=typer.colors.BRIGHT_CYAN))
+            typer.echo(
+                "\n".join(
+                    [
+                        typer.style(f"{key}", fg=typer.colors.BRIGHT_MAGENTA) + f" = {value}"
+                        for key, value in values.items()
+                    ]
+                )
+            )
+
+
+app = typer.Typer(name="dbgen", help="DBgen Model Runner")
+
+
+def version_callback(value: bool):
+    """
+    Eagerly print the version LOGO
+
+    Args:
+        value (bool): [description]
+
+    Raises:
+        typer.Exit: exits after showing version
+    """
+    if value:
+        typer.echo(LOGO_STYLE)
+        raise typer.Exit()
+
+
+version_option = typer.Option(None, "--version", callback=version_callback, is_eager=True)
+
+
+@app.callback()
+def main(version: bool = version_option):
+    """
+    Manage users in the awesome CLI app.
+    """
+
+
+# Common options
+config_option = typer.Option(
+    None,
+    "--config",
+    "-c",
+    help="DBgen config file to use for specifying run parameters as well as DB",
+    envvar="DBGEN_CONFIG",
+    callback=file_existence,
+)
 
 
 @app.command()
@@ -158,14 +215,7 @@ def run(
     start: Optional[str] = typer.Option(None, help="Generator to start run at"),
     until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
     serial: bool = None,
-    config_file: Optional[Path] = typer.Option(
-        None,
-        "--config",
-        "-c",
-        help="DBgen config file to use for specifying run parameters as well as DB",
-        envvar="DBGEN_CONFIG",
-        callback=file_existence,
-    ),
+    config_file: Optional[Path] = config_option,
     nuke: bool = typer.Option(
         None,
         help="Delete the entire db and meta schema.",
@@ -193,7 +243,7 @@ def run(
         help="Location for log file, overrides the default of $HOME/.dbgen/dbgen.log.",
     ),
     print_logo: bool = False,
-    version: bool = typer.Option(None, "--version", callback=version_callback, is_eager=True),
+    version: bool = version_option,
 ) -> int:
     """
     Run a dbgen model from command line.py
@@ -223,7 +273,7 @@ def run(
         dict: [description]
     """
     if print_logo:
-        print(LOGO)
+        typer.echo(LOGO_STYLE)
     # Parse inputs
     run_config = RunConfig()
     prune = lambda d: {k: v for k, v in d.items() if v is not None and k in run_config.fields}
@@ -270,8 +320,10 @@ def serialize(
         ...,
         help="An import string in MODULE:PACKAGE format where the package is either a dbgen model variable or a function that produces one",
     ),
-    out_pth: Path = typer.Argument(
+    out_pth: Path = typer.Option(
         Path("./model.json"),
+        "-o",
+        "--out-pth",
         help="Output path to write the model.json to",
     ),
 ):
@@ -329,6 +381,107 @@ def airflow(
         f.write(model.run_airflow())
     typer.echo(f"Finished! Your model is serialized at {out_pth.absolute()}")
     typer.echo(f"Hash: {model.hash}")
+
+
+@app.command(name="config")
+def get_config(
+    config_file: Optional[Path] = config_option,
+    out_pth: Optional[Path] = typer.Option(
+        None,
+        help="Location to write parametrized config",
+    ),
+):
+    """
+    Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
+    """
+    if config_file:
+        config.read(config_file)
+    # If out_pth provided write the current config to the path provided and return
+    if out_pth:
+        with open(out_pth, "w") as f:
+            config.write(f)
+
+    typer.echo(LOGO_STYLE)
+
+    # Initialize settings to get the connections
+    settings.initialize()
+
+    # Print config to stdout
+    delimiter()
+    # Notify of config file
+    if config_file:
+        typer.echo(f"Config File found at location: {config_file.absolute()}")
+    else:
+        typer.echo("No config file found using defaults.")
+
+    delimiter()
+    print_config(config)
+
+
+@app.command(name="connect")
+def test_conn(
+    connect: DBgenDatabase = typer.Argument(DBgenDatabase.MAIN, help="Expose password in printed dsn."),
+    config_file: Optional[Path] = config_option,
+    test: bool = typer.Option(False, "-t", "--test", help="Test the main and metadb connections"),
+    with_password: bool = typer.Option(
+        False, "-p", "--password", help="Expose password in printed dsn when testing."
+    ),
+):
+    """
+    Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
+    """
+    if config_file:
+        config.read(config_file)
+
+    settings.initialize()
+    assert settings.CONN and settings.META_CONN
+
+    # If connect is chosen connect to the database selected using CLI sql
+    if connect and not test:
+        # set the connection_info based on connect string provided
+        connection_info = settings.CONN if connect == DBgenDatabase.MAIN else settings.META_CONN
+        # Test connection to database
+        if not connection_info.test_connection():
+            bad_typer_print(f"Cannot connect to {connect} db")
+            raise typer.Exit(2)
+        else:
+            # Attempt to use psql and pgcli to connect to database
+            try:
+                # Filter out executibles using which function
+                exes = list(filter(lambda x: x is not None, map(which, ("pgcli", "psql"))))
+                # If we find no executables exit
+                if not exes:
+                    bad_typer_print(
+                        "Cannot find either psql or pgcli in $PATH. Please install them to connect to database."
+                    )
+                    raise typer.Exit(2)
+                # If we have valid executible run the command with the dsn provided
+                subprocess.check_call(
+                    [exes[0], connection_info.to_dsn(with_password=True)],
+                )
+            except subprocess.CalledProcessError as exc:
+                bad_typer_print("Error connecting!")
+                bad_typer_print(exc)
+        # Quit once finished
+        raise typer.Exit()
+
+    delimiter()
+    for conn, label in zip((settings.CONN, settings.META_CONN), ("Main", "Meta")):
+        good_typer_print(f"Checking {label} DB...")
+        new_stdout = StringIO()
+        with contextlib.redirect_stdout(new_stdout):
+            check = conn.test_connection(with_password)
+        test_output = "\n".join(new_stdout.getvalue().strip().split("\n")[1:])
+        if check:
+            good_typer_print(f"Connection to {label} DB at {conn.to_dsn(with_password)} all good!")
+            if test_output:
+                good_typer_print(test_output)
+        else:
+            bad_typer_print(f"Cannot connect to {label} DB at {conn.to_dsn(with_password)}!")
+            if test_output:
+                bad_typer_print("Error Message:")
+                bad_typer_print("\n".join(["\t" + line for line in test_output.split("\n")]))
+        delimiter()
 
 
 if __name__ == "__main__":

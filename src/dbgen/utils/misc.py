@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import os
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from importlib import import_module
@@ -173,3 +174,20 @@ class Base(metaclass=ABCMeta):
     @classmethod
     def canonical_name(cls) -> str:
         return cls.__module__ + "." + cls.__qualname__
+
+
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, _ = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None

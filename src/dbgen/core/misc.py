@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 """Uncategorized utilities for core dbgen functionality"""
+import logging
 import re
 from contextlib import suppress
 from json import dump, load
@@ -38,6 +39,8 @@ if TYPE_CHECKING:
     from sshtunnel import SSHTunnelForwarder
 
     from dbgen.core.gen import Generator
+
+logger = logging.getLogger(__name__)
 
 
 class ConnectInfo(Base):
@@ -141,14 +144,12 @@ class ConnectInfo(Base):
             except OperationalError as exc:
                 if re.findall("database.*does not exist", str(exc)):
                     raise OperationalError(
-                        f"Database {self.db} does not exist,"
+                        f"Database {self.db} does not exist, "
                         "please check connection or create DB before running DBgen or first time"
                     )
                 raise exc
-            # except Error as exc:
-            #     sleep(1)
         raise Error(
-            f"Exceeded number of attempts to connect to host using credentials."
+            "Exceeded number of attempts to connect to host using credentials."
             "Please make sure the database is running and you have provided the correct credentials."
         )
 
@@ -156,6 +157,14 @@ class ConnectInfo(Base):
         """Store connectinfo data as a JSON file"""
         with open(pth, "w") as f:
             dump(vars(self), f)
+
+    def to_dsn(self, with_password: bool = False) -> "str":
+        """
+        Create from dsn for current connection info
+        """
+        passwd = self.passwd if with_password else ""
+        dsn = f"postgresql://{self.user}:{passwd}@{self.host}:{self.port}/{self.db}?options=--search_path%3d{self.schema}"
+        return dsn
 
     @staticmethod
     def from_file(pth: str) -> "ConnectInfo":
@@ -225,6 +234,21 @@ class ConnectInfo(Base):
         conn = self.connect()
         with conn.cursor() as cxn:
             cxn.execute(create_stmt)
+
+    def test_connection(self, with_password: bool = False, verbose: bool = False) -> bool:
+        if verbose:
+            print(f"Testing ConnectInfo: {self.to_dsn(with_password)}")
+        try:
+            cxn = self.connect()
+            with cxn.cursor() as curs:
+                curs.execute("Select 1;")
+                output = curs.fetchone()
+                assert output[0] == 1, "Error running simple Query!"
+        except OperationalError as exc:
+            print("Cannot connect to database!")
+            print(f"{exc}")
+            return False
+        return True
 
 
 ################################################################################

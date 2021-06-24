@@ -371,7 +371,7 @@ def get_config(config_file: Path) -> DBgenConfigParser:
     if config_file:
         config.read(config_file.absolute())
     else:
-        logger.debug(f"No Config file provided. Using default values for DBgen variables")
+        logger.debug("No Config file provided. Using default values for DBgen variables")
     return config
 
 
