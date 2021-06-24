@@ -13,10 +13,13 @@
 #   limitations under the License.
 
 """Configure the dbgen logger for each run"""
+import contextlib
+
 # External imports
 import logging
 import logging.config
 import sys
+from io import StringIO
 from logging import Logger
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -61,3 +64,17 @@ def setup_logger(
         custom_logger.addHandler(info_handler)
 
     return custom_logger
+
+
+def capture_stdout(func, level: int = logging.INFO):
+    def wrapped(*args, **kwargs):
+        logger = logging.getLogger(f'dbgen.pyblock.{func.name}')
+        stream = StringIO()
+        with contextlib.redirect_stdout(stream):
+            output = func(*args, **kwargs)
+        stdout = stream.getvalue().strip()
+        if stdout:
+            logger.log(level, stdout)
+        return output
+
+    return wrapped

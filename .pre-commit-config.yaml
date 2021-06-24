@@ -40,7 +40,7 @@ repos:
           - --fuzzy-match-generates-todo
       - id: insert-license
         name: Add license for all shell files
-        exclude: ^\.github/.*$
+        exclude: ^\.github/.*$|docs_src/
         files: ^breeze$|^breeze-complete$|\.sh$|\.bash$|\.bats$
         args:
           - --comment-style

@@ -222,7 +222,7 @@ def transform_func(
         d = {qhsh: row}
         for pb in pbs:
             logger.debug(f"running {pb.func.name}")
-            d[pb.hash] = pb(d)
+            d[pb.hash] = pb(d, logging.WARNING)
     except DBgenSkipException as exc:
         logger.debug(f"Skipped {pb.func.name}: \nmsg:{exc.msg}")
         return None, None

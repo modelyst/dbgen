@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
+
 # Extenral
 from abc import ABCMeta, abstractmethod
 from traceback import format_exc
@@ -35,6 +37,7 @@ from dbgen.utils.exceptions import (
     DBgenSkipException,
 )
 from dbgen.utils.lists import is_iterable
+from dbgen.utils.log import capture_stdout
 from dbgen.utils.misc import Base, anystrat
 from dbgen.utils.sql import mkInsCmd, sqlexecute
 
@@ -170,7 +173,7 @@ class PyBlock(Base):
     def __lt__(self, other: "PyBlock") -> bool:
         return self.hash < other.hash
 
-    def __call__(self, curr_dict: D[str, D[str, Any]]) -> D[str, Any]:
+    def __call__(self, curr_dict: D[str, D[str, Any]], log_level: int = logging.INFO) -> D[str, Any]:
         """
         Take a TempFunc's function and wrap it such that it can accept a namespace
             dictionary. The information about how the function interacts with the
@@ -189,7 +192,8 @@ class PyBlock(Base):
             )
 
         try:
-            output = self.func(*inputvars)
+            wrapped = capture_stdout(self.func, level=log_level)
+            output = wrapped(*inputvars)
             if isinstance(output, tuple):
                 l1, l2 = len(output), len(self.outnames)
                 assert l1 == l2, "Expected %d outputs from %s, got %d" % (
