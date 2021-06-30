@@ -194,12 +194,14 @@ class ConnectInfo(Base):
         return ConnectInfo(**kwargs)
 
     @staticmethod
-    def from_aws_secret(secret_id: str, region: str, profile_name: str, schema: str = None) -> "ConnectInfo":
+    def from_aws_secret(
+        secret_id: str, region: str, profile: str, schema: str = None, host: str = None, port: int = None
+    ) -> "ConnectInfo":
         """
         Create from path to file with ConnectInfo fields in JSON format
         """
-        secret = get_secret(secret_id, region_name=region, profile_name=profile_name)
-        kwargs = dict(
+        secret = get_secret(secret_id, region_name=region, profile_name=profile)
+        secret_kwargs = dict(
             user=secret["username"],
             db=secret["dbname"],
             host=secret["host"],
@@ -207,8 +209,12 @@ class ConnectInfo(Base):
             passwd=secret.get("password"),
         )
         if schema:
-            kwargs["schema"] = schema
-        return ConnectInfo(**kwargs)
+            secret_kwargs["schema"] = schema
+        if host:
+            secret_kwargs["host"] = host
+        if port:
+            secret_kwargs["port"] = int(port)
+        return ConnectInfo(**secret_kwargs)
 
     @staticmethod
     def from_postgres_hook(airflow_connection: "Connection") -> "ConnectInfo":
