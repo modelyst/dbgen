@@ -48,6 +48,6 @@ class TestClass:
     def test_obj_strat(self, obj):
         assert isinstance(obj, Entity)
 
-    @given(get_strategy(Schema))
-    def test_schema_strat(self, schema: Schema):
-        assert isinstance(schema, Schema)
+    # @given(get_strategy(Schema))
+    # def test_schema_strat(self, schema: Schema):
+    #     assert isinstance(schema, Schema)

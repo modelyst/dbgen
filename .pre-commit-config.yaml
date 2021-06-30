@@ -193,6 +193,11 @@ repos:
         language: system
         exclude: ^src/dbgen/cli/newfiles/|^tests/|^docs_src/
         files: \.py$
+      - id: write-git-version
+        name: Write the gitversion to the git_version file
+        entry: ./scripts/ci/pre_commit/pre_commit_write_gitversion.py
+        language: system
+        always_run: true
       - id: flynt
         name: Convert to f-strings with flynt
         entry: flynt

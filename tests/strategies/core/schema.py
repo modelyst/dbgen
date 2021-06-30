@@ -82,13 +82,20 @@ def ObjStrat(
 @composite
 def SchemaStrat(draw: C, MAX_OBJ: int = None, MAX_FK: int = None) -> SearchStrategy[Schema]:
     """Strategy for DBgen Entity object"""
-    MAX_OBJ = MAX_OBJ or 2
+    MAX_OBJ = MAX_OBJ or 4
     MAX_FK = MAX_FK or 2
     objnames = draw(lists(letters, min_size=1, max_size=MAX_OBJ, unique=True))
     objlist: L[Entity] = []
+    print("-------------------------")
+    print("test")
     for o in objnames:
         fktargets = draw(lists(sampled_from(objnames), min_size=1, max_size=MAX_FK))
         n = len(fktargets)
         fknames = draw(lists(letters, min_size=n, max_size=n, unique=True).filter(lambda fkn: o not in fkn))
         objlist.append(draw(ObjStrat(name=o, fks=list(zip(fknames, fktargets)))))
+        print(o, list(zip(fknames, fktargets)))
+    for obj in objlist:
+        print(obj)
+        print([f.name for f in obj.fks])
+        print([f.name for f in obj.attrs])
     return draw(builds(Schema, objlist=just(objlist)))

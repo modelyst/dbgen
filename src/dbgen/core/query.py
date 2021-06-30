@@ -70,6 +70,7 @@ class Query(Expr):
         aconstr: Expr = None,
         option: Sequence[RelTup] = None,
         opt_attr: Sequence[PathAttr] = None,
+        allow_nulls: bool = False,
     ) -> None:
         err = "Expected %s, but got %s (%s)"
         for k, v in exprs.items():
@@ -80,6 +81,7 @@ class Query(Expr):
         self.aggcols = aggcols or []
         self.constr = constr or true
         self.aconstr = aconstr or None
+        self.allow_nulls = allow_nulls
 
         if not basis:
             attrobjs = nub([a.obj for a in self.allattr()], str)
@@ -193,7 +195,7 @@ class Query(Expr):
         notnul = "\n\t".join([f"AND {x} IS NOT NULL" for x in self.allattr() if x not in self.opt_attr])
         where_args = [where]
         where_args += [notdel] if not_deleted else []
-        where_args += [notnul] if not_null else []
+        where_args += [notnul] if (not_null and not self.allow_nulls) else []
 
         consts = "WHERE %s" % ("\n\t".join(where_args))
 

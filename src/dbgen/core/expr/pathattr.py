@@ -37,6 +37,8 @@ class PathAttr(Expr):
         self.attr = attr
 
     def __str__(self) -> str:
+        if self.attr.name == "*":
+            return f'"{self.path}".{self.attr.name}'
         return f'"{self.path}"."{self.attr.name}"'
 
     def __repr__(self) -> str:

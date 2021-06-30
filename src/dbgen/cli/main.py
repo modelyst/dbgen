@@ -56,7 +56,7 @@ delimiter = lambda: typer.echo(
 good_typer_print = typer_print(typer.colors.GREEN)
 bad_typer_print = typer_print(typer.colors.RED)
 
-
+# Enumerations
 class LogLevel(str, Enum):
     """enum for setting logging level on CLI"""
 

@@ -524,6 +524,12 @@ class Entity(Base):
 
         return PK(PathAttr(path, AttrTup(self.id_str, self.name)))
 
+    def star(self, path: "AP" = None) -> 'PathAttr':
+        """Main use case: GROUP BY an object, rather than a particular column"""
+        from dbgen.core.expr.pathattr import PathAttr
+
+        return PathAttr(path, AttrTup("*", self.name))
+
     def ids(self) -> L[str]:
         """Names of all the identifying (top-level) attributes."""
         return [a.name for a in self.attrs if a.identifying]
