@@ -134,3 +134,4 @@ build_pdoc/
 bin/
 /scratch/
 .DS_STORE
+git_version

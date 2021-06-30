@@ -111,8 +111,10 @@ def test_with_db(
     else:
         if generator.query is None and len(input_rows) == 0:
             input_rows = [{}]
-
-        return generator.test(universe, input_rows, rename_dict)
+        typer.echo(f"Testing {len(input_rows)} rows...")
+        out = generator.test(universe, input_rows, rename_dict)
+        styles.good_typer_print("Finished Testing!")
+        return out
 
 
 def interact_gen(
