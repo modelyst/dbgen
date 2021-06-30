@@ -64,7 +64,7 @@ def interact_gen(
     else:
         print("Generator has no inputs!")
 
-    while len(input_rows) > 0 and answer != "q" or answer != "Q":
+    while len(input_rows) > 0 and answer != "q" and answer != "Q":
         print_len = 200
         next_row = dict(input_rows.pop(0))
         next_row_str = lambda x: (str(next_row)[:x] + "..." if len(str(next_row)) > x else dict(next_row))
@@ -108,7 +108,7 @@ def interact_gen(
         readline.set_completer(completer)
         display = ""
         delimiter()
-        while display != "q" or display != "Q":
+        while display != "q" and display != "Q":
             print("PyBlock Names:")
             for key in curr_output.keys():
                 print("\t- " + key)
@@ -143,7 +143,7 @@ def interact_gen(
         completer = get_completer(list(curr_load_dict.keys()))
         readline.set_completer(completer)
         display = ""
-        while display != "q" or display != "Q":
+        while display != "q" and display != "Q":
             print("Load Names:")
             for key in curr_load_dict.keys():
                 print("\t- " + key + f" ({len(curr_load_dict[key])} rows)")
