@@ -64,7 +64,7 @@ def interact_gen(
     else:
         print("Generator has no inputs!")
 
-    while len(input_rows) > 0 and (answer and answer.lower() != "q"):
+    while len(input_rows) > 0 and answer != "q" or answer != "Q":
         print_len = 200
         next_row = dict(input_rows.pop(0))
         next_row_str = lambda x: (str(next_row)[:x] + "..." if len(str(next_row)) > x else dict(next_row))
@@ -73,7 +73,7 @@ def interact_gen(
         x.add_row(next_row.values())
         pprint(next_row_str(print_len))
         answer = None
-        while answer and answer.lower() not in (
+        while answer not in (
             "c",
             "s",
         ):
@@ -108,7 +108,7 @@ def interact_gen(
         readline.set_completer(completer)
         display = ""
         delimiter()
-        while display.lower() != "q":
+        while display != "q" or display != "Q":
             print("PyBlock Names:")
             for key in curr_output.keys():
                 print("\t- " + key)
@@ -120,7 +120,7 @@ def interact_gen(
                     print("Query Row:")
                 else:
                     print(f"Function Name: {display}")
-                print("Output:")
+                print(f"Output:")
                 try:
                     pprint(curr_output[display])
                 except KeyboardInterrupt:
@@ -143,7 +143,7 @@ def interact_gen(
         completer = get_completer(list(curr_load_dict.keys()))
         readline.set_completer(completer)
         display = ""
-        while display.lower() != "q":
+        while display != "q" or display != "Q":
             print("Load Names:")
             for key in curr_load_dict.keys():
                 print("\t- " + key + f" ({len(curr_load_dict[key])} rows)")
@@ -153,7 +153,7 @@ def interact_gen(
             if display in curr_load_dict:
                 delimiter()
                 print(f"Table Name: {display}")
-                print("Output:")
+                print(f"Output:")
                 try:
                     rows = curr_load_dict[display]
                     if rows:
