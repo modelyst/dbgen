@@ -64,7 +64,7 @@ def interact_gen(
     else:
         print("Generator has no inputs!")
 
-    while len(input_rows) > 0 and answer != "q":
+    while len(input_rows) > 0 and (answer and answer.lower() != "q"):
         print_len = 200
         next_row = dict(input_rows.pop(0))
         next_row_str = lambda x: (str(next_row)[:x] + "..." if len(str(next_row)) > x else dict(next_row))
@@ -73,7 +73,7 @@ def interact_gen(
         x.add_row(next_row.values())
         pprint(next_row_str(print_len))
         answer = None
-        while answer not in (
+        while answer and answer.lower() not in (
             "c",
             "s",
         ):
@@ -108,19 +108,19 @@ def interact_gen(
         readline.set_completer(completer)
         display = ""
         delimiter()
-        while display != "q":
+        while display.lower() != "q":
             print("PyBlock Names:")
             for key in curr_output.keys():
                 print("\t- " + key)
             delimiter()
-            display = input("What pyblock to display? (tab to see options/q to quit)\n").lower()
+            display = input("What pyblock to display? (tab to see options/q to quit)\n")
             if display in curr_output:
                 delimiter()
                 if display == "query":
                     print("Query Row:")
                 else:
                     print(f"Function Name: {display}")
-                print(f"Output:")
+                print("Output:")
                 try:
                     pprint(curr_output[display])
                 except KeyboardInterrupt:
@@ -143,7 +143,7 @@ def interact_gen(
         completer = get_completer(list(curr_load_dict.keys()))
         readline.set_completer(completer)
         display = ""
-        while display != "q":
+        while display.lower() != "q":
             print("Load Names:")
             for key in curr_load_dict.keys():
                 print("\t- " + key + f" ({len(curr_load_dict[key])} rows)")
@@ -153,7 +153,7 @@ def interact_gen(
             if display in curr_load_dict:
                 delimiter()
                 print(f"Table Name: {display}")
-                print(f"Output:")
+                print("Output:")
                 try:
                     rows = curr_load_dict[display]
                     if rows:
