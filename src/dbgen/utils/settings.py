@@ -36,7 +36,7 @@ def configure_vars():
     global METADB_CONN_STR
     global DB_SCHEMA
     global METADB_SCHEMA
-    DB_CONN_STR = config.get("core", "DB_CONN_STR")
+    DB_CONN_STR = config.get("core", "DB_CONN_STR", fallback=None)
     METADB_CONN_STR = config.get("core", "METADB_CONN_STR", fallback=None)
     DB_SCHEMA = config.get("core", "DB_SCHEMA", fallback=None)
     METADB_SCHEMA = config.get("core", "METADB_SCHEMA", fallback=None)
@@ -51,9 +51,18 @@ def configure_connections():
     """
     global CONN
     global META_CONN
+    aws_keys = lambda x: (
+        f"{x}_AWS_SECRET_ID",
+        f"{x}_AWS_REGION",
+        f"{x}_AWS_PROFILE",
+    )
+    DB_AWS_KEYS = list(map(lambda x: config.get("core", x, fallback=None), aws_keys("DB")))
+    METADB_AWS_KEYS = list(map(lambda x: config.get("core", x, fallback=None), aws_keys("METADB")))
     # Main Database
     if DB_CONN_STR:
         CONN = ConnectInfo.from_dsn(DB_CONN_STR, DB_SCHEMA)
+    elif len(list(filter(lambda x: x, DB_AWS_KEYS))) == 3:
+        CONN = ConnectInfo.from_aws_secret(*DB_AWS_KEYS)
     else:
         raise ValueError(
             "No Connection string at any of the following locations:"
@@ -62,6 +71,8 @@ def configure_connections():
 
     if METADB_CONN_STR:
         META_CONN = ConnectInfo.from_dsn(METADB_CONN_STR, METADB_SCHEMA)
+    elif len(list(filter(lambda x: x, METADB_AWS_KEYS))) == 3:
+        META_CONN = ConnectInfo.from_aws_secret(*METADB_AWS_KEYS)
     else:
         logger.warning(
             f"Did not find a envvar or config value for meta_db conn using CONN_STR with schema {CONN.schema}_log"

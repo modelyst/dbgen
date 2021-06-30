@@ -31,6 +31,7 @@ from hypothesis.strategies import SearchStrategy, builds
 from psycopg2 import Error, OperationalError, connect
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, parse_dsn
 
+from dbgen.utils.aws import get_secret
 from dbgen.utils.misc import Base
 
 # Internal Modules
@@ -187,6 +188,23 @@ class ConnectInfo(Base):
             host=parsed_dsn["host"],
             port=int(parsed_dsn.get("port", "5432")),
             passwd=parsed_dsn.get("password"),
+        )
+        if schema:
+            kwargs["schema"] = schema
+        return ConnectInfo(**kwargs)
+
+    @staticmethod
+    def from_aws_secret(secret_id: str, region: str, profile_name: str, schema: str = None) -> "ConnectInfo":
+        """
+        Create from path to file with ConnectInfo fields in JSON format
+        """
+        secret = get_secret(secret_id, region_name=region, profile_name=profile_name)
+        kwargs = dict(
+            user=secret["username"],
+            db=secret["dbname"],
+            host=secret["host"],
+            port=int(secret.get("port", "5432")),
+            passwd=secret.get("password"),
         )
         if schema:
             kwargs["schema"] = schema

@@ -71,9 +71,9 @@ app.command(name="test")(test_gen.test)
 
 @app.command()
 def run(
-    model_str: str = typer.Argument(
-        ...,
-        help="An import string in MODULE:PACKAGE format where the package is either a dbgen model variable or a function that produces one",
+    model_str: str = typer.Option(
+        None,
+        help="An import string in MODULE:PACKAGE format where the package is either a dbgen model variable or a function that produces one. If not provided use [core][model_str] in config",
     ),
     only: List[str] = typer.Option([], help="Generators to include"),
     xclude: List[str] = typer.Option([], help="Generators to xclude"),
@@ -101,14 +101,6 @@ def run(
     ),
     skip_row_count: bool = typer.Option(False, help="Skip the row count"),
     batch: int = typer.Option(None, help="Batch size for the run. Overrides any Gen-level batch size"),
-    write_logs: bool = typer.Option(None, help="Write the logs for the dbgen to file."),
-    log_level_str: LogLevel = typer.Option(
-        LogLevel.INFO, "--log-level", "-L", help="Set the level of logging"
-    ),
-    log_path: Path = typer.Option(
-        None,
-        help="Location for log file, overrides the default of $HOME/.dbgen/dbgen.log.",
-    ),
     print_logo: bool = False,
     version: bool = version_option,
 ) -> int:
@@ -121,17 +113,16 @@ def run(
     run_config = RunConfig()
     prune = lambda d: {k: v for k, v in d.items() if v is not None and k in run_config.fields}
     prune_inputs = prune(vars())
-
     # Update the config with the cmd line config
     if config_file:
         config.read(config_file)
     # Use the config file to set RunConfig values
     run_config = replace(run_config, **(prune(config.getsection("run")) or {}))
-    run_config = replace(run_config, **(prune(config.getsection("logging")) or {}))
     # Use the CLI to override any configs
     run_config = replace(run_config, **prune_inputs)
     # Initialize settings to get the connections
     settings.initialize()
+    model_str = model_str or config.get("core", "model_str")
     model = validate_model_str(model_str)
 
     # Validate gen and tag related inputs
@@ -173,6 +164,7 @@ def serialize(
     """
     Serializes the DBgen model into a json
     """
+    model_str = model_str or config.get("core", "model_str")
     model = validate_model_str(model_str)
     with open(out_pth, "w") as f:
         f.write(model.toJSON())

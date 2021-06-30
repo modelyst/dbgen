@@ -47,6 +47,7 @@ python = ">=3.7,<4.0"
 sshtunnel = "^0.1.5"
 tqdm = ">=4.48.0"
 typer = "^0.3.2"
+boto3 = "^1.17.102"
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
 flake8 = "^3.9.2"
