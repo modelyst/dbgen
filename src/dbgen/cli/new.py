@@ -113,7 +113,7 @@ def create_config(model_name: str, model_root: str):
 def main(pth: str, name: str, env: str, create_env: bool = True) -> None:
     """
     Initialize a DbGen model
-    #"""
+    """
     if exists(pth):
         print(pth, " already exists")
         while True:

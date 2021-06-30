@@ -20,27 +20,25 @@ from dataclasses import asdict, replace
 from enum import Enum
 from io import StringIO
 from pathlib import Path
-from types import FunctionType
 from typing import List, Optional
 
 import typer
 
-from dbgen import LOGO
+import dbgen.cli.styles as styles
+import dbgen.cli.test_gen as test_gen
+from dbgen.cli.utils import (
+    config_option,
+    confirm_nuke,
+    print_config,
+    set_confirm,
+    validate_model_str,
+    version_option,
+)
 from dbgen.core.model.model import Model
 from dbgen.utils import settings
-from dbgen.utils.config import DBgenConfigParser, RunConfig, config
+from dbgen.utils.config import RunConfig, config
 from dbgen.utils.misc import which
 
-# Errors
-ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"
-ERROR_MODULE = "Could not find module:\nModule: {0}\nPackage: {1}\nError: {2}"
-ERROR_PACKAGE = "Could not find package within module:\nModule: {0}\nPackage: {1}\nError: {2}"
-ERROR_NOT_MODEL = "Import String is not for a DBgen Model: \nImport String: {0}\nClass: {1}"
-ERROR_NOT_MODEL_FUNCTION = "Import String is for a function that does not produce a DBgen Model: \nImport String: {0}\nOutput Class: {1}"
-ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1}"
-LOGO_STYLE = typer.style(LOGO, blink=True, fg=typer.colors.BRIGHT_CYAN)
-
-state = {"confirm": True}
 logger = logging.getLogger(__name__)
 LOG_MAP = {
     "INFO": logging.INFO,
@@ -48,13 +46,6 @@ LOG_MAP = {
     "WARNING": logging.WARNING,
     "CRITICAL": logging.CRITICAL,
 }
-
-typer_print = lambda color: lambda msg: typer.echo(typer.style(msg, fg=color))
-delimiter = lambda: typer.echo(
-    typer.style("-----------------------------------", fg=typer.colors.BRIGHT_CYAN, bold=True)
-)
-good_typer_print = typer_print(typer.colors.GREEN)
-bad_typer_print = typer_print(typer.colors.RED)
 
 # Enumerations
 class LogLevel(str, Enum):
@@ -73,133 +64,9 @@ class DBgenDatabase(str, Enum):
     MAIN = "main"
 
 
-def confirm_nuke(value: bool):
-    """
-    Confirm that user wants to nuke database
-
-    Args:
-        value (bool): nuke_value
-    """
-    if value and state["confirm"]:
-        confirm = input("Are you sure you want to nuke the database? (Y/n) ")
-        if confirm.lower() != "y":
-            exit(1)
-    return value
-
-
-def set_confirm(value: bool):
-    """Auto confirm all prompted values"""
-    state["confirm"] = not value
-
-
-def file_existence(value: Path):
-    if value and value.exists():
-        return value
-    elif value is not None:
-        # No config found warn user
-        logger.warning(f"Provided config {value.absolute()} does not exist.")
-    return None
-
-
-def validate_model_str(model_str: str) -> Model:
-    """
-    Validate the user input model import str checking for malformed and invalid inputs.py
-
-    Args:
-        model_str (str): CLI/config file input in MODULE:PACKAGE format
-
-    Raises:
-        typer.BadParameter: Whenever one of many checks is failed
-
-    Returns:
-        Model: the output model after checks are in place
-    """
-    basic_error = lambda fmt, val: typer.BadParameter(fmt.format(*val))
-
-    # Check for empty string model_strs
-    if model_str in (":", ""):
-        raise basic_error(ERROR_FORMAT, [model_str])
-
-    split_model = model_str.split(":")
-    if len(split_model) != 2:
-        raise basic_error(ERROR_FORMAT, [model_str])
-    module, package = split_model
-    try:
-        _temp = __import__(module, globals(), locals(), [package])
-        model = getattr(_temp, package)
-        if isinstance(model, Model):
-            return model
-        elif isinstance(model, FunctionType):
-            try:
-                model = model()
-            except TypeError:
-                raise basic_error(ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__])
-            if isinstance(model, Model):
-                return model
-            raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
-
-        raise basic_error(ERROR_NOT_MODEL, [model_str, type(model).__name__])
-    except ModuleNotFoundError as exc:
-        if "No module" in str(exc):
-            raise basic_error(ERROR_MODULE, [module, package, str(exc)])
-        raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
-    except AttributeError as exc:
-        raise typer.BadParameter(str(exc))
-
-
-def print_config(config: DBgenConfigParser) -> None:
-    for section in config:
-        values = config.getsection(section) or {}
-        if section != "DEFAULT":
-            typer.echo("")
-            typer.echo(typer.style(f"[{section}]", fg=typer.colors.BRIGHT_CYAN))
-            typer.echo(
-                "\n".join(
-                    [
-                        typer.style(f"{key}", fg=typer.colors.BRIGHT_MAGENTA) + f" = {value}"
-                        for key, value in values.items()
-                    ]
-                )
-            )
-
-
+# Instantiate the typer app
 app = typer.Typer(name="dbgen", help="DBgen Model Runner")
-
-
-def version_callback(value: bool):
-    """
-    Eagerly print the version LOGO
-
-    Args:
-        value (bool): [description]
-
-    Raises:
-        typer.Exit: exits after showing version
-    """
-    if value:
-        typer.echo(LOGO_STYLE)
-        raise typer.Exit()
-
-
-version_option = typer.Option(None, "--version", callback=version_callback, is_eager=True)
-
-
-@app.callback()
-def main(version: bool = version_option):
-    """
-    Manage users in the awesome CLI app.
-    """
-
-
-# Common options
-config_option = typer.Option(
-    None,
-    "--config",
-    "-c",
-    help="DBgen config file to use for specifying run parameters as well as DB",
-    envvar="DBGEN_CONFIG",
-    callback=file_existence,
-)
+app.command(name="test")(test_gen.test)
 
 
 @app.command()
@@ -247,33 +114,9 @@ def run(
 ) -> int:
     """
     Run a dbgen model from command line.py
-
-    Args:
-        model (Model): [description].
-        only (List[str], optional): [description].
-        xclude (List[str], optional): [description].
-        add (bool, optional): [description].
-        retry (bool, optional): [description].
-        start (str, optional): [description].
-        until (str, optional): [description].
-        serial (bool, optional): [description].
-        config_file (Optional[Path], optional): [description].
-        nuke (bool, optional): [description].
-        no_conf (bool, optional): [description].
-        bar (bool, optional): [description].
-        skip_row_count (bool, optional): [description].
-        batch (int, optional): [description].
-        write_logs (bool, optional): [description].
-        log_level_str (LogLevel, optional): [description].
-        log_path (str, optional): Location for log file, overrides the default of $HOME/.dbgen/dbgen.log
-        print_logo (bool, optional): [description].
-        version (bool, optional): [description].
-
-    Returns:
-        dict: [description]
     """
     if print_logo:
-        typer.echo(LOGO_STYLE)
+        typer.echo(styles.LOGO_STYLE)
     # Parse inputs
     run_config = RunConfig()
     prune = lambda d: {k: v for k, v in d.items() if v is not None and k in run_config.fields}
@@ -401,20 +244,20 @@ def get_config(
         with open(out_pth, "w") as f:
             config.write(f)
 
-    typer.echo(LOGO_STYLE)
+    typer.echo(styles.LOGO_STYLE)
 
     # Initialize settings to get the connections
     settings.initialize()
 
     # Print config to stdout
-    delimiter()
+    styles.delimiter()
     # Notify of config file
     if config_file:
         typer.echo(f"Config File found at location: {config_file.absolute()}")
     else:
         typer.echo("No config file found using defaults.")
 
-    delimiter()
+    styles.delimiter()
     print_config(config)
 
 
@@ -442,7 +285,7 @@ def test_conn(
         connection_info = settings.CONN if connect == DBgenDatabase.MAIN else settings.META_CONN
         # Test connection to database
         if not connection_info.test_connection():
-            bad_typer_print(f"Cannot connect to {connect} db")
+            styles.bad_typer_print(f"Cannot connect to {connect} db")
             raise typer.Exit(2)
         else:
             # Attempt to use psql and pgcli to connect to database
@@ -451,7 +294,7 @@ def test_conn(
                 exes = list(filter(lambda x: x is not None, map(which, ("pgcli", "psql"))))
                 # If we find no executables exit
                 if not exes:
-                    bad_typer_print(
+                    styles.bad_typer_print(
                         "Cannot find either psql or pgcli in $PATH. Please install them to connect to database."
                     )
                     raise typer.Exit(2)
@@ -460,28 +303,28 @@ def test_conn(
                     [exes[0], connection_info.to_dsn(with_password=True)],
                 )
             except subprocess.CalledProcessError as exc:
-                bad_typer_print("Error connecting!")
-                bad_typer_print(exc)
+                styles.bad_typer_print("Error connecting!")
+                styles.bad_typer_print(exc)
         # Quit once finished
         raise typer.Exit()
 
-    delimiter()
+    styles.delimiter()
     for conn, label in zip((settings.CONN, settings.META_CONN), ("Main", "Meta")):
-        good_typer_print(f"Checking {label} DB...")
+        styles.good_typer_print(f"Checking {label} DB...")
         new_stdout = StringIO()
         with contextlib.redirect_stdout(new_stdout):
             check = conn.test_connection(with_password)
         test_output = "\n".join(new_stdout.getvalue().strip().split("\n")[1:])
         if check:
-            good_typer_print(f"Connection to {label} DB at {conn.to_dsn(with_password)} all good!")
+            styles.good_typer_print(f"Connection to {label} DB at {conn.to_dsn(with_password)} all good!")
             if test_output:
-                good_typer_print(test_output)
+                styles.good_typer_print(test_output)
         else:
-            bad_typer_print(f"Cannot connect to {label} DB at {conn.to_dsn(with_password)}!")
+            styles.bad_typer_print(f"Cannot connect to {label} DB at {conn.to_dsn(with_password)}!")
             if test_output:
-                bad_typer_print("Error Message:")
-                bad_typer_print("\n".join(["\t" + line for line in test_output.split("\n")]))
-        delimiter()
+                styles.bad_typer_print("Error Message:")
+                styles.bad_typer_print("\n".join(["\t" + line for line in test_output.split("\n")]))
+        styles.delimiter()
 
 
 if __name__ == "__main__":

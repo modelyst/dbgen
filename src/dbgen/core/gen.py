@@ -296,7 +296,7 @@ class Generator(Base):
             cursor.close()
 
         if interact:
-            from dbgen.utils.interact import interact_gen
+            from dbgen.cli.test_gen import interact_gen
 
             return interact_gen(universe, self, input_rows)
         else:

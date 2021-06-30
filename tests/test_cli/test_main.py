@@ -18,13 +18,13 @@ from hypothesis import strategies as st
 from typer import BadParameter
 from typer.testing import CliRunner
 
-from dbgen.cli.main import (
+from dbgen.cli.main import app
+from dbgen.cli.utils import (
     ERROR_FORMAT,
     ERROR_MODULE,
     ERROR_NOT_MODEL,
     ERROR_NOT_MODEL_FUNCTION,
     ERROR_RUNNING_MODEL_FACT,
-    app,
     validate_model_str,
 )
 from dbgen.core.model.model import Model
