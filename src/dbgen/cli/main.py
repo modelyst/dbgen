@@ -71,7 +71,7 @@ app.command(name="test")(test_gen.test)
 
 @app.command()
 def run(
-    model_str: str = typer.Option(
+    model_str: str = typer.Argument(
         None,
         help="An import string in MODULE:PACKAGE format where the package is either a dbgen model variable or a function that produces one. If not provided use [core][model_str] in config",
     ),
