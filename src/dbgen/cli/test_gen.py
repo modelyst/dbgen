@@ -84,7 +84,9 @@ def test_with_db(
     interact: bool = False,
     input_rows: L[dict] = [],
 ) -> T[L[D[str, dict]], L[D[str, L[dict]]]]:
-    assert limit <= 200, "Don't allow for more than 200 rows with test with db"
+    assert (
+        limit <= 200 or not interact
+    ), "Don't allow for more than 200 rows with test with db when interact is used."
     assert (
         db is not None or input_rows
     ) or generator.query is None, "Need to provide a db connection if generator has a query"
