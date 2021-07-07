@@ -52,7 +52,7 @@ def configure_connections():
     global CONN
     global META_CONN
     core = config.getsection("core")
-    valid_aws_keys = ("secret_id", "region", "profile", "host", "port", "schema")
+    valid_aws_keys = ("secret_id", "region", "profile", "host", "port", "schema", "dbname")
     required_aws_keys = ("secret_id", "region", "profile")
     aws_keys = lambda x: map(lambda key: (key, f"{x}_aws_{key}"), valid_aws_keys)
     DB_AWS_KEYS = {

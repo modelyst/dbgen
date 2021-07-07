@@ -195,7 +195,13 @@ class ConnectInfo(Base):
 
     @staticmethod
     def from_aws_secret(
-        secret_id: str, region: str, profile: str, schema: str = None, host: str = None, port: int = None
+        secret_id: str,
+        region: str,
+        profile: str,
+        schema: str = None,
+        host: str = None,
+        port: int = None,
+        dbname: str = None,
     ) -> "ConnectInfo":
         """
         Create from path to file with ConnectInfo fields in JSON format
@@ -214,6 +220,8 @@ class ConnectInfo(Base):
             secret_kwargs["host"] = host
         if port:
             secret_kwargs["port"] = int(port)
+        if dbname:
+            secret_kwargs["db"] = dbname
         return ConnectInfo(**secret_kwargs)
 
     @staticmethod
