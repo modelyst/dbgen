@@ -17,7 +17,6 @@ from typing import Optional, cast
 
 import pytest
 from sqlalchemy.engine import Engine
-from sqlalchemy.sql.schema import MetaData
 from sqlmodel import Session, func, select
 
 import tests.example.entities as entities
@@ -178,30 +177,3 @@ def get_label(node):
     elif isinstance(node, Generator):
         return node.name
     return "None"
-
-
-def draw_graph(graph):
-    import matplotlib.pyplot as plt
-    import networkx as nx
-
-    colors = [get_color(node) for id, node in graph.nodes("data")]
-    labels = {id: get_label(node) for id, node in graph.nodes("data")}
-
-    nx.draw(
-        graph,
-        pos=nx.drawing.nx_agraph.graphviz_layout(graph, prog="dot"),
-        labels=labels,
-        node_color=colors,
-        node_size=800,
-        with_labels=True,
-    )
-    plt.show()
-
-
-if __name__ == "__main__":
-    from tests.example.database import sql_engine
-
-    metadata = MetaData(bind=sql_engine)
-    metadata.reflect(bind=sql_engine)
-    metadata.drop_all(sql_engine)
-    test_dumb_extractor(sql_engine.connect(), sql_engine)
