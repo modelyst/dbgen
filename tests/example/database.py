@@ -14,5 +14,6 @@
 
 from sqlmodel import create_engine
 
-dsn = "postgresql://michaelstatt@localhost/sqlalchemy"
-sql_engine = create_engine(dsn, future=True)
+from dbgen.configuration import config
+
+sql_engine = create_engine(config.postgres_dsn, future=True)

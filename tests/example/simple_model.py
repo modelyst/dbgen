@@ -14,12 +14,11 @@
 
 """simple_model.py"""
 
-from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, validator
-from sqlmodel import Field, Session, select
+from pydantic import Field
+from sqlmodel import Session, select
 
 from dbgen.core.args import Const
 from dbgen.core.entity import EntityId
@@ -49,34 +48,6 @@ class Child(BaseTable, table=True):
 class ProcessData(EntityId, table=True):
     file_name: str
     __identifying__ = {"file_name"}
-
-
-class RcpFile(BaseModel):
-    machine_name: str
-
-
-class ModelExtractor(Extract):
-    directory: Path
-    base_model: BaseModel
-
-    @validator("directory")
-    def assert_is_dir(cls, directory: Path):
-        assert directory.is_dir(), f"We need a directory this isn't one: {directory}"
-        return directory
-
-    def extract(self, *args, **kwargs):
-        for file_name in self.directory.iterdir():
-            try:
-                parsed = self.base_model.parse_raw(file_name)
-                yield {self.hash: {"out": parsed}}
-            except ValidationError:
-                continue
-
-    def get_row_count(self, connection=None, *args) -> Optional[int]:
-        return len(list(self.directory.iterdir()))
-
-
-# ModelExtractor(directory="home", base_model=RcpFile)
 
 
 class IntExtractor(Extract):
