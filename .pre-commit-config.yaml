@@ -171,16 +171,6 @@ repos:
         entry: "pylint:disable|pylint:enable"
         pass_filenames: true
         files: \.py$
-      - id: pre-commit-hook-names
-        name: Ensure hook ids are not overly long
-        entry: python3 ./scripts/ci/pre_commit/pre_commit_check_pre_commit_hook_names.py
-        args:
-          - --max-length=70
-        language: python
-        files: ^.pre-commit-config.yaml$
-        additional_dependencies: ['pyyaml']
-        require_serial: true
-        pass_filenames: false
       - id: pre-commit-bump-version
         name: Ensure the version is bumped
         entry: python3 ./scripts/ci/pre_commit/pre_commit_bump_version.py

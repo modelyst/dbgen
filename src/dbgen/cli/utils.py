@@ -19,8 +19,7 @@ from types import FunctionType
 import typer
 
 from dbgen.cli.styles import LOGO_STYLE
-from dbgen.core.model.model import Model
-from dbgen.utils.config import DBgenConfigParser
+from dbgen.core.model import Model
 
 # Errors
 ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"
@@ -121,33 +120,3 @@ def validate_model_str(model_str: str) -> Model:
         raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
     except AttributeError as exc:
         raise typer.BadParameter(str(exc))
-
-
-def print_config(config: DBgenConfigParser) -> None:
-    for section in config:
-        values = config.getsection(section) or {}
-        if section != "DEFAULT":
-            typer.echo("")
-            typer.echo(typer.style(f"[{section}]", fg=typer.colors.BRIGHT_CYAN))
-            typer.echo(
-                "\n".join(
-                    [
-                        typer.style(f"{key}", fg=typer.colors.BRIGHT_MAGENTA) + f" = {value}"
-                        for key, value in values.items()
-                    ]
-                )
-            )
-
-
-version_option = typer.Option(None, "--version", callback=version_callback, is_eager=True)
-
-
-# Common options
-config_option = typer.Option(
-    None,
-    "--config",
-    "-c",
-    help="DBgen config file to use for specifying run parameters as well as DB",
-    envvar="DBGEN_CONFIG",
-    callback=file_existence,
-)

@@ -12,14 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Main executable module"""
 from dbgen.cli.main import app
 
 
 def main():
-    """Main executable function"""
     app()
 
 
+# Run App
 if __name__ == "__main__":
     main()

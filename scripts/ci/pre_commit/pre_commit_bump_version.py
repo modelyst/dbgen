@@ -30,11 +30,11 @@ def get_current_version():
             "git",
             "diff",
             "--staged",
-            "./src/dbgen/version.py",
+            "./src/dbgen/__init__.py",
         ]
     ).decode()
     # Looks for addition of line in format "version = XX.YY.ZZ"
-    match = re.search(r"\+version = \"(\d+\.\d+\.\d+)\"", out)
+    match = re.search(r"\+__version__ = \"(\d+\.\d+\.\d+)\"", out)
     if match:
         curr_version = match.groups()[0]
     else:

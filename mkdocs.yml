@@ -17,7 +17,7 @@ site_name: DBgen
 site_description: DBgen framework, high performance, easy to learn, fast to code, ready for production
 site_url: https://www.dbgen.modelyst.com/
 edit_uri: ""
-copyright: "© 2020, Modelyst LLC. All rights reserved."
+copyright: "© 2021, Modelyst LLC. All rights reserved."
 theme:
   name: material
   custom_dir: docs/overrides
@@ -71,61 +71,6 @@ nav:
   - Getting Started: usage.md
   - Installation: installation.md
   - License: license.md
-  - Reference:
-      - DBgen:
-          - Package Contents: reference/dbgen/index.md
-          - dbgen.templates: reference/dbgen/templates.md
-          - dbgen.core:
-              - Module Contents: reference/dbgen/core/index.md
-              - dbgen.core.load: reference/dbgen/core/load.md
-              - dbgen.core.datatypes: reference/dbgen/core/datatypes.md
-              - dbgen.core.fromclause: reference/dbgen/core/fromclause.md
-              - dbgen.core.func: reference/dbgen/core/func.md
-              - dbgen.core.funclike: reference/dbgen/core/funclike.md
-              - dbgen.core.gen: reference/dbgen/core/gen.md
-              - dbgen.core.misc: reference/dbgen/core/misc.md
-              - dbgen.core.pathconstraint: reference/dbgen/core/pathconstraint.md
-              - dbgen.core.schema: reference/dbgen/core/schema.md
-              - dbgen.core.schemaclass: reference/dbgen/core/schemaclass.md
-              - dbgen.core.query: reference/dbgen/core/query.md
-              - dbgen.core.expr:
-                  - Module Contents: reference/dbgen/core/expr/index.md
-                  - dbgen.core.expr.expr: reference/dbgen/core/expr/expr.md
-                  - dbgen.core.expr.exprstrat: reference/dbgen/core/expr/exprstrat.md
-                  - dbgen.core.expr.pathattr: reference/dbgen/core/expr/pathattr.md
-                  - dbgen.core.expr.sqltypes: reference/dbgen/core/expr/sqltypes.md
-              - dbgen.core.airflow_plugin:
-                  - Module Contents: reference/dbgen/core/airflow_plugin/index.md
-                  - dbgen.core.airflow_plugin.RunOperator: reference/dbgen/core/airflow_plugin/RunOperator.md
-                  - dbgen.core.airflow_plugin.genoperator: reference/dbgen/core/airflow_plugin/genoperator.md
-              - dbgen.core.model:
-                  - Module Contents: reference/dbgen/core/model/index.md
-                  - dbgen.core.model.metatable: reference/dbgen/core/model/metatable.md
-                  - dbgen.core.model.model: reference/dbgen/core/model/model.md
-                  - dbgen.core.model.run: reference/dbgen/core/model/run.md
-                  - dbgen.core.model.run_airflow: reference/dbgen/core/model/run_airflow.md
-                  - dbgen.core.model.run_gen: reference/dbgen/core/model/run_gen.md
-          - dbgen.example:
-              - Module Contents: reference/dbgen/example/index.md
-              - dbgen.example.main: reference/dbgen/example/main.md
-              - dbgen.example.generators.index: reference/dbgen/example/generators/index.md
-              - dbgen.example.generators.analysis: reference/dbgen/example/generators/analysis.md
-              - dbgen.example.generators.io: reference/dbgen/example/generators/io.md
-              - dbgen.example.scripts.index: reference/dbgen/example/scripts/index.md
-              - dbgen.example.scripts.parsers: reference/dbgen/example/scripts/parsers.md
-          - dbgen.utils:
-              - Module Contents: reference/dbgen/utils/index.md
-              - dbgen.utils.config: reference/dbgen/utils/config.md
-              - dbgen.utils.exceptions: reference/dbgen/utils/exceptions.md
-              - dbgen.utils.graphs: reference/dbgen/utils/graphs.md
-              - dbgen.utils.interact: reference/dbgen/utils/interact.md
-              - dbgen.utils.lists: reference/dbgen/utils/lists.md
-              - dbgen.utils.log: reference/dbgen/utils/log.md
-              - dbgen.utils.misc: reference/dbgen/utils/misc.md
-              - dbgen.utils.numeric: reference/dbgen/utils/numeric.md
-              - dbgen.utils.parsing: reference/dbgen/utils/parsing.md
-              - dbgen.utils.sql: reference/dbgen/utils/sql.md
-              - dbgen.utils.str_utils: reference/dbgen/utils/str_utils.md
 extra_css:
   - css/termynal.css
   - css/custom.css

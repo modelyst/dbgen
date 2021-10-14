@@ -12,74 +12,95 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Tests for the PyBlock Object"""
-# External imports
-from unittest import TestCase
+import pytest
+from hypothesis import given
+from pydantic import ValidationError
 
-import dbgen.utils.exceptions as dbgen_exc
-
-# Internal Imports
-from dbgen.core.funclike import Const, PyBlock
-
-
-def transform_method(input_str: str) -> str:
-    return input_str + " transformed"
+from dbgen.core.args import Arg, Const
+from dbgen.core.func import Env, Func
+from dbgen.core.transforms import PyBlock
+from dbgen.exceptions import DBgenMissingInfo, DBgenPyBlockError
+from tests.example_functions import nonary
+from tests.strategies import pyblock_strat
 
 
-def transform_list(x):
-    return [i + 1 for i in x]
+@given(pyblock_strat)
+def test_pyblock_strat(instance: PyBlock):
+    assert isinstance(instance, PyBlock)
+    assert instance.function.nOut
 
 
-class TestPyBlock(TestCase):
-    """Test Cases for the PyBlock object of dbgen."""
+def test_const():
+    const = Const(1)
+    assert const.arg_get({}) == 1
 
-    def setUp(self):
-        self.transform = transform_list
 
-    def test_simple_creation(self):
-        """test the creation of a simple PyBlock"""
-        pyblock = PyBlock(self.transform)
-        self.assertTrue(callable(pyblock))
+def test_pyblock_errors():
+    basic_lambda = lambda x: 1
+    good_inputs = {"function": basic_lambda, "inputs": [Const(1)], "outputs": ["test"]}
+    PyBlock(**good_inputs)
+    for name, val in (("function", 1), ("inputs", [1]), ("outputs", [])):
+        with pytest.raises(ValidationError):
+            PyBlock(**{**good_inputs, name: val})
 
-    def test_built_in_function_instatiation(self):
-        """test the error generated when using built in functions in PyBlock"""
-        # with self.assertRaises(dbgen_exc.DBgenInvalidArgument):
-        builtins = (str, min, list, [].append, "".join)
-        for builtin in builtins:
-            with self.assertRaises(dbgen_exc.DBgenInvalidArgument):
-                PyBlock(builtin)
 
-    def test_missing_hash_exc(self):
-        """Test for the exception when the args to a PyBlock are at a unknown
-        hash"""
-        missing_pyblock = PyBlock(lambda x: 1)
-        pyblock = PyBlock(self.transform, args=[missing_pyblock["out"]])
-        with self.assertRaises(dbgen_exc.DBgenMissingInfo):
-            _ = pyblock({})
-            print(_)
+def test_pyblock_to_dict():
+    pb = PyBlock(env=Env(imports=[]), function=nonary, inputs=[], outputs=[""])
+    serial = pb.dict()
+    assert {i: Arg.parse_obj(val) for i, val in enumerate(serial.get("inputs"))} == pb.inputs
+    assert Env.parse_obj(serial.get("env")) == pb.env
+    assert serial.get("outputs") == pb.outputs
+    assert Func.parse_obj(serial.get("function")) == pb.function
+    assert pb.parse_obj(pb.dict()) == pb
 
-    def test_simple_pyblock_output_lambda(self):
-        """tests a simple case of calling a lambda PyBlock"""
-        inputs = {"query": Const([1, 2, 3])}
-        pyblock = PyBlock(self.transform, args=[inputs["query"]])
-        output = pyblock(inputs)
-        self.assertEqual(output, {"out": [2, 3, 4]})
 
-    def test_simple_pyblock_output_static_method(self):
-        """tests a simple case of calling a static_method PyBlock"""
-        inputs = {"query": Const("input")}
-        pyblock = PyBlock(transform_method, args=[inputs["query"]])
-        output = pyblock(inputs)
-        self.assertEqual(output, {"out": "input transformed"})
+def test_pyblock_run():
+    pb = PyBlock(function=nonary, inputs=[], outputs=["out"])
+    pb_dict = pb.run({})
+    assert "out" in pb_dict
+    assert pb_dict["out"] == 1
 
-    def test_multiple_pyblocks(self):
-        namespace = {"query": Const("input")}
-        pyblock_1 = PyBlock(transform_method, args=[namespace["query"]])
-        pyblock_2 = PyBlock(transform_method, args=[pyblock_1["out"]])
-        for pyblock in (pyblock_1, pyblock_2):
-            namespace.update({str(hash(pyblock)): pyblock(namespace)})
-        self.assertEqual(namespace[str(hash(pyblock_1))]["out"], "input transformed")
-        self.assertEqual(
-            namespace[str(hash(pyblock_2))]["out"],
-            "input transformed transformed",
-        )
+
+def test_pyblock_run_with_inputs():
+    func = lambda x, y: x + y
+    pb = PyBlock(function=func, inputs=[Const(1), Const(3)])
+    pb_dict = pb.run({})
+    assert "out" in pb_dict
+    assert pb_dict["out"] == 4
+
+
+def test_pyblock_run_with_args():
+    func = lambda x, y: x + y
+    pb = PyBlock(function=func, inputs=[Const(1), Arg(key="other_pyblock", name="out")])
+    pb_dict = pb.run({"other_pyblock": {"out": 5}})
+    assert "out" in pb_dict
+    assert pb_dict["out"] == 6
+
+
+def test_two_pyblocks():
+    func_1 = lambda x: x + 1
+    func_2 = lambda x: str(x)
+    pb_1 = PyBlock(function=func_1, inputs=[Const(1)])
+    pb_2 = PyBlock(function=func_2, inputs=[pb_1["out"]])
+    namespace = {}
+    for pb in (pb_1, pb_2):
+        namespace[pb.hash] = pb.run(namespace)
+    assert len(namespace) == 2
+    assert namespace[pb_1.hash]["out"] == 2
+    assert namespace[pb_2.hash]["out"] == "2"
+
+
+def test_pyblock_failure_at_runtime():
+    func_1 = lambda x: x + 1
+    func_2 = lambda x: str(x)
+    pb_1 = PyBlock(function=func_1, inputs=[Const(1)])
+    pb_2 = PyBlock(function=func_2, inputs=[pb_1["out"]])
+    with pytest.raises(DBgenMissingInfo):
+        pb_2.run({})
+
+    bad_pb = PyBlock(function=nonary, inputs=[], outputs=["1", "2"])
+    with pytest.raises(DBgenPyBlockError):
+        bad_pb.run({})
+
+    with pytest.raises(ValidationError):
+        PyBlock(function=nonary, inputs=[Const(1)], outputs=["1", "2"])

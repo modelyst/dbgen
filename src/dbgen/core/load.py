@@ -12,323 +12,208 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Define the Load Object for inserting transformed data into the Database."""
-import logging
 import re
+from functools import lru_cache
 from io import StringIO
-from random import getrandbits
-
-# External Modules
-from typing import TYPE_CHECKING
-from typing import Dict as D
-from typing import List as L
-from typing import Tuple as T
-from typing import Union as U
+from itertools import chain
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
+from uuid import UUID
 
 import psycopg2
-from hypothesis.strategies import SearchStrategy, builds, dictionaries, just, one_of
-from jinja2 import Template
+from psycopg2._psycopg import connection
+from psycopg2.errors import Error as Psycopg2Error
 from psycopg2.errors import QueryCanceled
+from pydantic import Field, root_validator, validator
+from pydantic.fields import PrivateAttr
+from pydasher import hasher
 
-from dbgen.core.funclike import Arg, ArgLike, Const
-from dbgen.utils.exceptions import DBgenExternalError, DBgenTypeError, Psycopg2Error
-from dbgen.utils.lists import broadcast
-from dbgen.utils.misc import Base, nonempty
-from dbgen.utils.sql import Connection as Conn
-from dbgen.utils.str_utils import hashdata_
-
-# Internal Modules
-if TYPE_CHECKING:
-    from dbgen.core.model.model import UNIVERSE_TYPE
-    from dbgen.core.schema import Entity
-
-"""
-Defines the class of modifications to a database
-
-There is a horrific amount of duplicated code in this file...... oughta fixit
-"""
-################################################################################
-# ######################
-# # Constants
-# # --------------------
-NUM_QUERY_TRIES = 3
+from dbgen.core.args import Arg, Const
+from dbgen.core.base import Base
+from dbgen.core.computational_node import ComputationalNode
+from dbgen.core.dependency import Dependency
+from dbgen.exceptions import DBgenExternalError
+from dbgen.utils.lists import broadcast, is_broadcastable
 
 
-class Load(Base):
-    """
-    The purpose for this object is to make an easily serializable data structure
-    that knows how to update the database (these methods could easily be for
-    Model, but we don't want to send the entire model just to do this small thing)
-    """
+@lru_cache()
+def hash_tuple(tuple_to_hash: Tuple[Any, ...]) -> UUID:
+    return UUID(hasher(tuple_to_hash))
 
-    def __init__(
-        self,
-        obj: str,
-        attrs: D[str, ArgLike],
-        fks: D[str, "Load"],
-        pk: U[Arg, Const] = None,
-        insert: bool = False,
-        partition_attr: str = None,
-    ) -> None:
-        """
-        Initializes Load object with relevant Objects and nested Loads. This is
-        not intended to be called by users, but rather called through the
-        Entity.__call__ method (Entity()).
+
+class LoadEntity(Base):
+    """Object for passing minimum info to the Load object for database insertion."""
+
+    name: str
+    schema_: Optional[str]
+    primary_key_name: str
+    identifying_attributes: Dict[str, str] = Field(default_factory=dict)
+    identifying_foreign_keys: Set[str] = Field(default_factory=set)
+
+    def __str__(self):
+        return (
+            "LoadEntity<"
+            f"name={self.name!r}, "
+            f"schema={self.schema!r}, "
+            f"id_attrs={self.identifying_attributes}, "
+            f"id_fks={self.identifying_foreign_keys}>"
+        )
+
+    def _get_hash(self, arg_dict: Dict[str, Any]) -> UUID:
+        id_fks = (str(arg_dict[val]) for val in sorted(self.identifying_foreign_keys))
+        id_attrs = (eval(type_)(arg_dict[val]) for val, type_ in sorted(self.identifying_attributes.items()))
+        tuple_to_hash = (*id_attrs, *id_fks)
+        return hash_tuple(tuple_to_hash)
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.schema_}.{self.name}" if self.schema_ else self.name
+
+    @property
+    def identifiers(self) -> Set[str]:
+        return self.identifying_foreign_keys.union(self.identifying_attributes.keys())
+
+
+NUM_QUERY_TRIES = 10
+
+
+class Load(ComputationalNode):
+    load_entity: LoadEntity
+    primary_key: Optional[Union[Arg, Const]] = None
+    _output: Dict[UUID, Tuple[Any, ...]] = PrivateAttr(default_factory=dict)
+    insert: bool = False
+
+    # _logger_name: ClassVar[
+    #     Callable[["Base", Dict[str, Any]], str]
+    # ] = lambda _, kwargs: f"dbgen.load.{kwargs.get('load_entity').name}"  # type: ignore
+
+    @root_validator
+    def check_bad_insert(cls, values):
+        primary_key = values.get("primary_key")
+        insert = values.get("insert")
+        if primary_key is not None and insert:
+            raise ValueError(
+                f"Can't insert into {values.get('load_entity')} if we already have Primary Key..."
+            )
+        return values
+
+    @validator("primary_key")
+    def check_const_primary_key(cls, primary_key):
+        if isinstance(primary_key, Const):
+            assert (
+                primary_key.val is None
+            ), f"Currently don't allow const primary keys to be used unless None is the value: {primary_key}"
+        return primary_key
+
+    @root_validator
+    def check_required_info(cls, values):
+        insert = values.get("insert")
+        load_entity = values.get("load_entity")
+        inputs = values.get("inputs")
+        pk = values.get("primary_key")
+        if load_entity is None:
+            raise ValueError("Missing load_entity")
+        pk_is_missing = pk is None or (isinstance(pk, Const) and pk.val is None)
+        if insert or pk_is_missing:
+            missing_attrs = filter(lambda x: x not in inputs, load_entity.identifying_attributes)
+            missing_fks = filter(lambda x: x not in inputs, load_entity.identifying_foreign_keys)
+            missing = list(chain(missing_attrs, missing_fks))
+            if missing:
+                action = "insert" if insert else "update"
+                raise ValueError(f"Can't {action} {load_entity} row without required ID info {missing}: {pk}")
+        return values
+
+    def __str__(self):
+        return f"Load<{self.load_entity.name}, {len(self.inputs)} attrs/fks>"
+
+    def _get_dependency(self) -> Dependency:
+        tables_yielded: Set[str] = set()
+        tables_needed: Set[str] = set()
+        if self.insert:
+            tables_yielded.add(self.load_entity.full_name)
+        else:
+            tables_needed.add(self.load_entity.full_name)
+
+        columns_yielded: Set[str] = set()
+        for attr in self.inputs:
+            if self.insert or (attr not in self.load_entity.identifiers):
+                columns_yielded.add(f"{self.load_entity.full_name}.{attr}")
+
+        if not self.insert:
+            columns_needed = {
+                f"{self.load_entity.full_name}.{attr}"
+                for attr in self.inputs
+                if attr in self.load_entity.identifiers
+            }
+        else:
+            columns_needed = set()
+
+        return Dependency(
+            tables_yielded=tables_yielded,
+            columns_yielded=columns_yielded,
+            columns_needed=columns_needed,
+            tables_needed=tables_needed,
+        )
+
+    def run(self, row: Dict[str, Dict[str, Any]]) -> Dict[str, List[UUID]]:
+        not_list = lambda x: not isinstance(x, (list, tuple))
+        arg_dict = {
+            key: [val] if not_list(val) else val for key, val in sorted(self._get_inputs(row).items())
+        }
+        # Check for broadcastability
+        try:
+            is_broadcastable(*arg_dict.values())
+        except ValueError as exc:
+            raise ValueError(
+                "While assembling rows for loading found two sequences in the inputs to the load with non-equal, >1 length\n"
+                "This can occur when two outputs from pyblocks/queries are unequal in length.\n"
+                "If so, please make the relevant cartesian product of the two lists before loading\n"
+            ) from exc
+        broadcasted_values = [
+            {key: val for key, val in zip(arg_dict.keys(), row)} for row in broadcast(*arg_dict.values())
+        ]
+        # If we have a user supplied Primary Key go get it and broadcast it
+        if self.primary_key is not None:
+            primary_arg_val = self.primary_key.arg_get(row)
+            # Validate the primary key type
+            if isinstance(primary_arg_val, UUID):
+                primary_keys = [primary_arg_val]
+            elif isinstance(primary_arg_val, Sequence):
+                assert all(map(lambda x: isinstance(x, UUID), primary_arg_val))
+                primary_keys = list(primary_arg_val)
+            else:
+                ValueError(f"Unknown Primary Key Type: {primary_arg_val}")
+
+            if len(primary_keys) == 1:
+                primary_keys *= len(broadcasted_values)
+            elif len(primary_keys) != len(broadcasted_values):
+                raise ValueError(
+                    f"Cannot broadcast Primary Key to Max Length: {len(primary_keys)} {len(broadcasted_values)}"
+                )
+        else:
+            # If we don't have a primary key get it from the identifying info on the broadcasted
+            # Values
+            primary_keys = [self.load_entity._get_hash(row) for row in broadcasted_values]
+        self._output.update(
+            {
+                primary_key: tuple(value.values())
+                for primary_key, value in zip(primary_keys, broadcasted_values)
+            }
+        )
+        return {"out": primary_keys}
+
+    def load(self, cxn: connection, gen_id: UUID):
+        """Run the Load statement for the given namespace rows.
 
         Args:
-            obj (str): [description]
-            attrs (D[str, ArgLike]): [description]
-            fks (D[str,): [description]
-            pk (Arg, optional): [description]. Defaults to None.
-            insert (bool, optional): [description]. Defaults to False.
+            namespace_rows (List[Dict[str, Any]]): A dictionary with the strings as hashes and the values as the local namespace dictionaries from PyBlocks, Queries, and Consts
         """
-        self.obj = obj.lower()
-        self.attrs = {k.lower(): v for k, v in attrs.items()}
-        self.fks = {k.lower(): v for k, v in fks.items()}
-        self.pk = pk
-        self.insert = insert
-        self.partition_attr = partition_attr
-        self._logger = logging.getLogger(f"dbgen.run.loading.{self.obj}")
-        self._logger.setLevel(logging.DEBUG)
-        err = "Cant insert %s if we already have PK %s"
-        assert (pk is None) or (not insert), err % (obj, pk)
-        if isinstance(pk, Const) and pk == Const(None):
-            pass
-        else:
-            assert isinstance(pk, (Arg, type(None))), (
-                obj,
-                attrs,
-                fks,
-                pk,
-                insert,
-            )
-        super().__init__()
-
-    def __str__(self) -> str:
-        n = len(self.attrs)
-        m = len(self.fks)
-        return "Load<%s, %d attr, %d rel>" % (self.obj, n, m)
-
-    ##################
-    # Public methods #
-    ###################
-    def tabdeps(self, universe: D[str, "Entity"]) -> L[str]:
-        """All tables that are updated (they must already exist, is the logic)"""
-        from dbgen.core.schema import Partition
-
-        # Check if we are updating; if so we depend on
-        entity = universe[self.obj]
-        out = [entity.name] if not self.insert else []
-
-        # Check for partitions on self table
-        # If so add partitions if Entity and add parent entity if partition
-        if out:
-            if isinstance(entity, Partition):
-                out.append(entity._parent_name)
-            elif entity.partition_attr:
-                partition_names = map(lambda x: x.name, entity.get_all_partitions())
-                out.extend(partition_names)
-
-        for fk in self.fks.values():
-            # Check if we are simply setting the FK to null
-            if not isinstance(fk.pk, Const) or fk.pk != Const(None):
-                out.extend(fk.tabdeps(universe))
-        return out
-
-    def newtabs(self, universe: D[str, "Entity"]) -> L[str]:
-        """All tables that could be inserted into this load"""
-        from dbgen.core.schema import Partition
-
-        entity = universe[self.obj]
-        out = [entity.name] if self.insert else []
-
-        # Check for partitions on self table
-        # If so add partitions if Entity and add parent entity if partition
-        if out and isinstance(entity, Partition):
-            out.append(entity._parent_name)
-        elif out and entity.partition_attr:
-            partition_names = map(lambda x: x.name, entity.get_all_partitions())
-            out.extend(partition_names)
-
-        for a in self.fks.values():
-            out.extend(a.newtabs(universe))
-        return out
-
-    def newcols(self, universe: D[str, "Entity"]) -> L[str]:
-        """All attributes that could be populated by this load"""
-        from dbgen.core.schema import Partition
-
-        entity = universe[self.obj]
-        if isinstance(entity, Partition):
-            new_entities = [entity, universe[entity._parent_name]]
-        else:
-            new_entities = [entity, *entity.get_all_partitions()]
-        out: L[str] = []
-        for new_entity in new_entities:
-            out.extend(
-                [
-                    new_entity.name + "." + a
-                    for a in self.attrs.keys()
-                    if (self.insert or (a not in new_entity.ids()))
-                ]
-            )
-            for k, a in self.fks.items():
-                if self.insert or (k not in new_entity.id_fks()):
-                    out.extend([new_entity.name + "." + k] + a.newcols(universe))
-        return out
-
-    def act(
-        self,
-        cxn: Conn,
-        universe: "UNIVERSE_TYPE",
-        rows: L[dict],
-        gen_name: str,
-    ) -> None:
-        """
-        Top level call from a Generator to execute an load (top level is
-        always insert or update, never just a select)
-        """
-        # Initialize logger
-        self._load(cxn, universe, rows, insert=self.insert)
-
-    def rename_object(self, o: "Entity", n: str) -> "Load":
-        """Replaces all references to a given object to one having a new name"""
-        a = self.copy()
-        if a.obj == o.name:
-            a.obj = n
-        for k, v in a.fks.items():
-            a.fks[k] = v.rename_object(o, n)
-        return a
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        """A hypothesis strategy for generating random examples."""
-
-        common_load_kwargs = dict(
-            obj=nonempty,
-            attrs=dictionaries(keys=nonempty, values=ArgLike._strat()),
-        )
-        load_ = builds(
-            cls,
-            fks=just(dict()),
-            pk=Arg._strat(),
-            insert=just(False),
-            **common_load_kwargs,  # type: ignore
-        )
-        load0 = builds(
-            cls,
-            fks=dictionaries(keys=nonempty, values=load_),
-            pk=Arg._strat(),
-            insert=just(False),
-            **common_load_kwargs,  # type: ignore
-        )
-        load1 = builds(
-            cls,
-            fks=dictionaries(keys=nonempty, values=load_),
-            pk=just(None),
-            insert=just(True),
-            **common_load_kwargs,  # type: ignore
-        )
-        return one_of(load_, load0, load1)
-
-    ###################
-    # Private methods #
-    ###################
-
-    def _getvals(
-        self,
-        universe: "UNIVERSE_TYPE",
-        row: dict,
-    ) -> T[L[int], L[tuple]]:
-        """
-        Get a broadcasted list of INSERT/UPDATE values for an object, given
-        Pyblock+Query output
-        """
-
-        idattr, allattr = [], []
-        obj_pk_name, ids, id_fks, dtype_dict = universe[self.obj]
-        for k, v in sorted(
-            self.attrs.items(),
-        ):
-            val = v.arg_get(row)
-            dtype = dtype_dict[k]
-            if isinstance(val, (list, tuple)):
-                func = lambda x: [dtype.cast(ele) for ele in x]
-            else:
-                func = dtype.cast
-            try:
-                allattr.append(func(val))
-            except DBgenTypeError:
-                self._logger.error(
-                    f"While processing a row we encountered a value that violated column {k}'s type constraint {dtype}."
-                    f"\nRow: {row}\nVal: {val}"
-                )
-                raise
-            if k in ids:
-                idattr.append(allattr[-1])
-
-        for kk, vv in sorted(self.fks.items()):
-            if vv.pk is not None:
-                val = vv.pk.arg_get(row)
-                if isinstance(val, int) or val is None:
-                    pass
-                elif isinstance(val, list) and isinstance(val[0], int):
-                    pass
-                else:
-                    raise ValueError(f"Primary Key is not an int or None: {row}\n{vv}\n{vv.pk}\n{val}")
-            else:
-                val, fk_adata = vv._getvals(universe, row)
-
-            allattr.append(val)
-            if kk in id_fks:
-                idattr.append(val)
-
-        idata: L[tuple] = broadcast(idattr)
-        adata: L[tuple] = broadcast(allattr)
-        if self.pk is not None:
-            assert not idata, "Cannot provide a PK *and* identifying info"
-            pkdata = self.pk.arg_get(row)
-            if isinstance(pkdata, int):
-                idata_prime = [pkdata]
-            elif isinstance(pkdata, list) and isinstance(pkdata[0], int):  # HACKY
-                idata_prime = pkdata
-            elif isinstance(pkdata, str) or (isinstance(pkdata, list) and isinstance(pkdata[0], str)):
-                raise TypeError(
-                    f"While looking for the PK on {self.obj}, we found a string or list of strings: {pkdata}\n"
-                    "PK's should be integers for hashing purposes."
-                )
-            else:
-                raise TypeError(
-                    "PK should either receive an int or a list of ints",
-                    vars(self),
-                )
-        else:
-            idata_prime = []
-            idata_dict = {}  # type: D[tuple,int]
-            # Iterate through the identifying data and cache the hashed result for speed
-            for idata_curr in idata:
-                if idata_dict.get(idata_curr) is None:
-                    try:
-                        idata_dict[idata_curr] = int(hashdata_(idata_curr))
-                    except TypeError:
-                        print(idata_curr)
-                idata_prime.append(idata_dict[idata_curr])
-
-        if len(idata_prime) == 1:
-            idata_prime *= len(adata)  # broadcast
-
-        lenerr = "Cannot match IDs to data: %d!=%d"
-        assert len(idata_prime) == len(adata), lenerr % (
-            len(idata_prime),
-            len(adata),
-        )
-        return idata_prime, adata
+        self._logger.debug(f"Loading into {self.load_entity.name}")
+        io_obj = self._data_to_stringIO()
+        self._load_data(io_obj=io_obj, cxn=cxn, gen_id=gen_id)
+        self._output = {}
 
     def _data_to_stringIO(
         self,
-        pk: L[int],
-        data: L[tuple],
-        obj_pk_name: str,
     ) -> StringIO:
         """
         Function takes in a path to a delimited file and returns a IO object
@@ -338,7 +223,7 @@ class Load(Base):
         """
         # All ro
         output_file_obj = StringIO()
-        for i, (pk_curr, row_curr) in enumerate(set(zip(pk, data))):
+        for pk_curr, row_curr in self._output.items():
             new_line = [str(pk_curr)] + list(row_curr)  # type: ignore
             new_line = map(str, new_line)  # type: ignore
             new_line = map(  # type: ignore
@@ -354,42 +239,7 @@ class Load(Base):
 
         return output_file_obj
 
-    def _load(
-        self,
-        cxn: Conn,
-        universe: "UNIVERSE_TYPE",
-        rows: L[dict],
-        insert: bool,
-        test: bool = False,
-    ) -> L[int]:
-        """
-        Helpful docstring
-        """
-        self._logger.debug("recursively loading foreign keys")
-        for kk, vv in self.fks.items():
-            if vv.insert:
-                vv._load(cxn, universe, rows, insert=True, test=test)
-
-        self._logger.debug("Getting attributes and generating hashes")
-        obj_pk_name = universe[self.obj][0]
-        pk, data = [], []
-        for row in rows:
-            pk_curr, data_curr = self._getvals(universe, row)
-            pk.extend(pk_curr)
-            data.extend(data_curr)
-
-        self._logger.debug("writing data to stringio object")
-        io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
-        if not data:
-            return []
-
-        # If we are testing don't try and do sql
-        if not test:
-            self._load_data(cxn, obj_pk_name, io_obj, insert)
-
-        return [int(x) for x in pk]
-
-    def _load_data(self, cxn: Conn, obj_pk_name: str, io_obj: StringIO, insert: bool) -> None:
+    def _load_data(self, cxn: connection, io_obj: StringIO, gen_id: UUID) -> None:
         """
         Function that quickly loads an io_obj import the database specified
         obj_pk_name. Insert flag determines whether we update or insert.
@@ -407,47 +257,53 @@ class Load(Base):
         """
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
-        temp_table_name = self.obj + "_temp_load_table_" + str(getrandbits(64))
+        temp_table_name = self.load_entity.name + "_temp_load_table_" + self.hash
 
         # Need to create a temp table to copy data into
         # Add an auto_inc column so that data can be ordered by its insert location
 
+        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
         create_temp_table = """
-        DROP TABLE IF EXISTS {temp_table_name};
         CREATE TEMPORARY TABLE {temp_table_name} AS
-        TABLE {obj}
+        TABLE {schema}.{obj}
         WITH NO DATA;
         ALTER TABLE {temp_table_name}
         ADD COLUMN auto_inc SERIAL NOT NULL;
+        ALTER TABLE {temp_table_name}
+        ALTER COLUMN "gen_id" SET DEFAULT '{gen_id}';
         """.format(
-            obj=self.obj, temp_table_name=temp_table_name
+            obj=self.load_entity.name,
+            schema=self.load_entity.schema_,
+            temp_table_name=temp_table_name,
+            gen_id=gen_id,
         )
 
-        cols = [obj_pk_name] + list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
+        cols = [self.load_entity.primary_key_name] + list(sorted(self.inputs.keys()))
         from dbgen.templates import jinja_env
 
-        if insert:
+        if self.insert:
             template = jinja_env.get_template("insert.sql.jinja")
         else:
             template = jinja_env.get_template("update.sql.jinja")
 
         first = False
         update = True
-        fk_cols = self.fks.keys()
         template_args = dict(
-            obj=self.obj,
-            obj_pk_name=obj_pk_name,
-            partition_attr=self.partition_attr,
+            obj=self.load_entity.name,
+            obj_pk_name=self.load_entity.primary_key_name,
             temp_table_name=temp_table_name,
-            all_column_names=cols,
-            fk_cols=fk_cols,
+            all_column_names=cols + ["gen_id"],
             first=first,
             update=update,
+            schema=self.load_entity.schema_,
         )
         load_statement = template.render(**template_args)
 
         with cxn.cursor() as curs:
-            # Create the temp table
+            # Drop Temp Table
+            curs.execute(drop_temp_table)
+        with cxn.cursor() as curs:
+            # Create the temp tabletable)
             curs.execute(create_temp_table)
             # Attempt the loading step 3 times
             self._logger.debug("load into temporary table")
@@ -463,11 +319,11 @@ class Load(Base):
                         columns=cols,
                     )
                     break
-                except QueryCanceled:
+                except QueryCanceled:  # type: ignore
                     print("Query cancel failed")
                     query_fail_count += 1
                     continue
-                except Psycopg2Error as exc:
+                except Psycopg2Error as exc:  # type: ignore
                     raise DBgenExternalError(exc.pgerror)
 
             # Try to insert everything from the temp table into the real table
@@ -482,6 +338,9 @@ class Load(Base):
                 try:
                     curs.execute(load_statement)
                     break
+                except psycopg2.errors.SyntaxError:
+                    print(load_statement)
+                    raise
                 except psycopg2.errors.ForeignKeyViolation as exc:
                     pattern = r'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
                     fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
@@ -490,7 +349,7 @@ class Load(Base):
                     self._logger.error(
                         "---\n"
                         f"ForeignKeyViolation #({fk_fail_count+1}): tried to insert {fk_pk} into"
-                        f" FK column {fk_name} of {self.obj}."
+                        f" FK column {fk_name} of {self.load_entity.name}."
                         f"\nBut no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
                     )
                     self._logger.error(f"Moving on without inserting any rows with this {fk_pk}")
@@ -499,64 +358,8 @@ class Load(Base):
                     continue
             if fk_fail_count:
                 self._logger.error(f"Fail count = {fk_fail_count}")
-
+            self._logger.debug("Dropping temp table...")
+            curs.execute(drop_temp_table)
         io_obj.close()
+        cxn.commit()
         self._logger.debug("loading finished")
-
-    def test(self, universe: "UNIVERSE_TYPE", rows: L[dict]) -> D[str, L[dict]]:
-        """
-        Takes in the universe and processed namespaces and generates dict where keys are table names and values are lists of input rows
-
-        Args:
-            universe (D[str, T[str, L[str], L[str]]]): universe of model
-            rows (L[dict]): example processed namespaces after PyBlocks applied
-
-        Returns:
-            D[str, L[dict]]: dictionary of mapping tables to lists of rows that would be inserted if this load were called
-        """
-        obj_pk_name, ids, id_fks, dtype_dict = universe[self.obj]
-        pk, data = [], []
-
-        for row in rows:
-            pk_curr, data_curr = self._getvals(universe, row)
-            pk.extend(pk_curr)
-            data.extend(data_curr)
-
-            for kk, vv in sorted(self.fks.items()):
-                if vv.pk is not None:
-                    val = vv.pk.arg_get(row)
-                else:
-                    val, fk_adata = vv._getvals(universe, row)
-
-        io_obj = self._data_to_stringIO(pk, data, obj_pk_name)
-
-        cols = [obj_pk_name] + list(sorted(self.attrs.keys())) + list(sorted(self.fks.keys()))
-        table_rows = []
-        while True:
-            line = io_obj.readline()
-            if not line:
-                break
-            table_rows.append({col: val for col, val in zip(cols, line.strip("\n").split("\t"))})
-
-        output = {self.obj + ("_insert" if self.insert else ""): table_rows}
-        # Save the rows of recursive loads
-        for kk, vv in self.fks.items():
-            if vv.insert:
-                if vv.obj == self.obj and vv.insert == self.insert:
-                    print("!WARNING! self FKs aren't viewable in interact mode")
-                else:
-                    output.update(vv.test(universe, rows))
-        return output
-
-    def make_src(self) -> str:
-        """
-        Output a stringified version of load that can be run in an Airflow PythonOperator
-        """
-        attrs = ",".join([f"{k}={v.make_src(meta=True)}" for k, v in self.attrs.items()])
-        template = (
-            "Load(obj= '{{ obj }}',attrs= dict({{attrs}}),"
-            "fks=dict({{ fks }}),pk= {{ pk }},insert={{ insert }})"
-        )
-        fks = ",".join([f"{k}={v.make_src()}" for k, v in self.fks.items()])
-        pk = None if self.pk is None else self.pk.make_src(meta=True)
-        return Template(template).render(obj=self.obj, attrs=attrs, fks=fks, pk=pk, insert=self.insert)

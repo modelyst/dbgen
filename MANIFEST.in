@@ -1,14 +1,8 @@
-#
-
-
 include *.rst
 include LICENSE
 include requirements*.txt
 include src/dbgen/git_version
-include src/dbgen/example/data/*
-include src/dbgen/cli/newfiles/*
 include src/dbgen/templates/*
-include src/dbgen/utils/config_templates/*
 # Documentation files
 include mkdocs.yml
 include poetry.toml

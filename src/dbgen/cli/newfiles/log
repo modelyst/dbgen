@@ -1,6 +1,0 @@
-{{"passwd": "{user}"
-  , "host": "localhost"
-  , "db": "{model}"
-  , "schema": "log"
-  , "port": 5432
-  , "user": "{user}"}}

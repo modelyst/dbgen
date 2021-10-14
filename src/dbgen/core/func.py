@@ -13,6 +13,9 @@
 #   limitations under the License.
 
 import ast
+import inspect
+import os
+import re
 from importlib.util import module_from_spec, spec_from_file_location
 from inspect import (
     getdoc,
@@ -26,32 +29,17 @@ from inspect import (
 )
 from os.path import exists
 from pathlib import Path
-from re import findall
-from sys import version_info
+from types import LambdaType
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Union
 
-# External Modules
-from typing import Any
-from typing import Callable as C
-from typing import Dict as D
-from typing import List as L
-from typing import Union as U
+from pydantic import Field, constr, root_validator, validator
 
-from hypothesis.strategies import SearchStrategy, builds
+from dbgen.configuration import config
+from dbgen.core.base import Base
+from dbgen.exceptions import DBgenInternalError, DBgenInvalidArgument
+from dbgen.utils.misc import reserved_words
 
-# Iternal Modules
-from dbgen.core.datatypes import DataType, Tuple
-from dbgen.utils.config import DBGEN_TMP
-from dbgen.utils.exceptions import DBgenInternalError, DBgenInvalidArgument
-from dbgen.utils.misc import Base, hash_
-from dbgen.utils.sql import Connection as Conn
-from dbgen.utils.sql import mkInsCmd, mkSelectCmd, sqlexecute, sqlselect
 
-"""
-Defines the Func class, which is initialized with any Python callable but gets
-enriched in the __init__ with a lot more information and methods (from inspect)
-"""
-assert version_info[1] > 5, "Stop using old python3 (need 3.x, x > 5)"
-################################################################################
 class Import(Base):
     """
     Representation of an Python import line.
@@ -71,32 +59,38 @@ class Import(Base):
                             "alias" using an alias
     """
 
-    def __init__(
-        self,
-        lib: str,
-        unaliased_imports: U[L[str], str] = None,
-        lib_alias: str = "",
-        aliased_imports: D[str, str] = None,
-    ) -> None:
+    lib: constr(min_length=1)  # type: ignore
+    unaliased_imports: Union[str, List[str]] = Field(default_factory=lambda: list())
+    lib_alias: Optional[str] = None
+    aliased_imports: Dict[str, str] = Field(default_factory=lambda: dict())
+    _reserved_words: ClassVar[Set[str]] = reserved_words
 
-        err = "Can't import %s as %s AND import specific terms (%s,%s) at once"
-        terms = unaliased_imports or aliased_imports
-        assert not (lib_alias and terms), err % (
-            lib,
-            lib_alias,
-            unaliased_imports,
-            aliased_imports,
-        )
+    @root_validator(pre=True)
+    def check_lib_alias(cls, values):
+        terms = values.get("unaliased_imports") or values.get("aliased_imports")
+        lib_alias = values.get("lib_alias")
+        lib = values.get("lib")
+        err = f"Can't import {lib} as {lib_alias} AND import specific terms ({terms}) at once"
+        assert not (lib_alias and terms), err
+        return values
 
-        self.lib = lib
-        self.lib_alias = lib_alias
-
+    @validator("unaliased_imports", pre=True)
+    def singleton_list(cls, unaliased_imports):
         if isinstance(unaliased_imports, str):
-            self.unaliased_imports = [unaliased_imports]
+            return [unaliased_imports]
         else:
-            self.unaliased_imports = unaliased_imports or []
-        self.aliased_imports = aliased_imports or {}
-        super().__init__()
+            return unaliased_imports or []
+
+    @validator("aliased_imports")
+    def reserved_words(cls, aliased_imports):
+        for alias in aliased_imports.values():
+            assert alias not in cls._reserved_words, f"Reserved python word used as alias: {alias}"
+        return aliased_imports
+
+    @validator("lib_alias")
+    def check_reserbed_lib_alias(cls, lib_alias):
+        assert lib_alias not in cls._reserved_words, f"Reserved python word used as lib_alias: {lib_alias}"
+        return lib_alias
 
     def __str__(self) -> str:
         if not (self.unaliased_imports or self.aliased_imports):
@@ -107,41 +101,10 @@ class Import(Base):
             terms = list(self.unaliased_imports) + als
             return f"from {self.lib} import {', '.join(terms)}"
 
-    def __eq__(self, other: object) -> bool:
-        return False if not isinstance(other, Import) else vars(self) == vars(other)
-
-    def __hash__(self) -> int:
-        return int(self.hash)
-
     def __lt__(self, other: Any) -> bool:
         if type(self) == type(other):
             return repr(self) < repr(other)
         raise TypeError(f"'<' not supported between instances of '{type(self)}' and '{type(other)}'")
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls)
-
-    @staticmethod
-    def from_str(s: str) -> "Import":
-        """Parse a header line (parens not supported yet)"""
-        if s[:6] == "import":
-            if " as " in s[7:]:
-                lib, lib_alias = [s[7:].split("as")[i].strip() for i in range(2)]
-                return Import(lib, lib_alias=lib_alias)
-            return Import(s.split()[1].strip())
-        else:
-            i = s.find("import")
-            a, lib = s[:i].split()
-            assert a == "from", "Bad source code beginning : \n\n\n" + s
-            pat = r"([a-zA-Z0-9\_]+\s*(?:as\s*[a-zA-Z0-9\_]+)?)"
-            groups = findall(pat, s[i + 6 :])
-            objs = [list(map(str.strip, g.split("as"))) for g in groups]
-            # objs_ = [x[0] if len(x) == 1 else tuple(x) for x in objs]
-            unalias = [x[0] for x in objs if len(x) == 1]
-            aliased = {x[0]: x[1] for x in objs if len(x) == 2}
-
-            return Import(lib, unaliased_imports=unalias, aliased_imports=aliased)
 
 
 class Env(Base):
@@ -149,27 +112,17 @@ class Env(Base):
     Environment in which a python statement gets executed
     """
 
-    def __init__(self, imports: L[Import] = None) -> None:
+    imports: List[Import] = Field(default_factory=lambda: list())
 
-        if imports:
-            assert isinstance(
-                imports, list
-            ), "Env takes in a list of imports. If there is 1 import wrap it in a list"
-
-            self.imports = sorted(imports)
-        else:
-            self.imports = []
-        super().__init__()
+    @validator("imports")
+    def sort_imports(cls, imports):
+        return sorted(imports)
 
     def __str__(self) -> str:
         return "\n".join(map(str, self.imports))
 
     def __add__(self, other: "Env") -> "Env":
-        return Env(list(set(self.imports + other.imports)))
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls)
+        return Env(imports=list(set(self.imports + other.imports)))
 
     # Public methods #
 
@@ -190,7 +143,7 @@ class Env(Base):
                         unaliased_imports.append(module.name)
                 imports.append(
                     Import(
-                        lib,
+                        lib=lib,
                         unaliased_imports=unaliased_imports,
                         aliased_imports=aliased_imports,
                     )
@@ -199,8 +152,8 @@ class Env(Base):
                 assert len(node.names) == 1, f"Bad Import String! {import_string}"
                 lib = node.names[0].name
                 lib_alias = node.names[0].asname or ""
-                imports.append(Import(lib, lib_alias=lib_alias))
-        return Env(imports)
+                imports.append(Import(lib=lib, lib_alias=lib_alias))
+        return Env(imports=imports)
 
     @classmethod
     def from_file(cls, pth: Path) -> "Env":
@@ -208,19 +161,13 @@ class Env(Base):
             return cls.from_str(f.read())
 
 
-################################################################################
 class Func(Base):
     """
     A function that can be used during the DB generation process.
     """
 
-    def __init__(self, src: str, env: Env) -> None:
-        assert isinstance(src, str), f"Expected src str, but got {type(src)}"
-        assert isinstance(env, Env), f"Expected Env, but got {type(env)}"
-
-        self.src = src
-        self.env = env
-        super().__init__()
+    src: str
+    env: Env
 
     def __str__(self) -> str:
         n = self.src.count("\n")
@@ -236,10 +183,6 @@ class Func(Base):
 
     def __repr__(self) -> str:
         return self.name
-
-    @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(cls)
 
     # Properties #
 
@@ -260,12 +203,12 @@ class Func(Base):
         return signature(self._from_src())
 
     @property
-    def argnames(self) -> L[str]:
+    def argnames(self) -> List[str]:
         return list(self.sig.parameters)
 
     @property
     def nIn(self) -> int:
-        return len(self.inTypes)
+        return len(self.argnames)
 
     @property
     def notImp(self) -> bool:
@@ -277,24 +220,26 @@ class Func(Base):
 
     @property
     def nOut(self) -> int:
-        return len(self.outTypes)
+        return 1
 
-    @property
-    def inTypes(self) -> L[DataType]:
-        return [DataType.get_datatype(x.annotation) for x in self.sig.parameters.values()]
+    # @property
+    # def inTypes(self) -> List["DataType"]:
+    #     return [
+    #         DataType.get_datatype(x.annotation) for x in self.sig.parameters.values()
+    #     ]
 
     @property
     def path(self) -> Path:
-        return DBGEN_TMP / (str(hash_(self.file())) + ".py")
+        return config.temp_dir / f"{self.hash}.py"
 
-    @property
-    def outTypes(self) -> L[DataType]:
-        ot = DataType.get_datatype(self.output)
-        if len(ot) == 1:
-            return [ot]
-        else:
-            assert isinstance(ot, Tuple)
-            return ot.args
+    # @property
+    # def outTypes(self) -> List["DataType"]:
+    #     ot = DataType.get_datatype(self.output)
+    #     if len(ot) == 1:
+    #         return [ot]
+    #     else:
+    #         assert isinstance(ot, Tuple)
+    #         return ot.args
 
     def file(self) -> str:
         lam = "f = " if self.is_lam else ""
@@ -302,7 +247,7 @@ class Func(Base):
 
     # Private methods #
 
-    def _from_src(self, force: bool = False) -> C:
+    def _from_src(self, force: bool = False) -> Callable:
         """
         Execute source code to get a callable
         """
@@ -322,54 +267,13 @@ class Func(Base):
         """
         self._func = self._from_src(force)
 
-    def del_func(self) -> None:
-        """Remove callable attribute after performance is no longer needed"""
-        if hasattr(self, "_func"):
-            del self._func
-
-    def add(self, cxn: Conn) -> int:
-        """
-        Log function data to metaDB, return its ID
-        """
-        q = mkSelectCmd("_func", ["func_id"], ["checksum"])
-        f_id = sqlselect(cxn, q, [hash_(self.src)])
-        if f_id:
-            return f_id[0][0]
-        else:
-
-            cols = [
-                "name",
-                "checksum",
-                "source",
-                "docstring",
-                "inTypes",
-                "outType",
-                "n_in",
-                "n_out",
-            ]
-
-            binds = [
-                self.name,
-                hash_(self.src),
-                self.src,
-                self.doc,
-                str(self.inTypes),
-                str(self.outTypes),
-                self.nIn,
-                self.nOut,
-            ]
-
-            sqlexecute(cxn, mkInsCmd("_func", cols), binds)
-            f_id = sqlselect(cxn, q, [hash_(self.src)])
-            return f_id[0][0]
-
     @staticmethod
-    def path_to_func(pth: str) -> C:
+    def path_to_func(pth: str) -> Callable:
 
         try:
             spec = spec_from_file_location("random", pth)
-            mod = module_from_spec(spec)
             assert spec and spec.loader, "Spec or Spec.loader are broken"
+            mod = module_from_spec(spec)
             spec.loader.exec_module(mod)  # type: ignore
             transforms = [o for o in getmembers(mod) if isfunction(o[1]) and getsourcefile(o[1]) == pth]
             assert len(transforms) == 1, "Bad input file %s has %d functions, not 1" % (
@@ -387,55 +291,141 @@ class Func(Base):
             )
 
     @classmethod
-    def from_callable(cls, f: U[C, "Func"], env: Env = Env()) -> "Func":
+    def from_callable(cls, f: Union[Callable, "Func"], env: Optional[Env] = None) -> "Func":
         """
         Generate a func from a variety of possible input data types.
         """
+        if isinstance(env, dict):
+            env = Env.from_dict(env)
+        elif env is None:
+            env = Env()
         if isinstance(f, Func):
             # assert not getattr(env,'imports',False)
-            return f
+            return cls(src=f.src, env=env)
         else:
             assert callable(f), f"tried to instantiate Func, but not callable {type(f)}"
-            return Func(src=cls.get_source(f), env=env)
+            return cls(src=get_callable_source_code(f), env=env)
 
-    @staticmethod
-    def get_source(f: C) -> str:
-        """
-        Return the source code, even if it's lambda function.
-        """
-        # Check for built in functions as their source code can not be fetched
-        if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
-            raise DBgenInvalidArgument(
-                f"Error getting source code for PyBlock. {f} is a built-in function.\n"
-                f"Please wrap in lambda like so: `lambda x: {f.__name__}(x)`"
-            )
 
+def get_short_lambda_source(lambda_func):
+    """Return the source of a (short) lambda function.
+    If it's impossible to obtain, returns None.
+    """
+    try:
+        source_lines, _ = inspect.getsourcelines(lambda_func)
+    except (OSError, TypeError):
+        return None
+
+    # skip `def`-ed functions and long lambdas
+    if len(source_lines) != 1:
+        return None
+
+    source_text = os.linesep.join(source_lines).strip()
+
+    # find the AST node of a lambda definition
+    # so we can locate it in the source code
+    try:
+        source_ast = ast.parse(source_text)
+    except SyntaxError:
+        return None
+    lambda_node = next((node for node in ast.walk(source_ast) if isinstance(node, ast.Lambda)), None)
+    if lambda_node is None:  # could be a single line `def fn(x): ...`
+        return None
+
+    # HACK: Since we can (and most likely will) get source lines
+    # where lambdas are just a part of bigger expressions, they will have
+    # some trailing junk after their definition.
+    #
+    # Unfortunately, AST nodes only keep their _starting_ offsets
+    # from the original source, so we have to determine the end ourselves.
+    # We do that by gradually shaving extra junk from after the definition.
+    lambda_text = source_text[lambda_node.col_offset :]
+    lambda_body_text = source_text[lambda_node.body.col_offset :]
+    min_length = len("lambda:_")  # shortest possible lambda expression
+    while len(lambda_text) > min_length:
         try:
-            source_lines, _ = getsourcelines(f)
-        except (OSError, TypeError) as e:
-            # functions defined in pdb / REPL / eval / some other way in which
-            # source code not clear
-            raise ValueError("from_callable: ", f, e)
+            # What's annoying is that sometimes the junk even parses,
+            # but results in a *different* lambda. You'd probably have to
+            # be deliberately malicious to exploit it but here's one way:
+            #
+            #     bloop = lambda x: False, lambda x: True
+            #     get_short_lamnda_source(bloop[0])
+            #
+            # Ideally, we'd just keep shaving until we get the same code,
+            # but that most likely won't happen because we can't replicate
+            # the exact closure environment.
+            code = compile(lambda_body_text, "<unused filename>", "eval")
 
-        # Handle 'def'-ed functions and long lambdas
+            # Thus the next best thing is to assume some divergence due
+            # to e.g. LOAD_GLOBAL in original code being LOAD_FAST in
+            # the one compiled above, or vice versa.
+            # But the resulting code should at least be the same *length*
+            # if otherwise the same operations are performed in it.
+            if len(code.co_code) == len(lambda_func.__code__.co_code):
+                return lambda_text
+        except SyntaxError:
+            pass
+        lambda_text = lambda_text[:-1]
+        lambda_body_text = lambda_body_text[:-1]
+
+    return None
+
+
+lambda_pattern = r"\s*(\w+)\s*=\s*(lambda.*)"
+lambda_regex = re.compile(lambda_pattern)
+
+
+def get_callable_source_code(f: Callable) -> str:
+    """
+    Return the source code, even if it's lambda function.
+    """
+    if isinstance(f, LambdaType) and f.__name__ == "<lambda>":
+        source_code = get_short_lambda_source(f)
+        if source_code is None:
+            # Attempt to scrape the lines for error messaging
+            try:
+                source_lines, _ = getsourcelines(f)
+            except (OSError, TypeError):
+                source_lines = [""]
+            src = "".join(source_lines).strip()
+            raise ValueError(f"Unable to parse lambda function: {f}\n{src}\n")
+
+        return source_code
+    # Check for built in functions as their source code can not be fetched
+    if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
+        raise DBgenInvalidArgument(
+            f"Error getting source code for PyBlock. {f} is a built-in function.\n"
+            f"Please wrap in lambda like so: `lambda x: {f.__name__}(x)`"
+        )
+
+    try:
+        source_lines, _ = getsourcelines(f)
+    except (OSError, TypeError) as e:
+        # functions defined in pdb / REPL / eval / some other way in which
+        # source code not clear
+        raise ValueError("from_callable: ", f, e)
+
+    # Handle 'def'-ed functions and long lambdas
+    if source_lines[0].strip().startswith("@"):
+        src = "".join(source_lines[1:]).strip()
+    else:
         src = "".join(source_lines).strip()
 
-        if len(source_lines) > 1 and src[:3] == "def":
-            return src
+    if len(source_lines) > 1 and src[:3] == "def":
+        return src
 
-        err = 'Only one "lambda" allowed per line: '
-        assert src.count("lambda") == 1, err + src
+    match = lambda_regex.match(src)
+    if match:
+        func_name, func = match.groups()
+        func_name = func_name.strip()
+        func = func.strip()
+    else:
+        raise ValueError(f"Can't parse lambda:\n{src}")
 
-        src_ = src[src.find("lambda") :]  # start of lambda function
-
-        # Slice off trailing chars until we get a callable function
-        while len(src_) > 6:
-            try:
-                if callable(eval(src_)):
-                    return src_
-            except (SyntaxError, NameError):
-                pass
-
-            src_ = src_[:-1].strip()
-
-        raise ValueError("could not parse lambda: " + src)
+    # Slice off trailing chars until we get a callable function
+    try:
+        eval_func = eval(func)
+    except SyntaxError:
+        raise ValueError(f"Cannot parse the source code due to syntax error:\n#####\n{func}")
+    assert callable(eval_func)
+    return func

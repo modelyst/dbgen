@@ -21,7 +21,7 @@ import sys
 from os.path import join
 from pathlib import Path
 
-from dbgen.version import version
+from dbgen import __version__
 
 logger = logging.getLogger(__name__)
 DBGEN_DIR = str(Path(__file__).parent.parent.parent.parent)
@@ -61,7 +61,7 @@ def get_git_version(version_: str):
 
 
 def write_version():
-    full_version = get_git_version(version)
+    full_version = get_git_version(__version__)
     if full_version:
         with open(join(DBGEN_DIR, "src", "dbgen", "git_version"), "w") as f:
             f.write(full_version + "\n")

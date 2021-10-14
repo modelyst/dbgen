@@ -13,33 +13,22 @@
 #   limitations under the License.
 
 from pprint import pformat
-
-# External Modules
 from typing import List
 
-from networkx import DiGraph, NetworkXUnfeasible  # type: ignore
-from networkx.algorithms import lexicographical_topological_sort, simple_cycles  # type: ignore
+from networkx import DiGraph, NetworkXUnfeasible
+from networkx.algorithms import lexicographical_topological_sort, simple_cycles
 
 
 # Graph
 # --------
-def topsort_with_dict(G: DiGraph, d: dict) -> List:
+def topsort_with_dict(G: DiGraph) -> List:
     """
     Assuming a graph with object names and dict mapping names to objects,
     perform a topsort and return the list of objects.
     """
     try:
         sortd = list(lexicographical_topological_sort(G))
-        return [d[x] for x in sortd]
+        return sortd
     except NetworkXUnfeasible:
         cycles = pformat(list(simple_cycles(G)))
         raise ValueError(f"Cycles found: {cycles}")
-
-
-def make_acyclic(G: DiGraph) -> DiGraph:
-    stack = list(simple_cycles(G))
-    while stack:
-        cyc = stack.pop()
-        G.remove_edge(cyc[0], cyc[1])  # this is bad, remove random edge
-        stack = list(simple_cycles(G))
-    return G

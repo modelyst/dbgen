@@ -14,7 +14,7 @@
    limitations under the License.
 #}
 
-INSERT INTO {{obj}}
+INSERT INTO "{{schema}}"."{{obj}}"
 ({% for column in all_column_names %}"{{column}}"{{ ", " if not loop.last }}{% endfor %})
 SELECT
 {% for column in all_column_names %}"{{column}}"{{ "," if not loop.last }}

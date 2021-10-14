@@ -12,17 +12,37 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+"""Utilities for printing things to screen for CLI."""
 import typer
 
-from dbgen import LOGO
+from dbgen import __version__
 
-delimiter = lambda: typer.echo(
-    typer.style("-----------------------------------", fg=typer.colors.BRIGHT_CYAN, bold=True)
-)
-LOGO_STYLE = typer.style(LOGO, blink=True, fg=typer.colors.BRIGHT_CYAN)
+THEME_COLOR = typer.colors.BRIGHT_MAGENTA
+LOGO = """
+    ____  ____
+   / __ \\/ __ )____ ____  ____
+  / / / / __  / __ `/ _ \\/ __ \\
+ / /_/ / /_/ / /_/ /  __/ / / /
+/_____/_____/\\__, /\\___/_/ /_/
+            /____/
+"""
+
+PRINT_LOGO = f"""
+-----------------------------------{LOGO}-----------------------------------
+VERSION: {__version__}
+-----------------------------------
+"""
+
+
+def delimiter(color: str = THEME_COLOR):
+    typer.echo(typer.style("-----------------------------------", fg=color, bold=True))
+
+
+LOGO_STYLE = typer.style(PRINT_LOGO, blink=True, fg=THEME_COLOR)
 # Easy printers
 typer_print = lambda color: lambda msg: typer.echo(typer.style(msg, fg=color))
 good_typer_print = typer_print(typer.colors.GREEN)
 bad_typer_print = typer_print(typer.colors.RED)
+theme_typer_print = typer_print(THEME_COLOR)
 greens = lambda x: typer.style(x, fg=typer.colors.BRIGHT_GREEN)
 reds = lambda x: typer.style(x, fg=typer.colors.BRIGHT_RED)

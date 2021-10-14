@@ -12,249 +12,175 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""
-The Query class, as well as Ref (used to indirectly refer to an object in a
-query without knowing the exact join path)
+import logging
+from typing import Optional, Union, cast, overload
 
-Furthermore some Model methods that are highly related to queries are defined.
-"""
-# External
-from typing import Any
-from typing import Callable as C
-from typing import List as L
-from typing import Mapping as M
-from typing import Sequence
-from typing import Set as S
-from typing import Union as U
+from pydantic import Field
+from pydantic.networks import PostgresDsn
+from pydantic.tools import parse_obj_as
+from pydantic.types import SecretStr
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Connection as SAConnection
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
+from sqlmodel.sql.expression import Select
 
-from hypothesis.strategies import SearchStrategy, builds, dictionaries, lists
+from dbgen.core.base import Base
+from dbgen.core.dependency import Dependency
+from dbgen.core.extract import Extract, extractor_type
+from dbgen.core.statement_parsing import _get_select_keys, get_statement_dependency
 
-from dbgen.core.expr.expr import PK, Expr, true
-from dbgen.core.expr.pathattr import PathAttr, expr_attrs
+log = logging.getLogger(__name__)
 
-# Internal
-from dbgen.core.fromclause import From
-from dbgen.core.funclike import Arg
-from dbgen.core.misc import ConnectInfo as ConnI
-from dbgen.core.schema import Entity, RelTup
-from dbgen.utils.lists import flatten, nub
-from dbgen.utils.misc import nonempty
-from dbgen.utils.sql import select_dict
 
-Fn = C[[Any], str]  # type shortcut
+SCHEMA_DEFAULT = "public"
 
-################################################################################
-class Query(Expr):
-    """
-    Specification of a query, which can only be realized in the context of a model
 
-    exprs - things you SELECT for, keys in dict are the aliases of the outputs
-    basis - determines how many rows can possibly be in the output
-            e.g. ['atom'] means one row per atom
-                 ['element','struct'] means one row per (element,struct) pair
-    constr - expression which must be evaluated as true in WHERE clause
-    aconstr- expression which must be evaluated as true in HAVING clause
-             (to do, automatically distinguish constr
-             from aconstr by whether or not contains any aggs?)
-    option - Objects which may or may not exist (i.e. LEFT JOIN on these)
-    opt_attr - Attributes mentioned in query which may be null
-            (otherwise NOT NULL constraint added to WHERE)
-    """
+class Connection(Base):
+    scheme: str = "postgresql"
+    user: str = "postgres"
+    password: Optional[SecretStr] = None
+    host: str = "localhost"
+    port: int = 5432
+    database: str = "dbgen"
+    schema_: str = Field(SCHEMA_DEFAULT, alias="schema")
+    _hashexclude_ = {"password"}
 
-    def __init__(
-        self,
-        exprs: M[str, Expr],
-        basis: L[U[str, Entity]] = None,
-        constr: Expr = None,
-        aggcols: Sequence[Expr] = None,
-        aconstr: Expr = None,
-        option: Sequence[RelTup] = None,
-        opt_attr: Sequence[PathAttr] = None,
-        allow_nulls: bool = False,
-    ) -> None:
-        err = "Expected %s, but got %s (%s)"
-        for k, v in exprs.items():
-            assert isinstance(k, str), err % ("str", k, type(k))
-            assert isinstance(v, Expr), err % ("Expr", v, type(v))
+    def __repr__(self):
+        return str(self)
 
-        self.exprs = exprs
-        self.aggcols = aggcols or []
-        self.constr = constr or true
-        self.aconstr = aconstr or None
-        self.allow_nulls = allow_nulls
-
-        if not basis:
-            attrobjs = nub([a.obj for a in self.allattr()], str)
-            assert len(attrobjs) == 1, f"Cannot guess basis for you {attrobjs}"
-            self.basis = attrobjs
-        else:
-            self.basis = [x if isinstance(x, str) else x.name for x in basis]
-
-        self.option = option or []
-
-        if opt_attr:
-            for a in opt_attr:
-                if isinstance(a, PK):
-                    raise ValueError("You can' have an optional ID attrs currently")
-                assert isinstance(a, PathAttr), err % ("PathAttr", a, type(a))
-        self.opt_attr = opt_attr or []
-
-    def __str__(self) -> str:
-        return "Query<%d exprs>" % (len(self.exprs))
-
-    def __getitem__(self, key: str) -> Arg:
-        err = "%s not found in query exprs %s"
-        assert key in self.exprs, err % (key, self.exprs)
-        return Arg(self.hash, key)
-
-    ####################
-    # Abstract methods #
-    ####################
-    def show(self, f: Fn) -> str:
-        """How to represent a Query as a subselect"""
-        raise NotImplementedError
-
-    def fields(self) -> L[Expr]:
-        """Might be missing a few things here .... """
-        return list(self.exprs.values())
+    def __str__(self):
+        return self.url()
 
     @classmethod
-    def _strat(cls) -> SearchStrategy:
-        return builds(
-            cls,
-            exprs=dictionaries(keys=nonempty, values=Expr._strat()),
-            basis=lists(nonempty, min_size=1, max_size=2),
-            constr=Expr._strat(),
-            aggcols=lists(Expr._strat(), max_size=2),
-            aconstr=Expr._strat(),
-            option=lists(RelTup._strat(), max_size=2),
-            opt_attr=lists(PathAttr._strat(), max_size=2),
+    def from_uri(cls, uri: Union[PostgresDsn, str], schema: str = SCHEMA_DEFAULT) -> "Connection":
+        if isinstance(uri, str):
+            uri = parse_obj_as(PostgresDsn, uri)
+            uri = cast(PostgresDsn, uri)
+        assert uri.path, f"uri is missing database {uri}"
+        return cls(
+            host=uri.host or "localhost",
+            user=uri.user,
+            password=uri.password,
+            port=uri.port or 5432,
+            database=uri.path.lstrip("/"),
+            schema_=schema,
         )
 
-    ####################
-    # Public methods #
-    ####################
-
-    def allobj(self) -> L[str]:
-        """All object names that are mentioned in query"""
-
-        for a in self.allattr():
-            if not hasattr(a, "obj"):
-                raise ValueError(f"{a} is missing attr obj")
-        return [o.obj for o in self.option] + self.basis + [a.obj for a in self.allattr()]
-
-    def allattr(self) -> S[PathAttr]:
-        """All path+attributes that are mentioned in query"""
-        agg_x = [expr_attrs(ac) for ac in self.aggcols]  # type: L[L[PathAttr]]
-        es = list(self.exprs.values()) + [self.constr, self.aconstr or true]
-        out = set(flatten([expr_attrs(expr) for expr in es] + agg_x))
-        return out
-
-    def allrels(self) -> S[RelTup]:
-        """All relations EXPLICITLY mentioned in the query"""
-        out = set(self.option)
-        for a in self.allattr():
-            out = out | a.allrels()
-        return out
-
-    ###################
-    # Private methods #
-    ###################
-    def _make_from(self) -> From:
-        """ FROM clause of a query - combining FROMs from all the Paths """
-        f = From(self.basis)
-        attrs = self.allattr()
-        for a in attrs:
-            f = f | a.path._from()
-        return f
-
-    def showQ(
-        self,
-        not_deleted: bool = False,
-        not_null: bool = True,
-        limit: int = None,
-    ) -> str:
-        """
-        Render a query
-
-        To do: HAVING Clause
-        """
-        # FROM clause
-        # ------------
-        f = self._make_from()
-
-        # What we select for
-        # -------------------
-        cols = ",\n\t".join([f'{e} AS "{k}"' for k, e in self.exprs.items()])  # .show(shower)
-        cols = "" + cols if cols else ""
-        # WHERE and HAVING clauses
-        # ---------------------------------
-        # Aggregations refered to in WHERE are treated specially
-        where = str(self.constr)  # self.show_constr({})
-        notdel = "\n\t".join([f'AND NOT COALESCE("{o}".deleted, False)' for o in f.aliases()])
-        notnul = "\n\t".join([f"AND {x} IS NOT NULL" for x in self.allattr() if x not in self.opt_attr])
-        where_args = [where]
-        where_args += [notdel] if not_deleted else []
-        where_args += [notnul] if (not_null and not self.allow_nulls) else []
-
-        consts = "WHERE %s" % ("\n\t".join(where_args))
-
-        # HAVING aggregations are treated 'normally'
-        if self.aconstr:
-            haves = f"\nHAVING {self.aconstr}"
+    def url(self, mask_password: bool = True):
+        if mask_password:
+            password = "******"
+        elif self.password:
+            password = self.password.get_secret_value()
         else:
-            haves = ""
+            password = ""
+        return f"{self.scheme}://{self.user}:{password}@{self.host}:{self.port}/{self.database}"
 
-        # Group by clause, if anything SELECT'd has an aggregation
-        # ---------------------------------------------------------
-        def gbhack(x: Expr) -> str:
-            """We want to take the CONCAT(PK," ",UID) exprs generated by Entity.id()
-            and just replace them with PK"""
-            if isinstance(x, PK):
-                return str(x.pk)
+    def get_engine(self):
+        return create_engine(
+            url=self.url(),
+            connect_args={"options": f"-csearch_path={self.schema_}"},
+        )
+
+    def test(self):
+        engine = self.get_engine()
+        try:
+            with engine.connect() as conn:
+                conn.execute("select 1")
+        except OperationalError as exc:
+            log.error(f"Trouble connecting to database at {self}.\n{exc}")
+            return False
+        return True
+
+
+class BaseQuery(Extract):
+    query: str
+    dependency: Dependency = Field(default_factory=Dependency)
+
+    def _get_dependency(self) -> Dependency:
+        return self.dependency
+
+    @classmethod
+    def from_select_statement(
+        cls, select_statement: Select, connection: Connection = None, **kwargs
+    ) -> "BaseQuery":
+        columns, tables, fks = get_statement_dependency(select_statement)
+        outputs = _get_select_keys(select_statement)
+        get_table_name = lambda x: f"{x.schema}.{x.name}" if getattr(x, "schema", "") else x.name
+        dependency = Dependency(
+            tables_needed=[get_table_name(x) for x in tables],
+            columns_needed=[f"{get_table_name(x.table)}.{x.name}" for x in columns.union(fks)],
+        )
+        return cls(
+            inputs=[],
+            outputs=outputs,
+            query=str(select_statement),
+            dependency=dependency,
+        )
+
+    def extract(
+        self,
+        *,
+        connection: SAConnection = None,
+        yield_per: Optional[int] = None,
+        **kwargs,
+    ) -> extractor_type:
+        assert connection
+        if yield_per:
+            result = connection.execute(text(self.query))
+            for row in result.yield_per(yield_per).mappings():
+                yield {self.hash: row}
+        else:
+            result = connection.execute(text(self.query)).mappings().all()
+            for row in result:
+                yield {self.hash: row}
+
+    def get_row_count(self, *, connection: SAConnection = None) -> int:
+        assert connection
+        count_statement = f"select count(1) from ({self.query}) as X;"
+        rows = connection.execute(text(count_statement)).scalar()
+        return rows
+
+
+class ExternalQuery(BaseQuery):
+    connection: Connection
+
+    @classmethod
+    def from_select_statement(
+        cls, select_statement: Select, connection: Connection = None, **kwargs
+    ) -> "ExternalQuery":
+        selected_keys = _get_select_keys(select_statement)
+        return cls(
+            query=str(select_statement),
+            outputs=selected_keys,
+            connection=connection,
+        )
+
+    def extract(
+        self, *, connection: SAConnection = None, yield_per: Optional[int] = None, **kwargs
+    ) -> extractor_type:
+        engine = self.connection.get_engine()
+        with Session(engine) as session:
+            if yield_per:
+                result = session.execute(text(self.query))
+                yield from result.yield_per(yield_per).mappings()
             else:
-                return str(x)
+                result = session.execute(text(self.query)).mappings().all()
+                yield from result
 
-        gb = [gbhack(x) for x in self.aggcols]
-        groupby = "\nGROUP BY \n\t%s" % (",\n\t".join(gb)) if gb else ""
 
-        # Compute FROM clause
-        # --------------------
-        f_str = f.print(self.option)
+@overload
+def Query(select_statement: Select, connection: Connection) -> ExternalQuery:
+    ...
 
-        # Get the Limit Clause if limit is set
-        # ------------------------------------
-        limit_str = f"\nLimit {limit}" if limit is not None else ""
-        # Put everything together to make query string
-        # ----------------------------------------------------
-        fmt_args = [cols, f_str, consts, groupby, haves, limit_str]
-        output = "SELECT \n\t{}\n{}\n{}{}{}{}".format(*fmt_args)
 
-        return output
+@overload
+def Query(select_statement: Select, connection: None = None) -> BaseQuery:
+    ...
 
-    def get_row_count(self, db: ConnI) -> int:
-        """
-        Queries the database using the connection to get the number of rows this
-        query is expected to return.
 
-        Args:
-            db (ConnI): ConnectInfo object of the database.
-
-        Raises:
-            ValueError: If the query doesn't return an output
-
-        Returns:
-            int: number of rows the query will return.
-        """
-        prepend = """SELECT\n\tCOUNT(*)\nFROM ("""
-        append = """\n) AS X"""
-        statement = prepend + self.showQ() + append
-        query_output = select_dict(db, statement)
-        if query_output:
-            row_count = query_output[0][0]
-            return row_count
-        raise ValueError(f"No query output for row_count query,\n{statement}")
-
-    def exec_query(self, db: ConnI) -> L[dict]:
-        """Execute a query object in a giving model using a database connection"""
-        return select_dict(db, self.showQ())
+def Query(
+    select_statement: Select, connection: Optional[Connection] = None
+) -> Union[BaseQuery, ExternalQuery]:
+    cls = BaseQuery if connection is None else ExternalQuery
+    return cls.from_select_statement(select_statement, connection=connection)
