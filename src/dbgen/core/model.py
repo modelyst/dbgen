@@ -14,13 +14,13 @@
 
 from collections import Counter
 from collections.abc import Iterable
-from itertools import chain
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+import sqlalchemy
 from networkx import DiGraph
 from pydantic import Field, validator
 from sqlalchemy import MetaData, inspect, text
-from sqlalchemy.engine import Engine
+from sqlalchemy.future import Engine
 from sqlalchemy.orm import registry as sa_registry
 
 from dbgen.core.base import Base
@@ -102,7 +102,8 @@ class Model(Base):
 
     def run(
         self,
-        engine: Engine,
+        main_engine: Engine,
+        meta_engine: Engine,
         run_config: "RunConfig" = None,
         nuke: bool = False,
         rerun_failed: bool = False,
@@ -110,43 +111,45 @@ class Model(Base):
         from dbgen.core.run import ModelRun
 
         return ModelRun(model=self).execute(
-            engine=engine, run_config=run_config, nuke=nuke, rerun_failed=rerun_failed
+            main_engine=main_engine,
+            meta_engine=meta_engine,
+            run_config=run_config,
+            nuke=nuke,
+            rerun_failed=rerun_failed,
         )
 
-    def sync(self, engine: Engine, nuke: bool = False) -> None:
+    def sync(self, main_engine: Engine, meta_engine: Engine, nuke: bool = False) -> None:
         """Syncs the state of the models registry with the database."""
         # Inspect the schemas and make sure they all exist
-        inspector = inspect(engine)
-        expected_schemas = {
-            x.schema
-            for x in chain(
-                self.registry.metadata.tables.values(),
-                self.meta_registry.metadata.tables.values(),
-            )
-        }
-        current_schemas = inspector.get_schema_names()
+        for engine, metadata in (
+            (main_engine, self.registry.metadata),
+            (meta_engine, self.meta_registry.metadata),
+        ):
+            inspector = inspect(engine)
+            expected_schemas = {x.schema for x in metadata.tables.values() if x.schema}
+            current_schemas = inspector.get_schema_names()
 
-        # Nuking drops all tables in the schemas of the model
-        if nuke:
-            self.nuke(engine, schemas=current_schemas)
+            # Nuking drops all tables in the schemas of the model
+            if nuke:
+                self.nuke(engine, metadata=metadata, schemas=expected_schemas)
 
-        missing_schema = {x for x in expected_schemas if x not in current_schemas}
-        for schema in missing_schema:
-            self._logger.debug(f"Missing schema {schema}, creating now")
-            with engine.connect() as conn:
-                conn.execute(text(f"CREATE SCHEMA {schema}"))
-                conn.commit()
+            missing_schema = {x for x in expected_schemas if x not in current_schemas}
+            for schema in missing_schema:
+                self._logger.debug(f"Missing schema {schema}, creating now")
+                with engine.begin() as conn:
+                    conn.execute(text(f"CREATE SCHEMA {schema}"))
 
         # Create all tables
-        self.registry.metadata.create_all(engine)
+        self.registry.metadata.create_all(main_engine)
 
         # Create meta schema
-        self.meta_registry.metadata.create_all(engine)
+        self.meta_registry.metadata.create_all(meta_engine)
 
     def nuke(
         self,
-        engine,
-        schemas: Optional[List[Optional[str]]] = None,
+        engine: Engine,
+        metadata: MetaData,
+        schemas: Optional[Iterable[Optional[str]]] = None,
         nuke_all: bool = False,
     ) -> None:
         # Validate and set the schema
@@ -160,12 +163,20 @@ class Model(Base):
                 schemas = [None]
 
         assert isinstance(schemas, Iterable), f"schemas must be iterable: {schemas}"
-
-        # Iterate through the schema and drop them
-        meta_registry.metadata.drop_all(engine)
+        # Drop the expected tables
+        metadata.drop_all(engine)
+        # Iterate through the schemas this metadata describes and drop all the tables within them
         for schema in schemas:
             self._logger.info(f"Nuking the schema={schema!r}...")
             metadata = MetaData()
             metadata.reflect(engine, schema=schema)
-            metadata.drop_all(engine)
+            try:
+                metadata.drop_all(engine)
+            except sqlalchemy.exc.InternalError:
+                with engine.begin() as conn:
+                    conn.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+                # raise ValueError(
+                #     f"Nuking has failed! Dependent objects exist that SQL alchemy cannot successfully drop from the schema {schema!r}.\n"
+                #     f"This often occurs when Views exist in the schema. Please drop these views manually by running 'DROP SCHEMA {schema} CASCADE'"
+                # )
             self._logger.info(f"Schema {schema!r} nuked.")

@@ -14,10 +14,11 @@
 
 from typing import Any, Dict
 from typing import Generator as GenType
+from typing import Mapping
 
 from dbgen.core.computational_node import ComputationalNode
 
-extractor_type = GenType[Dict[str, Dict[str, Any]], None, None]
+extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
 
 
 class Extract(ComputationalNode):

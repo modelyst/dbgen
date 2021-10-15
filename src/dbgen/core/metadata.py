@@ -17,19 +17,18 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic.types import Json
-from sqlalchemy import Column, func, select
+from sqlalchemy import Column, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import registry
 from sqlalchemy.sql.expression import text
-from sqlmodel import Field
+from sqlmodel import Field, select
 from sqlmodel.sql.sqltypes import GUID, AutoString
 
+from dbgen.configuration import config
 from dbgen.core.entity import Entity, id_field
 from dbgen.utils.sql import create_view
 
-# from tests.example.full_model import Parent
-
-META_SCHEMA = "dbgen_log"
+META_SCHEMA = config.meta_schema
 meta_registry = registry()
 
 
@@ -42,9 +41,12 @@ class Status(str, Enum):
     testing = "testing"
 
 
-class RunEntity(Entity, registry=meta_registry, table=True):
-    __tablename__ = "run"
+class Root(Entity):
     __schema__ = META_SCHEMA
+
+
+class RunEntity(Root, registry=meta_registry, table=True):
+    __tablename__ = "run"
     id: Optional[int] = Field(None, sa_column_kwargs={"autoincrement": True, "primary_key": True})
     status: Optional[Status]
     nuke: Optional[bool]
@@ -56,8 +58,7 @@ class RunEntity(Entity, registry=meta_registry, table=True):
     errors: int = 0
 
 
-class GeneratorEntity(Entity, registry=meta_registry, table=True):
-    __schema__ = META_SCHEMA
+class GeneratorEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "generator"
     id: Optional[UUID] = id_field
     name: str
@@ -71,11 +72,10 @@ class GeneratorEntity(Entity, registry=meta_registry, table=True):
     gen_json: Optional[Json] = Field(None, sa_column=Column(JSONB))
 
 
-class GeneratorRunEntity(Entity, registry=meta_registry, table=True):
-    __schema__ = META_SCHEMA
+class GeneratorRunEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "generator_run"
-    generator_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.generator.id", primary_key=True)
-    run_id: Optional[int] = Field(None, foreign_key=f"{META_SCHEMA}.run.id", primary_key=True)
+    generator_id: Optional[UUID] = GeneratorEntity.foreign_key(primary_key=True)
+    run_id: Optional[int] = RunEntity.foreign_key(primary_key=True)
     ordering: Optional[int]
     status: Optional[Status]
     runtime: Optional[float]
@@ -86,10 +86,9 @@ class GeneratorRunEntity(Entity, registry=meta_registry, table=True):
     error: Optional[str]
 
 
-class Repeats(Entity, registry=meta_registry, table=True):
-    __schema__ = META_SCHEMA
+class Repeats(Root, registry=meta_registry, table=True):
     __tablename__ = "repeats"
-    generator_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.generator.id")
+    generator_id: Optional[UUID] = GeneratorEntity.foreign_key()
     input_hash: Optional[UUID] = Field(None, primary_key=True)
 
 
@@ -107,7 +106,7 @@ run_view_statement = (
 )
 
 current_run_view_statement = run_view_statement.where(
-    GeneratorRunEntity.run_id == select(func.max(RunEntity.id)).scalar_subquery()
+    GeneratorRunEntity.run_id == select(func.max(RunEntity.id)).scalar_subquery()  # type: ignore
 )
 failed_run_view_statement = run_view_statement.where(
     GeneratorRunEntity.status.in_(("failed", "running"))  # type: ignore
@@ -133,18 +132,18 @@ class FailedRuns(Entity, registry=meta_registry):
 
 
 gens_to_run_stmt = text(
-    """
+    f"""
 select
     distinct
     gen.name, cr.generator_id, coalesce(gr_bad.status, 'never run') as last_status, gr_bad.error
 from
-    dbgen_log.generator_run cr
-join dbgen_log.generator gen on
+    {META_SCHEMA}.generator_run cr
+join {META_SCHEMA}.generator gen on
     gen.id = cr.generator_id
-left join dbgen_log.generator_run gr_completed on
+left join {META_SCHEMA}.generator_run gr_completed on
     cr.generator_id = gr_completed.generator_id
     and gr_completed.status = 'completed'
-left join dbgen_log.generator_run gr_bad on
+left join {META_SCHEMA}.generator_run gr_bad on
     cr.generator_id = gr_bad.generator_id
     and gr_bad.status = 'failed'
 where
@@ -153,7 +152,7 @@ where
     select
         max(id)
     from
-        dbgen_log.run)
+        {META_SCHEMA}.run)
     and (gr_completed.run_id is null
         or
      gr_bad.run_id>gr_completed.run_id)
@@ -162,17 +161,15 @@ where
 
 
 class GensToRun(Entity, registry=meta_registry):
-    __schema__ = META_SCHEMA
-    __table_args__ = {"schema": META_SCHEMA}
     __table__ = create_view(
         "gens_to_run",
         gens_to_run_stmt,
         META_SCHEMA,
         meta_registry.metadata,
-        (
+        [
             Column("name", AutoString()),
             Column("generator_id", GUID()),
             Column("last_status", AutoString()),
             Column("error", AutoString()),
-        ),
+        ],
     )

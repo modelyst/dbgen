@@ -142,7 +142,7 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
         batch_size=10000,
     )
     connection.commit()
-    gen.run(sql_engine, run_id=run.id, ordering=0)
+    gen.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
 
 
 def get_color(node):

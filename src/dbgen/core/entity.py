@@ -38,6 +38,7 @@ from sqlalchemy import Column, DateTime
 from sqlalchemy.orm import registry
 from sqlalchemy.sql import func
 from sqlalchemy.sql.base import ImmutableColumnCollection
+from sqlalchemy.sql.schema import Table
 from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
 from dbgen.core.args import ArgLike
@@ -158,7 +159,9 @@ class Entity(Base, SQLModel, metaclass=EntityMetaclass):
     __identifying__: ClassVar[Set[str]]
     __fulltablename__: ClassVar[str]
     __schema__: ClassVar[str]
+    __table__: ClassVar[Table]
     _is_table: ClassVar[bool]
+    _sa_registry: ClassVar[registry]
 
     class Config:
         """Pydantic Config"""
@@ -184,12 +187,12 @@ class Entity(Base, SQLModel, metaclass=EntityMetaclass):
             raise ValueError(f"{cls.__qualname__} is not a table. Can't get LoadEntity of a non-table Entity")
         columns = cls._columns()
         # Search for primary key name
-        primary_keys = [col for col in columns if col.primary_key]
+        primary_keys = [x.name for x in cls.__table__.primary_key]
         if len(primary_keys) > 1:
             raise NotImplementedError(f"Multiple primary_keys found: {primary_keys}")
         elif not primary_keys:
-            raise ValueError(f"No primary key found on {cls.name}'s columns:\n{columns}")
-        primary_key_name = primary_keys[0].name
+            raise ValueError(f"No primary key found on {cls.__name__}'s columns:\n{columns}")
+        primary_key_name = primary_keys[0]
         all_attrs = {col.name: col for col in columns if not col.foreign_keys}
         all_fks = {col.name: col for col in columns if col.foreign_keys}
         identifying_attributes = {

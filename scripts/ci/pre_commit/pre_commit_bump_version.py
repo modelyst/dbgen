@@ -40,14 +40,14 @@ def get_current_version():
     else:
         # If no version bumping detected
         ret_val, error = 0, None
-        version_pattern = r"^version\s*=\s*\"(.*)\""
+        version_pattern = r"^__version__\s*=\s*\"(.*)\""
         version_format = r"(\d+)\.(\d+)\.(\d+)"
-        with open("./src/dbgen/version.py") as f:
+        with open("./src/dbgen/__init__.py") as f:
             contents = f.read()
             out = re.search(version_pattern, contents, re.MULTILINE)
         if out is None:
             ret_val = 1
-            error = "Can not parse version from ./src/dbgen/version.py"
+            error = "Can not parse version from ./src/dbgen/__init__.py"
             return ret_val, error, None
         else:
             assert len(out.groups()) == 1

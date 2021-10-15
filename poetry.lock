@@ -869,6 +869,37 @@ pymysql = ["pymysql (<1)", "pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
+name = "sqlalchemy2-stubs"
+version = "0.0.2a17"
+description = "Typing Stubs for SQLAlchemy 1.4"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+typing-extensions = ">=3.7.4"
+
+[[package]]
+name = "sqlmodel"
+version = "0"
+description = "SQLModel, SQL databases in Python, designed for simplicity, compatibility, and robustness."
+category = "main"
+optional = false
+python-versions = "^3.6.1"
+develop = false
+
+[package.dependencies]
+pydantic = "^1.8.2"
+SQLAlchemy = ">=1.4.17,<1.5.0"
+sqlalchemy2-stubs = "*"
+
+[package.source]
+type = "git"
+url = "https://github.com/statt8900/sqlmodel.git"
+reference = "develop"
+resolved_reference = "bac0bf9657dc632e9c61987618ddb580c168e20d"
+
+[[package]]
 name = "termcolor"
 version = "1.1.0"
 description = "ANSII Color formatting for output in terminal."
@@ -991,7 +1022,7 @@ docs = ["mkdocs", "mkdocs-autorefs", "mkdocs-markdownextradata-plugin", "mkdocs-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4.0"
-content-hash = "cf28a7444170c0e6184accaa66077ac19539b9a4df4558d78aab6c62b9f41c7d"
+content-hash = "06e2c19001843a3d520b0f70e9c62428777b151111c49592a817a068e1aa98e8"
 
 [metadata.files]
 astunparse = [
@@ -1534,6 +1565,11 @@ sqlalchemy = [
     {file = "SQLAlchemy-1.4.25-cp39-cp39-win_amd64.whl", hash = "sha256:9ebe49c3960aa2219292ea2e5df6acdc425fc828f2f3d50b4cfae1692bcb5f02"},
     {file = "SQLAlchemy-1.4.25.tar.gz", hash = "sha256:1adf3d25e2e33afbcd48cfad8076f9378793be43e7fec3e4334306cac6bec138"},
 ]
+sqlalchemy2-stubs = [
+    {file = "sqlalchemy2-stubs-0.0.2a17.tar.gz", hash = "sha256:d7e1f63f82711c83d49eb6adccbf6bbf3cc94783436c0d34cf7ae49820023046"},
+    {file = "sqlalchemy2_stubs-0.0.2a17-py3-none-any.whl", hash = "sha256:6f112f9381a29575676c3012ce10ed6bceabfad11f1d5569d7072ccf66cfa060"},
+]
+sqlmodel = []
 termcolor = [
     {file = "termcolor-1.1.0.tar.gz", hash = "sha256:1d6d69ce66211143803fbc56652b41d73b4a400a2891d7bf7a1cdf4c02de613b"},
 ]

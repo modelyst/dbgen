@@ -13,84 +13,23 @@
 #   limitations under the License.
 
 import logging
-from typing import Optional, Union, cast, overload
+from typing import Optional, Union, overload
 
 from pydantic import Field
-from pydantic.networks import PostgresDsn
-from pydantic.tools import parse_obj_as
-from pydantic.types import SecretStr
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.engine import Connection as SAConnection
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 from sqlmodel.sql.expression import Select
 
-from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.extract import Extract, extractor_type
 from dbgen.core.statement_parsing import _get_select_keys, get_statement_dependency
+from dbgen.utils.sql import Connection
 
 log = logging.getLogger(__name__)
 
 
 SCHEMA_DEFAULT = "public"
-
-
-class Connection(Base):
-    scheme: str = "postgresql"
-    user: str = "postgres"
-    password: Optional[SecretStr] = None
-    host: str = "localhost"
-    port: int = 5432
-    database: str = "dbgen"
-    schema_: str = Field(SCHEMA_DEFAULT, alias="schema")
-    _hashexclude_ = {"password"}
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        return self.url()
-
-    @classmethod
-    def from_uri(cls, uri: Union[PostgresDsn, str], schema: str = SCHEMA_DEFAULT) -> "Connection":
-        if isinstance(uri, str):
-            uri = parse_obj_as(PostgresDsn, uri)
-            uri = cast(PostgresDsn, uri)
-        assert uri.path, f"uri is missing database {uri}"
-        return cls(
-            host=uri.host or "localhost",
-            user=uri.user,
-            password=uri.password,
-            port=uri.port or 5432,
-            database=uri.path.lstrip("/"),
-            schema_=schema,
-        )
-
-    def url(self, mask_password: bool = True):
-        if mask_password:
-            password = "******"
-        elif self.password:
-            password = self.password.get_secret_value()
-        else:
-            password = ""
-        return f"{self.scheme}://{self.user}:{password}@{self.host}:{self.port}/{self.database}"
-
-    def get_engine(self):
-        return create_engine(
-            url=self.url(),
-            connect_args={"options": f"-csearch_path={self.schema_}"},
-        )
-
-    def test(self):
-        engine = self.get_engine()
-        try:
-            with engine.connect() as conn:
-                conn.execute("select 1")
-        except OperationalError as exc:
-            log.error(f"Trouble connecting to database at {self}.\n{exc}")
-            return False
-        return True
 
 
 class BaseQuery(Extract):
@@ -121,7 +60,7 @@ class BaseQuery(Extract):
     def extract(
         self,
         *,
-        connection: SAConnection = None,
+        connection: Union[SAConnection, Session] = None,
         yield_per: Optional[int] = None,
         **kwargs,
     ) -> extractor_type:
@@ -131,14 +70,14 @@ class BaseQuery(Extract):
             for row in result.yield_per(yield_per).mappings():
                 yield {self.hash: row}
         else:
-            result = connection.execute(text(self.query)).mappings().all()
-            for row in result:
+            result = connection.execute(text(self.query))
+            for row in result.mappings():
                 yield {self.hash: row}
 
     def get_row_count(self, *, connection: SAConnection = None) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
-        rows = connection.execute(text(count_statement)).scalar()
+        rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
         return rows
 
 
@@ -157,16 +96,19 @@ class ExternalQuery(BaseQuery):
         )
 
     def extract(
-        self, *, connection: SAConnection = None, yield_per: Optional[int] = None, **kwargs
+        self, *, connection: Union[SAConnection, Session] = None, yield_per: Optional[int] = None, **kwargs
     ) -> extractor_type:
         engine = self.connection.get_engine()
-        with Session(engine) as session:
+        with engine.connect() as connection:
+            assert connection
             if yield_per:
-                result = session.execute(text(self.query))
-                yield from result.yield_per(yield_per).mappings()
+                result = connection.execute(text(self.query))
+                for row in result.yield_per(yield_per).mappings():
+                    yield {self.hash: row}
             else:
-                result = session.execute(text(self.query)).mappings().all()
-                yield from result
+                result = connection.execute(text(self.query))
+                for row in result.mappings():
+                    yield {self.hash: row}
 
 
 @overload

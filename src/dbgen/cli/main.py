@@ -11,16 +11,21 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import contextlib
+import subprocess
+from enum import Enum
+from io import StringIO
+from pathlib import Path
 from typing import List, Optional
 
 import typer
 
 import dbgen.cli.styles as styles
-from dbgen.cli.options import model_string_option, version_option
+from dbgen.cli.options import config_option, model_string_option, version_option
 from dbgen.cli.utils import confirm_nuke, validate_model_str
-from dbgen.configuration import config
-from dbgen.core.query import Connection
+from dbgen.configuration import get_connections, initialize, update_config
 from dbgen.core.run import RunConfig
+from dbgen.utils.misc import which
 
 app = typer.Typer()
 
@@ -38,6 +43,7 @@ def run_model(
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
     start: Optional[str] = typer.Option(None, help="Generator to start run at"),
     until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
+    config_file: Path = config_option,
     rerun_failed: bool = typer.Option(
         False,
         help="Only rerun the generators that failed or were excluded in the previous run.",
@@ -66,12 +72,119 @@ def run_model(
         raise typer.BadParameter(f"Invalid run configuration parameters passed:\n{error}")
 
     # Start connection from config
-    connection = Connection.from_uri(config.postgres_dsn, config.postgres_schema)
-    engine = connection.get_engine()
-    code = model.run(engine, run_config, nuke=nuke, rerun_failed=rerun_failed)
+
+    main_engine, meta_engine = initialize(config_file)
+    code = model.run(main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed)
 
     raise typer.Exit(code=code)
 
 
 app.command("version")(lambda: typer.echo(styles.LOGO_STYLE))
-app.command("config")(lambda: styles.theme_typer_print(config))
+
+
+@app.command(name="config")
+def get_config(
+    config_file: Optional[Path] = config_option,
+    show_password: bool = False,
+    show_defaults: bool = True,
+    out_pth: Optional[Path] = typer.Option(
+        None,
+        '--out',
+        '-o',
+        help="Location to write parametrized config",
+    ),
+):
+    """
+    Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
+    """
+
+    typer.echo(styles.LOGO_STYLE)
+    # Initialize settings to get the connections
+
+    # Print config to stdout
+    styles.delimiter()
+    # Notify of config file
+    if config_file:
+        typer.echo(f"Config File found at location: {config_file.absolute()}")
+        config = update_config(config_file)
+    else:
+        typer.echo("No config file found using defaults.")
+
+    # If out_pth provided write the current config to the path provided and return
+    if out_pth:
+        with open(out_pth, "w") as f:
+            f.write(config.display(True, True))
+
+    styles.delimiter()
+    typer.echo(config.display(show_defaults, show_password))
+
+
+class DBgenDatabase(str, Enum):
+    """enum for setting database to connect to"""
+
+    META = "meta"
+    MAIN = "main"
+
+
+@app.command(name="connect")
+def test_conn(
+    connect: DBgenDatabase = typer.Argument(DBgenDatabase.MAIN, help="Expose password in printed dsn."),
+    config_file: Optional[Path] = config_option,
+    test: bool = typer.Option(False, "-t", "--test", help="Test the main and metadb connections"),
+    with_password: bool = typer.Option(
+        False, "-p", "--password", help="Expose password in printed dsn when testing."
+    ),
+):
+    """
+    Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
+    """
+
+    if config_file:
+        config = update_config(config_file)
+    main_conn, meta_conn = get_connections(config)
+
+    # If connect is chosen connect to the database selected using CLI sql
+    if connect and not test:
+        # set the engine based on connect string provided
+        conn = main_conn if connect == DBgenDatabase.MAIN else meta_conn
+        # Test connection to database
+        if not conn.test():
+            styles.bad_typer_print(f"Cannot connect to {str(connect)} db")
+            raise typer.Exit(2)
+        # Attempt to use psql and pgcli to connect to database
+        try:
+            # Filter out executibles using which function
+            exes = list(filter(lambda x: x is not None, map(which, ("pgcli", "psql"))))
+            # If we find no executables exit
+            if not exes:
+                styles.bad_typer_print(
+                    "Cannot find either psql or pgcli in $PATH. Please install them to connect to database."
+                )
+                raise typer.Exit(2)
+            # If we have valid executible run the command with the dsn provided
+            subprocess.check_call(
+                [exes[0], conn.url(False, True)],
+            )
+        except subprocess.CalledProcessError as exc:
+            styles.bad_typer_print("Error connecting!")
+            styles.bad_typer_print(exc)
+        # Quit once finished
+        raise typer.Exit()
+
+    styles.delimiter()
+    for conn, label in zip((main_conn, meta_conn), ("Main", "Meta")):
+        styles.good_typer_print(f"Checking {label} DB...")
+        new_stdout = StringIO()
+        with contextlib.redirect_stdout(new_stdout):
+            check = conn.test()
+        test_output = "\n".join(new_stdout.getvalue().strip().split("\n")[1:])
+        if check:
+            styles.good_typer_print(f"Connection to {label} DB at {conn.url(with_password,True)} all good!")
+            if test_output:
+                styles.good_typer_print(test_output)
+        else:
+            styles.bad_typer_print(f"Cannot connect to {label} DB at {conn.url(with_password,True)}!")
+            if test_output:
+                styles.bad_typer_print("Error Message:")
+                styles.bad_typer_print("\n".join(["\t" + line for line in test_output.split("\n")]))
+        styles.delimiter()

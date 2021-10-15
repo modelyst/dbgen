@@ -18,3 +18,4 @@ from dbgen.cli.utils import version_callback
 
 model_string_option = Argument(..., envvar="DBGEN_MODEL")
 version_option = Option(None, "--version", callback=version_callback, is_eager=True)
+config_option = Option('.env', "--config", "-c", help="Configuration file.", envvar='DBGEN_CONFIG')

@@ -60,21 +60,21 @@ def test_model_sync(sql_engine, debug_logger):
         __schema__ = "other_schema"
 
     model = Model(name="test_model", registry=sa_registry)
-    model.nuke(sql_engine, nuke_all=True)
+    model.nuke(sql_engine, sa_registry.metadata, nuke_all=True)
 
     for stmt in (select(Dummy.id), select(DummyOtherSchema.id)):
         with sql_engine.connect() as conn:
             with pytest.raises(exc.ProgrammingError):
                 conn.execute(stmt).one_or_none()
 
-    model.sync(sql_engine, True)
+    model.sync(sql_engine, sql_engine, True)
     with sql_engine.connect() as conn:
         result = conn.execute(select(Dummy.id)).one_or_none()
         assert result is None
         result = conn.execute(select(DummyOtherSchema.id)).one_or_none()
         assert result is None
 
-    model.nuke(sql_engine, ["other_schema"])
+    model.nuke(sql_engine, sa_registry.metadata, schemas=["other_schema"])
 
 
 if __name__ == "__main__":

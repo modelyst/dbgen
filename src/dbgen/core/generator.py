@@ -16,6 +16,7 @@ from functools import reduce
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from pydantic import Field
+from sqlalchemy.future import Engine
 
 from dbgen.core.args import Arg
 from dbgen.core.base import Base
@@ -107,11 +108,19 @@ class Generator(Base):
             **dep_kwargs,
         )
 
-    def run(self, engine, run_id: int = None, ordering: int = None, run_config=None):
+    def run(
+        self,
+        main_engine: Engine,
+        meta_engine: Engine,
+        run_id: int = None,
+        ordering: int = None,
+        run_config=None,
+    ):
         from dbgen.core.run import GeneratorRun
 
         return GeneratorRun(generator=self).execute(
-            engine,
+            main_engine,
+            meta_engine,
             run_id,
             run_config,
             ordering,

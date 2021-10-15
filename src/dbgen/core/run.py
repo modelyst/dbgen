@@ -103,12 +103,13 @@ class RunInitializer(Base):
 class BaseGeneratorRun(Base):
     """A lightwieght wrapper for the Generator that grabs a specific Generator from metadatabase and runs it."""
 
-    def get_gen(self, engine: Engine, *args, **kwargs) -> Generator:
+    def get_gen(self, meta_engine: Engine, *args, **kwargs) -> Generator:
         raise NotImplementedError
 
     def execute(
         self,
-        engine: Engine,
+        main_engine: Engine,
+        meta_engine: Engine,
         run_id: Optional[int],
         run_config: Optional[RunConfig],
         ordering: Optional[int],
@@ -118,109 +119,123 @@ class BaseGeneratorRun(Base):
         if run_config is None:
             run_config = RunConfig()
 
-        generator = self.get_gen(engine=engine)
+        generator = self.get_gen(meta_engine=meta_engine)
         # Initialize the generator_row in the meta database
-        session = Session(engine)
+        meta_session = Session(meta_engine)
+
         gen_run = self._initialize_gen_run(
-            generator=generator, session=session, run_id=run_id, ordering=ordering
+            generator=generator, session=meta_session, run_id=run_id, ordering=ordering
         )
         # Check if our run config excludes our generator
         if not run_config.should_gen_run(generator):
             gen_run.status = Status.excluded
-            session.commit()
+            meta_session.commit()
             return
         # Start the Generator
         gen_run.status = Status.running
-        session.commit()
+        meta_session.commit()
         start = time()
 
         # Run the extractor and parse its values
+        extractor_connection = main_engine.connect()
         extract = generator.extract
         if isinstance(extract, BaseQuery):
-            extractor = extract.extract(connection=session)
+            extractor = extract.extract(connection=extractor_connection)
         else:
             extractor = extract.extract()
 
-        row_count = extract.get_row_count(connection=session)
+        row_count = extract.get_row_count(connection=extractor_connection)
         gen_run.number_of_extracted_rows = row_count
-        session.commit()
+        meta_session.commit()
 
         # Query the repeats table for input_hashes that match this generator's hash
         old_repeats = set(
-            session.exec(select(Repeats.input_hash).where(Repeats.generator_id == generator.uuid)).all()
+            meta_session.exec(select(Repeats.input_hash).where(Repeats.generator_id == generator.uuid)).all()
         )
         # Set up a set of new hashes so we can check for repeating rows coming from the extractor
         new_repeats: Set[UUID] = set()
         # The batch_size is set either on the run_config or the generator
         batch_size = run_config.batch_size or generator.batch_size
         batch_curr = 0
-        raw_connection = engine.raw_connection()
-        # Iterate through the extractor and run the output rows through the generators computational graph
-        for row in tqdm(extractor, total=row_count, position=2, leave=False, desc="Transforming..."):
-            # Convert Row to a dictionary so we can hash it for repeat-checking
-            hash_dict = {key: val for key, val in row[extract.hash].items()} if extract.hash in row else {}
-            input_hash = UUID(hasher((generator.uuid, hash_dict), encoders=encoders))
-            # If the input_hash has been seen and we don't have retry=True skip row
-            is_repeat = input_hash in old_repeats or input_hash in new_repeats
-            if not run_config.retry and is_repeat:
-                continue
-            else:
-                # Add 1 to unique inputs if not repeat
-                gen_run.unique_inputs += 1 if not is_repeat else 0
-
-            try:
-                batch_curr += 1
-                gen_run.number_of_inputs_processed += 1
-                if batch_size and batch_curr > batch_size:
-                    self._load(raw_connection, generator)
-                    self._load_repeats(raw_connection, new_repeats, generator)
-                    old_repeats = old_repeats.union(new_repeats)
-                    new_repeats = set()
-                    batch_curr = 0
-                    session.commit()
+        main_raw_connection = main_engine.raw_connection()
+        meta_raw_connection = meta_engine.raw_connection()
+        try:
+            # Iterate through the extractor and run the output rows through the generators computational graph
+            for row in tqdm(extractor, total=row_count, position=2, leave=False, desc="Transforming..."):
+                # Convert Row to a dictionary so we can hash it for repeat-checking
+                hash_dict = (
+                    {key: val for key, val in row[extract.hash].items()} if extract.hash in row else {}
+                )
+                input_hash = UUID(hasher((generator.uuid, hash_dict), encoders=encoders))
+                # If the input_hash has been seen and we don't have retry=True skip row
+                is_repeat = input_hash in old_repeats or input_hash in new_repeats
+                if not run_config.retry and is_repeat:
+                    continue
+                else:
+                    # Add 1 to unique inputs if not repeat
+                    gen_run.unique_inputs += 1 if not is_repeat else 0
 
                 try:
-                    for node in generator._sort_graph():
-                        if not isinstance(node, Extract):
-                            row[node.hash] = node.run(row)
-                    if not is_repeat:
-                        new_repeats.add(input_hash)
-                except DBgenSkipException as exc:
-                    self._logger.debug(f"Skipped Row:\nmessage:{exc.msg}")
-                    gen_run.skipped_inputs += 1
-                except DBgenExternalError as e:
-                    msg = f"\n\nError when running generator {generator.name}\n"
-                    self._logger.error(msg)
-                    self._logger.error(f"\n{e}")
-                    gen_run.status = Status.failed
-                    gen_run.error = str(e)
-                    run = session.get(RunEntity, run_id)
-                    assert run
-                    run.errors = run.errors + 1 if run.errors else 1
-                    session.commit()
-                    session.close()
-                    return
-            except (
-                Exception,
-                KeyboardInterrupt,
-                SystemExit,
-                BdbQuit,
-            ) as e:
-                gen_run.status = Status.failed
-                gen_run.error = (
-                    f"Uncaught Error encountered during running of generator {generator.name}: {e!r}"
-                )
-                update_run_by_id(run_id, Status.failed, session)
-                session.commit()
-                session.close()
-                raise
+                    batch_curr += 1
+                    gen_run.number_of_inputs_processed += 1
+                    if batch_size and batch_curr > batch_size:
+                        self._load(main_raw_connection, generator)
+                        self._load_repeats(meta_raw_connection, new_repeats, generator)
+                        old_repeats = old_repeats.union(new_repeats)
+                        new_repeats = set()
+                        batch_curr = 0
+                        meta_session.commit()
 
-        self._load(raw_connection, generator)
-        self._load_repeats(raw_connection, new_repeats, generator)
-        gen_run.status = Status.completed
-        gen_run.runtime = round(time() - start, 3)
-        session.commit()
-        session.close()
+                    try:
+                        for node in generator._sort_graph():
+                            if not isinstance(node, Extract):
+                                row[node.hash] = node.run(row)
+                        if not is_repeat:
+                            new_repeats.add(input_hash)
+                    except DBgenSkipException as exc:
+                        self._logger.debug(f"Skipped Row:\nmessage:{exc.msg}")
+                        gen_run.skipped_inputs += 1
+                    except DBgenExternalError as e:
+                        msg = f"\n\nError when running generator {generator.name}\n"
+                        self._logger.error(msg)
+                        self._logger.error(f"\n{e}")
+                        gen_run.status = Status.failed
+                        gen_run.error = str(e)
+                        run = meta_session.get(RunEntity, run_id)
+                        assert run
+                        run.errors = run.errors + 1 if run.errors else 1
+                        meta_session.commit()
+                        meta_session.close()
+                        return
+                except (
+                    Exception,
+                    KeyboardInterrupt,
+                    SystemExit,
+                    BdbQuit,
+                ) as e:
+                    gen_run.status = Status.failed
+                    gen_run.error = (
+                        f"Uncaught Error encountered during running of generator {generator.name}: {e!r}"
+                    )
+                    update_run_by_id(run_id, Status.failed, meta_session)
+                    meta_session.commit()
+                    meta_session.close()
+                    main_raw_connection.close()
+                    meta_raw_connection.close()
+                    extractor_connection.close()
+                    raise
+
+            self._load(main_raw_connection, generator)
+            self._load_repeats(meta_raw_connection, new_repeats, generator)
+            gen_run.status = Status.completed
+            gen_run.runtime = round(time() - start, 3)
+            meta_session.commit()
+        # Close all connections
+        finally:
+            meta_session.close()
+            main_raw_connection.close()
+            meta_raw_connection.close()
+            extractor_connection.close()
 
     def _initialize_gen_run(
         self,
@@ -263,15 +278,15 @@ class BaseGeneratorRun(Base):
 class GeneratorRun(BaseGeneratorRun):
     generator: Generator
 
-    def get_gen(self, engine: Engine, *args, **kwargs):
+    def get_gen(self, meta_engine: Engine, *args, **kwargs):
         return self.generator
 
 
 class RemoteGeneratorRun(BaseGeneratorRun):
     generator_id: UUID
 
-    def get_gen(self, engine, *args, **kwargs):
-        with Session(engine) as sess:
+    def get_gen(self, meta_engine, *args, **kwargs):
+        with Session(meta_engine) as sess:
             gen_json = sess.exec(
                 select(GeneratorEntity.gen_json).where(GeneratorEntity.id == self.generator_id)
             ).one()
@@ -291,7 +306,8 @@ class ModelRun(Base):
 
     def execute(
         self,
-        engine: Engine,
+        main_engine: Engine,
+        meta_engine: Engine,
         run_config: RunConfig = None,
         nuke: bool = False,
         rerun_failed: bool = False,
@@ -299,18 +315,18 @@ class ModelRun(Base):
         if run_config is None:
             run_config = RunConfig()
         # Sync the Database statew with the model state
-        self.model.sync(engine, nuke=nuke)
+        self.model.sync(main_engine, meta_engine, nuke=nuke)
 
         # If doing last failed run query for gens to run and add to include
         if rerun_failed:
-            with engine.connect() as conn:
+            with meta_engine.connect() as conn:
                 result = conn.execute(select(GensToRun.__table__.c.name))
                 for (gen_name,) in result:
                     run_config.include.add(gen_name)
 
         # Initialize the run
         run_init = RunInitializer()
-        run_id = run_init.execute(engine, run_config)
+        run_id = run_init.execute(meta_engine, run_config)
         sorted_generators = self.model._sort_graph()
         # Apply start and until to exclude generators not between start_idx and until_idx
         if run_config.start or run_config.until:
@@ -327,11 +343,11 @@ class ModelRun(Base):
             for i, generator in enumerate(sorted_generators):
                 tq.set_description(generator.name)
                 gen_run = self.get_gen_run(generator)
-                gen_run.execute(engine, run_id, run_config, ordering=i)
+                gen_run.execute(main_engine, meta_engine, run_id, run_config, ordering=i)
                 tq.update()
 
         # Complete run
-        with Session(engine) as session:
+        with Session(meta_engine) as session:
             update_run_by_id(run_id, Status.completed, session)
 
 

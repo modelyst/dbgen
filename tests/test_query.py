@@ -34,7 +34,7 @@ def test_external_connection(seed_db):
     ext = ExternalQuery(query="Select 1 as test", outputs=["test"], connection=test_connection)
     output = list(ext.extract())
     assert len(output)
-    assert all(map(lambda x: "test" in x, output))
+    assert all(map(lambda x: "test" in x[ext.hash], output))
     ext = ExternalQuery(
         query="Select name from users order by id asc",
         outputs=["test"],
@@ -42,8 +42,8 @@ def test_external_connection(seed_db):
     )
     output = list(ext.extract())
     assert len(output) == 100
-    assert all(map(lambda x: "name" in x, output))
-    assert output[0] == {"name": "user_0"}
+    assert all(map(lambda x: "name" in x[ext.hash], output))
+    assert output[0] == {ext.hash: {"name": "user_0"}}
 
 
 def test_external_connection_streaming(seed_db):
@@ -53,8 +53,8 @@ def test_external_connection_streaming(seed_db):
         connection=test_connection,
     )
     for row in ext.extract(yield_per=10):
-        assert "name" in row
+        assert "name" in row[ext.hash]
 
     output = list(ext.extract(yield_per=10))
     assert len(output) == 100
-    assert all(map(lambda x: "name" in x, output))
+    assert all(map(lambda x: "name" in x[ext.hash], output))

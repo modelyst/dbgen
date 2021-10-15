@@ -16,4 +16,5 @@ from sqlmodel import create_engine
 
 from dbgen.configuration import config
 
-sql_engine = create_engine(config.postgres_dsn, future=True)
+dsn = config.main_dsn
+sql_engine = create_engine(config.main_dsn, future=True)

@@ -108,5 +108,6 @@ def main():
             generator_5,
             generator_6,
         ],
+        registry=my_registry,
     )
     return model
