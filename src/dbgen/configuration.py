@@ -17,14 +17,16 @@ import os
 import tempfile
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 # from pydantic.dataclasses import dataclass
 from pydantic import BaseSettings, PostgresDsn, SecretStr, validator
 from pydantic.tools import parse_obj_as
-from sqlalchemy.future import Engine
 
 from dbgen.utils.sql import Connection
+
+if TYPE_CHECKING:
+    from sqlalchemy.future import Engine
 
 
 # Force postgresql schemes for connection for sqlalchemy
@@ -81,13 +83,14 @@ class DBgenConfiguration(BaseSettings):
 config = DBgenConfiguration()
 
 
-def initialize(config_file: Path) -> Tuple[Engine, Engine]:
+def initialize(config_file: 'Path' = None) -> Tuple['Engine', 'Engine']:
     global config
-    config = update_config(config_file)
+    if config_file:
+        config = update_config(config_file)
     return get_engines(config)
 
 
-def update_config(config_file: Path) -> DBgenConfiguration:
+def update_config(config_file: 'Path') -> DBgenConfiguration:
     global config
     input_config = DBgenConfiguration(_env_file=config_file)
     new_config_kwargs = {**config.dict(), **input_config.dict()}
@@ -95,7 +98,7 @@ def update_config(config_file: Path) -> DBgenConfiguration:
     return config
 
 
-def get_connections(config: DBgenConfiguration) -> Tuple[Connection, Connection]:
+def get_connections(config: DBgenConfiguration) -> Tuple['Connection', 'Connection']:
     main_conn = Connection.from_uri(config.main_dsn, password=config.main_password)
     meta_dsn = config.meta_dsn or config.main_dsn
     meta_password = config.meta_password or config.main_password
@@ -103,6 +106,6 @@ def get_connections(config: DBgenConfiguration) -> Tuple[Connection, Connection]
     return (main_conn, meta_conn)
 
 
-def get_engines(config: DBgenConfiguration) -> Tuple[Engine, Engine]:
+def get_engines(config: DBgenConfiguration) -> Tuple['Engine', 'Engine']:
     (main_conn, meta_conn) = get_connections(config)
     return (main_conn.get_engine(), meta_conn.get_engine())

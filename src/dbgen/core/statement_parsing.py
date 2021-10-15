@@ -18,8 +18,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 from sqlalchemy.orm.util import _ORMJoin
 from sqlalchemy.schema import Table as SATable
 from sqlalchemy.sql.elements import BinaryExpression, BindParameter, ColumnElement
-from sqlalchemy.sql.expression import Alias  # type: ignore
-from sqlalchemy.sql.expression import BooleanClauseList, Function, Label
+from sqlalchemy.sql.expression import Alias, BooleanClauseList, Function, Label  # type: ignore
 from sqlalchemy.sql.expression import Select as _Select
 from sqlalchemy.sql.schema import Column as SAColumn
 
@@ -188,8 +187,8 @@ def _parse_column(column: Any) -> Tuple[str, str]:
             marker = f"{column.table.name}.{col_key}"
             return (col_key, marker)
         elif isinstance(column, Alias):
-            col_key = column.name
-            marker = f"{column.table.name}.{col_key}"
+            col_key = column.name  # type: ignore
+            marker = f"{column.table.name}.{col_key}"  # type: ignore
             return (col_key, marker)
         elif isinstance(column, Label):
             col_key = column.key

@@ -55,13 +55,13 @@ def failing_func():
     raise ValueError("Failed")
 
 
-def skipped_inputs():
+def inputs_skipped():
     from dbgen.exceptions import DBgenSkipException
 
     raise DBgenSkipException("Skip!")
 
 
-def main():
+def make_model():
     new_extract = NewExtract()
     generator_1 = Generator(
         name="add_parents",
@@ -81,6 +81,9 @@ def main():
 
     @apply_pyblock(inputs=[query["label"]])
     def concise_pyblock(label: str):
+        from time import sleep
+
+        sleep(0.05)
         return f"{label}-test"
 
     child_load = Child.load(insert=True, label=concise_pyblock["out"], parent_id=query["id"])
@@ -95,7 +98,7 @@ def main():
     )
     generator_5 = Generator(name="failing gen", transforms=[fail_pyblock])
     skip_pyblock = PyBlock(
-        function=skipped_inputs,
+        function=inputs_skipped,
     )
     generator_6 = Generator(name="skip_gen", transforms=[skip_pyblock])
     model = Model(

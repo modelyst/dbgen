@@ -329,13 +329,15 @@ gen_id_field = Field(
     default=None,
 )
 
-time_created = Column(DateTime(timezone=True), server_default=func.now())
+get_created_at_field = lambda: Field(
+    None, sa_column=Column(DateTime(timezone=True), server_default=func.now())
+)
 
 
 class EntityId(Entity):
     id: Optional[UUID] = id_field
     gen_id: Optional[UUID]
-    created_at: Optional[datetime] = Field(None, sa_column=time_created)
+    created_at: Optional[datetime] = get_created_at_field()
 
     @root_validator
     def _get_id(cls, values):

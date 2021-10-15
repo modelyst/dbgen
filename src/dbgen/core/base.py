@@ -72,4 +72,4 @@ class Base(HashMixIn, BaseModel, metaclass=BaseMeta):
 
     @classmethod
     def canonical_name(cls) -> str:
-        return cls.__module__.replace("dbgen", "dbgen") + "." + cls.__qualname__
+        return cls.__module__ + "." + cls.__qualname__

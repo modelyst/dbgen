@@ -26,7 +26,7 @@ from sqlalchemy.orm import registry as sa_registry
 from dbgen.core.base import Base
 from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
-from dbgen.core.metadata import meta_registry
+from dbgen.core.metadata import RunEntity, meta_registry
 from dbgen.utils.graphs import topsort_with_dict
 
 if TYPE_CHECKING:
@@ -107,10 +107,12 @@ class Model(Base):
         run_config: "RunConfig" = None,
         nuke: bool = False,
         rerun_failed: bool = False,
-    ):
-        from dbgen.core.run import ModelRun
+        remote: bool = True,
+    ) -> RunEntity:
+        from dbgen.core.run import ModelRun, RemoteModelRun
 
-        return ModelRun(model=self).execute(
+        Runner = RemoteModelRun if remote else ModelRun
+        return Runner(model=self).execute(
             main_engine=main_engine,
             meta_engine=meta_engine,
             run_config=run_config,

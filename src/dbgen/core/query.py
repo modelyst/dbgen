@@ -12,13 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
-from typing import Optional, Union, overload
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
-from sqlalchemy.engine import Connection as SAConnection
-from sqlmodel import Session
 from sqlmodel.sql.expression import Select
 
 from dbgen.core.dependency import Dependency
@@ -26,7 +23,9 @@ from dbgen.core.extract import Extract, extractor_type
 from dbgen.core.statement_parsing import _get_select_keys, get_statement_dependency
 from dbgen.utils.sql import Connection
 
-log = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection as SAConnection
+    from sqlmodel import Session
 
 
 SCHEMA_DEFAULT = "public"
@@ -60,7 +59,7 @@ class BaseQuery(Extract):
     def extract(
         self,
         *,
-        connection: Union[SAConnection, Session] = None,
+        connection: Union['SAConnection', 'Session'] = None,
         yield_per: Optional[int] = None,
         **kwargs,
     ) -> extractor_type:
@@ -74,7 +73,7 @@ class BaseQuery(Extract):
             for row in result.mappings():
                 yield {self.hash: row}
 
-    def get_row_count(self, *, connection: SAConnection = None) -> int:
+    def get_row_count(self, *, connection: 'SAConnection' = None) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
         rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
@@ -86,7 +85,7 @@ class ExternalQuery(BaseQuery):
 
     @classmethod
     def from_select_statement(
-        cls, select_statement: Select, connection: Connection = None, **kwargs
+        cls, select_statement: Select, connection: 'Connection' = None, **kwargs
     ) -> "ExternalQuery":
         selected_keys = _get_select_keys(select_statement)
         return cls(
@@ -96,7 +95,11 @@ class ExternalQuery(BaseQuery):
         )
 
     def extract(
-        self, *, connection: Union[SAConnection, Session] = None, yield_per: Optional[int] = None, **kwargs
+        self,
+        *,
+        connection: Union['SAConnection', 'Session'] = None,
+        yield_per: Optional[int] = None,
+        **kwargs,
     ) -> extractor_type:
         engine = self.connection.get_engine()
         with engine.connect() as connection:

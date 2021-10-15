@@ -32,6 +32,8 @@ ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or
 logger = logging.getLogger(__name__)
 
 state = {"confirm": True}
+
+
 # Callback functions for parsing and validating args
 def confirm_nuke(value: bool):
     """

@@ -12,8 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic.types import Json
@@ -22,10 +23,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import registry
 from sqlalchemy.sql.expression import text
 from sqlmodel import Field, select
+from sqlmodel.main import Relationship
 from sqlmodel.sql.sqltypes import GUID, AutoString
 
 from dbgen.configuration import config
-from dbgen.core.entity import Entity, id_field
+from dbgen.core.entity import Entity, get_created_at_field, id_field
 from dbgen.utils.sql import create_view
 
 META_SCHEMA = config.meta_schema
@@ -45,19 +47,6 @@ class Root(Entity):
     __schema__ = META_SCHEMA
 
 
-class RunEntity(Root, registry=meta_registry, table=True):
-    __tablename__ = "run"
-    id: Optional[int] = Field(None, sa_column_kwargs={"autoincrement": True, "primary_key": True})
-    status: Optional[Status]
-    nuke: Optional[bool]
-    only: Optional[str]
-    exclude: Optional[str]
-    start: Optional[str]
-    until: Optional[str]
-    runtime: Optional[float]
-    errors: int = 0
-
-
 class GeneratorEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "generator"
     id: Optional[UUID] = id_field
@@ -70,20 +59,41 @@ class GeneratorEntity(Root, registry=meta_registry, table=True):
     column_needed: Optional[str]
     column_yielded: Optional[str]
     gen_json: Optional[Json] = Field(None, sa_column=Column(JSONB))
+    generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='generator')
+
+
+class RunEntity(Root, registry=meta_registry, table=True):
+    __tablename__ = "run"
+    id: Optional[int] = Field(None, sa_column_kwargs={"autoincrement": True, "primary_key": True})
+    status: Optional[Status]
+    nuke: Optional[bool]
+    only: Optional[str]
+    exclude: Optional[str]
+    start: Optional[str]
+    until: Optional[str]
+    runtime: Optional[timedelta]
+    errors: int = 0
+    generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='run')
 
 
 class GeneratorRunEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "generator_run"
     generator_id: Optional[UUID] = GeneratorEntity.foreign_key(primary_key=True)
     run_id: Optional[int] = RunEntity.foreign_key(primary_key=True)
+    created_at: Optional[datetime] = get_created_at_field()
     ordering: Optional[int]
     status: Optional[Status]
     runtime: Optional[float]
-    number_of_extracted_rows: Optional[int] = 0
-    number_of_inputs_processed: int = 0
     unique_inputs: int = 0
-    skipped_inputs: int = 0
+    inputs_skipped: int = 0
+    inputs_extracted: Optional[int] = 0
+    inputs_processed: int = 0
+    rows_inserted: int = 0
+    rows_updated: int = 0
+    query: Optional[str]
     error: Optional[str]
+    run: RunEntity = Relationship(back_populates='generator_runs')
+    generator: GeneratorEntity = Relationship(back_populates='generator_runs')
 
 
 class Repeats(Root, registry=meta_registry, table=True):

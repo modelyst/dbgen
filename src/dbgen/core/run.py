@@ -14,8 +14,9 @@
 
 """Objects related to the running of Models and Generators."""
 from bdb import BdbQuit
+from datetime import timedelta
 from time import time
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from uuid import UUID
 
 from pydantic.fields import Field
@@ -24,6 +25,7 @@ from sqlalchemy.future import Engine
 from sqlmodel import Session, select
 from tqdm import tqdm
 
+import dbgen.exceptions as exceptions
 from dbgen.core.base import Base, encoders
 from dbgen.core.extract import Extract
 from dbgen.core.generator import Generator
@@ -42,6 +44,7 @@ class RunConfig(Base):
     start: Optional[str]
     until: Optional[str]
     batch_size: Optional[int]
+    progress_bar: bool = True
 
     def should_gen_run(self, generator: Generator) -> bool:
         """Check a generator against include/exclude to see if it should run."""
@@ -145,7 +148,7 @@ class BaseGeneratorRun(Base):
             extractor = extract.extract()
 
         row_count = extract.get_row_count(connection=extractor_connection)
-        gen_run.number_of_extracted_rows = row_count
+        gen_run.inputs_extracted = row_count
         meta_session.commit()
 
         # Query the repeats table for input_hashes that match this generator's hash
@@ -161,7 +164,14 @@ class BaseGeneratorRun(Base):
         meta_raw_connection = meta_engine.raw_connection()
         try:
             # Iterate through the extractor and run the output rows through the generators computational graph
-            for row in tqdm(extractor, total=row_count, position=2, leave=False, desc="Transforming..."):
+            for row in tqdm(
+                extractor,
+                total=row_count,
+                position=1,
+                leave=False,
+                desc="Transforming...",
+                disable=not run_config.progress_bar,
+            ):
                 # Convert Row to a dictionary so we can hash it for repeat-checking
                 hash_dict = (
                     {key: val for key, val in row[extract.hash].items()} if extract.hash in row else {}
@@ -177,9 +187,11 @@ class BaseGeneratorRun(Base):
 
                 try:
                     batch_curr += 1
-                    gen_run.number_of_inputs_processed += 1
+                    gen_run.inputs_processed += 1
                     if batch_size and batch_curr > batch_size:
-                        self._load(main_raw_connection, generator)
+                        rows_inserted, rows_updated = self._load(main_raw_connection, generator)
+                        gen_run.rows_inserted += rows_inserted
+                        gen_run.rows_updated += rows_updated
                         self._load_repeats(meta_raw_connection, new_repeats, generator)
                         old_repeats = old_repeats.union(new_repeats)
                         new_repeats = set()
@@ -194,7 +206,7 @@ class BaseGeneratorRun(Base):
                             new_repeats.add(input_hash)
                     except DBgenSkipException as exc:
                         self._logger.debug(f"Skipped Row:\nmessage:{exc.msg}")
-                        gen_run.skipped_inputs += 1
+                        gen_run.inputs_skipped += 1
                     except DBgenExternalError as e:
                         msg = f"\n\nError when running generator {generator.name}\n"
                         self._logger.error(msg)
@@ -225,7 +237,9 @@ class BaseGeneratorRun(Base):
                     extractor_connection.close()
                     raise
 
-            self._load(main_raw_connection, generator)
+            rows_inserted, rows_updated = self._load(main_raw_connection, generator)
+            gen_run.rows_inserted += rows_inserted
+            gen_run.rows_updated += rows_updated
             self._load_repeats(meta_raw_connection, new_repeats, generator)
             gen_run.status = Status.completed
             gen_run.runtime = round(time() - start, 3)
@@ -255,20 +269,29 @@ class BaseGeneratorRun(Base):
         gen_row = generator._get_gen_row()
         session.merge(gen_row)
         session.commit()
+        query = generator.extract.query if isinstance(generator.extract, BaseQuery) else ''
         gen_run = GeneratorRunEntity(
             run_id=run_id,
             generator_id=gen_row.id,
             status=Status.initialized,
             ordering=ordering,
+            query=query,
         )
         session.add(gen_run)
         session.commit()
         session.refresh(gen_run)
         return gen_run
 
-    def _load(self, connection, generator: Generator) -> None:
+    def _load(self, connection, generator: Generator) -> Tuple[int, int]:
+        rows_inserted = 0
+        rows_updated = 0
         for load in generator._sorted_loads():
+            if load.insert:
+                rows_inserted += len(load._output)
+            else:
+                rows_updated += len(load._output)
             load.load(connection, gen_id=self.uuid)
+        return (rows_inserted, rows_updated)
 
     def _load_repeats(self, connection, repeats: Set[UUID], generator: Generator) -> None:
         rows = ((generator.uuid, input_hash) for input_hash in repeats)
@@ -291,10 +314,9 @@ class RemoteGeneratorRun(BaseGeneratorRun):
                 select(GeneratorEntity.gen_json).where(GeneratorEntity.id == self.generator_id)
             ).one()
             generator = Generator.parse_obj(gen_json)
-            assert (
-                generator.uuid == self.generator_id
-            ), f"Deserialization Failed the generator hash has changed for generator named {generator.name}!\n{generator}\n{self.generator_id}"
-
+            if generator.uuid != self.generator_id:
+                error = f"Deserialization Failed the generator hash has changed for generator named {generator.name}!\n{generator}\n{self.generator_id}"
+                raise exceptions.SerializationError(error)
         return generator
 
 
@@ -311,7 +333,8 @@ class ModelRun(Base):
         run_config: RunConfig = None,
         nuke: bool = False,
         rerun_failed: bool = False,
-    ) -> None:
+    ) -> RunEntity:
+        start = time()
         if run_config is None:
             run_config = RunConfig()
         # Sync the Database statew with the model state
@@ -328,6 +351,11 @@ class ModelRun(Base):
         run_init = RunInitializer()
         run_id = run_init.execute(meta_engine, run_config)
         sorted_generators = self.model._sort_graph()
+        # Add generators to metadb
+        with Session(meta_engine) as meta_session:
+            for gen in sorted_generators:
+                meta_session.merge(gen._get_gen_row())
+            meta_session.commit()
         # Apply start and until to exclude generators not between start_idx and until_idx
         if run_config.start or run_config.until:
             gen_names = [gen.name for gen in sorted_generators]
@@ -339,7 +367,7 @@ class ModelRun(Base):
             self._logger.debug(
                 f"Only running generators: {gen_names[start_idx:until_idx]} due to start/until"
             )
-        with tqdm(total=len(sorted_generators), position=1) as tq:
+        with tqdm(total=len(sorted_generators), position=0, disable=not run_config.progress_bar) as tq:
             for i, generator in enumerate(sorted_generators):
                 tq.set_description(generator.name)
                 gen_run = self.get_gen_run(generator)
@@ -349,8 +377,14 @@ class ModelRun(Base):
         # Complete run
         with Session(meta_engine) as session:
             update_run_by_id(run_id, Status.completed, session)
+            run = session.get(RunEntity, run_id)
+            assert run
+            run.runtime = timedelta(seconds=time() - start)
+            session.commit()
+            session.refresh(run)
+        return run
 
 
-class RemoteModelRun(Base):
+class RemoteModelRun(ModelRun):
     def get_gen_run(self, generator):
         return RemoteGeneratorRun(generator_id=generator.uuid)

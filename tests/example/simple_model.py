@@ -79,7 +79,6 @@ def make_model() -> Model:
 
     @apply_pyblock(inputs=[query["label"]])
     def simple_pyblock(label: str):
-
         return len(label)
 
     add_one = lambda x: x + 1
@@ -93,6 +92,25 @@ def make_model() -> Model:
         loads=[parent_update],
     )
     model.add_gen(gen_3)
+
+    @apply_pyblock(inputs=[query["label"]])
+    def simple_pyblock(label: str):
+        from time import sleep
+
+        sleep(1)
+        return len(label)
+
+    add_one = lambda x: x + 1
+    add_one_pb = PyBlock(function=add_one, inputs=[simple_pyblock["out"]])
+
+    parent_update = Parent.load(parent=query["id"])
+    gen_4 = Generator(
+        name="slow_gen",
+        extract=query,
+        transforms=[simple_pyblock, add_one_pb],
+        loads=[parent_update],
+    )
+    model.add_gen(gen_4)
 
     # Load into process data
     # file_extractor = FileExtractor(directory="./test_files")

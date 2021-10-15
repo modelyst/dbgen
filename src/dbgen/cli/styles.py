@@ -35,7 +35,7 @@ VERSION: {__version__}
 
 
 def delimiter(color: str = THEME_COLOR):
-    typer.echo(typer.style("-----------------------------------", fg=color, bold=True))
+    typer.echo(typer.style("---------------------------------------------", fg=color, bold=True))
 
 
 LOGO_STYLE = typer.style(PRINT_LOGO, blink=True, fg=THEME_COLOR)

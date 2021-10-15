@@ -76,3 +76,7 @@ class DBgenTypeError(DBgenException):
 
 class QueryParsingError(DBgenException):
     """Error raised when parsing a sqlalchemy select statement."""
+
+
+class SerializationError(DBgenException):
+    """Error raised when serializing and deserializing dbgen objects."""
