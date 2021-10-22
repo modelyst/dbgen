@@ -19,24 +19,25 @@ import pytest
 from sqlalchemy import MetaData
 from sqlmodel import Session, create_engine, text
 
-from dbgen.core.entity import Entity
+from dbgen.configuration import config
+from dbgen.core.entity import BaseEntity
 from dbgen.core.metadata import meta_registry
 
 
 @pytest.fixture()
 def clear_registry():
     # Clear the tables in the metadata for the default base model
-    Entity.metadata.clear()
+    BaseEntity.metadata.clear()
     # Clear the Models associated with the registry, to avoid warnings
-    Entity._sa_registry.dispose()
+    BaseEntity._sa_registry.dispose()
     yield
-    Entity.metadata.clear()
-    Entity._sa_registry.dispose()
+    BaseEntity.metadata.clear()
+    BaseEntity._sa_registry.dispose()
 
 
 @pytest.fixture(scope="module")
 def sql_engine():
-    engine = create_engine("postgresql://michaelstatt@localhost/sqlalchemy")
+    engine = create_engine(config.main_dsn)
     return engine
 
 
@@ -79,10 +80,10 @@ def make_db(connection):
     metadata = MetaData()
     metadata.reflect(connection)
     metadata.drop_all(connection)
-    Entity.metadata.create_all(connection)
+    BaseEntity.metadata.create_all(connection)
     connection.commit()
     yield
-    Entity.metadata.drop_all(connection)
+    BaseEntity.metadata.drop_all(connection)
     connection.commit()
 
 

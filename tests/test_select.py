@@ -18,7 +18,7 @@ from sqlmodel import func, select
 
 import tests.example.model as model
 from dbgen.core.args import Arg
-from dbgen.core.query import BaseQuery, _get_select_keys
+from dbgen.core.node.query import BaseQuery, _get_select_keys
 
 
 @pytest.fixture

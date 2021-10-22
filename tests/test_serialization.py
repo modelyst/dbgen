@@ -19,7 +19,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from dbgen.core.base import Base
-from dbgen.core.query import BaseQuery, Dependency
+from dbgen.core.node.query import BaseQuery, Dependency
 from tests.strategies import (
     arg_like_strat,
     env_strat,
@@ -118,7 +118,7 @@ def test_exclude():
     assert dummy_1 != dummy_3
     assert dummy_2 != dummy_3
     assert type(dummy_4) != type(dummy_1)
-    assert "ex_key" in dummy_4._id_dict()
+    assert "ex_key" in dummy_4._id_dict()['_value']
 
 
 class DummyClass2(Base):

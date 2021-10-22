@@ -29,8 +29,8 @@ from pydasher import hasher
 
 from dbgen.core.args import Arg, Const
 from dbgen.core.base import Base
-from dbgen.core.computational_node import ComputationalNode
 from dbgen.core.dependency import Dependency
+from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError
 from dbgen.utils.lists import broadcast, is_broadcastable
 
@@ -338,7 +338,7 @@ class Load(ComputationalNode):
                 try:
                     curs.execute(load_statement)
                     break
-                except psycopg2.errors.SyntaxError:
+                except (psycopg2.errors.SyntaxError, psycopg2.errors.UndefinedColumn):
                     print(load_statement)
                     raise
                 except psycopg2.errors.ForeignKeyViolation as exc:

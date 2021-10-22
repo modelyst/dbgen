@@ -56,7 +56,7 @@ class ComputationalNode(Base):
         assert key in self.outputs, f"Key {key} not found: {self.outputs}"
         return Arg(key=self.hash, name=key)
 
-    def _get_inputs(self, namespace: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def _get_inputs(self, namespace: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         try:
             input_variables = {name: value.arg_get(namespace) for name, value in self.inputs.items()}
         except (TypeError, IndexError) as e:
@@ -71,5 +71,5 @@ class ComputationalNode(Base):
             )
         return input_variables
 
-    def run(self, namespace) -> Dict[str, Any]:
+    def run(self, namespace: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         return {}

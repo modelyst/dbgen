@@ -12,29 +12,34 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import re
 from functools import reduce
+from json import dumps
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from pydantic import Field
+from pydantic.class_validators import validator
 from sqlalchemy.future import Engine
 
 from dbgen.core.args import Arg
 from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
-from dbgen.core.extract import Extract
-from dbgen.core.load import Load
 from dbgen.core.metadata import GeneratorEntity
-from dbgen.core.query import BaseQuery
-from dbgen.core.transforms import PyBlock
+from dbgen.core.node.extract import Extract
+from dbgen.core.node.load import Load
+from dbgen.core.node.query import BaseQuery
+from dbgen.core.node.transforms import PyBlock
 from dbgen.exceptions import DBgenMissingInfo
 from dbgen.utils.graphs import topsort_with_dict
 
 if TYPE_CHECKING:
     from networkx import DiGraph
 
-    from dbgen.core.computational_node import ComputationalNode
+    from dbgen.core.node.computational_node import ComputationalNode
 
 list_field = Field(default_factory=lambda: [])
+
+NAME_REGEX = re.compile(r'^[\w.-]+$')
 
 
 class Generator(Base):
@@ -47,6 +52,18 @@ class Generator(Base):
     batch_size: Optional[int] = None
     additional_dependencies: Optional[Dependency] = None
     _graph: Optional["DiGraph"]
+    dependency: Optional[Dependency] = None
+    _hashexclude_ = {
+        'dependency',
+    }
+
+    @validator('name')
+    def validate_gen_name(cls, name):
+        if not NAME_REGEX.match(name):
+            raise ValueError(
+                f"Generator names have to be alphanumeric characters, dashes, dots, and underscores. No spaces allowed!\n  Offending Name: {name}"
+            )
+        return name
 
     def __str__(self) -> str:
         return f"Gen<{self.name}>"
@@ -79,8 +96,12 @@ class Generator(Base):
     def _sort_graph(self) -> List["ComputationalNode"]:
         graph = self._computational_graph()
         sorted_node_ids = topsort_with_dict(graph)
-        sorted_nodes = [graph.nodes[key]["data"] for key in sorted_node_ids]
-        return sorted_nodes
+        sorted_nodes = [
+            graph.nodes[key]["data"]
+            for key in sorted_node_ids
+            if not isinstance(graph.nodes[key]["data"], Extract)
+        ]
+        return [self.extract, *sorted_nodes]
 
     def _sorted_loads(self) -> List[Load]:
         sorted_nodes = self._sort_graph()
@@ -89,7 +110,8 @@ class Generator(Base):
     def _get_dependency(self) -> Dependency:
         dep_list = [self.additional_dependencies] if self.additional_dependencies else []
         dep_list.extend([node._get_dependency() for node in self._sort_graph()])
-        return reduce(lambda p, n: p.merge(n), dep_list, Dependency())
+        self.dependency = reduce(lambda p, n: p.merge(n), dep_list, Dependency())
+        return self.dependency
 
     def _get_gen_row(self) -> GeneratorEntity:
         # Assemble stringified dependency fields as we can't store sets in postgres easily
@@ -104,7 +126,7 @@ class Generator(Base):
             description=self.description,
             tags=",".join(self.tags),
             query=self.extract.query if isinstance(self.extract, BaseQuery) else None,
-            gen_json=self.json(),
+            gen_json=dumps(self.serialize()),
             **dep_kwargs,
         )
 

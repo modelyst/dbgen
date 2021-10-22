@@ -43,7 +43,7 @@ from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
 from dbgen.core.args import ArgLike
 from dbgen.core.base import Base, BaseMeta
-from dbgen.core.load import Load, LoadEntity
+from dbgen.core.node.load import Load, LoadEntity
 from dbgen.exceptions import DBgenInvalidArgument, DBgenMissingInfo
 
 
@@ -88,9 +88,16 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         for field in ("__identifying__", "_hashexclude_", "_hashinclude_"):
             starting = new_attrs.get(field, set())
             new_attrs[field] = starting.union(inherit_field(bases, field))
+
+        if kwargs.get('all_id', False):
+            assert (
+                "__identifying__" not in attrs
+            ), f"Error with Entity {name}. Can't supply both all_id kwarg and __identifying__ attr"
+            new_attrs['__identifying__'] = new_attrs['__identifying__'].union(
+                {key for key in attrs.get('__annotations__', {})}
+            )
         # Automatically add identifying attributes to the hashinclude
         new_attrs["_hashinclude_"].update(new_attrs.get("__identifying__"))
-
         # Set the default registry to be the default_registry
         if "registry" not in kwargs:
             kwargs["registry"] = DEFAULT_ENTITY_REGISTRY
@@ -155,7 +162,7 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         super().__init__(name, bases, attrs, **kwargs)
 
 
-class Entity(Base, SQLModel, metaclass=EntityMetaclass):
+class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
     __identifying__: ClassVar[Set[str]]
     __fulltablename__: ClassVar[str]
     __schema__: ClassVar[str]
@@ -334,7 +341,7 @@ get_created_at_field = lambda: Field(
 )
 
 
-class EntityId(Entity):
+class Entity(BaseEntity):
     id: Optional[UUID] = id_field
     gen_id: Optional[UUID]
     created_at: Optional[datetime] = get_created_at_field()
@@ -347,7 +354,7 @@ class EntityId(Entity):
         return values
 
 
-Model = TypeVar("Model", bound="Entity")
+Model = TypeVar("Model", bound="BaseEntity")
 
 
 @overload
@@ -359,7 +366,7 @@ def create_entity(
     schema: Optional[str] = None,
     __module__: str = __name__,
     **kwargs,
-) -> Type[Entity]:
+) -> Type[BaseEntity]:
     ...
 
 
@@ -395,7 +402,7 @@ def create_entity(
     """
 
     if base is None:
-        base = cast(Type["Model"], Entity)
+        base = cast(Type["Model"], BaseEntity)
     field_definitions = field_definitions or {}
 
     fields = {}

@@ -11,10 +11,12 @@ ARG RUNTIME_APT_DEPS="\
     dumb-init \
     postgresql \
     postgresql-client \
-    sudo "
+    libpq-dev \
+    sudo \
+    git"
 
 ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS} \
-    POETRY_VERSION==1.1.5
+    POETRY_VERSION==1.1.8
 
 ARG ADDITIONAL_RUNTIME_APT_DEPS=""
 ENV ADDITIONAL_RUNTIME_APT_DEPS=${ADDITIONAL_RUNTIME_APT_DEPS}
@@ -74,7 +76,7 @@ ENV EXTRAS ${EXTRAS}
 # Need to touch these files or poetry complains!
 RUN mkdir -p /home/dbgen-user/src/dbgen && touch /home/dbgen-user/src/dbgen/__init__.py && touch /home/dbgen-user/README.md
 RUN poetry config virtualenvs.create false \
-    && poetry install $(test $YOUR_ENV = "production" && echo "--no-dev") $(test -n "${EXTRAS}" && echo "-E airflow -E docs") --no-interaction --no-ansi
+    && poetry install $(test $YOUR_ENV = "production" && echo "--no-dev") $(test -n "${EXTRAS}" && echo " -E docs") --no-interaction --no-ansi
 COPY . .
 
 # DBGEN

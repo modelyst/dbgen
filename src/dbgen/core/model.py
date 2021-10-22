@@ -14,7 +14,9 @@
 
 from collections import Counter
 from collections.abc import Iterable
+from json import dumps
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from uuid import UUID
 
 import sqlalchemy
 from networkx import DiGraph
@@ -24,10 +26,10 @@ from sqlalchemy.future import Engine
 from sqlalchemy.orm import registry as sa_registry
 
 from dbgen.core.base import Base
-from dbgen.core.entity import Entity
+from dbgen.core.entity import BaseEntity
 from dbgen.core.generator import Generator
-from dbgen.core.metadata import RunEntity, meta_registry
-from dbgen.utils.graphs import topsort_with_dict
+from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
+from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
     from dbgen.core.run import RunConfig
@@ -36,7 +38,7 @@ if TYPE_CHECKING:
 class Model(Base):
     name: str
     generators: List[Generator] = Field(default_factory=list)
-    registry: sa_registry = Field(default_factory=lambda: Entity._sa_registry)
+    registry: sa_registry = Field(default_factory=lambda: BaseEntity._sa_registry)
     meta_registry: sa_registry = Field(default_factory=lambda: meta_registry)
     _hashinclude_ = {"name", "generators"}
 
@@ -90,14 +92,15 @@ class Model(Base):
                         edges.append((target_name, source_name))
 
         for gen in self.gens().values():
-            graph.add_node(gen.name, data=gen)
+            graph.add_node(gen.name, id=gen.uuid, **gen.dict(include={'name', 'dependency'}))
         graph.add_edges_from(edges)
         return graph
 
     def _sort_graph(self) -> List[Generator]:
         graph = self._generator_graph()
+        gens = self.gens()
         sorted_node_ids = topsort_with_dict(graph)
-        sorted_nodes = [graph.nodes[key]["data"] for key in sorted_node_ids]
+        sorted_nodes = [gens[key] for key in sorted_node_ids]
         return sorted_nodes
 
     def run(
@@ -182,3 +185,23 @@ class Model(Base):
                 #     f"This often occurs when Views exist in the schema. Please drop these views manually by running 'DROP SCHEMA {schema} CASCADE'"
                 # )
             self._logger.info(f"Schema {schema!r} nuked.")
+
+    def _get_model_row(self):
+        graph = self._generator_graph()
+
+        def default(obj):
+            if isinstance(obj, set):
+                return list(obj)
+            elif isinstance(obj, UUID):
+                return str(obj)
+            raise TypeError(f"Unknown type: {type(obj)}")
+
+        metadata = {'name': self.name, 'id': self.uuid}
+        graph_json = dumps(serialize_graph(graph, lambda x: x, metadata=metadata), default=default)
+        # Assemble stringified dependency fields as we can't store sets in postgres easily
+        return ModelEntity(
+            id=self.uuid,
+            name=self.name,
+            generators=[x._get_gen_row() for x in self.generators],
+            graph_json=graph_json,
+        )

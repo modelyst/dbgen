@@ -18,9 +18,9 @@ from pydantic import ValidationError
 
 from dbgen.core.args import Arg, Const
 from dbgen.core.func import Env, Func
-from dbgen.core.transforms import PyBlock
+from dbgen.core.node.transforms import PyBlock
 from dbgen.exceptions import DBgenMissingInfo, DBgenPyBlockError
-from tests.example_functions import nonary
+from tests.example_functions import nonary, ternary
 from tests.strategies import pyblock_strat
 
 
@@ -90,6 +90,11 @@ def test_two_pyblocks():
     assert namespace[pb_2.hash]["out"] == "2"
 
 
+def test_func():
+    func = Func.from_callable(ternary)
+    assert func.number_of_required_inputs == 2
+
+
 def test_pyblock_failure_at_runtime():
     func_1 = lambda x: x + 1
     func_2 = lambda x: str(x)
@@ -104,3 +109,8 @@ def test_pyblock_failure_at_runtime():
 
     with pytest.raises(ValidationError):
         PyBlock(function=nonary, inputs=[Const(1)], outputs=["1", "2"])
+
+    with pytest.raises(ValidationError):
+        PyBlock(function=nonary, inputs=[Const(1)], outputs=["1", "2"])
+
+    PyBlock(function=ternary, inputs=[Const(1), Const(2)], outputs=["1", "2"])

@@ -19,7 +19,7 @@ from uuid import UUID
 
 from pydantic.types import Json
 from sqlalchemy import Column, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import registry
 from sqlalchemy.sql.expression import text
 from sqlmodel import Field, select
@@ -27,7 +27,7 @@ from sqlmodel.main import Relationship
 from sqlmodel.sql.sqltypes import GUID, AutoString
 
 from dbgen.configuration import config
-from dbgen.core.entity import Entity, get_created_at_field, id_field
+from dbgen.core.entity import BaseEntity, get_created_at_field, id_field
 from dbgen.utils.sql import create_view
 
 META_SCHEMA = config.meta_schema
@@ -43,8 +43,25 @@ class Status(str, Enum):
     testing = "testing"
 
 
-class Root(Entity):
+class Root(BaseEntity):
     __schema__ = META_SCHEMA
+
+
+class ModelGeneratorMap(Root, registry=meta_registry, table=True):
+    __tablename__ = 'model_generator'
+    model_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.model.id", primary_key=True)
+    generator_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.generator.id", primary_key=True)
+
+
+class ModelEntity(Root, registry=meta_registry, table=True):
+    __tablename__ = 'model'
+    id: Optional[UUID] = id_field
+    created_at: Optional[datetime] = get_created_at_field()
+    last_run: Optional[datetime]
+    name: str
+    graph_json: Optional[Json] = Field(None, sa_column=Column(JSONB))
+    tags: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(AutoString)))
+    generators: List['GeneratorEntity'] = Relationship(back_populates='models', link_model=ModelGeneratorMap)
 
 
 class GeneratorEntity(Root, registry=meta_registry, table=True):
@@ -60,6 +77,7 @@ class GeneratorEntity(Root, registry=meta_registry, table=True):
     column_yielded: Optional[str]
     gen_json: Optional[Json] = Field(None, sa_column=Column(JSONB))
     generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='generator')
+    models: List['ModelEntity'] = Relationship(back_populates='generators', link_model=ModelGeneratorMap)
 
 
 class RunEntity(Root, registry=meta_registry, table=True):
@@ -99,7 +117,7 @@ class GeneratorRunEntity(Root, registry=meta_registry, table=True):
 class Repeats(Root, registry=meta_registry, table=True):
     __tablename__ = "repeats"
     generator_id: Optional[UUID] = GeneratorEntity.foreign_key()
-    input_hash: Optional[UUID] = Field(None, primary_key=True)
+    input_hash: UUID = Field(..., primary_key=True)
 
 
 run_view_statement = (
@@ -123,7 +141,7 @@ failed_run_view_statement = run_view_statement.where(
 )
 
 
-class CurrentRun(Entity, registry=meta_registry):
+class CurrentRun(BaseEntity, registry=meta_registry):
     __table__ = create_view(
         "current_run",
         current_run_view_statement.subquery(),
@@ -132,7 +150,7 @@ class CurrentRun(Entity, registry=meta_registry):
     )
 
 
-class FailedRuns(Entity, registry=meta_registry):
+class FailedRuns(BaseEntity, registry=meta_registry):
     __table__ = create_view(
         "failed_run",
         failed_run_view_statement.subquery(),
@@ -170,7 +188,7 @@ where
 )
 
 
-class GensToRun(Entity, registry=meta_registry):
+class GensToRun(BaseEntity, registry=meta_registry):
     __table__ = create_view(
         "gens_to_run",
         gens_to_run_stmt,

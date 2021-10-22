@@ -23,7 +23,7 @@ from sqlmodel import Session, select
 import tests.example.entities as entities
 from dbgen.core.args import Arg, Const
 from dbgen.core.dependency import Dependency
-from dbgen.core.load import Load, LoadEntity
+from dbgen.core.node.load import Load, LoadEntity
 from dbgen.utils.lists import broadcast
 from tests.strategies import (
     basic_insert_load_strat,

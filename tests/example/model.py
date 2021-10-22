@@ -19,7 +19,7 @@ from uuid import UUID
 from sqlalchemy.orm import registry
 from sqlmodel import Field, Relationship
 
-from dbgen.core.entity import Entity, EntityId
+from dbgen.core.entity import BaseEntity, Entity
 
 ID_TYPE = UUID
 
@@ -31,20 +31,20 @@ get_fk = lambda foreign_key, primary_key=False: Field(
 )
 
 
-class SampleProcessProcessData(Entity, table=True, registry=model_registry):
+class SampleProcessProcessData(BaseEntity, table=True, registry=model_registry):
     __tablename__ = "sample_process__process_data"
     process_data_id: Optional[ID_TYPE] = get_fk("process_data.id", True)
     sample_process_id: Optional[ID_TYPE] = get_fk("sample_process.id", True)
 
 
-class SampleCollection(Entity, table=True, registry=model_registry):
+class SampleCollection(BaseEntity, table=True, registry=model_registry):
     __tablename__ = "sample__collection"
     __identifying__ = {"sample_id", "collection_id"}
     sample_id: Optional[ID_TYPE] = get_fk("sample.id", True)
     collection_id: Optional[ID_TYPE] = get_fk("collection.id", True)
 
 
-class Collection(EntityId, table=True, registry=model_registry):
+class Collection(Entity, table=True, registry=model_registry):
     __tablename__ = "collection"
     label: str
     type: str
@@ -52,7 +52,7 @@ class Collection(EntityId, table=True, registry=model_registry):
     __identifying__ = {"label", "type"}
 
 
-class ProcessData(EntityId, table=True, registry=model_registry):
+class ProcessData(Entity, table=True, registry=model_registry):
     __tablename__ = "process_data"
     __identifying__ = {"file_name", "file_type"}
     file_name: str
@@ -63,7 +63,7 @@ class ProcessData(EntityId, table=True, registry=model_registry):
     )
 
 
-class ProcessDetail(EntityId, table=True, registry=model_registry):
+class ProcessDetail(Entity, table=True, registry=model_registry):
     __tablename__ = "process_detail"
     type: str
     technique: str
@@ -71,7 +71,7 @@ class ProcessDetail(EntityId, table=True, registry=model_registry):
     __identifying__ = {"type", "technique"}
 
 
-class Process(EntityId, table=True, registry=model_registry):
+class Process(Entity, table=True, registry=model_registry):
     __identifying__ = {"machine_name", "ordering", "timestamp"}
     machine_name: str
     timestamp: datetime
@@ -81,7 +81,7 @@ class Process(EntityId, table=True, registry=model_registry):
     sample_processes: List["SampleProcess"] = Relationship(back_populates="process")
 
 
-class Sample(EntityId, table=True, registry=model_registry):
+class Sample(Entity, table=True, registry=model_registry):
     __tablename__ = "sample"
     label: str
     type: str
@@ -90,7 +90,7 @@ class Sample(EntityId, table=True, registry=model_registry):
     collections: List[Collection] = Relationship(back_populates="samples", link_model=SampleCollection)
 
 
-class SampleProcess(EntityId, table=True, registry=model_registry):
+class SampleProcess(Entity, table=True, registry=model_registry):
     __tablename__ = "sample_process"
     __identifying__ = {"sample_id", "process_id"}
     sample_id: Optional[ID_TYPE] = get_fk("sample.id")

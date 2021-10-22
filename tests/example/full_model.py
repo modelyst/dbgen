@@ -12,61 +12,61 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from json import dumps
 from typing import Optional
 from uuid import UUID
 
+import sqlalchemy.types as types
+from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
 from dbgen.core.args import Const
-from dbgen.core.entity import EntityId
-from dbgen.core.extract import Extract
+from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
-from dbgen.core.query import Query
-from dbgen.core.transforms import PyBlock, apply_pyblock
+from dbgen.core.node.extract import Extract
+from dbgen.core.node.query import Query
+from dbgen.core.node.transforms import PyBlock, apply_pyblock
 
 my_registry = registry()
 
 
-class Parent(EntityId, registry=my_registry, table=True):
+class Parent(Entity, registry=my_registry, table=True):
     __identifying__ = {"label"}
     label: str
+    myColumn: Optional[dict] = Field(None, sa_column=Column(types.JSON()))
 
 
-class Child(EntityId, registry=my_registry, table=True):
+class Child(Entity, registry=my_registry, table=True):
     __identifying__ = {"label", "parent_id"}
     label: str
     new_col: str = "test"
     parent_id: Optional[UUID] = Field(None, foreign_key="public.parent.id")
 
 
-class NewExtract(Extract):
-    def extract(self, *args, **kwargs):
-        for i in range(1000):
-            yield {self.hash: {"out": i}}
-
-    def get_row_count(self, **kwargs):
-        return 1000
+def extractor():
+    for i in range(1000):
+        yield {'out': i}
 
 
 def failing_func():
-
+    pass
     raise ValueError("Failed")
 
 
 def inputs_skipped():
     from dbgen.exceptions import DBgenSkipException
 
-    raise DBgenSkipException("Skip!")
+    raise DBgenSkipException(msg="Skip!")
 
 
 def make_model():
-    new_extract = NewExtract()
+    new_extract = Extract(extractor=extractor)
     generator_1 = Generator(
         name="add_parents",
         extract=new_extract,
-        loads=[Parent.load(insert=True, label=new_extract["out"])],
+        loads=[Parent.load(insert=True, label=new_extract["out"], myColumn=Const(dumps({'a': 1})))],
     )
     generator_2 = Generator(
         name="add_parents_v2",
@@ -81,9 +81,6 @@ def make_model():
 
     @apply_pyblock(inputs=[query["label"]])
     def concise_pyblock(label: str):
-        from time import sleep
-
-        sleep(0.05)
         return f"{label}-test"
 
     child_load = Child.load(insert=True, label=concise_pyblock["out"], parent_id=query["id"])
@@ -96,7 +93,7 @@ def make_model():
     fail_pyblock = PyBlock(
         function=failing_func,
     )
-    generator_5 = Generator(name="failing gen", transforms=[fail_pyblock])
+    generator_5 = Generator(name="failing_gen", transforms=[fail_pyblock])
     skip_pyblock = PyBlock(
         function=inputs_skipped,
     )
@@ -114,3 +111,14 @@ def make_model():
         registry=my_registry,
     )
     return model
+
+
+def test():
+
+    m = make_model()
+    test = m._get_model_row()
+    print(test.graph_json)
+
+
+if __name__ == '__main__':
+    test()

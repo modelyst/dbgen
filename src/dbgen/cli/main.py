@@ -22,6 +22,7 @@ import typer
 
 import dbgen.cli.styles as styles
 from dbgen.cli.generator import generator_app
+from dbgen.cli.model import model_app
 from dbgen.cli.options import config_option
 from dbgen.cli.run import run_app
 from dbgen.configuration import get_connections, update_config
@@ -30,6 +31,7 @@ from dbgen.utils.misc import which
 app = typer.Typer(no_args_is_help=True)
 app.add_typer(generator_app, name='generator')
 app.add_typer(run_app, name='run')
+app.add_typer(model_app, name='model')
 
 
 @app.command()

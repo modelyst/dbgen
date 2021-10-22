@@ -19,8 +19,8 @@ from pydantic import Field, validator
 from pydantic.class_validators import root_validator
 
 from dbgen.core.args import Arg, Const
-from dbgen.core.computational_node import ComputationalNode
 from dbgen.core.func import Env, Func
+from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
 from dbgen.utils.log import capture_stdout
 
@@ -40,7 +40,7 @@ class PyBlock(Transform):
             return Func.from_callable(func, env=values.get("env"))
         return func
 
-    def run(self, namespace_dict: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def run(self, namespace_dict: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         inputvars = self._get_inputs(namespace_dict)
         args = {key: val for key, val in inputvars.items() if key.isdigit()}
         kwargs = {key: val for key, val in inputvars.items() if key not in args}
@@ -69,13 +69,18 @@ class PyBlock(Transform):
 
     @root_validator
     def check_nargs(cls, values):
-        assert "function" in values, f"function not found in values {values}"
-        args = values.get("inputs")
-        n_inputs = values.get("function").nIn
-        n_args = len(args)
+        if "function" not in values:
+            return values
+        inputs = values.get("inputs")
+        num_req_args = values.get("function").number_of_required_inputs
+        num_max_args = values.get("function").nIn
+        n_inputs = len(inputs)
         assert (
-            n_inputs == n_args
-        ), f"Unequal args and inputs required:\nNumber of Inputs: {n_inputs}\nNumber of Args: {n_args}\n"
+            n_inputs >= num_req_args
+        ), f"Too few arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nNumber of Args: {num_req_args}\n{values}"
+        assert (
+            n_inputs <= num_max_args
+        ), f"Too many arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nMax Number of Args: {num_max_args}\n"
         return values
 
 

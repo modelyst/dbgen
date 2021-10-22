@@ -12,10 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typer import Option
+from typer import Argument, Option
 
 from dbgen.cli.utils import version_callback
 
 model_string_option = Option(None, '--model', envvar=["DBGEN_MODEL_STR", "dbgen_model_str"])
+model_arg_option = Argument('--model', envvar=["DBGEN_MODEL_STR", "dbgen_model_str"])
 version_option = Option(None, "--version", callback=version_callback, is_eager=True)
 config_option = Option('.env', "--config", "-c", help="Configuration file.", envvar='DBGEN_CONFIG')

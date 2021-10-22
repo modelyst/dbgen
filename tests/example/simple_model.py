@@ -21,16 +21,16 @@ from pydantic import Field
 from sqlmodel import Session, select
 
 from dbgen.core.args import Const
-from dbgen.core.entity import EntityId
-from dbgen.core.extract import Extract
+from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
-from dbgen.core.query import Query
-from dbgen.core.transforms import PyBlock, apply_pyblock
+from dbgen.core.node.extract import Extract
+from dbgen.core.node.query import Query
+from dbgen.core.node.transforms import PyBlock, apply_pyblock
 from tests.example.database import sql_engine
 
 
-class BaseTable(EntityId):
+class BaseTable(Entity):
     label: str
     type: str
     __identifying__ = {"label", "type"}
@@ -45,7 +45,7 @@ class Child(BaseTable, table=True):
     __identifying__ = {"parent_id"}
 
 
-class ProcessData(EntityId, table=True):
+class ProcessData(Entity, table=True):
     file_name: str
     __identifying__ = {"file_name"}
 
@@ -66,19 +66,20 @@ def make_model() -> Model:
 
     # Load First Parent
     parent_load = Parent.load(insert=True, label=Const("Ken"), type=Const("Engineer"))
-    gen_1 = Generator(name="load first parent", loads=[parent_load])
+    gen_1 = Generator(name="load_first_parent", loads=[parent_load])
     model.add_gen(gen_1)
 
     # Load First Parent
     query = Query(select(Parent.id))
     child_load = Child.load(insert=True, label=Const("Brian"), type=Const("surfer"), parent_id=query["id"])
-    gen_2 = Generator(name="load first child", extract=query, loads=[child_load])
+    gen_2 = Generator(name="load_first_child", extract=query, loads=[child_load])
     model.add_gen(gen_2)
     # Load Transform Parent
     query = Query(select(Parent.id, Parent.label))
 
     @apply_pyblock(inputs=[query["label"]])
     def simple_pyblock(label: str):
+        label += 'test'
         return len(label)
 
     add_one = lambda x: x + 1
@@ -86,7 +87,7 @@ def make_model() -> Model:
 
     parent_update = Parent.load(parent=query["id"])
     gen_3 = Generator(
-        name="update parent",
+        name="update_parent",
         extract=query,
         transforms=[simple_pyblock, add_one_pb],
         loads=[parent_update],

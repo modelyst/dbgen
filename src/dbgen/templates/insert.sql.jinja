@@ -35,7 +35,7 @@ WHERE
   {% if not update %}
     {{obj_pk_name}} = excluded.{{obj_pk_name}}
   {% else %}
-    {% for column in all_column_names %}{{column}} = excluded.{{column}}{{ "," if not loop.last }}
+    {% for column in all_column_names %}"{{column}}" = excluded."{{column}}"{{ "," if not loop.last }}
     {% endfor %}
   {% endif %}
   RETURNING

@@ -19,7 +19,7 @@ from sqlalchemy import text
 from sqlmodel.sql.expression import Select
 
 from dbgen.core.dependency import Dependency
-from dbgen.core.extract import Extract, extractor_type
+from dbgen.core.node.extract import Extract
 from dbgen.core.statement_parsing import _get_select_keys, get_statement_dependency
 from dbgen.utils.sql import Connection
 
@@ -56,28 +56,26 @@ class BaseQuery(Extract):
             dependency=dependency,
         )
 
-    def extract(
-        self,
-        *,
-        connection: Union['SAConnection', 'Session'] = None,
-        yield_per: Optional[int] = None,
-        **kwargs,
-    ) -> extractor_type:
-        assert connection
-        if yield_per:
-            result = connection.execute(text(self.query))
-            for row in result.yield_per(yield_per).mappings():
-                yield {self.hash: row}
-        else:
-            result = connection.execute(text(self.query))
-            for row in result.mappings():
-                yield {self.hash: row}
-
     def get_row_count(self, *, connection: 'SAConnection' = None) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
         rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
         return rows
+
+    def set_extractor(
+        self,
+        *,
+        connection: Union['SAConnection', 'Session'] = None,
+        yield_per: Optional[int] = None,
+        **kwargs,
+    ) -> None:
+        assert connection, f"Need to pass in connection when setting the extractor"
+        if yield_per:
+            result = connection.execute(text(self.query))
+            self._extractor = result.yield_per(yield_per).mappings()
+        else:
+            result = connection.execute(text(self.query))
+            self._extractor = result.mappings()
 
 
 class ExternalQuery(BaseQuery):
@@ -94,24 +92,21 @@ class ExternalQuery(BaseQuery):
             connection=connection,
         )
 
-    def extract(
+    def set_extractor(
         self,
         *,
         connection: Union['SAConnection', 'Session'] = None,
         yield_per: Optional[int] = None,
         **kwargs,
-    ) -> extractor_type:
+    ) -> None:
         engine = self.connection.get_engine()
-        with engine.connect() as connection:
-            assert connection
+        with engine.connect() as conn:
             if yield_per:
-                result = connection.execute(text(self.query))
-                for row in result.yield_per(yield_per).mappings():
-                    yield {self.hash: row}
+                result = conn.execute(text(self.query))
+                self._extractor = result.yield_per(yield_per).mappings()
             else:
-                result = connection.execute(text(self.query))
-                for row in result.mappings():
-                    yield {self.hash: row}
+                result = conn.execute(text(self.query))
+                self._extractor = result.mappings()
 
 
 @overload

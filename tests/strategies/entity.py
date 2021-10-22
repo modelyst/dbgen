@@ -21,7 +21,7 @@ from hypothesis.strategies._internal.strategies import SearchStrategy
 from sqlalchemy.orm import registry
 from sqlmodel import Field
 
-from dbgen.core.entity import Entity, EntityMetaclass
+from dbgen.core.entity import BaseEntity, EntityMetaclass
 
 protected_words = {"mro"}
 uni_text = lambda x: st.text(ascii_lowercase, min_size=x)
@@ -87,7 +87,7 @@ def example_entity(
     }
     new_class = EntityMetaclass(
         class_name,
-        (Entity,),
+        (BaseEntity,),
         data,
         table=True,
         registry=registry_ or registry(),

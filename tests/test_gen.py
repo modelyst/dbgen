@@ -21,13 +21,13 @@ from sqlmodel import Session, func, select
 
 import tests.example.entities as entities
 from dbgen.core.args import Const
-from dbgen.core.entity import EntityId
+from dbgen.core.entity import Entity
 from dbgen.core.func import Import
 from dbgen.core.generator import Generator
-from dbgen.core.load import Load
 from dbgen.core.metadata import RunEntity
-from dbgen.core.query import BaseQuery
-from dbgen.core.transforms import PyBlock
+from dbgen.core.node.load import Load
+from dbgen.core.node.query import BaseQuery
+from dbgen.core.node.transforms import PyBlock
 
 
 def transform_func(x):
@@ -111,7 +111,7 @@ def test_no_extractor(sql_engine: Engine, raw_connection):
 
 
 def test_dumb_extractor(connection, sql_engine, recreate_meta):
-    class User(EntityId, table=True):
+    class User(Entity, table=True):
         __identifying__ = {"label"}
         label: str
         new_label: Optional[str] = None
@@ -146,10 +146,10 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
 
 
 def get_color(node):
-    from dbgen.core.extract import Extract
     from dbgen.core.generator import Generator
-    from dbgen.core.load import Load
-    from dbgen.core.transforms import Transform
+    from dbgen.core.node.extract import Extract
+    from dbgen.core.node.load import Load
+    from dbgen.core.node.transforms import Transform
 
     if isinstance(node, Transform):
         return "red"
@@ -163,10 +163,10 @@ def get_color(node):
 
 
 def get_label(node):
-    from dbgen.core.extract import Extract
     from dbgen.core.generator import Generator
-    from dbgen.core.load import Load
-    from dbgen.core.transforms import Transform
+    from dbgen.core.node.extract import Extract
+    from dbgen.core.node.load import Load
+    from dbgen.core.node.transforms import Transform
 
     if isinstance(node, Transform):
         return str(node)

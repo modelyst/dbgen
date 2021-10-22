@@ -16,7 +16,7 @@ import pytest
 from pydantic import PostgresDsn
 from pydantic.tools import parse_obj_as
 
-from dbgen.core.query import Connection
+from dbgen.core.node.query import Connection
 from tests.example.database import dsn
 
 test_urls = (

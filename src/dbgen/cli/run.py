@@ -12,8 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+from uuid import UUID
 
 import typer
 from prettytable import ALL, PrettyTable
@@ -23,10 +25,11 @@ import dbgen.cli.styles as styles
 import dbgen.exceptions as exceptions
 from dbgen.cli.options import config_option, model_string_option, version_option
 from dbgen.cli.queries import get_runs
-from dbgen.cli.utils import confirm_nuke, validate_model_str
-from dbgen.configuration import initialize
-from dbgen.core.metadata import GeneratorRunEntity, RunEntity
+from dbgen.cli.utils import confirm_nuke, set_confirm, validate_model_str
+from dbgen.configuration import initialize, root_logger
+from dbgen.core.metadata import GeneratorRunEntity, ModelEntity, RunEntity
 from dbgen.core.run import RunConfig
+from dbgen.utils.log import LogLevel, add_stdout_logger
 
 run_app = typer.Typer(name='run')
 
@@ -61,9 +64,17 @@ def run_model(
     start: Optional[str] = typer.Option(None, help="Generator to start run at"),
     until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
     batch: Optional[int] = typer.Option(None, help="Batch size for all generators"),
+    level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteGenerator Runner'),
     bar: bool = typer.Option(True, help="Show progress bar"),
     config_file: Path = config_option,
     remote: bool = typer.Option(True, help='Use the RemoteGenerator Runner'),
+    no_conf: bool = typer.Option(
+        False,
+        "--no-confirm",
+        "-y",
+        is_eager=True,
+        callback=set_confirm,
+    ),
     rerun_failed: bool = typer.Option(
         False,
         help="Only rerun the generators that failed or were excluded in the previous run.",
@@ -80,7 +91,7 @@ def run_model(
         return
     model = validate_model_str(model_str)
     styles.delimiter(styles.typer.colors.GREEN)
-    styles.good_typer_print(f"Runnning model {model.name}...")
+    styles.good_typer_print(f"Running model {model.name}...")
     styles.delimiter(styles.typer.colors.GREEN)
     run_config = RunConfig(
         retry=retry,
@@ -90,8 +101,10 @@ def run_model(
         include=include,
         progress_bar=bar,
         batch_size=batch,
+        log_level=level,
     )
-
+    if not bar:
+        add_stdout_logger(root_logger, stdout_level=run_config.log_level)
     # Validate the run configuration parameters
     invalid_run_config_vals = run_config.get_invalid_markers(model)
     if invalid_run_config_vals:
@@ -131,3 +144,21 @@ def run_model(
             f"The run attempted to insert {rows_inserted} and update {rows_updated} rows."
         )
     raise typer.Exit(code=0)
+
+
+@run_app.command('initialize')
+def run_initialize(model_id: UUID, config_file: Path = config_option):
+    """Initialize a run."""
+    _, meta_engine = initialize(config_file)
+
+    with Session(meta_engine) as session:
+        model = session.get(ModelEntity, model_id)
+        if not model:
+            raise ValueError(f"Invalid model id, could not fine model with ID {model_id}")
+        model.last_run = datetime.now()
+        run = RunEntity(status='initialized')
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+    typer.echo(run.id)
+    return

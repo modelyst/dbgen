@@ -18,12 +18,12 @@ from uuid import UUID
 from sqlalchemy.orm import registry
 from sqlmodel import Field
 
-from dbgen.core.entity import EntityId
+from dbgen.core.entity import Entity
 
 default_registry = registry()
 
 
-class BaseTable(EntityId, registry=default_registry):
+class BaseTable(Entity, registry=default_registry):
     __identifying__ = {"type", "label"}
     type: str
     label: str

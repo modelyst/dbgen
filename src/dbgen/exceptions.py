@@ -21,7 +21,8 @@ class DBgenException(Exception):
     Each custom exception should be derived from this class
     """
 
-    msg: str = "<No Message>"
+    def __init__(self, msg="<No Message>"):
+        self.msg = msg
 
 
 class DBgenExternalError(DBgenException):
@@ -79,4 +80,8 @@ class QueryParsingError(DBgenException):
 
 
 class SerializationError(DBgenException):
+    """Error raised when serializing and deserializing dbgen objects."""
+
+
+class RepeatException(DBgenException):
     """Error raised when serializing and deserializing dbgen objects."""

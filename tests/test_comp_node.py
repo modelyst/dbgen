@@ -16,7 +16,7 @@ import pytest
 from pydantic import ValidationError
 
 from dbgen.core.args import Const
-from dbgen.core.computational_node import ComputationalNode
+from dbgen.core.node.computational_node import ComputationalNode
 
 list_of_bad_kwargs = [{"inputs": Const(val="test")}, {"outputs": ["a", "a"]}]
 

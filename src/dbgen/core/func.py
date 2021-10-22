@@ -60,10 +60,20 @@ class Import(Base):
     """
 
     lib: constr(min_length=1)  # type: ignore
-    unaliased_imports: Union[str, List[str]] = Field(default_factory=lambda: list())
+    unaliased_imports: Union[str, List[str]] = Field(default_factory=list)
     lib_alias: Optional[str] = None
-    aliased_imports: Dict[str, str] = Field(default_factory=lambda: dict())
+    aliased_imports: Dict[str, str] = Field(default_factory=dict)
     _reserved_words: ClassVar[Set[str]] = reserved_words
+
+    def __init__(self, lib, unaliased_imports=None, lib_alias=None, aliased_imports=None):
+        unaliased_imports = unaliased_imports or []
+        aliased_imports = aliased_imports or {}
+        super().__init__(
+            lib=lib,
+            lib_alias=lib_alias,
+            unaliased_imports=unaliased_imports,
+            aliased_imports=aliased_imports,
+        )
 
     @root_validator(pre=True)
     def check_lib_alias(cls, values):
@@ -113,6 +123,10 @@ class Env(Base):
     """
 
     imports: List[Import] = Field(default_factory=lambda: list())
+
+    def __init__(self, imports=None):
+        imports = imports or []
+        super().__init__(imports=imports)
 
     @validator("imports")
     def sort_imports(cls, imports):
@@ -209,6 +223,10 @@ class Func(Base):
     @property
     def nIn(self) -> int:
         return len(self.argnames)
+
+    @property
+    def number_of_required_inputs(self) -> int:
+        return len([k for k, v in self.sig.parameters.items() if v.default is v.empty])
 
     @property
     def notImp(self) -> bool:
@@ -379,18 +397,6 @@ def get_callable_source_code(f: Callable) -> str:
     """
     Return the source code, even if it's lambda function.
     """
-    if isinstance(f, LambdaType) and f.__name__ == "<lambda>":
-        source_code = get_short_lambda_source(f)
-        if source_code is None:
-            # Attempt to scrape the lines for error messaging
-            try:
-                source_lines, _ = getsourcelines(f)
-            except (OSError, TypeError):
-                source_lines = [""]
-            src = "".join(source_lines).strip()
-            raise ValueError(f"Unable to parse lambda function: {f}\n{src}\n")
-
-        return source_code
     # Check for built in functions as their source code can not be fetched
     if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
         raise DBgenInvalidArgument(
@@ -400,10 +406,19 @@ def get_callable_source_code(f: Callable) -> str:
 
     try:
         source_lines, _ = getsourcelines(f)
-    except (OSError, TypeError) as e:
+    except (OSError, TypeError) as exc:
         # functions defined in pdb / REPL / eval / some other way in which
         # source code not clear
-        raise ValueError("from_callable: ", f, e)
+        error = (
+            f"Cannot parse function {f.__name__}. This can occur if python cannot find the file the function was originally declared in.\n"
+            "This can occur commonly the function's file is mounted to the filesystem (through a docker volume).\n"
+            "To solve this copy the file into the container."
+        )
+        raise ValueError(error) from exc
+
+    if isinstance(f, LambdaType) and f.__name__ == "<lambda>":
+        source_code = get_short_lambda_source(f)
+        return source_code
 
     # Handle 'def'-ed functions and long lambdas
     if source_lines[0].strip().startswith("@"):

@@ -21,8 +21,8 @@ from sqlmodel import Session, func, select
 from dbgen.core.args import Const
 from dbgen.core.generator import Generator
 from dbgen.core.metadata import GeneratorEntity, GeneratorRunEntity, RunEntity
-from dbgen.core.query import BaseQuery
-from dbgen.core.transforms import PyBlock
+from dbgen.core.node.query import BaseQuery
+from dbgen.core.node.transforms import PyBlock
 from tests.example.full_model import Parent
 from tests.example_functions import binary_lambda
 
@@ -95,7 +95,7 @@ def test_gen_insertion(connection, recreate_meta, gen: Generator):
         gen_count = sess.exec(select(func.count(GeneratorEntity.id))).one_or_none()
         assert gen_count == 1
         gen_dict = sess.exec(select(GeneratorEntity.gen_json)).one_or_none()
-        query_gen = Generator.parse_obj(gen_dict)
+        query_gen = Generator.deserialize(gen_dict)
         assert query_gen._id_dict() == gen._id_dict()
         assert query_gen.hash == gen.hash
 

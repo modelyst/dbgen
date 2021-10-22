@@ -22,8 +22,8 @@ from hypothesis.strategies._internal.strategies import SearchStrategy
 
 from dbgen.core.args import Arg, Const
 from dbgen.core.func import Env, Func, Import
-from dbgen.core.load import Load, LoadEntity
-from dbgen.core.transforms import PyBlock
+from dbgen.core.node.load import Load, LoadEntity
+from dbgen.core.node.transforms import PyBlock
 from dbgen.utils.misc import reserved_words
 from tests.example_functions import example_callables
 

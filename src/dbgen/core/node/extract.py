@@ -16,9 +16,20 @@ from typing import Any, Dict
 from typing import Generator as GenType
 from typing import Mapping
 
-from dbgen.core.computational_node import ComputationalNode
+from pydantic import validator
+from pydantic.fields import PrivateAttr
+
+from dbgen.core.func import Func
+from dbgen.core.node.computational_node import ComputationalNode
 
 extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
+
+
+def base_extractor():
+    yield {}
+
+
+base_extractor_func = Func.from_callable(base_extractor)
 
 
 class Extract(ComputationalNode):
@@ -30,8 +41,26 @@ class Extract(ComputationalNode):
     Must also be subscriptable to connect to the transforms when coding a model.
     """
 
-    def extract(self, *, connection=None, yield_per=None, **kwargs) -> extractor_type:
-        yield {}
+    extractor: Func = base_extractor_func
+    _extractor: GenType[Dict[str, Any], None, None] = PrivateAttr(None)
+
+    @validator('extractor', pre=True)
+    def convert_callable_to_func(cls, extractor):
+        if callable(extractor):
+            extractor = Func.from_callable(extractor)
+        return extractor
+
+    def run(self, _: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
+        try:
+            output = next(self._extractor)
+        except StopIteration:
+            return None
+        return dict(output)
+
+    def set_extractor(self, *, connection=None, yield_per=None, **kwargs):
+
+        if self.extractor is not None:
+            self._extractor = self.extractor()
 
     def get_row_count(self, *, connection=None):
         return None

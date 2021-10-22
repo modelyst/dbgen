@@ -24,8 +24,8 @@ from sqlalchemy.orm.decl_api import registry
 from sqlmodel import Field, select
 
 from dbgen.core.args import Const
-from dbgen.core.entity import Entity, EntityId, EntityMetaclass, create_entity
-from dbgen.core.load import LoadEntity
+from dbgen.core.entity import BaseEntity, Entity, EntityMetaclass, create_entity
+from dbgen.core.node.load import LoadEntity
 from tests.strategies.entity import example_entity, fill_required_fields
 
 id_field = Field(
@@ -36,7 +36,7 @@ id_field = Field(
 
 
 def test_entity_hash(clear_registry):
-    class DummyEntity(Entity):
+    class DummyEntity(BaseEntity):
         label: str
         type: str
         details: dict = {}
@@ -49,7 +49,7 @@ def test_entity_hash(clear_registry):
     sample = DummyEntity(label="test_label", type="test_type")
     sample_v2_1 = DummyEntityV2(label="test_label", type="test_type", new_key=3.0)
     sample_v2_2 = DummyEntityV2(label="test_label", type="test_type", new_key=3)
-    assert all(map(lambda x: x in sample_v2_1._id_dict(), ("new_key", "label", "type")))
+    assert all(map(lambda x: x in sample_v2_1._id_dict()['_value'], ("new_key", "label", "type")))
     assert sample_v2_1 == sample_v2_2
     assert isinstance(sample.hash, str)
 
@@ -60,7 +60,7 @@ def test_entity_hash(clear_registry):
 def test_entity_inheritance(clear_registry):
     """Make sure that __identifying__, and the hash fields are being passed down through inheritance."""
 
-    class Grandparent(Entity):
+    class Grandparent(BaseEntity):
         grandparent: str
         __identifying__ = {"grandparent"}
         _hashinclude_ = {"x"}
@@ -84,13 +84,17 @@ def test_entity_inheritance(clear_registry):
     child = Child(**kwargs)
     assert child._hashinclude_ == {"x", "grandparent", "parent", "child", "name"}
     assert child._hashexclude_ == {"y", "z"}
-    assert child._id_dict() == {"_pytype": "tests.test_entity.Child", **kwargs}
+    assert child._id_dict() == {
+        '_type': 'basemodel',
+        "_base_model_type": "tests.test_entity.Child",
+        '_value': kwargs,
+    }
     assert Parent in child.__config__.json_encoders
     assert UUID in child.__config__.json_encoders
 
 
 def test_load_entity(clear_registry):
-    class TestSample(Entity, table=True):
+    class TestSample(BaseEntity, table=True):
         __tablename__ = "test_sample"
         id_col: Optional[UUID] = id_field
         label: str
@@ -112,7 +116,7 @@ def test_load_entity(clear_registry):
 
 
 def test_basic_load(clear_registry):
-    class Dummy4(Entity, table=True):
+    class Dummy4(BaseEntity, table=True):
         id: Optional[UUID] = id_field
         key_1: int
         key_2: str
@@ -125,7 +129,7 @@ def test_basic_load(clear_registry):
 
 
 def test_basic_parent_child_load(clear_registry):
-    class Tester(Entity):
+    class Tester(BaseEntity):
         id: Optional[UUID] = id_field
         deleted: bool = False
 
@@ -155,11 +159,11 @@ def test_basic_parent_child_load(clear_registry):
 def test_identifying_info_validation(clear_registry):
     with pytest.raises(ValueError, match="Invalid Entity Class Definition."):
 
-        class Test(Entity):
+        class Test(BaseEntity):
             type: str
             __identifying__ = {"label"}
 
-    class TestParent(Entity):
+    class TestParent(BaseEntity):
         type: str
         label: str
         __identifying__ = {"label"}
@@ -172,23 +176,23 @@ def test_identifying_info_validation(clear_registry):
 
 
 def test_registry(clear_registry):
-    start = len(Entity.metadata.tables)
-    assert len(Entity.metadata.tables) == 0
+    start = len(BaseEntity.metadata.tables)
+    assert len(BaseEntity.metadata.tables) == 0
 
-    class TableWithRegistry(Entity, table=True):
+    class TableWithRegistry(BaseEntity, table=True):
         id: UUID = id_field
 
-    class Parent(Entity, table=True):
+    class Parent(BaseEntity, table=True):
         id: UUID = id_field
 
-    assert TableWithRegistry.__fulltablename__ in Entity.metadata.tables
-    assert Parent.__fulltablename__ in Entity.metadata.tables
-    assert len(Entity.metadata.tables) - start == 2
+    assert TableWithRegistry.__fulltablename__ in BaseEntity.metadata.tables
+    assert Parent.__fulltablename__ in BaseEntity.metadata.tables
+    assert len(BaseEntity.metadata.tables) - start == 2
 
 
 @given(entity_class=example_entity(fks={}))
 def test_entity_hypo(entity_class: EntityMetaclass):
-    instance: Entity = fill_required_fields(entity_class)
+    instance: BaseEntity = fill_required_fields(entity_class)
     assert instance.__fulltablename__ in instance.metadata.tables
     load_entity = instance._get_load_entity()
     assert load_entity.name == instance.__tablename__
@@ -200,7 +204,7 @@ def test_entity_hypo(entity_class: EntityMetaclass):
 
 @given(example_entity(fks={"parent_id": "parent.id"}))
 def test_entity_fks_hypo(entity_class: EntityMetaclass):
-    instance: Entity = fill_required_fields(entity_class)
+    instance: BaseEntity = fill_required_fields(entity_class)
     assert len(instance.__fields__) >= 3
     assert instance.__fulltablename__ in instance.metadata.tables
     load_entity = instance._get_load_entity()
@@ -228,7 +232,7 @@ def test_extra_attrs(entity_class: EntityMetaclass):
 
 
 def test_dbgen_id_table(clear_registry):
-    class TestEntity(EntityId, table=True):
+    class TestEntity(Entity, table=True):
         __tablename__ = "tester"
         __identifying__ = {"label", "type"}
         _hashinclude_ = __identifying__
@@ -251,7 +255,7 @@ def test_dbgen_id_table(clear_registry):
 
 
 def test_assert_identifying_column(clear_registry):
-    class Dummy(EntityId, table=True):
+    class Dummy(Entity, table=True):
         name: str
 
     assert Dummy._is_table
@@ -260,7 +264,7 @@ def test_assert_identifying_column(clear_registry):
 def test_is_table_attr(clear_registry):
     """Test the Entity._is_table attribute correct indicates a Entity has table=True."""
 
-    class Dummy(EntityId, table=False):
+    class Dummy(Entity, table=False):
         name: str
 
     class DummyChild(Dummy):
@@ -277,7 +281,7 @@ def test_is_table_attr(clear_registry):
 def test_validation_of_table_inheritance(clear_registry):
     """Test error thrown when table=True inherits from table=True"""
 
-    class Dummy(EntityId, table=True):
+    class Dummy(Entity, table=True):
         name: str
 
     class DummyChild(Dummy):
@@ -295,7 +299,7 @@ def test_validation_of_table_inheritance(clear_registry):
 def test_load_entity_validation(clear_registry):
     """Test error thrown when you get load_entity from non-table Entity"""
 
-    class Dummy(EntityId, table=True):
+    class Dummy(Entity, table=True):
         name: str
 
     assert isinstance(Dummy._get_load_entity(), LoadEntity)
@@ -313,7 +317,7 @@ def test_multiple_primary_keys_error(clear_registry):
 
     with pytest.raises(NotImplementedError):
 
-        class Dummy(Entity, table=True):
+        class Dummy(BaseEntity, table=True):
             id_1: str = Field(None, primary_key=True)
             id_2: str = Field(None, primary_key=True)
 
@@ -322,41 +326,41 @@ def test_multiple_primary_keys_error(clear_registry):
 
 def test_clear_registry_method(clear_registry):
     """Test that tables with the same name error and Entity.clear_registry works."""
-    assert len(Entity.metadata.tables) == 0
+    assert len(BaseEntity.metadata.tables) == 0
 
-    class DummyV1(EntityId, table=True):
+    class DummyV1(Entity, table=True):
         __tablename__ = "dummy"
 
-    class DummyV2(EntityId, table=True):
+    class DummyV2(Entity, table=True):
         __tablename__ = "dummy_v2"
 
-    assert len(Entity.metadata.tables) == 2
+    assert len(BaseEntity.metadata.tables) == 2
     with pytest.raises(ValueError):
 
-        class Dummy(EntityId, table=True):
+        class Dummy(Entity, table=True):
             __tablename__ = "dummy"
 
-    class DummyV3(EntityId, table=True):
+    class DummyV3(Entity, table=True):
         __tablename__ = "dummy_v3"
 
-    assert len(Entity.metadata.tables) == 3
-    Entity.clear_registry()
-    assert len(Entity.metadata.tables) == 0
+    assert len(BaseEntity.metadata.tables) == 3
+    BaseEntity.clear_registry()
+    assert len(BaseEntity.metadata.tables) == 0
 
-    class DummyV4(EntityId, table=True):
+    class DummyV4(Entity, table=True):
         __tablename__ = "dummy"
 
 
 def test_duplicate_table_name(clear_registry):
     """Test that tables with the same name error and Entity.clear_registry works."""
-    assert len(Entity.metadata.tables) == 0
+    assert len(BaseEntity.metadata.tables) == 0
     table_name = "my_table"
 
-    class Table1(EntityId, table=True):
+    class Table1(Entity, table=True):
         __tablename__ = table_name
         __schema__ = "public"
 
-    class Table2(EntityId, table=True):
+    class Table2(Entity, table=True):
         __tablename__ = table_name
         __schema__ = "test"
 
@@ -364,7 +368,7 @@ def test_duplicate_table_name(clear_registry):
     Table2._get_load_entity()
     with pytest.raises(ValueError):
 
-        class Table3(EntityId, table=True):
+        class Table3(Entity, table=True):
             __tablename__ = table_name
             __schema__ = "public"
 
@@ -377,25 +381,25 @@ def test_registry_and_schema_interaction(connection, clear_registry):
     metadata = registry_1.metadata
     for schema in ("test", "public"):
 
-        class DummyV1(EntityId, table=True, registry=registry_1):
+        class DummyV1(Entity, table=True, registry=registry_1):
             __tablename__ = "dummy"
             __schema__ = schema
 
-        class DummyV2(EntityId, table=True, registry=registry_1):
+        class DummyV2(Entity, table=True, registry=registry_1):
             __tablename__ = "dummy_v2"
             __schema__ = schema
 
-        class PublicTable(EntityId, table=True, registry=registry_1):
+        class PublicTable(Entity, table=True, registry=registry_1):
             __tablename__ = "my_table"
             __schema__ = "public"
 
-        class TestTable(EntityId, table=True, registry=registry_1):
+        class TestTable(Entity, table=True, registry=registry_1):
             __tablename__ = "my_table"
             __schema__ = "test"
 
         metadata.create_all(connection)
         tables = ("dummy", "dummy_v2")
-        assert len(Entity.metadata.tables) == 0
+        assert len(BaseEntity.metadata.tables) == 0
         connection.commit()
         assert len(metadata.tables) == 4
         tables = map(lambda x: f"{schema}.{x}", tables)
@@ -422,8 +426,9 @@ def test_create_entity(connection, session, clear_registry):
     )
     assert dummy.name == "test"
     assert dummy._id_dict() == {
-        "name": "test",
-        "_pytype": "dbgen.core.entity.Dummy",
+        '_value': {"name": "test"},
+        '_type': 'basemodel',
+        "_base_model_type": "dbgen.core.entity.Dummy",
     }
     registry_1.metadata.create_all(connection)
     connection.commit()

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from pydantic import BaseSettings, PostgresDsn, SecretStr, validator
 from pydantic.tools import parse_obj_as
 
+from dbgen.utils.log import setup_logger
 from dbgen.utils.sql import Connection
 
 if TYPE_CHECKING:
@@ -81,6 +82,7 @@ class DBgenConfiguration(BaseSettings):
 
 
 config = DBgenConfiguration()
+root_logger = setup_logger()
 
 
 def initialize(config_file: 'Path' = None) -> Tuple['Engine', 'Engine']:

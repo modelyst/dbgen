@@ -15,15 +15,16 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Generator as GenType
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 import typer
 from sqlmodel import Session, func, select
 
-from dbgen.configuration import config, get_engines
+from dbgen.configuration import config, get_engines, root_logger
 from dbgen.core.metadata import GeneratorEntity, GeneratorRunEntity, RunEntity
 from dbgen.core.run import RemoteGeneratorRun, RunConfig
+from dbgen.utils.log import LogLevel, add_stdout_logger
 
 if TYPE_CHECKING:
     from sqlalchemy.future import Engine
@@ -78,10 +79,26 @@ def run_generator(
     run_id: Optional[int] = typer.Argument(None),
     ordering: Optional[int] = typer.Argument(None),
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
+    level: LogLevel = typer.Option(LogLevel.INFO, help="Log level"),
+    include: List[str] = typer.Option([], help="Generators to include"),
+    exclude: List[str] = typer.Option([], help="Generators to xclude"),
+    start: Optional[str] = typer.Option(None, help="Generator to start run at"),
+    until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
+    batch: Optional[int] = typer.Option(None, help="Batch size for all generators"),
 ):
-
     # Retrieve the configured engines for
     main_engine, meta_engine = get_engines(config)
+    run_config = RunConfig(
+        retry=retry,
+        start=start,
+        until=until,
+        exclude=exclude,
+        include=include,
+        progress_bar=False,
+        batch_size=batch,
+        log_level=level,
+    )
+    add_stdout_logger(root_logger, stdout_level=level)
     # Validate that the generator id provided is in the GeneratorEntity Table for remote running
     gens = {gen_id: gen_name for gen_name, _, gen_id in get_runnable_gens(meta_engine=meta_engine)}
     if gen_id not in gens:
@@ -101,12 +118,8 @@ def run_generator(
                 raise typer.BadParameter(
                     f"No Run exists with run_id = {run_id} has the run been initialized?"
                 )
-    # Remote runs don't use a progress bar as you shouldn't be watching it!
-    run_config = RunConfig(
-        retry=retry,
-        bar=False,
-    )
-
-    return RemoteGeneratorRun(generator_id=gen_id).execute(
+    code = RemoteGeneratorRun(generator_id=gen_id).execute(
         main_engine, meta_engine, run_id, run_config, ordering
     )
+    if code:
+        raise typer.Exit(code=code)

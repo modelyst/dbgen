@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 from dbgen.core.args import Arg
-from dbgen.core.query import BaseQuery, Connection, ExternalQuery
+from dbgen.core.node.query import BaseQuery, Connection, ExternalQuery
 from tests.example.database import dsn
 
 test_connection = Connection.from_uri(dsn)
@@ -24,26 +24,29 @@ def test_base_query(seed_db):
     ext = BaseQuery(query="Select 1 as test", outputs=["test"])
     engine = test_connection.get_engine()
     with engine.connect() as conn:
-        output = list(ext.extract(connection=conn))
+        ext.set_extractor(connection=conn)
+        output = list(ext._extractor)
         assert len(output)
-        assert all(map(lambda x: "test" in x[ext.hash], output))
+        assert all(map(lambda x: "test" in x, output))
         assert isinstance(ext["test"], Arg)
 
 
 def test_external_connection(seed_db):
     ext = ExternalQuery(query="Select 1 as test", outputs=["test"], connection=test_connection)
-    output = list(ext.extract())
+    ext.set_extractor()
+    output = list(ext._extractor)
     assert len(output)
-    assert all(map(lambda x: "test" in x[ext.hash], output))
+    assert all(map(lambda x: "test" in x, output))
     ext = ExternalQuery(
         query="Select name from users order by id asc",
         outputs=["test"],
         connection=test_connection,
     )
-    output = list(ext.extract())
+    ext.set_extractor()
+    output = list(ext._extractor)
     assert len(output) == 100
-    assert all(map(lambda x: "name" in x[ext.hash], output))
-    assert output[0] == {ext.hash: {"name": "user_0"}}
+    assert all(map(lambda x: "name" in x, output))
+    assert output[0] == {"name": "user_0"}
 
 
 def test_external_connection_streaming(seed_db):
@@ -52,9 +55,11 @@ def test_external_connection_streaming(seed_db):
         outputs=["name"],
         connection=test_connection,
     )
-    for row in ext.extract(yield_per=10):
-        assert "name" in row[ext.hash]
+    ext.set_extractor(yield_per=10)
+    for row in ext._extractor:
+        assert "name" in row
 
-    output = list(ext.extract(yield_per=10))
+    ext.set_extractor(yield_per=10)
+    output = list(ext._extractor)
     assert len(output) == 100
-    assert all(map(lambda x: "name" in x[ext.hash], output))
+    assert all(map(lambda x: "name" in x, output))

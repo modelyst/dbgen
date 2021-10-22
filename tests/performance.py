@@ -24,14 +24,14 @@ from sqlalchemy import insert
 from sqlalchemy.orm import registry, sessionmaker
 from sqlmodel import Field
 
-from dbgen.core.entity import Entity
+from dbgen.core.entity import BaseEntity
 from tests.example.database import sql_engine
 
 Session = sessionmaker(bind=sql_engine)
 my_registry = registry()
 
 
-class Car(Entity, registry=my_registry, table=True):
+class Car(BaseEntity, registry=my_registry, table=True):
     id: Optional[int] = Field(
         None, primary_key=True, sa_column_kwargs={"unique": True, "autoincrement": True}
     )

@@ -18,7 +18,7 @@ from sqlalchemy import exc, select
 from sqlalchemy.orm import registry
 
 from dbgen.core.dependency import Dependency
-from dbgen.core.entity import EntityId
+from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
 
@@ -34,17 +34,17 @@ def test_generator_validation():
 
 
 def test_basic_generator_graph():
-    a_gen = Generator(name="yields a", additional_dependencies=Dependency(tables_yielded={"a"}))
+    a_gen = Generator(name="yields_a", additional_dependencies=Dependency(tables_yielded={"a"}))
     b_gen = Generator(
-        name="yields b",
+        name="yields_b",
         additional_dependencies=Dependency(tables_needed={"a"}, tables_yielded={"b"}),
     )
     c_gen = Generator(
-        name="yields c",
+        name="yields_c",
         additional_dependencies=Dependency(tables_needed={"a", "b"}, tables_yielded={"c"}),
     )
     d_gen = Generator(
-        name="yields d",
+        name="yields_d",
         additional_dependencies=Dependency(tables_needed={"c"}, tables_yielded={"d"}),
     )
     Model(name="test", generators=[a_gen, b_gen, c_gen, d_gen])
@@ -53,10 +53,10 @@ def test_basic_generator_graph():
 def test_model_sync(sql_engine, debug_logger):
     sa_registry = registry()
 
-    class Dummy(EntityId, table=True, registry=sa_registry):
+    class Dummy(Entity, table=True, registry=sa_registry):
         pass
 
-    class DummyOtherSchema(EntityId, table=True, registry=sa_registry):
+    class DummyOtherSchema(Entity, table=True, registry=sa_registry):
         __schema__ = "other_schema"
 
     model = Model(name="test_model", registry=sa_registry)
