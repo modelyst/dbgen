@@ -45,9 +45,10 @@ class Child(Entity, registry=my_registry, table=True):
     parent_id: Optional[UUID] = Field(None, foreign_key="public.parent.id")
 
 
-def extractor():
-    for i in range(1000):
-        yield {'out': i}
+class CustomExtractor(Extract):
+    def extract(self):
+        for i in range(1000):
+            yield {'out': i}
 
 
 def failing_func():
@@ -62,7 +63,7 @@ def inputs_skipped():
 
 
 def make_model():
-    new_extract = Extract(extractor=extractor)
+    new_extract = CustomExtractor()
     generator_1 = Generator(
         name="add_parents",
         extract=new_extract,

@@ -41,7 +41,7 @@ def get_runnable_gens(
             func.max(GeneratorRunEntity.created_at),
             GeneratorEntity.id,
         )
-        .join_from(GeneratorRunEntity, GeneratorEntity)
+        .join_from(GeneratorEntity, GeneratorRunEntity)
         .group_by(GeneratorEntity.name, GeneratorEntity.id)
         .order_by(GeneratorEntity.name, func.max(GeneratorRunEntity.created_at).desc())
     )

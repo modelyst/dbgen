@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 from datetime import datetime
+from logging import getLogger
 from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
@@ -25,13 +26,14 @@ import dbgen.cli.styles as styles
 import dbgen.exceptions as exceptions
 from dbgen.cli.options import config_option, model_string_option, version_option
 from dbgen.cli.queries import get_runs
-from dbgen.cli.utils import confirm_nuke, set_confirm, validate_model_str
-from dbgen.configuration import initialize, root_logger
+from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
+from dbgen.configuration import config, initialize, root_logger
 from dbgen.core.metadata import GeneratorRunEntity, ModelEntity, RunEntity
 from dbgen.core.run import RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
 
 run_app = typer.Typer(name='run')
+logger = getLogger(__name__)
 
 
 @run_app.command('status')
@@ -43,7 +45,9 @@ def status(
         [], '-s', '--status', help='Filter out only statuses that match input val'
     ),
 ):
-    _, meta_engine = initialize()
+    _, meta_conn = initialize()
+    test_connection(meta_conn)
+    meta_engine = meta_conn.get_engine()
     filtered_keys = {'generator_id', 'created_at'}
     columns = ['name', *(c.name for c in GeneratorRunEntity.__table__.c if c.name not in filtered_keys)]
     show_cols = {col: col.replace('number_of_', '') for col in columns}
@@ -113,8 +117,15 @@ def run_model(
         raise typer.BadParameter(f"Invalid run configuration parameters passed:\n{error}")
 
     # Start connection from config
-
-    main_engine, meta_engine = initialize(config_file)
+    main_conn, meta_conn = initialize(config_file)
+    # Test each connection with simple select command
+    logger.debug('testing connections')
+    for name, conn in (('main', main_conn), ('meta', meta_conn)):
+        logger.debug(f'testing {name} connection...')
+        test_connection(conn, name)
+    # Grab engine from each connection
+    main_engine, meta_engine = main_conn.get_engine(), meta_conn.get_engine()
+    # Pass all the arguments to the model run command
     try:
         out_run = model.run(
             main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed, remote=remote
@@ -149,8 +160,12 @@ def run_model(
 @run_app.command('initialize')
 def run_initialize(model_id: UUID, config_file: Path = config_option):
     """Initialize a run."""
-    _, meta_engine = initialize(config_file)
-
+    # Notify of config file
+    if config_file:
+        _, meta_conn = initialize(config_file)
+    test_connection(meta_conn)
+    meta_engine = meta_conn.get_engine()
+    typer.echo(config.display())
     with Session(meta_engine) as session:
         model = session.get(ModelEntity, model_id)
         if not model:

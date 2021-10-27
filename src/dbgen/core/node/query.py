@@ -12,7 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Dict
+from typing import Generator as GenType
+from typing import Optional, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
@@ -56,26 +58,25 @@ class BaseQuery(Extract):
             dependency=dependency,
         )
 
-    def get_row_count(self, *, connection: 'SAConnection' = None) -> int:
+    def length(self, *, connection: 'SAConnection' = None) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
         rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
         return rows
 
-    def set_extractor(
+    def setup(
         self,
-        *,
         connection: Union['SAConnection', 'Session'] = None,
         yield_per: Optional[int] = None,
         **kwargs,
-    ) -> None:
+    ) -> GenType[Dict[str, Any], None, None]:
         assert connection, f"Need to pass in connection when setting the extractor"
         if yield_per:
             result = connection.execute(text(self.query))
-            self._extractor = result.yield_per(yield_per).mappings()
+            return result.yield_per(yield_per).mappings()
         else:
             result = connection.execute(text(self.query))
-            self._extractor = result.mappings()
+            return result.mappings()
 
 
 class ExternalQuery(BaseQuery):

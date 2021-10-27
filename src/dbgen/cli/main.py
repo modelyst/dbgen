@@ -88,7 +88,7 @@ class DBgenDatabase(str, Enum):
 
 @app.command(name="connect")
 def test_conn(
-    connect: DBgenDatabase = typer.Argument(DBgenDatabase.MAIN, help="Expose password in printed dsn."),
+    connect: DBgenDatabase = typer.Argument(DBgenDatabase.MAIN, help="Database to connect the meta or main."),
     config_file: Optional[Path] = config_option,
     test: bool = typer.Option(False, "-t", "--test", help="Test the main and metadb connections"),
     with_password: bool = typer.Option(

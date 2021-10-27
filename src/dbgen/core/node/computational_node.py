@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import Any, Dict, List, Mapping, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from pydantic import Field, validator
 
@@ -71,5 +71,5 @@ class ComputationalNode(Base):
             )
         return input_variables
 
-    def run(self, namespace: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
+    def run(self, namespace: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         return {}

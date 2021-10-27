@@ -18,12 +18,14 @@ __author__ = "Michael Statt"
 __email__ = "michael.statt@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 
 from dbgen.core.args import Const
 from dbgen.core.entity import BaseEntity, Entity
 from dbgen.core.func import Env, Import
 from dbgen.core.generator import Generator
+from dbgen.core.model import Model
+from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
 from dbgen.core.node.transforms import PyBlock

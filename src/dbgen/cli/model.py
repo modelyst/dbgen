@@ -25,7 +25,7 @@ from sqlmodel import Session, select
 
 import dbgen.cli.styles as styles
 from dbgen.cli.options import config_option, model_arg_option
-from dbgen.cli.utils import validate_model_str
+from dbgen.cli.utils import test_connection, validate_model_str
 from dbgen.configuration import initialize
 from dbgen.core.metadata import ModelEntity
 
@@ -37,7 +37,9 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
 
     # Notify of config file
     if config_file:
-        _, meta_engine = initialize(config_file)
+        _, meta_conn = initialize(config_file)
+    test_connection(meta_conn)
+    meta_engine = meta_conn.get_engine()
     tags = tags or []
     statement = select(
         ModelEntity.id,
@@ -45,9 +47,9 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
         ModelEntity.created_at,
         ModelEntity.last_run,
         ModelEntity.tags,
-    )
+    )  # type: ignore
     if tags:
-        statement = statement.where(ModelEntity.tags.op('&&')(tags))
+        statement = statement.where(ModelEntity.tags.op('&&')(tags))  # type: ignore
     columns = ['id', 'name', 'created_at', 'last_run', 'tags']
     table = PrettyTable(field_names=columns, align='l', hrules=ALL)
     with Session(meta_engine) as session:
@@ -59,8 +61,11 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
 
 @model_app.command('tag')
 def tag(model_id: UUID, tags: List[str], config_file: Path = config_option):
+    # Notify of config file
     if config_file:
-        _, meta_engine = initialize(config_file)
+        _, meta_conn = initialize(config_file)
+    test_connection(meta_conn)
+    meta_engine = meta_conn.get_engine()
 
     with Session(meta_engine) as session:
         existing_tags = session.exec(select(ModelEntity.tags).where(ModelEntity.id == model_id)).one_or_none()
@@ -82,9 +87,11 @@ def model_serialize(
 ):
     model = validate_model_str(model_str)
 
+    # Notify of config file
     if config_file:
-        _, meta_engine = initialize(config_file)
-
+        _, meta_conn = initialize(config_file)
+    test_connection(meta_conn)
+    meta_engine = meta_conn.get_engine()
     with Session(meta_engine) as session:
         model_row = model._get_model_row()
         # Check for existing row and if found grab its created_at
@@ -111,8 +118,11 @@ def model_export(
     config_file: Path = config_option,
 ):
 
+    # Notify of config file
     if config_file:
-        _, meta_engine = initialize(config_file)
+        _, meta_conn = initialize(config_file)
+    test_connection(meta_conn)
+    meta_engine = meta_conn.get_engine()
 
     with Session(meta_engine) as session:
         # Check for existing row and if found grab its created_at

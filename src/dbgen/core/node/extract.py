@@ -14,22 +14,13 @@
 
 from typing import Any, Dict
 from typing import Generator as GenType
-from typing import Mapping
+from typing import Mapping, Optional
 
-from pydantic import validator
 from pydantic.fields import PrivateAttr
 
-from dbgen.core.func import Func
 from dbgen.core.node.computational_node import ComputationalNode
 
 extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
-
-
-def base_extractor():
-    yield {}
-
-
-base_extractor_func = Func.from_callable(base_extractor)
 
 
 class Extract(ComputationalNode):
@@ -41,16 +32,23 @@ class Extract(ComputationalNode):
     Must also be subscriptable to connect to the transforms when coding a model.
     """
 
-    extractor: Func = base_extractor_func
     _extractor: GenType[Dict[str, Any], None, None] = PrivateAttr(None)
 
-    @validator('extractor', pre=True)
-    def convert_callable_to_func(cls, extractor):
-        if callable(extractor):
-            extractor = Func.from_callable(extractor)
-        return extractor
+    # Overwrite these when writing custom extractor
+    def setup(self, **_) -> Optional[GenType[Dict[str, Any], None, None]]:
+        pass
 
-    def run(self, _: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
+    def extract(self):
+        yield {}
+
+    def teardown(self, **_):
+        pass
+
+    def length(self, **_):
+        return None
+
+    # Internal Do not Overwrite
+    def run(self, _: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         try:
             output = next(self._extractor)
         except StopIteration:
@@ -58,9 +56,14 @@ class Extract(ComputationalNode):
         return dict(output)
 
     def set_extractor(self, *, connection=None, yield_per=None, **kwargs):
+        extractor = self.setup(connection=connection, yield_per=yield_per, **kwargs)
+        # Check if setup assigned the extractor already
+        if extractor is not None:
+            self._extractor = extractor
+        elif getattr(self, 'extract', None) and callable(self.extract):
+            self._extractor = self.extract()
+        else:
+            raise NotImplementedError(f"No way of getting the extractor from this extract")
 
-        if self.extractor is not None:
-            self._extractor = self.extractor()
-
-    def get_row_count(self, *, connection=None):
-        return None
+    def __str__(self):
+        return f"Extract<{self.outputs}>"

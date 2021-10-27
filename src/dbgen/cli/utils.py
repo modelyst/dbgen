@@ -15,11 +15,15 @@
 import logging
 from pathlib import Path
 from types import FunctionType
+from typing import TYPE_CHECKING
 
 import typer
 
-from dbgen.cli.styles import LOGO_STYLE
+from dbgen.cli.styles import LOGO_STYLE, bad_typer_print
 from dbgen.core.model import Model
+
+if TYPE_CHECKING:
+    from dbgen.utils.sql import Connection
 
 # Errors
 ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"
@@ -93,6 +97,9 @@ def validate_model_str(model_str: str) -> Model:
     """
     basic_error = lambda fmt, val: typer.BadParameter(fmt.format(*val))
 
+    if model_str is None:
+        raise typer.BadParameter("--model is required.")
+
     # Check for empty string model_strs
     if model_str in (":", ""):
         raise basic_error(ERROR_FORMAT, [model_str])
@@ -122,3 +129,12 @@ def validate_model_str(model_str: str) -> Model:
         raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
     except AttributeError as exc:
         raise typer.BadParameter(str(exc))
+
+
+CONNECT_ERROR = "Cannot connect to database({name!r}) with connection string {url}. You can test your connection with dbgen connect --test"
+
+
+def test_connection(conn: 'Connection', name: str = ''):
+    if not conn.test():
+        bad_typer_print(CONNECT_ERROR.format(name='meta', url=conn.url()))
+        raise typer.Exit(code=2)

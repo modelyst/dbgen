@@ -160,7 +160,7 @@ class BaseGeneratorRun(Base):
         else:
             extract.set_extractor()
 
-        row_count = extract.get_row_count(connection=extractor_connection)
+        row_count = extract.length(connection=extractor_connection)
         gen_run.inputs_extracted = row_count
         meta_session.commit()
 
@@ -189,14 +189,18 @@ class BaseGeneratorRun(Base):
                 row: Dict[str, Mapping[str, Any]] = {}
                 try:
                     for node in generator._sort_graph():
+                        self._logger.debug(f'running node {node}...')
                         output = node.run(row)
                         # Extract outputs need to be fed to our repeat checker and need to be checked for stop iterations
                         if isinstance(node, Extract):
                             if output is None or batch_done(gen_run.inputs_processed):
+                                self._logger.debug('loading batch...')
                                 self._load_repeats(meta_raw_connection, generator)
                                 rows_inserted, rows_updated = self._load(main_raw_connection, generator)
                                 gen_run.rows_inserted += rows_inserted
                                 gen_run.rows_updated += rows_updated
+                                meta_session.commit()
+                                self._logger.debug('done loading batch')
                             # if we are out of rows break out of while loop
                             if output is None:
                                 raise StopIteration
@@ -335,8 +339,10 @@ class RemoteGeneratorRun(BaseGeneratorRun):
             try:
                 generator = Generator.deserialize(gen_json)
             except ModuleNotFoundError as exc:
+                import os
+
                 raise SerializationError(
-                    f"While deserializing generator id {self.generator_id} an unknown module was encountered. Are your custom dbgen objects reachable by your python environment?"
+                    f"While deserializing generator id {self.generator_id} an unknown module was encountered. Are you using custom dbgen objects reachable by your python environment? Make sure any custom extractors or code can be found in your PYTHONPATH environment variable\nError: {exc}\nPYTHONPATH={os.environ.get('PYTHONPATH')}"
                 ) from exc
             if generator.uuid != self.generator_id:
                 error = f"Deserialization Failed the generator hash has changed for generator named {generator.name}!\n{generator}\n{self.generator_id}"

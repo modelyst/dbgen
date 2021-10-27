@@ -85,11 +85,11 @@ config = DBgenConfiguration()
 root_logger = setup_logger()
 
 
-def initialize(config_file: 'Path' = None) -> Tuple['Engine', 'Engine']:
+def initialize(config_file: 'Path' = None) -> Tuple['Connection', 'Connection']:
     global config
     if config_file:
         config = update_config(config_file)
-    return get_engines(config)
+    return get_connections(config)
 
 
 def update_config(config_file: 'Path') -> DBgenConfiguration:

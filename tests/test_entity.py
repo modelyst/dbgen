@@ -20,6 +20,7 @@ import pytest
 from hypothesis import given
 from pydantic import ValidationError
 from pydasher import hasher
+from sqlalchemy import text
 from sqlalchemy.orm.decl_api import registry
 from sqlmodel import Field, select
 
@@ -397,6 +398,7 @@ def test_registry_and_schema_interaction(connection, clear_registry):
             __tablename__ = "my_table"
             __schema__ = "test"
 
+        connection.execute(text('create schema if not exists test;'))
         metadata.create_all(connection)
         tables = ("dummy", "dummy_v2")
         assert len(BaseEntity.metadata.tables) == 0
