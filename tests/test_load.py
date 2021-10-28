@@ -38,7 +38,8 @@ def simple_load():
     load_entity = LoadEntity(
         name="Test",
         primary_key_name="id",
-        identifying_attributes={"key_1": "str", "key_2": "int"},
+        identifying_attributes={"key_1", "key_2"},
+        attributes={"key_1": "text", "key_2": "text"},
     )
     load = Load(
         load_entity=load_entity,

@@ -13,10 +13,9 @@
 #   limitations under the License.
 
 import re
-from functools import lru_cache
 from io import StringIO
 from itertools import chain
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 from uuid import UUID
 
 import psycopg2
@@ -27,15 +26,16 @@ from pydantic import Field, root_validator, validator
 from pydantic.fields import PrivateAttr
 from pydasher import hasher
 
+from dbgen.configuration import config
 from dbgen.core.args import Arg, Const
 from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError
 from dbgen.utils.lists import broadcast, is_broadcastable
+from dbgen.utils.type_coercion import SQLTypeEnum, get_python_type, get_str_converter
 
 
-@lru_cache()
 def hash_tuple(tuple_to_hash: Tuple[Any, ...]) -> UUID:
     return UUID(hasher(tuple_to_hash))
 
@@ -46,8 +46,10 @@ class LoadEntity(Base):
     name: str
     schema_: Optional[str]
     primary_key_name: str
-    identifying_attributes: Dict[str, str] = Field(default_factory=dict)
+    identifying_attributes: Set[str] = Field(default_factory=dict)
     identifying_foreign_keys: Set[str] = Field(default_factory=set)
+    attributes: Dict[str, SQLTypeEnum] = Field(default_factory=dict)
+    foreign_keys: Set[str] = Field(default_factory=set)
 
     def __str__(self):
         return (
@@ -55,12 +57,33 @@ class LoadEntity(Base):
             f"name={self.name!r}, "
             f"schema={self.schema!r}, "
             f"id_attrs={self.identifying_attributes}, "
-            f"id_fks={self.identifying_foreign_keys}>"
+            f"id_fks={self.identifying_foreign_keys}, "
+            f"attributes={self.attributes}, "
+            f"fks={self.foreign_keys}>"
         )
 
     def _get_hash(self, arg_dict: Dict[str, Any]) -> UUID:
         id_fks = (str(arg_dict[val]) for val in sorted(self.identifying_foreign_keys))
-        id_attrs = (eval(type_)(arg_dict[val]) for val, type_ in sorted(self.identifying_attributes.items()))
+        id_attrs = []
+        for attr_name in sorted(self.identifying_attributes):
+            type_ = self.attributes[attr_name]
+            type_func = get_python_type(type_)
+            try:
+                arg_val = arg_dict[attr_name]
+                if arg_val is None or isinstance(arg_val, type_func):
+                    coerced_val = arg_val
+                else:
+                    if not config.type_coercing:
+                        raise TypeError(
+                            f"Type Coercing is turned off. You are trying to insert into attribute {self.name}({attr_name}) which has a type of {type_func} but you provided a type {type(arg_val)}.\n"
+                            "If you want to turn Type Coercement on set the configuration variable DBGEN_TYPE_COERCING=true in your config file or environment variable"
+                        )
+                    coerced_val = type_func(arg_val)
+            except TypeError as exc:
+                raise ValueError(f"Error coercing value {arg_val!r} to type {type_}:\n{exc}") from exc
+            except KeyError:
+                raise KeyError(f"Cannot find id_attribute {attr_name!r} in arg_dict for hashing: {arg_dict}")
+            id_attrs.append(coerced_val)
         tuple_to_hash = (*id_attrs, *id_fks)
         return hash_tuple(tuple_to_hash)
 
@@ -70,7 +93,14 @@ class LoadEntity(Base):
 
     @property
     def identifiers(self) -> Set[str]:
-        return self.identifying_foreign_keys.union(self.identifying_attributes.keys())
+        return self.identifying_foreign_keys.union(self.identifying_attributes)
+
+    def _get_str_converter(self, key) -> Callable[[Any], str]:
+        if key in self.attributes:
+            return get_str_converter(self.attributes[key])
+        elif key in self.foreign_keys:
+            return get_str_converter(SQLTypeEnum.UUID)
+        raise ValueError(f"Unknown str converter for key {key}")
 
 
 NUM_QUERY_TRIES = 10
@@ -154,7 +184,7 @@ class Load(ComputationalNode):
             tables_needed=tables_needed,
         )
 
-    def run(self, row: Dict[str, Dict[str, Any]]) -> Dict[str, List[UUID]]:
+    def run(self, row: Dict[str, Mapping[str, Any]]) -> Dict[str, List[UUID]]:
         not_list = lambda x: not isinstance(x, (list, tuple))
         arg_dict = {
             key: [val] if not_list(val) else val for key, val in sorted(self._get_inputs(row).items())
@@ -223,9 +253,12 @@ class Load(ComputationalNode):
         """
         # All ro
         output_file_obj = StringIO()
+        str_converters = [
+            self.load_entity._get_str_converter(k) for k in chain(['id'], sorted(self.inputs.keys()))
+        ]
         for pk_curr, row_curr in self._output.items():
             new_line = [str(pk_curr)] + list(row_curr)  # type: ignore
-            new_line = map(str, new_line)  # type: ignore
+            new_line = map(lambda x, y: x(y), str_converters, new_line)  # type: ignore
             new_line = map(  # type: ignore
                 lambda x: x.replace("\t", "\\t")
                 .replace("\n", "\\n")

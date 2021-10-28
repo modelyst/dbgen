@@ -58,7 +58,7 @@ class BaseQuery(Extract):
             dependency=dependency,
         )
 
-    def length(self, *, connection: 'SAConnection' = None) -> int:
+    def length(self, *, connection: 'SAConnection' = None, **_) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
         rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
@@ -73,10 +73,10 @@ class BaseQuery(Extract):
         assert connection, f"Need to pass in connection when setting the extractor"
         if yield_per:
             result = connection.execute(text(self.query))
-            return result.yield_per(yield_per).mappings()
+            return result.yield_per(yield_per).mappings()  # type: ignore
         else:
             result = connection.execute(text(self.query))
-            return result.mappings()
+            return result.mappings()  # type: ignore
 
 
 class ExternalQuery(BaseQuery):

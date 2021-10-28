@@ -45,6 +45,7 @@ class DBgenConfiguration(BaseSettings):
     meta_schema: str = "dbgen_log"
     meta_password: Optional[SecretStr] = None
     temp_dir: Path = Path(tempfile.gettempdir())
+    type_coercing: bool = False
 
     class Config:
         """Pydantic configuration"""

@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.3"
+version = "0.5.4"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -45,7 +45,7 @@ pdocs = {version = "^1.1.1", optional = true}
 prettytable = "^2.2.1"
 psycopg2-binary = "^2.9.1"
 pydantic = "^1.8.2"
-pydasher = "^0.0.4"
+pydasher = {git = "https://github.com/modelyst/pydasher", rev = "main"}
 python = ">=3.7,<4.0"
 python-dotenv = "^0.19.1"
 sqlmodel = {git = "https://github.com/statt8900/sqlmodel.git", rev = "develop"}

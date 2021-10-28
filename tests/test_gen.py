@@ -16,7 +16,7 @@ from random import shuffle
 from typing import Optional, cast
 
 import pytest
-from sqlalchemy.engine import Engine
+from sqlalchemy.future import Engine
 from sqlmodel import Session, func, select
 
 import tests.example.entities as entities
@@ -143,37 +143,3 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
     )
     connection.commit()
     gen.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
-
-
-def get_color(node):
-    from dbgen.core.generator import Generator
-    from dbgen.core.node.extract import Extract
-    from dbgen.core.node.load import Load
-    from dbgen.core.node.transforms import Transform
-
-    if isinstance(node, Transform):
-        return "red"
-    elif isinstance(node, Load):
-        return "green"
-    elif isinstance(node, Extract):
-        return "blue"
-    elif isinstance(node, Generator):
-        return "green"
-    return "gray"
-
-
-def get_label(node):
-    from dbgen.core.generator import Generator
-    from dbgen.core.node.extract import Extract
-    from dbgen.core.node.load import Load
-    from dbgen.core.node.transforms import Transform
-
-    if isinstance(node, Transform):
-        return str(node)
-    elif isinstance(node, Load):
-        return node.load_entity.name
-    elif isinstance(node, Extract):
-        return "Query"
-    elif isinstance(node, Generator):
-        return node.name
-    return "None"

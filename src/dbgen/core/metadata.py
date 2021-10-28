@@ -17,7 +17,6 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic.types import Json
 from sqlalchemy import Column, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import registry
@@ -59,7 +58,7 @@ class ModelEntity(Root, registry=meta_registry, table=True):
     created_at: Optional[datetime] = get_created_at_field()
     last_run: Optional[datetime]
     name: str
-    graph_json: Optional[Json] = Field(None, sa_column=Column(JSONB))
+    graph_json: Optional[str] = Field(None, sa_column=Column(JSONB))
     tags: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(AutoString)))
     generators: List['GeneratorEntity'] = Relationship(back_populates='models', link_model=ModelGeneratorMap)
 
@@ -75,7 +74,7 @@ class GeneratorEntity(Root, registry=meta_registry, table=True):
     table_yielded: Optional[str]
     column_needed: Optional[str]
     column_yielded: Optional[str]
-    gen_json: Optional[Json] = Field(None, sa_column=Column(JSONB))
+    gen_json: Optional[dict] = Field(None, sa_column=Column(JSONB))
     generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='generator')
     models: List['ModelEntity'] = Relationship(back_populates='generators', link_model=ModelGeneratorMap)
 

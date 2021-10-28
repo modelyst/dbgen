@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 from string import ascii_lowercase
-from typing import Any, Dict, Tuple, TypeVar
+from typing import Any, Dict, Tuple, Type, TypeVar
 from uuid import UUID
 
 from hypothesis import strategies as st
@@ -45,12 +45,16 @@ def example_entity(
     attrs: Dict[str, Tuple[type, Any]] = None,
     draw_attrs: bool = True,
     registry_: registry = None,
-) -> SearchStrategy[EntityMetaclass]:
+) -> SearchStrategy[Type[BaseEntity]]:
     class_name = class_name or draw(uni_text(1))
     if fks is None:
-        fks = draw(st.dictionaries(non_private_attr, non_private_attr))
+        fks = draw(
+            st.dictionaries(
+                non_private_attr.filter(lambda x: attrs and x not in attrs and x != 'id'), non_private_attr
+            )
+        )
 
-    annotations = {"id": UUID}
+    annotations: Dict[str, type] = {"id": UUID}
     if draw_attrs:
         annotations.update(
             draw(
@@ -70,12 +74,12 @@ def example_entity(
     attrs = attrs or {}
     for attr_name, attr_dets in attrs.items():
         if len(attr_dets) == 1:
-            (type_,) = attr_dets
+            type_ = attr_dets[0]
         else:
             type_, default = attr_dets
             added_attrs[attr_name] = default
-        annotations[attr_name] = type_
 
+        annotations[attr_name] = type_
     identifying = draw(st.sets(st.sampled_from(list(annotations.keys()))))
 
     data = {
@@ -83,6 +87,7 @@ def example_entity(
         "__identifying__": identifying,
         "__module__": "tests.strategies.entity",
         "__qualname__": class_name,
+        "__tablename__": f"table_{class_name}",
         **added_attrs,
     }
     new_class = EntityMetaclass(
@@ -100,7 +105,7 @@ T = TypeVar("T")
 
 
 def fill_required_fields(
-    entity_class: EntityMetaclass,
+    entity_class: Type[BaseEntity],
     default_values={},
 ):
     required_fields = [

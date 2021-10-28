@@ -18,7 +18,7 @@ from uuid import UUID
 from sqlalchemy.orm import registry
 from sqlmodel import Field
 
-from dbgen.core.entity import Entity
+from dbgen.core.entity import Entity, id_field
 
 default_registry = registry()
 
@@ -41,3 +41,9 @@ class Parent(BaseTable, table=True, registry=default_registry):
 class Child(BaseTable, table=True, registry=default_registry):
     parent_id: Optional[UUID] = Field(None, foreign_key="public.parent.id")
     uncle_id: Optional[UUID] = Field(None, foreign_key="public.parent.id")
+
+
+class A(Entity, table=True, registry=default_registry):
+    id: Optional[UUID] = id_field
+    a: str = 'hello world'
+    b: int

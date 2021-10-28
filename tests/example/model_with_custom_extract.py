@@ -21,7 +21,7 @@ from dbgen.core.node.extract import Extract
 
 dummy_file_system = {
     'dir_1': {f'dir_1_file_{i}.txt': str(i) for i in range(10)},
-    'dir_2': {f'dir_2:file_{i}.txt': str(i) for i in range(int(10e5))},
+    'dir_2': {f'dir_2:file_{i}.txt': str(i) for i in range(int(10e3))},
 }
 
 

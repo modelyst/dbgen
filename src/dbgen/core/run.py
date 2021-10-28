@@ -144,26 +144,29 @@ class BaseGeneratorRun(Base):
         )
         # Check if our run config excludes our generator
         if not run_config.should_gen_run(generator):
+            self._logger.info(f'Excluding generator {generator.name!r}')
             gen_run.status = Status.excluded
             meta_session.commit()
             return
         # Start the Generator
+        self._logger.info(f'Running generator {generator.name!r}...')
         gen_run.status = Status.running
         meta_session.commit()
         start = time()
-
         # Set the extractor
+        self._logger.debug('Initializing extractor')
         extractor_connection = main_engine.connect()
         extract = generator.extract
         if isinstance(extract, BaseQuery):
             extract.set_extractor(connection=extractor_connection)
         else:
             extract.set_extractor()
-
+        self._logger.debug('Fetching extractor length')
         row_count = extract.length(connection=extractor_connection)
         gen_run.inputs_extracted = row_count
         meta_session.commit()
 
+        self._logger.debug('Fetching repeats')
         # Query the repeats table for input_hashes that match this generator's hash
         self._old_repeats = set(
             meta_session.exec(select(Repeats.input_hash).where(Repeats.generator_id == generator.uuid)).all()
@@ -176,6 +179,7 @@ class BaseGeneratorRun(Base):
         meta_raw_connection = meta_engine.raw_connection()
         batch_done = lambda x: x % batch_size == 0 if batch_size is not None else False
         # Start while loop to iterate through the nodes
+        self._logger.info('Looping through extracted rows...')
         progress_bar = tqdm(
             total=row_count,
             position=1,
@@ -189,7 +193,6 @@ class BaseGeneratorRun(Base):
                 row: Dict[str, Mapping[str, Any]] = {}
                 try:
                     for node in generator._sort_graph():
-                        self._logger.debug(f'running node {node}...')
                         output = node.run(row)
                         # Extract outputs need to be fed to our repeat checker and need to be checked for stop iterations
                         if isinstance(node, Extract):
@@ -200,14 +203,16 @@ class BaseGeneratorRun(Base):
                                 gen_run.rows_inserted += rows_inserted
                                 gen_run.rows_updated += rows_updated
                                 meta_session.commit()
-                                self._logger.debug('done loading batch')
+                                self._logger.debug('done loading batch.')
+                                self._logger.debug(f'inserted {rows_inserted} rows.')
+                                self._logger.debug(f'updated {rows_updated} rows.')
                             # if we are out of rows break out of while loop
                             if output is None:
                                 raise StopIteration
                             is_repeat, input_hash = self._check_repeat(output, generator.uuid)
                             if not run_config.retry and is_repeat:
                                 raise RepeatException()
-                        row[node.hash] = output
+                        row[node.hash] = output  # type: ignore
                     if not is_repeat:
                         self._new_repeats.add(input_hash)
                         gen_run.unique_inputs += 1

@@ -111,7 +111,7 @@ def test_load_entity(clear_registry):
     test_load_entity = TestSample._get_load_entity()
     assert test_load_entity.name == "test_sample"
     assert test_load_entity.primary_key_name == "id_col"
-    assert test_load_entity.identifying_attributes == {"label": "str", "type": "str"}
+    assert test_load_entity.identifying_attributes == {"label", "type"}
     assert test_load_entity.identifying_foreign_keys == set()
     assert sample.__fields_set__ == {"label", "type"}
 
@@ -146,7 +146,7 @@ def test_basic_parent_child_load(clear_registry):
     load_entity = DummyChild._get_load_entity()
     assert load_entity.name == "dummychild"
     assert load_entity.identifying_foreign_keys == {"dummy_parent_id"}
-    assert load_entity.identifying_attributes == {}
+    assert load_entity.identifying_attributes == set()
 
     parent_load = DummyParent.load(key_1=Const(1))
     child_load = DummyChild.load(insert=True, dummy_parent_id=parent_load)
@@ -198,7 +198,7 @@ def test_entity_hypo(entity_class: EntityMetaclass):
     load_entity = instance._get_load_entity()
     assert load_entity.name == instance.__tablename__
     assert (
-        load_entity.identifying_foreign_keys.union(load_entity.identifying_attributes.keys())
+        load_entity.identifying_foreign_keys.union(load_entity.identifying_attributes)
         == instance.__identifying__
     )
 

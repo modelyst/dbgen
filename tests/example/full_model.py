@@ -48,11 +48,10 @@ class Child(Entity, registry=my_registry, table=True):
 class CustomExtractor(Extract):
     def extract(self):
         for i in range(1000):
-            yield {'out': i}
+            yield {'out': str(i)}
 
 
 def failing_func():
-    pass
     raise ValueError("Failed")
 
 

@@ -45,6 +45,7 @@ from dbgen.core.args import ArgLike
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.exceptions import DBgenInvalidArgument, DBgenMissingInfo
+from dbgen.utils.type_coercion import get_sql_type_str
 
 
 def inherit_field(bases, field_name: str, initial_value=set(), joiner=lambda x, y: x.union(y)):
@@ -202,14 +203,16 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         primary_key_name = primary_keys[0]
         all_attrs = {col.name: col for col in columns if not col.foreign_keys}
         all_fks = {col.name: col for col in columns if col.foreign_keys}
-        identifying_attributes = {
-            x: cls.__fields__[x].type_.__name__ for x in all_attrs if x in cls.__identifying__
-        }
+        attributes = {x: get_sql_type_str(cls.__fields__[x].type_) for x in all_attrs}
+        foreign_keys = set(all_fks.keys())
+        identifying_attributes = {x for x in all_attrs if x in cls.__identifying__}
         identifying_fks = [x for x in all_fks if x in cls.__identifying__]
         return LoadEntity(
             name=cls.__tablename__,
             schema_=cls.__schema__,
             primary_key_name=primary_key_name,
+            attributes=attributes,
+            foreign_keys=foreign_keys,
             identifying_attributes=identifying_attributes,
             identifying_foreign_keys=identifying_fks,
         )

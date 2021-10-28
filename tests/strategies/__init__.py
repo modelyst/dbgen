@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 import inspect
-from string import ascii_lowercase
+from string import ascii_lowercase, printable
 from typing import Callable
 
 from hypothesis import assume
@@ -25,6 +25,7 @@ from dbgen.core.func import Env, Func, Import
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.node.transforms import PyBlock
 from dbgen.utils.misc import reserved_words
+from dbgen.utils.type_coercion import SQLTypeEnum
 from tests.example_functions import example_callables
 
 no_colons = st.text(
@@ -127,23 +128,29 @@ def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStr
 
 
 pyblock_strat = get_pyblock_strat()
-datatypes_strat = st.sampled_from(("str", "int", "float"))
+datatypes_strat = st.sampled_from(SQLTypeEnum)
+# TODO Fix load entity strat
+# Need to do composite strat where attributes are picked then identifying attributes are subselected
 # Load Entities;
-load_entity_strat_1 = lambda id_fks: st.builds(
-    LoadEntity,
-    entity_name=lowercase(),
-    primary_key_name=lowercase(),
-    identifying_attributes=st.dictionaries(lowercase(), datatypes_strat, min_size=1),
-    identifying_foreign_keys=st.sets(lowercase(), max_size=id_fks),
-)
-load_entity_strat_2 = lambda id_fks: st.builds(
-    LoadEntity,
-    entity_name=lowercase(),
-    primary_key_name=lowercase(),
-    identifying_attributes=st.dictionaries(lowercase(), datatypes_strat),
-    identifying_foreign_keys=st.sets(lowercase(), min_size=min(id_fks, 1), max_size=id_fks),
-)
-load_entity_strat = lambda id_fks: st.one_of(load_entity_strat_1(id_fks), load_entity_strat_2(id_fks))
+@st.composite
+def load_entity_strat_base(draw, id_fks: int = 0):
+    attrs = draw(st.dictionaries(lowercase(), datatypes_strat))
+    id_attrs = set(draw(st.sampled_from(list(attrs.keys())))) if attrs else set()
+    return draw(
+        st.builds(
+            LoadEntity,
+            entity_name=lowercase(),
+            primary_key_name=lowercase(),
+            identifying_attributes=st.just(id_attrs),
+            attributes=st.just(attrs),
+            identifying_foreign_keys=st.sets(lowercase(), min_size=min(id_fks, 1), max_size=id_fks),
+        )
+    )
+
+
+def load_entity_strat(id_fks: int) -> SearchStrategy[LoadEntity]:
+    return load_entity_strat_base(id_fks=id_fks) | load_entity_strat_base(id_fks=id_fks)
+
 
 # Loads
 
@@ -203,3 +210,24 @@ def recursive_load_strat(draw: Callable) -> SearchStrategy[Load]:
         )
     )
     return out
+
+
+python_simples = st.one_of(st.none(), st.booleans(), st.integers(), st.text(printable), st.floats())
+
+
+@st.composite
+def json_strat(draw, allow_base_outputs: bool = True, allow_lists: bool = True, max_leaves=4):
+    if not allow_base_outputs:
+        base = st.lists(python_simples) | st.dictionaries(st.text(printable), python_simples)  # type: ignore
+    else:
+        base = python_simples  # type: ignore
+    json_data = draw(
+        st.recursive(
+            base,
+            lambda children: st.lists(children) | st.dictionaries(st.text(printable), children),
+            max_leaves=max_leaves,
+        )
+    )
+    if not allow_lists:
+        assume(not isinstance(json_data, list))
+    return json_data

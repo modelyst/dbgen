@@ -18,7 +18,7 @@ __author__ = "Michael Statt"
 __email__ = "michael.statt@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.5.3"
+__version__ = "0.5.4"
 
 
 from dbgen.core.args import Const

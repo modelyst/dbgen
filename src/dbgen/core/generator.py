@@ -14,7 +14,6 @@
 
 import re
 from functools import reduce
-from json import dumps
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from pydantic import Field
@@ -126,7 +125,7 @@ class Generator(Base):
             description=self.description,
             tags=",".join(self.tags),
             query=self.extract.query if isinstance(self.extract, BaseQuery) else None,
-            gen_json=dumps(self.serialize()),
+            gen_json=self.serialize(),
             **dep_kwargs,
         )
 
