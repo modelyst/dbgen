@@ -14,7 +14,6 @@
 
 from collections import Counter
 from collections.abc import Iterable
-from json import dumps
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 from uuid import UUID
 
@@ -197,7 +196,7 @@ class Model(Base):
             raise TypeError(f"Unknown type: {type(obj)}")
 
         metadata = {'name': self.name, 'id': self.uuid}
-        graph_json = dumps(serialize_graph(graph, lambda x: x, metadata=metadata), default=default)
+        graph_json = serialize_graph(graph, lambda x: x, metadata=metadata)
         # Assemble stringified dependency fields as we can't store sets in postgres easily
         return ModelEntity(
             id=self.uuid,

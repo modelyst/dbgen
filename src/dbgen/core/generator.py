@@ -16,8 +16,8 @@ import re
 from functools import reduce
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
-from pydantic import Field
-from pydantic.class_validators import validator
+from pydantic import Field, PrivateAttr
+from pydantic.class_validators import root_validator, validator
 from sqlalchemy.future import Engine
 
 from dbgen.core.args import Arg
@@ -50,7 +50,7 @@ class Generator(Base):
     tags: List[str] = list_field
     batch_size: Optional[int] = None
     additional_dependencies: Optional[Dependency] = None
-    _graph: Optional["DiGraph"]
+    _graph: Optional["DiGraph"] = PrivateAttr(None)
     dependency: Optional[Dependency] = None
     _hashexclude_ = {
         'dependency',
@@ -64,33 +64,57 @@ class Generator(Base):
             )
         return name
 
+    @root_validator
+    def validate_all_included(cls, values):
+        nodes = values['loads'] + values['transforms'] + [values['extract']]
+        hashes = {node.hash for node in nodes}
+
+        for node in nodes:
+            for arg in node.inputs.values():
+                if isinstance(arg, Arg) and arg.key not in hashes:
+                    if arg.name.endswith('_id'):
+                        hint = f"Arg name being asked for is '{arg.name}' which matches the pattern of a Load for Entity with name {arg.name[:-3]!r}. Are you missing a load?"
+                    elif values['extract'].hash == Extract().hash:
+                        hint = "Generator is using the default extract, did you remember your query or extractor to the extract field?"
+                    else:
+                        hint = "The arg details seem to match a PyBlock, did you add all pyblocks?"
+                    raise ValueError(
+                        f"Generator(name={values['name']!r}) encountered a validation error as a node is missing in the computational graph.\n  "
+                        f"Node {node} is looking for an output named {arg.name!r} on another node with a hash {arg.key!r}\n  "
+                        + hint
+                    )
+
+        return values
+
     def __str__(self) -> str:
         return f"Gen<{self.name}>"
 
     def _computational_graph(self) -> "DiGraph":
-        from networkx import DiGraph
+        if self._graph is None:
+            from networkx import DiGraph
 
-        nodes: Dict[str, "ComputationalNode"] = {self.extract.hash: self.extract}
-        # Add transforms and loads
-        nodes.update({transform.hash: transform for transform in self.transforms})
-        nodes.update({load.hash: load for load in self.loads})
-        # Add edges for every Arg in graph
-        edges: List[Tuple[str, str]] = []
-        for node_id, node in nodes.items():
-            for key, arg in node.inputs.items():
-                if isinstance(arg, Arg):
-                    if arg.key not in nodes:
-                        raise DBgenMissingInfo(
-                            f"Argument {key} of {node} refers to an object with a hash key {arg.key} asking for name \"{getattr(arg,'name','<No Name>')}\" that does not exist in the namespace.\n"
-                            "Did you make sure to include all PyBlocks and Queries in the func kwarg of Generator()?"
-                        )
-                    edges.append((arg.key, node_id))
+            nodes: Dict[str, "ComputationalNode"] = {self.extract.hash: self.extract}
+            # Add transforms and loads
+            nodes.update({transform.hash: transform for transform in self.transforms})
+            nodes.update({load.hash: load for load in self.loads})
+            # Add edges for every Arg in graph
+            edges: List[Tuple[str, str]] = []
+            for node_id, node in nodes.items():
+                for key, arg in node.inputs.items():
+                    if isinstance(arg, Arg):
+                        if arg.key not in nodes:
+                            raise DBgenMissingInfo(
+                                f"Argument {key} of {node} refers to an object with a hash key {arg.key} asking for name \"{getattr(arg,'name','<No Name>')}\" that does not exist in the namespace.\n"
+                                "Did you make sure to include all PyBlocks and Queries in the func kwarg of Generator()?"
+                            )
+                        edges.append((arg.key, node_id))
 
-        graph = DiGraph()
-        for node_id, node in nodes.items():
-            graph.add_node(node_id, data=node)
-        graph.add_edges_from(edges)
-        return graph
+            graph = DiGraph()
+            for node_id, node in nodes.items():
+                graph.add_node(node_id, data=node)
+            graph.add_edges_from(edges)
+            self._graph = graph
+        return self._graph
 
     def _sort_graph(self) -> List["ComputationalNode"]:
         graph = self._computational_graph()

@@ -15,7 +15,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from hypothesis import given
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from dbgen.core.base import Base
@@ -85,6 +85,7 @@ def test_load_entity(instance):
     reverse_serial(instance)
 
 
+@settings(suppress_health_check=[HealthCheck.too_slow])
 @given(recursive_load_strat())
 def test_recursive_load_strat(instance):
     assert instance

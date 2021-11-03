@@ -113,14 +113,16 @@ def test_no_extractor(sql_engine: Engine, raw_connection):
 def test_dumb_extractor(connection, sql_engine, recreate_meta):
     class User(Entity, table=True):
         __identifying__ = {"label"}
-        label: str
+        label: Optional[str]
         new_label: Optional[str] = None
 
     User.metadata.create_all(connection)
     num_users = 100
     sess = Session(connection)
     users = [User(label=f"user_{i}") for i in range(num_users)]
+    user_le = User._get_load_entity()
     for user in users:
+        user.id = user_le._get_hash(user.dict())
         sess.add(user)
     count = sess.exec(select(func.count(User.id))).one()
     assert count == num_users

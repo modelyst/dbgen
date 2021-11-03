@@ -19,6 +19,7 @@ from time import time
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 from uuid import UUID
 
+from psycopg import connect as pg3_connect
 from pydantic.fields import Field, PrivateAttr
 from pydasher import hasher
 from sqlalchemy.future import Engine
@@ -175,7 +176,7 @@ class BaseGeneratorRun(Base):
         batch_size = run_config.batch_size or generator.batch_size
         assert batch_size is None or batch_size > 0, f"Invalid batch size batch_size must be >0: {batch_size}"
         # Open raw connections for fast loading
-        main_raw_connection = main_engine.raw_connection()
+        main_raw_connection = pg3_connect(str(main_engine.url))
         meta_raw_connection = meta_engine.raw_connection()
         batch_done = lambda x: x % batch_size == 0 if batch_size is not None else False
         # Start while loop to iterate through the nodes

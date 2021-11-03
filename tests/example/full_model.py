@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from json import dumps
 from typing import Optional
 from uuid import UUID
 
@@ -46,9 +45,14 @@ class Child(Entity, registry=my_registry, table=True):
 
 
 class CustomExtractor(Extract):
+    n: int = 1000
+
     def extract(self):
-        for i in range(1000):
+        for i in range(self.n):
             yield {'out': str(i)}
+
+    def length(self, **_):
+        return self.n
 
 
 def failing_func():
@@ -62,11 +66,13 @@ def inputs_skipped():
 
 
 def make_model():
-    new_extract = CustomExtractor()
+    new_extract = CustomExtractor(n=1000)
     generator_1 = Generator(
         name="add_parents",
         extract=new_extract,
-        loads=[Parent.load(insert=True, label=new_extract["out"], myColumn=Const(dumps({'a': 1})))],
+        loads=[
+            Parent.load(insert=True, label=new_extract["out"], validation='strict', myColumn=Const({'a': 1}))
+        ],
     )
     generator_2 = Generator(
         name="add_parents_v2",

@@ -16,6 +16,7 @@ import logging
 import sys
 
 import pytest
+from psycopg import connect as pg3_connect
 from sqlalchemy import MetaData
 from sqlmodel import Session, create_engine, text
 
@@ -92,6 +93,13 @@ def raw_connection(make_db, sql_engine):
     raw = sql_engine.raw_connection()
     yield raw
     raw.close()
+
+
+@pytest.fixture(scope="function")
+def raw_pg3_connection(make_db, sql_engine):
+    connection = pg3_connect(str(sql_engine.url))
+    yield connection
+    connection.close()
 
 
 @pytest.fixture

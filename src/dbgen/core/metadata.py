@@ -17,8 +17,8 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
+import sqlalchemy.types as sa_types
 from sqlalchemy import Column, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import registry
 from sqlalchemy.sql.expression import text
 from sqlmodel import Field, select
@@ -58,8 +58,8 @@ class ModelEntity(Root, registry=meta_registry, table=True):
     created_at: Optional[datetime] = get_created_at_field()
     last_run: Optional[datetime]
     name: str
-    graph_json: Optional[str] = Field(None, sa_column=Column(JSONB))
-    tags: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(AutoString)))
+    graph_json: Optional[dict]
+    tags: List[str] = Field(default_factory=list)
     generators: List['GeneratorEntity'] = Relationship(back_populates='models', link_model=ModelGeneratorMap)
 
 
@@ -74,7 +74,7 @@ class GeneratorEntity(Root, registry=meta_registry, table=True):
     table_yielded: Optional[str]
     column_needed: Optional[str]
     column_yielded: Optional[str]
-    gen_json: Optional[dict] = Field(None, sa_column=Column(JSONB))
+    gen_json: Optional[dict]
     generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='generator')
     models: List['ModelEntity'] = Relationship(back_populates='generators', link_model=ModelGeneratorMap)
 
@@ -82,7 +82,7 @@ class GeneratorEntity(Root, registry=meta_registry, table=True):
 class RunEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "run"
     id: Optional[int] = Field(None, sa_column_kwargs={"autoincrement": True, "primary_key": True})
-    status: Optional[Status]
+    status: Optional[Status] = Field(None, sa_column=Column('status', sa_types.Enum(Status)))
     nuke: Optional[bool]
     only: Optional[str]
     exclude: Optional[str]
@@ -99,7 +99,7 @@ class GeneratorRunEntity(Root, registry=meta_registry, table=True):
     run_id: Optional[int] = RunEntity.foreign_key(primary_key=True)
     created_at: Optional[datetime] = get_created_at_field()
     ordering: Optional[int]
-    status: Optional[Status]
+    status: Optional[str]
     runtime: Optional[float]
     unique_inputs: int = 0
     inputs_skipped: int = 0
@@ -162,7 +162,7 @@ gens_to_run_stmt = text(
     f"""
 select
     distinct
-    gen.name, cr.generator_id, coalesce(gr_bad.status, 'never run') as last_status, gr_bad.error
+    gen.name, cr.generator_id, coalesce(gr_bad.status::text, 'never run') as last_status, gr_bad.error
 from
     {META_SCHEMA}.generator_run cr
 join {META_SCHEMA}.generator gen on

@@ -25,7 +25,7 @@ from dbgen.core.func import Env, Func, Import
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.node.transforms import PyBlock
 from dbgen.utils.misc import reserved_words
-from dbgen.utils.type_coercion import SQLTypeEnum
+from dbgen.utils.type_coercion import column_registry
 from tests.example_functions import example_callables
 
 no_colons = st.text(
@@ -128,7 +128,9 @@ def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStr
 
 
 pyblock_strat = get_pyblock_strat()
-datatypes_strat = st.sampled_from(SQLTypeEnum)
+datatypes_strat = st.sampled_from(
+    sorted([key for key in column_registry._registry.keys() if isinstance(key, str)])
+)
 # TODO Fix load entity strat
 # Need to do composite strat where attributes are picked then identifying attributes are subselected
 # Load Entities;
@@ -196,12 +198,13 @@ def recursive_load_strat(draw: Callable) -> SearchStrategy[Load]:
     load_entity = draw(load_entity_strat(1))
     attrs = draw(basic_attrs)
     fks = draw(foreign_key_strat(lowercase()))
-    fks = {key: val["out"] for key, val in fks.items()}
+    fks = {key: val[val.outputs[0]] for key, val in fks.items()}
     for id_attr in load_entity.identifying_attributes:
         attrs[id_attr] = draw(arg_strat)
 
     for id_fk in load_entity.identifying_foreign_keys:
-        fks[id_fk] = draw(basic_load_strat)["out"]
+        load = draw(basic_load_strat)
+        fks[id_fk] = load[load.outputs[0]]
     out = draw(
         st.builds(
             Load,

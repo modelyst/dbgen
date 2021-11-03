@@ -13,216 +13,199 @@
 #   limitations under the License.
 
 """Utilities for converting coercing types."""
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from enum import Enum, unique
+from enum import Enum
 from json import dumps
-from typing import Any, Callable, Mapping, Optional, Type, Union
+from typing import Any, Dict, Optional, Set, Type, Union
 from uuid import UUID
 
 import sqlalchemy.dialects.postgresql as sa_postgres
 import sqlalchemy.types as sa_types
+from psycopg import adapters
+from psycopg.adapt import Dumper
+from psycopg.types.json import Jsonb, JsonbDumper, set_json_dumps
+from sqlmodel.main import GUID, AutoString
 
-# TODO convert this enum to a class that allows for easy conversion
+from dbgen.core.base import Base
 
-
-@unique
-class SQLTypeEnum(str, Enum):
-    """Accepted SQLAlchemy Types"""
-
-    FLOAT = 'float'
-    NUMERIC = 'numeric'
-    INTEGER = 'integer'
-    BIGINTEGER = 'biginteger'
-    BOOLEAN = 'boolean'
-    DATE = 'date'
-    DATETIME = 'datetime'
-    INTERVAL = 'interval'
-    TIME = 'time'
-    ENUM = 'enum'
-    LARGEBINARY = 'largebinary'
-    TEXT = 'text'
-    UUID = 'uuid'
-    JSONB = 'jsonb'
-    JSON = 'json'
-    ARRAY = 'array'
-
-
-SQL_TYPE_SET = {val.value for _, val in SQLTypeEnum.__members__.items()}
-
-
-# Map str -> SQLType
-SQL_TYPE_STR_TO_SQL_TYPE: Mapping[SQLTypeEnum, Type[sa_types.TypeEngine]] = {
-    SQLTypeEnum.FLOAT: sa_types.Float,
-    SQLTypeEnum.NUMERIC: sa_types.Numeric,
-    SQLTypeEnum.INTEGER: sa_types.Integer,
-    SQLTypeEnum.BIGINTEGER: sa_types.BigInteger,
-    SQLTypeEnum.BOOLEAN: sa_types.Boolean,
-    SQLTypeEnum.DATE: sa_types.Date,
-    SQLTypeEnum.DATETIME: sa_types.DateTime,
-    SQLTypeEnum.INTERVAL: sa_types.Interval,
-    SQLTypeEnum.TIME: sa_types.Time,
-    SQLTypeEnum.ENUM: sa_types.Enum,
-    SQLTypeEnum.LARGEBINARY: sa_types.LargeBinary,
-    SQLTypeEnum.TEXT: sa_types.Text,
-    SQLTypeEnum.UUID: sa_postgres.UUID,
-    SQLTypeEnum.ARRAY: sa_postgres.ARRAY,
-    SQLTypeEnum.JSON: sa_postgres.JSON,
-    SQLTypeEnum.JSONB: sa_postgres.JSONB,
-}
-# Map SQLTYPE -> str
-SQL_TYPE_TO_SQL_TYPE_STR: Mapping[Type[sa_types.TypeEngine], SQLTypeEnum] = {
-    v: k for k, v in SQL_TYPE_STR_TO_SQL_TYPE.items()
-}
-# str -> python type
-SQL_TYPE_STR_TO_PYTHON_TYPE: Mapping[SQLTypeEnum, type] = {
-    SQLTypeEnum.FLOAT: float,
-    SQLTypeEnum.NUMERIC: Decimal,
-    SQLTypeEnum.INTEGER: int,
-    SQLTypeEnum.BIGINTEGER: int,
-    SQLTypeEnum.BOOLEAN: bool,
-    SQLTypeEnum.DATE: date,
-    SQLTypeEnum.DATETIME: datetime,
-    SQLTypeEnum.INTERVAL: timedelta,
-    SQLTypeEnum.TIME: time,
-    SQLTypeEnum.ENUM: Enum,
-    SQLTypeEnum.LARGEBINARY: bytes,
-    SQLTypeEnum.TEXT: str,
-    SQLTypeEnum.UUID: UUID,
-    SQLTypeEnum.ARRAY: list,
-    SQLTypeEnum.JSON: dict,
-    SQLTypeEnum.JSONB: dict,
-}
-# Default PythonType -> SQLType
-PYTHON_TYPE_TO_SQL_TYPE_STR: Mapping[type, SQLTypeEnum] = {
-    float: SQLTypeEnum.FLOAT,
-    Decimal: SQLTypeEnum.NUMERIC,
-    int: SQLTypeEnum.INTEGER,
-    bool: SQLTypeEnum.BOOLEAN,
-    date: SQLTypeEnum.DATE,
-    datetime: SQLTypeEnum.DATETIME,
-    timedelta: SQLTypeEnum.INTERVAL,
-    time: SQLTypeEnum.TIME,
-    Enum: SQLTypeEnum.ENUM,
-    bytes: SQLTypeEnum.LARGEBINARY,
-    str: SQLTypeEnum.TEXT,
-    UUID: SQLTypeEnum.UUID,
-    list: SQLTypeEnum.ARRAY,
-    dict: SQLTypeEnum.JSONB,
-}
-
+COLUMN_TYPE = Union[Type[sa_types.TypeEngine], sa_types.TypeEngine]
 # Utilities for converting types
-# Type coercion funcs
+def escape_str_replace(text: Any) -> str:
+    return str(text).replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+
+
 datetime_types = (datetime, time, date)
 datetime_to_str = lambda x: x.isoformat() if x is not None else str(x)
 timedelta_to_str = lambda x: str(x.total_seconds()) if x is not None else str(x)
-basic_to_str = lambda x: str(x)
-bytes_to_str = lambda x: x.decode('utf-8') if x is not None else str(x)
+basic_to_str = lambda x: escape_str_replace(x)
+bytes_to_str = lambda x: escape_str_replace(x.decode('utf-8')) if x is not None else str(x)
 
 # TODO create central location for all json serialization (pydasher does hashing serialization)
-def json_default(thing: Any) -> str:
-    if isinstance(thing, datetime_types):
-        return thing.isoformat()
-    elif isinstance(thing, timedelta):
-        return timedelta_to_str(thing)
-    elif isinstance(thing, bytes):
-        return bytes_to_str(thing)
-    elif isinstance(thing, (Decimal, UUID)):
-        return str(thing)
-    raise TypeError(f"Cannot serialize object of type {type(thing)}: {thing}")
+def json_dumps(thing):
+    def json_default(thing: Any) -> str:
+        if isinstance(thing, datetime_types):
+            return thing.isoformat()
+        elif isinstance(thing, timedelta):
+            return timedelta_to_str(thing)
+        elif isinstance(thing, bytes):
+            return bytes_to_str(thing)
+        elif isinstance(thing, (Decimal, UUID)):
+            return escape_str_replace(thing)
+        elif isinstance(thing, set):
+            return str(list(thing))
+        raise TypeError(f"Cannot serialize object of type {type(thing)}: {thing}")
+
+    return dumps(thing, default=json_default)
 
 
-def dict_to_str(x: Optional[dict]) -> str:
-    if x is None:
-        return str(x)
-    try:
-        return dumps(x, default=json_default)
-    except TypeError as exc:
-        raise TypeError(
-            f"Error coercing dict to string due to json serialization error. We can only load json serializable data currently."
-        ) from exc
+set_json_dumps(json_dumps)
 
 
-# Dummy non implementation caster for good error messaging
-def not_impl(x):
-    raise NotImplementedError(f"haven't found a way to coerce type {type(x)} to string :(")
+class DictDumper(Dumper):
+    oid = adapters.types.get_oid('json')
+
+    def dump(self, thing):
+        return JsonbDumper(dict).dump(Jsonb(thing))
 
 
-# Map for converting each column to string for Postgres COPY FROM command
-SQL_TYPE_TO_STR_CONVERTER = {
-    # Basic Conversion
-    SQLTypeEnum.FLOAT: basic_to_str,
-    SQLTypeEnum.NUMERIC: basic_to_str,
-    SQLTypeEnum.INTEGER: basic_to_str,
-    SQLTypeEnum.BIGINTEGER: basic_to_str,
-    SQLTypeEnum.BOOLEAN: basic_to_str,
-    SQLTypeEnum.UUID: basic_to_str,
-    SQLTypeEnum.TEXT: basic_to_str,
-    # Datetime conversions
-    SQLTypeEnum.DATE: datetime_to_str,
-    SQLTypeEnum.DATETIME: datetime_to_str,
-    SQLTypeEnum.TIME: datetime_to_str,
-    SQLTypeEnum.INTERVAL: lambda x: x.total_seconds(),
-    # JSON conversion
-    SQLTypeEnum.JSON: dict_to_str,
-    SQLTypeEnum.JSONB: dict_to_str,
-    # Other
-    SQLTypeEnum.LARGEBINARY: bytes_to_str,
-    # Not implemented
-    SQLTypeEnum.ENUM: not_impl,
-    SQLTypeEnum.ARRAY: not_impl,
-}
+# Set the adapters for dicts and json
+adapters.register_dumper(dict, DictDumper)
 
 
-def validate_sql_type_str(sql_type_str: str):
-    if sql_type_str not in SQL_TYPE_SET:
-        raise TypeError(f"Invalid SQLType string {sql_type_str}")
+class DataType(Base):
+    name: str
+    postgres_name: Optional[str] = None
+    type_hint: type
+    python_type: type
+    column_type: COLUMN_TYPE
+    _hashinclude_ = {'name'}
+
+    class Config:
+        """Pydantic doc string"""
+
+        arbitrary_types_allowed = True
+
+    def get_column_type(self) -> COLUMN_TYPE:
+        return self.column_type
+
+    def get_python_type(self) -> type:
+        return self.python_type
+
+    @property
+    def oid(self) -> int:
+        key = self.postgres_name or self.name
+        return adapters.types.get_oid(key)
+
+    @property
+    def array_oid(self) -> int:
+        key = self.postgres_name or self.name
+        return adapters.types.get_oid(f'{key}[]')
+
+    def get_array_column_type(self) -> sa_types.ARRAY[sa_types.TypeEngine]:
+        return sa_types.ARRAY(self.get_column_type())
+
+    @property
+    def type_name(self):
+        return self.postgres_name or self.name
 
 
-def get_sql_type_str(type_: Union[Type[sa_types.TypeEngine], type]) -> SQLTypeEnum:
-    """Convert SQLType/PythonTypes -> stringified SQLType"""
-    try:
-        if issubclass(type_, sa_types.TypeEngine):
-            return SQL_TYPE_TO_SQL_TYPE_STR[type_]
-        elif isinstance(type_, type):
-            if issubclass(type_, Enum):
-                type_ = Enum
-            return PYTHON_TYPE_TO_SQL_TYPE_STR[type_]
-    except TypeError:
-        pass
-    raise TypeError(f"Unknown type encountered {type_} of type {type(type_)}")
+class ColumnTypeRegistry:
+    """A registry for all the datatypes in the model."""
+
+    _registry: Dict[Union[str, int, COLUMN_TYPE], DataType]
+    _default_python_type_registry: Dict[type, DataType]
+    _python_type_registry: Dict[type, Set[DataType]]
+
+    def __init__(self):
+        self.clear()
+
+    def clear(self):
+        self._registry = {}
+        self._default_python_type_registry = {}
+        self._python_type_registry = defaultdict(set)
+
+    def add(self, data_type: DataType) -> None:
+        self._registry[data_type.name] = data_type
+        self._registry[data_type.oid] = data_type
+        self._registry[data_type.array_oid] = data_type
+        self._registry[data_type.get_column_type()] = data_type
+        self._registry[data_type.get_array_column_type()] = data_type
+        # register default value as first value seen by registry
+        if data_type.python_type not in self._python_type_registry:
+            self._default_python_type_registry[data_type.python_type] = data_type
+        self._python_type_registry[data_type.python_type].add(data_type)
+
+    def __getitem__(self, key: Union[str, int, COLUMN_TYPE]) -> DataType:
+        if isinstance(key, str):
+            if key.endswith('[]'):
+                key = key[:-2]
+        try:
+            if isinstance(key, sa_types.ARRAY):
+                key = key.item_type
+            if isinstance(key, sa_types.TypeEngine):
+                key = type(key)
+            return self._registry[key]
+        except KeyError:
+            raise KeyError(f"Cannot find key {key!r} in ColumnType Registry.")
+
+    def get(self, key) -> Optional[DataType]:
+        try:
+            return self[key]
+        except KeyError:
+            return None
+
+    def get_from_python_type(self, type_: type) -> DataType:
+        if type_ in self._default_python_type_registry:
+            return self._default_python_type_registry[type_]
+
+        if getattr(type_, '__mro__', None):
+            for type_curr in type_.__mro__:
+                if type_curr in self._default_python_type_registry:
+                    return self._default_python_type_registry[type_curr]
+
+        if type_ not in self._default_python_type_registry:
+            raise ValueError(f"Cannot find python type {type_!r} in registry")
+        return self._default_python_type_registry[type_]
+
+    def overwrite_default(self, data_type: DataType) -> None:
+        """Overwrite the default DataType for a given python type."""
+        self._default_python_type_registry[data_type.python_type] = data_type
 
 
-def get_column_type(sql_type_str: str) -> Type[sa_types.TypeEngine]:
-    """Convert python type -> SQLType"""
-    validate_sql_type_str(sql_type_str)
-    return SQL_TYPE_STR_TO_SQL_TYPE[SQLTypeEnum(sql_type_str)]
-
-
-def get_python_type(sql_type_str: str) -> type:
-    """Converts a stringified type to its valid python constructor
-
-    Args:
-        type_str (str): A stringified type (i.e. 'str', 'int','bool')
-
-    Raises:
-        TypeError: type_str not found in the TypeEnum setting
-
-    Returns:
-        type: the constructor for the relevant python type
-    """
-    validate_sql_type_str(sql_type_str)
-    return SQL_TYPE_STR_TO_PYTHON_TYPE[SQLTypeEnum(sql_type_str)]
-
-
-def get_str_converter(sql_type_str: str) -> Callable[[Optional[Any]], str]:
-    """Get the correct function for converting a given type to a str
-
-    Args:
-        type_ (Type[T]): A valid type included in the TypeEnum
-
-    Returns:
-        Callable[[T], str]: A callable that takes in a value of the given type and returns a str
-    """
-    validate_sql_type_str(sql_type_str)
-    return SQL_TYPE_TO_STR_CONVERTER[SQLTypeEnum(sql_type_str)]
+# Order Matters here as the when two datatypes share the same python type the first one is selected
+COLUMN_TYPES = [
+    DataType(name='autostring', postgres_name='text', type_hint=str, python_type=str, column_type=AutoString),
+    DataType(name='text', type_hint=str, python_type=str, column_type=sa_types.Text),
+    DataType(name='int4', type_hint=int, python_type=int, column_type=sa_types.Integer),
+    DataType(name='int8', type_hint=int, python_type=int, column_type=sa_types.BigInteger),
+    DataType(name='float8', type_hint=float, python_type=float, column_type=sa_types.Float),
+    DataType(name='bool', type_hint=bool, python_type=bool, column_type=sa_types.Boolean),
+    DataType(name='date', type_hint=date, python_type=date, column_type=sa_types.Date),
+    DataType(
+        name='timestamptz',
+        type_hint=datetime,
+        python_type=datetime,
+        column_type=sa_types.DateTime(timezone=True),
+    ),
+    DataType(name='timestamp', type_hint=datetime, python_type=datetime, column_type=sa_types.DateTime),
+    DataType(name='interval', type_hint=timedelta, python_type=timedelta, column_type=sa_types.Interval),
+    DataType(name='time', type_hint=time, python_type=time, column_type=sa_types.Time),
+    DataType(name='bytea', type_hint=bytes, python_type=bytes, column_type=sa_types.LargeBinary),
+    DataType(name='guid', postgres_name='uuid', type_hint=UUID, python_type=UUID, column_type=GUID),
+    DataType(name='uuid', type_hint=UUID, python_type=UUID, column_type=sa_postgres.UUID),
+    DataType(name='json', type_hint=dict, python_type=dict, column_type=sa_types.JSON),
+    DataType(
+        name='pg_json', postgres_name='json', type_hint=dict, python_type=dict, column_type=sa_postgres.JSON
+    ),
+    DataType(name='jsonb', type_hint=dict, python_type=dict, column_type=sa_postgres.JSONB),
+    DataType(name='numeric', type_hint=Decimal, python_type=Decimal, column_type=sa_types.Numeric),
+    DataType(name='varchar', type_hint=str, python_type=str, column_type=sa_types.String),
+    DataType(
+        name='enum', postgres_name='varchar', type_hint=Enum, python_type=Enum, column_type=sa_types.Enum
+    ),
+]
+column_registry = ColumnTypeRegistry()
+for data_type in COLUMN_TYPES:
+    column_registry.add(data_type)

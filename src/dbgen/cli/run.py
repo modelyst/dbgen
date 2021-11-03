@@ -41,6 +41,8 @@ def status(
     run_id: Optional[int] = None,
     last: int = 1,
     all_runs: bool = typer.Option(False, '-a', '--all', help='show all runs ever'),
+    error: bool = typer.Option(False, '--error', help='show error for failed runs'),
+    query: bool = typer.Option(False, '--query', help='show error for failed runs'),
     statuses: List[str] = typer.Option(
         [], '-s', '--status', help='Filter out only statuses that match input val'
     ),
@@ -49,7 +51,14 @@ def status(
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
     filtered_keys = {'generator_id', 'created_at'}
-    columns = ['name', *(c.name for c in GeneratorRunEntity.__table__.c if c.name not in filtered_keys)]
+    if not error:
+        filtered_keys.add('error')
+    if not query:
+        filtered_keys.add('query')
+    columns = [
+        'name',
+        *(c.name for c in GeneratorRunEntity.__table__.c if c.name not in filtered_keys),
+    ]
     show_cols = {col: col.replace('number_of_', '') for col in columns}
     table = PrettyTable(field_names=show_cols.values(), align='l', hrules=ALL)
 

@@ -37,6 +37,9 @@ fk_field = lambda x: Field(default=None, foreign_key=x)
 ID_TYPE = UUID
 
 
+reserved_words = {'hex', 'uuid', 'hash'}
+
+
 @st.composite
 def example_entity(
     draw,
@@ -50,7 +53,10 @@ def example_entity(
     if fks is None:
         fks = draw(
             st.dictionaries(
-                non_private_attr.filter(lambda x: attrs and x not in attrs and x != 'id'), non_private_attr
+                non_private_attr.filter(
+                    lambda x: attrs and x not in attrs and x != 'id' and x not in reserved_words
+                ),
+                non_private_attr,
             )
         )
 
@@ -59,7 +65,7 @@ def example_entity(
         annotations.update(
             draw(
                 st.dictionaries(
-                    non_private_attr.filter(lambda x: x not in fks),
+                    non_private_attr.filter(lambda x: x not in fks and x not in reserved_words),
                     pydantic_type_strat,
                     min_size=1,
                 )

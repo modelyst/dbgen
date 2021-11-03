@@ -12,20 +12,26 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Welcome to DBgen!"""
+from pathlib import Path
 
-__author__ = "Michael Statt"
-__email__ = "michael.statt@modelyst.io"
-__maintainer__ = "Michael Statt"
-__maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.5.5"
+from sqlmodel import create_engine
 
 
-from dbgen.core.args import Const
-from dbgen.core.entity import BaseEntity, Entity
-from dbgen.core.func import Env, Import
-from dbgen.core.generator import Generator
-from dbgen.core.model import Model
-from dbgen.core.node.extract import Extract
-from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock
+def main():
+    engine = create_engine('postgresql://michaelstatt@localhost/sqlalchemy')
+    file_name = Path(__file__).parent / 'test.csv'
+    test_conn = engine.raw_connection()
+
+    try:
+        with test_conn.cursor() as curs:
+            with open(file_name) as f:
+                curs.copy_from(f, 'test', null="None", columns=['name', 'tags'], sep='|')
+                f.seek(0)
+                print(f.read())
+        test_conn.commit()
+    finally:
+        test_conn.close()
+
+
+if __name__ == '__main__':
+    main()

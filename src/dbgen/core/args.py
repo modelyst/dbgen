@@ -13,17 +13,25 @@
 #   limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from dbgen.core.base import Base
 from dbgen.core.func import Func
 from dbgen.exceptions import DBgenMissingInfo
+
+if TYPE_CHECKING:
+    from dbgen.core.node.transforms import PyBlock
 
 
 class ArgLike(Base, metaclass=ABCMeta):
     @abstractmethod
     def arg_get(self, dic: dict) -> Any:
         raise NotImplementedError
+
+    def map(self, function: Callable[[Any], Any]) -> 'PyBlock':
+        from dbgen.core.node.transforms import PyBlock
+
+        return PyBlock(inputs=[self], function=function)
 
 
 class Arg(ArgLike):

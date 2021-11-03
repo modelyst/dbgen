@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from sqlalchemy.orm.util import _ORMJoin
 from sqlalchemy.schema import Table as SATable
-from sqlalchemy.sql.elements import BinaryExpression, BindParameter, ColumnElement
+from sqlalchemy.sql.elements import BinaryExpression, BindParameter, ColumnElement, TextClause
 from sqlalchemy.sql.expression import Alias, BooleanClauseList, Function, Label  # type: ignore
 from sqlalchemy.sql.expression import Select as _Select
 from sqlalchemy.sql.schema import Column as SAColumn
@@ -73,7 +73,7 @@ def expand_col(column: ColumnElement):
         return expand_clause_list(column)
     elif isinstance(column, BinaryExpression):
         return [*expand_col(column.left), *expand_col(column.right)]
-    elif isinstance(column, BindParameter):
+    elif isinstance(column, (BindParameter, TextClause)):
         return []
     else:
         raise NotImplementedError(f"Unknown selected column type:\n{column}\n{type(column)}")

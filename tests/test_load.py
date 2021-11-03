@@ -38,6 +38,7 @@ def simple_load():
     load_entity = LoadEntity(
         name="Test",
         primary_key_name="id",
+        entity_class_str=None,
         identifying_attributes={"key_1", "key_2"},
         attributes={"key_1": "text", "key_2": "text"},
     )
@@ -49,7 +50,7 @@ def simple_load():
     return load
 
 
-def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw_connection):
+def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw_pg3_connection):
 
     reload(entities)
     Child = entities.Child
@@ -72,8 +73,8 @@ def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw
     for row in namespace_rows:
         for load in (parent_load, child_load):
             row[load.hash] = load.run(row)
-    parent_load.load(raw_connection, gen_id=parent_load.hash)
-    child_load.load(raw_connection, gen_id=parent_load.hash)
+    parent_load.load(raw_pg3_connection, gen_id=parent_load.hash)
+    child_load.load(raw_pg3_connection, gen_id=parent_load.hash)
     # Query the Parent/child table and ensure number of rows is correct
     with Session(connection) as session:
         out = session.execute(select(func.count(Parent.id))).scalar()
@@ -156,7 +157,7 @@ def test_broadcast():
 
 def test_load_validation():
     good_kwargs = {
-        "load_entity": LoadEntity(name="test", primary_key_name="id"),
+        "load_entity": LoadEntity(name="test", entity_class_str='', primary_key_name="id"),
         "inputs": {"label": Const("test")},
         "primary_key": Const(None),
         "insert": False,

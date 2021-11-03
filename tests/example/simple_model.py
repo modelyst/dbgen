@@ -66,7 +66,8 @@ def make_model() -> Model:
 
     # Load First Parent
     parent_load = Parent.load(insert=True, label=Const("Ken"), type=Const("Engineer"))
-    gen_1 = Generator(name="load_first_parent", loads=[parent_load])
+    child_load = Child.load(insert=True, label=Const("Test"), type=Const("Test"), parent_id=parent_load)
+    gen_1 = Generator(name="load_first_parent", loads=[child_load])
     model.add_gen(gen_1)
 
     # Load First Parent

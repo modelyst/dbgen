@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
 from datetime import datetime
 from functools import partial
 from io import StringIO
@@ -33,7 +34,6 @@ from typing import (
 )
 from uuid import UUID
 
-from pydantic import root_validator
 from sqlalchemy import Column, DateTime
 from sqlalchemy.orm import registry
 from sqlalchemy.sql import func
@@ -45,22 +45,25 @@ from dbgen.core.args import ArgLike
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.exceptions import DBgenInvalidArgument, DBgenMissingInfo
-from dbgen.utils.type_coercion import get_sql_type_str
+from dbgen.utils.type_coercion import column_registry
 
 
-def inherit_field(bases, field_name: str, initial_value=set(), joiner=lambda x, y: x.union(y)):
+def inherit_field(
+    bases, field_name: str, initial_value=set(), joiner=lambda x, y: x.union(y), type_check: bool = True
+):
     field_val = initial_value
     for base in reversed(bases):
         curr_id = getattr(base, field_name, initial_value)
         if curr_id is not None:
-            assert isinstance(curr_id, type(initial_value)), f"Invalid {field_name} val: {curr_id}"
+            if type_check and not isinstance(curr_id, type(initial_value)):
+                raise TypeError(f"Invalid {field_name} val: {curr_id}")
             field_val = joiner(field_val, curr_id)
     return field_val
 
 
 overwrite_parent = partial(inherit_field, initial_value="", joiner=lambda x, y: y)
 DEFAULT_ENTITY_REGISTRY = registry()
-
+logger = logging.getLogger('dbgen.core.entity')
 
 _T = TypeVar("_T")
 
@@ -86,9 +89,9 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
     def __new__(mcs, name, bases, attrs, **kwargs):
         # Join the keys from all parents for __identifying__, _hashinclude_, and _hashexclude_
         new_attrs = attrs.copy()
-        for field in ("__identifying__", "_hashexclude_", "_hashinclude_"):
-            starting = new_attrs.get(field, set())
-            new_attrs[field] = starting.union(inherit_field(bases, field))
+        for value in ("__identifying__", "_hashexclude_", "_hashinclude_"):
+            starting = new_attrs.get(value, set())
+            new_attrs[value] = starting.union(inherit_field(bases, value))
 
         if kwargs.get('all_id', False):
             assert (
@@ -102,6 +105,85 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         # Set the default registry to be the default_registry
         if "registry" not in kwargs:
             kwargs["registry"] = DEFAULT_ENTITY_REGISTRY
+
+        # We need to get between the user and SQLModel to impose stricter well known
+        # python_datatype -> SQL column type converstions
+        # The goal is to find the annotated columns that will become fields (i.e. doesn't start with _ and isn't classvar)
+        # base_is_table = inherit_field(
+        #     bases, '__config__', False, joiner=lambda x, y: x or getattr(y, 'table', False), type_check=False
+        # )
+        # current_cls_is_table = not base_is_table and kwargs.get('table')
+        # if name in ('TypeEntity', 'BaseTypeEntity'):
+        #     breakpoint()
+
+        # if current_cls_is_table:
+        #     for field in cls.__fields__.values():
+        #         data_type = column_registry.get_from_python_type(field.type_)
+        #         if field.shape == SHAPE_LIST:
+        #             col_type = data_type.get_array_column_type()
+        #         elif field.shape == SHAPE_SINGLETON:
+        #             col_type = data_type.get_column_type()
+        #         else:
+        #             raise NotImplementedError(
+        #                 f"Can only deal with singletons and list shaped fields found field {field} with shape: {field.shape}"
+        #             )
+        #         if field.name == 'created_at':
+        #             breakpoint()
+        #         new_col = Column(
+        #             col_type,
+        #             primary_key=field.primary_key,
+        #             *column_data[field.name].g'args'],
+        #             **column_data[field.name]['kwargs'],
+        #         )
+        #         if field.name in unset_columns:
+        #             setattr(cls, field.name, new_col)
+        #         field.required = False
+        # annotations = attrs.get('__annotations__', {})
+        # for attr_name, type_hint in annotations.items():
+        #     if not attr_name.startswith('_') and not is_classvar(type_hint):
+        #         value = attrs.get(attr_name, Undefined)
+        #         if not isinstance(value, RelationshipInfo):
+        #             try:
+        #                 temp_field = ModelField.infer(
+        #                     name=attr_name,
+        #                     value=value,
+        #                     annotation=type_hint,
+        #                     class_validators=None,
+        #                     config=BaseConfig,
+        #                 )
+        #                 data_type = column_registry.get_from_python_type(temp_field.type_)
+        #                 if temp_field.shape == SHAPE_LIST:
+        #                     col_type = data_type.get_array_column_type()
+        #                 elif temp_field.shape == SHAPE_SINGLETON:
+        #                     col_type = data_type.get_column_type()
+        #                 else:
+        #                     raise NotImplementedError(
+        #                         f"Can only deal with singletons and list shaped fields found field {temp_field} with shape: {temp_field.shape}"
+        #                     )
+
+        #             except (TypeError, ValueError) as exc:
+        #                 error = (
+        #                     f"Cannot get_sql_type() cannot find the sql_type_str for the type {type_hint} which appears on table {name}\'s {attr_name} field."
+        #                     "Moving on without converting that column"
+        #                 )
+        #                 logger.error(error)
+        #                 logger.error(exc)
+        #                 breakpoint()
+        #                 raise TypeError(error)
+        #             if value == Undefined:
+        #                 new_attrs[attr_name] = Field(None, sa_column=Column(col_type))
+        #             elif not isinstance(value, FieldInfo):
+        #                 new_attrs[attr_name] = Field(value, sa_column=Column(col_type))
+        #             elif value.sa_column != Undefined:
+        #                 value.required = False
+        #                 current_datatype = column_registry[type(value.sa_column.type)]
+        #                 value.sa_column = Column(col_type, primary_key=value.sa_column.primary_key)
+        #                 new_attrs[attr_name] = value
+        #                 if current_datatype != data_type:
+        #                     logger.warning(
+        #                         f"Warning! you've defined column {attr_name!r} on table {name!r} with a SQLType of {value.sa_column.type} when the default column type is {col_type}. I hope you know what you are doing..."
+        #                     )
+        # Call SQLModelMetaclass.__new__
         cls = super().__new__(mcs, name, bases, new_attrs, **kwargs)
         # Validate that we don't have table=True on current class and a base
         current_cls_is_table = getattr(cls.__config__, "table", False) and kwargs.get("table")
@@ -203,13 +285,26 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         primary_key_name = primary_keys[0]
         all_attrs = {col.name: col for col in columns if not col.foreign_keys}
         all_fks = {col.name: col for col in columns if col.foreign_keys}
-        attributes = {x: get_sql_type_str(cls.__fields__[x].type_) for x in all_attrs}
+
+        # Create the attribute dict which maps attribute name to column type
+        attributes = {}
+        for col_name, col in columns.items():
+            try:
+                dt = column_registry[col.type]
+                attributes[col_name] = (
+                    f"{dt.type_name}[]" if getattr(col.type, '_is_array', False) else dt.type_name
+                )
+            except KeyError:
+                raise TypeError(
+                    f"Cannot parse column {col_name} on table {cls.__tablename__} due to its unknown type {type(col.type)}"
+                )
         foreign_keys = set(all_fks.keys())
         identifying_attributes = {x for x in all_attrs if x in cls.__identifying__}
         identifying_fks = [x for x in all_fks if x in cls.__identifying__]
         return LoadEntity(
-            name=cls.__tablename__,
+            name=cls.__tablename__ or cls.__name__,
             schema_=cls.__schema__,
+            entity_class_str=f"{cls.__module__}.{cls.__qualname__}",
             primary_key_name=primary_key_name,
             attributes=attributes,
             foreign_keys=foreign_keys,
@@ -218,7 +313,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         )
 
     @classmethod
-    def load(cls, insert: bool = False, **kwargs) -> Load:
+    def load(cls, insert: bool = False, validation: Optional[str] = None, **kwargs) -> Load:
         name = cls.__tablename__
         assert isinstance(name, str)
         key_filter = lambda keyval: keyval[0] != "insert" and not isinstance(keyval[1], (ArgLike, Load))
@@ -250,13 +345,14 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
 
         for k, v in fks.items():
             if isinstance(v, Load):
-                fks[k] = v["out"]
+                fks[k] = v[v.outputs[0]]
 
         return Load(
             load_entity=cls._get_load_entity(),
             primary_key=pk,
             inputs={**attrs, **fks},
             insert=insert,
+            validation=validation,
         )
 
     @classmethod
@@ -349,13 +445,6 @@ class Entity(BaseEntity):
     gen_id: Optional[UUID]
     created_at: Optional[datetime] = get_created_at_field()
 
-    @root_validator
-    def _get_id(cls, values):
-        if cls._is_table:
-            load_entity = cls._get_load_entity()
-            values["id"] = load_entity._get_hash(values)
-        return values
-
 
 Model = TypeVar("Model", bound="BaseEntity")
 
@@ -443,4 +532,4 @@ def create_entity(
         assert isinstance(kwargs.get("registry"), registry), "Invalid type for registry:"
     namespace.update(fields)  # type: ignore
 
-    return EntityMetaclass(model_name, (base,), namespace, **kwargs)
+    return EntityMetaclass(model_name, (base,), namespace, **kwargs)  # type: ignore

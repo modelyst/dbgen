@@ -15,11 +15,11 @@
 """For parsing in config YAML."""
 import os
 import tempfile
+from enum import Enum
 from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING, Optional, Tuple
 
-# from pydantic.dataclasses import dataclass
 from pydantic import BaseSettings, PostgresDsn, SecretStr, validator
 from pydantic.tools import parse_obj_as
 
@@ -36,6 +36,12 @@ class PostgresqlDsn(PostgresDsn):
     path: str
 
 
+class ValidationEnum(str, Enum):
+    COERCE = 'coerce'
+    STRICT = 'strict'
+    OFF = 'off'
+
+
 class DBgenConfiguration(BaseSettings):
     """Settings for the pg4j, especially database connections."""
 
@@ -45,7 +51,7 @@ class DBgenConfiguration(BaseSettings):
     meta_schema: str = "dbgen_log"
     meta_password: Optional[SecretStr] = None
     temp_dir: Path = Path(tempfile.gettempdir())
-    type_coercing: bool = False
+    validation: ValidationEnum = ValidationEnum.COERCE
 
     class Config:
         """Pydantic configuration"""

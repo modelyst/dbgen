@@ -151,7 +151,8 @@ def test_basic_parent_child_load(clear_registry):
     parent_load = DummyParent.load(key_1=Const(1))
     child_load = DummyChild.load(insert=True, dummy_parent_id=parent_load)
     assert (
-        "dummy_parent_id" in child_load.inputs and child_load.inputs["dummy_parent_id"] == parent_load["out"]
+        "dummy_parent_id" in child_load.inputs
+        and child_load.inputs["dummy_parent_id"] == parent_load["dummyparent_id"]
     )
     child_load = DummyChild.load(insert=True, dummy_parent_id=Const(None))
     assert "dummy_parent_id" in child_load.inputs and child_load.inputs["dummy_parent_id"] == Const(None)
@@ -454,3 +455,8 @@ def test_create_entity(connection, session, clear_registry):
     )
     assert "child_name" in DummyChild._hashinclude_
     assert "name" in DummyChild._hashinclude_
+
+
+def test_entity_with_bad_datattype():
+    # class BadEntity(Entity):
+    pass

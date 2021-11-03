@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.4"
+version = "0.5.5"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -43,6 +43,7 @@ mkdocstrings = {version = "^0.16.2", optional = true}
 networkx = "^2.6.3"
 pdocs = {version = "^1.1.1", optional = true}
 prettytable = "^2.2.1"
+psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
 pydantic = "^1.8.2"
 pydasher = {git = "https://github.com/modelyst/pydasher", rev = "main"}
@@ -53,6 +54,7 @@ tqdm = "^4.62.2"
 typer = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
+Faker = "^9.7.1"
 autoflake = "^1.4"
 black = "^21.9b0"
 flake8 = "^3.9.2"
@@ -60,8 +62,10 @@ hypothesis = "^6.21.3"
 isort = "^5.9.3"
 mypy = "^0.910"
 pytest = "^6.2.5"
+pytest-benchmark = "^3.4.1"
 pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
+requests = "^2.26.0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

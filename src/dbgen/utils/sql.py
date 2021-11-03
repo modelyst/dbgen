@@ -25,6 +25,7 @@ from sqlalchemy.ext import compiler
 from sqlalchemy.schema import DDLElement, PrimaryKeyConstraint
 
 from dbgen.core.base import Base
+from dbgen.utils.type_coercion import json_dumps
 
 SCHEMA_DEFAULT = 'public'
 
@@ -79,6 +80,7 @@ class Connection(Base):
         return create_engine(
             url=self.url(),
             connect_args={"options": f"-csearch_path={self.schema_}"},
+            json_serializer=json_dumps,
         )
 
     def test(self):

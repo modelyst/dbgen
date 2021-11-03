@@ -48,6 +48,7 @@ class Extract(ComputationalNode):
         return None
 
     # Internal Do not Overwrite
+
     def run(self, _: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         try:
             output = next(self._extractor)
