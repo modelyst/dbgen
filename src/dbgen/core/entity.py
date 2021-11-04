@@ -42,10 +42,11 @@ from sqlalchemy.sql.schema import Table
 from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
 from dbgen.core.args import ArgLike
+from dbgen.core.attribute import Attribute
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
+from dbgen.core.type_registry import column_registry
 from dbgen.exceptions import DBgenInvalidArgument, DBgenMissingInfo
-from dbgen.utils.type_coercion import column_registry
 
 
 def inherit_field(
@@ -83,6 +84,7 @@ def __dataclass_transform__(
     field_descriptors=(
         Field,
         FieldInfo,
+        Attribute,
     ),
 )
 class EntityMetaclass(SQLModelMetaclass, BaseMeta):
@@ -106,83 +108,6 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         if "registry" not in kwargs:
             kwargs["registry"] = DEFAULT_ENTITY_REGISTRY
 
-        # We need to get between the user and SQLModel to impose stricter well known
-        # python_datatype -> SQL column type converstions
-        # The goal is to find the annotated columns that will become fields (i.e. doesn't start with _ and isn't classvar)
-        # base_is_table = inherit_field(
-        #     bases, '__config__', False, joiner=lambda x, y: x or getattr(y, 'table', False), type_check=False
-        # )
-        # current_cls_is_table = not base_is_table and kwargs.get('table')
-        # if name in ('TypeEntity', 'BaseTypeEntity'):
-        #     breakpoint()
-
-        # if current_cls_is_table:
-        #     for field in cls.__fields__.values():
-        #         data_type = column_registry.get_from_python_type(field.type_)
-        #         if field.shape == SHAPE_LIST:
-        #             col_type = data_type.get_array_column_type()
-        #         elif field.shape == SHAPE_SINGLETON:
-        #             col_type = data_type.get_column_type()
-        #         else:
-        #             raise NotImplementedError(
-        #                 f"Can only deal with singletons and list shaped fields found field {field} with shape: {field.shape}"
-        #             )
-        #         if field.name == 'created_at':
-        #             breakpoint()
-        #         new_col = Column(
-        #             col_type,
-        #             primary_key=field.primary_key,
-        #             *column_data[field.name].g'args'],
-        #             **column_data[field.name]['kwargs'],
-        #         )
-        #         if field.name in unset_columns:
-        #             setattr(cls, field.name, new_col)
-        #         field.required = False
-        # annotations = attrs.get('__annotations__', {})
-        # for attr_name, type_hint in annotations.items():
-        #     if not attr_name.startswith('_') and not is_classvar(type_hint):
-        #         value = attrs.get(attr_name, Undefined)
-        #         if not isinstance(value, RelationshipInfo):
-        #             try:
-        #                 temp_field = ModelField.infer(
-        #                     name=attr_name,
-        #                     value=value,
-        #                     annotation=type_hint,
-        #                     class_validators=None,
-        #                     config=BaseConfig,
-        #                 )
-        #                 data_type = column_registry.get_from_python_type(temp_field.type_)
-        #                 if temp_field.shape == SHAPE_LIST:
-        #                     col_type = data_type.get_array_column_type()
-        #                 elif temp_field.shape == SHAPE_SINGLETON:
-        #                     col_type = data_type.get_column_type()
-        #                 else:
-        #                     raise NotImplementedError(
-        #                         f"Can only deal with singletons and list shaped fields found field {temp_field} with shape: {temp_field.shape}"
-        #                     )
-
-        #             except (TypeError, ValueError) as exc:
-        #                 error = (
-        #                     f"Cannot get_sql_type() cannot find the sql_type_str for the type {type_hint} which appears on table {name}\'s {attr_name} field."
-        #                     "Moving on without converting that column"
-        #                 )
-        #                 logger.error(error)
-        #                 logger.error(exc)
-        #                 breakpoint()
-        #                 raise TypeError(error)
-        #             if value == Undefined:
-        #                 new_attrs[attr_name] = Field(None, sa_column=Column(col_type))
-        #             elif not isinstance(value, FieldInfo):
-        #                 new_attrs[attr_name] = Field(value, sa_column=Column(col_type))
-        #             elif value.sa_column != Undefined:
-        #                 value.required = False
-        #                 current_datatype = column_registry[type(value.sa_column.type)]
-        #                 value.sa_column = Column(col_type, primary_key=value.sa_column.primary_key)
-        #                 new_attrs[attr_name] = value
-        #                 if current_datatype != data_type:
-        #                     logger.warning(
-        #                         f"Warning! you've defined column {attr_name!r} on table {name!r} with a SQLType of {value.sa_column.type} when the default column type is {col_type}. I hope you know what you are doing..."
-        #                     )
         # Call SQLModelMetaclass.__new__
         cls = super().__new__(mcs, name, bases, new_attrs, **kwargs)
         # Validate that we don't have table=True on current class and a base

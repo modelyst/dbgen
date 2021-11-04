@@ -78,7 +78,7 @@ RUN mkdir -p /home/dbgen-user/src/dbgen && touch /home/dbgen-user/src/dbgen/__in
 RUN poetry config virtualenvs.create false \
     && poetry install $(test $YOUR_ENV = "production" && echo "--no-dev") $(test -n "${EXTRAS}" && echo " -E docs") --no-interaction --no-ansi
 COPY . .
-
+ENV PYTHONPATH=${DBGEN_HOME}:${PYTHONPATH}
 # DBGEN
 # Creating folders, and files for a project:
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/entrypoint"]

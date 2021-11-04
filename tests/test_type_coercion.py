@@ -18,10 +18,13 @@ from enum import Enum
 from inspect import isclass
 from uuid import UUID
 
+from sqlalchemy import Column
 from sqlalchemy.orm import registry
 
+from dbgen.core.attribute import Attribute
 from dbgen.core.entity import Entity
-from dbgen.utils.type_coercion import column_registry
+from dbgen.core.type_registry import column_registry
+from dbgen.types import BigInteger
 
 type_registry = registry()
 
@@ -39,6 +42,7 @@ class BaseTypeEntity(Entity):
 
 class TypeEntity(BaseTypeEntity, all_id=True, table=True, registry=type_registry):
     __tablename__ = 'type_entity'
+    big_int_val: int = Attribute(..., sa_column=Column(BigInteger))
     float_val: float
     bytes_val: bytes
     json_val: dict
@@ -60,16 +64,10 @@ def test_column_type_map():
         ) == type(expected_type)
 
 
-# byte_strat = st.text().map(lambda x: x.encode())
-# type_entity_strat = st.builds(TypeEntity, bytes_val=byte_strat)
-
-
 # def test_type_load_entity():
-#     TypeEntity._get_load_entity()
-#     assert isinstance(TypeEntity.int_val.type, get_column_type(SQLTypeEnum.INTEGER))
-#     assert isinstance(TypeEntity.str_val.type, get_column_type(SQLTypeEnum.TEXT))
-#     assert isinstance(TypeEntity.bool_val.type, get_column_type(SQLTypeEnum.BOOLEAN))
-#     assert isinstance(TypeEntity.float_val.type, get_column_type(SQLTypeEnum.FLOAT))
+#     load_entity = TypeEntity._get_load_entity()
+#     for attr_name, type_str in load_entity.attributes.items():
+#         datatype = column_registry[type_str]
 
 
 # @given(type_entity_strat)

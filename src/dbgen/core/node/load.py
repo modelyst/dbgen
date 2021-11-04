@@ -43,8 +43,8 @@ from dbgen.core.args import Arg, Const
 from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
+from dbgen.core.type_registry import column_registry
 from dbgen.utils.lists import broadcast, is_broadcastable
-from dbgen.utils.type_coercion import column_registry
 
 if TYPE_CHECKING:
     from dbgen.core.entity import BaseEntity

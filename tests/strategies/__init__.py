@@ -24,8 +24,8 @@ from dbgen.core.args import Arg, Const
 from dbgen.core.func import Env, Func, Import
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.node.transforms import PyBlock
+from dbgen.core.type_registry import column_registry
 from dbgen.utils.misc import reserved_words
-from dbgen.utils.type_coercion import column_registry
 from tests.example_functions import example_callables
 
 no_colons = st.text(

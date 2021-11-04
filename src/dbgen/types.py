@@ -1,4 +1,3 @@
-#!/bin/bash
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,13 +11,20 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-# Write Git version
-python ./scripts/ci/pre_commit_write_gitversion.py
-VERSION=$(python -c "from dbgen import __version__; print(__version__)")
-for PYTHON_VERSION in '3.9'
-do
-echo $PYTHON_VERSION
-docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION
-# docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry-extras -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION --build-arg EXTRAS="true"
-done
-exit 0
+
+from sqlalchemy.dialects.postgresql import BYTEA, JSON, JSONB, UUID
+from sqlalchemy.types import (
+    ARRAY,
+    VARCHAR,
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    Integer,
+    Interval,
+    LargeBinary,
+    String,
+    Text,
+)
+from sqlmodel.sql.sqltypes import GUID, AutoString
