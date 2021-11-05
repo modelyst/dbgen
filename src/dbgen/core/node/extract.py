@@ -14,7 +14,7 @@
 
 from typing import Any, Dict
 from typing import Generator as GenType
-from typing import Mapping, Optional
+from typing import Mapping, Optional, TypeVar
 
 from pydantic.fields import PrivateAttr
 
@@ -22,8 +22,10 @@ from dbgen.core.node.computational_node import ComputationalNode
 
 extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
 
+T = TypeVar('T')
 
-class Extract(ComputationalNode):
+
+class Extract(ComputationalNode[T]):
     """
     Base Class for all extraction steps.
 

@@ -41,7 +41,7 @@ from sqlalchemy.sql.base import ImmutableColumnCollection
 from sqlalchemy.sql.schema import Table
 from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
-from dbgen.core.args import ArgLike
+from dbgen.core.args import ArgLike, Const
 from dbgen.core.attribute import Attribute
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
@@ -93,6 +93,8 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         new_attrs = attrs.copy()
         for value in ("__identifying__", "_hashexclude_", "_hashinclude_"):
             starting = new_attrs.get(value, set())
+            if isinstance(starting, list):
+                starting = set(starting)
             new_attrs[value] = starting.union(inherit_field(bases, value))
 
         if kwargs.get('all_id', False):
@@ -238,13 +240,19 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         )
 
     @classmethod
-    def load(cls, insert: bool = False, validation: Optional[str] = None, **kwargs) -> Load:
+    def load(cls, insert: bool = False, validation: Optional[str] = None, **kwargs) -> Load[UUID]:
         name = cls.__tablename__
         assert isinstance(name, str)
+        # TODO check if we need this anymore
         key_filter = lambda keyval: keyval[0] != "insert" and not isinstance(keyval[1], (ArgLike, Load))
         invalid_args = list(filter(key_filter, kwargs.items()))
-        if invalid_args:
-            raise ValueError(f"Non ArgLike kwargs provided: {invalid_args}")
+        JSONAble = (str, int, float, dict, tuple)
+        for arg_name, invalid_arg in invalid_args:
+            # Check Invalid args to see if a const block would be appropriate
+            if isinstance(invalid_arg, JSONAble):
+                kwargs[arg_name] = Const(invalid_arg)
+            else:
+                raise ValueError(f"Non-jsonable constant value found: {arg_name}\n{invalid_arg}")
 
         # get PK
         pk = kwargs.pop(name, None)

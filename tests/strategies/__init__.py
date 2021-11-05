@@ -21,7 +21,7 @@ from hypothesis import strategies as st
 from hypothesis.strategies._internal.strategies import SearchStrategy
 
 from dbgen.core.args import Arg, Const
-from dbgen.core.func import Env, Func, Import
+from dbgen.core.func import Env, Import, func_from_callable
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.node.transforms import PyBlock
 from dbgen.core.type_registry import column_registry
@@ -90,7 +90,7 @@ def basic_function(arg_1: int, arg_2: str, arg_3: float) -> str:
 basic_lambda = lambda arg_1, arg_2, arg_3: f"{arg_1}->{arg_2}->{arg_3}"
 
 function_strat = st.one_of(list(map(st.just, example_callables)))  # type: ignore
-func_strat = st.one_of(list(map(st.just, map(Func.from_callable, example_callables))))
+func_strat = st.one_of(list(map(st.just, map(func_from_callable, example_callables))))
 any_strat = st.one_of(st.floats(), st.just(None), st.text(), st.booleans(), st.integers())
 const_strat = st.builds(
     Const,

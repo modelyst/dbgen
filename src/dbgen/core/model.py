@@ -19,12 +19,13 @@ from uuid import UUID
 
 import sqlalchemy
 from networkx import DiGraph
-from pydantic import Field, validator
+from pydantic import Field, PrivateAttr, validator
 from sqlalchemy import MetaData, inspect, text
 from sqlalchemy.future import Engine
 from sqlalchemy.orm import registry as sa_registry
 
 from dbgen.core.base import Base
+from dbgen.core.context import ModelContext
 from dbgen.core.entity import BaseEntity
 from dbgen.core.generator import Generator
 from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
@@ -39,12 +40,22 @@ class Model(Base):
     generators: List[Generator] = Field(default_factory=list)
     registry: sa_registry = Field(default_factory=lambda: BaseEntity._sa_registry)
     meta_registry: sa_registry = Field(default_factory=lambda: meta_registry)
+    _context: ModelContext = PrivateAttr(None)
     _hashinclude_ = {"name", "generators"}
 
     class Config:
         """Pydantic Config"""
 
         arbitrary_types_allowed = True
+
+    def __enter__(self):
+        self._context = ModelContext(context_dict={'model': self})
+        return self._context.__enter__()['model']
+
+    def __exit__(self, *args):
+        self._context.__exit__(*args)
+        self.validate(self)
+        del self._context
 
     @validator("generators")
     def unique_generator_names(cls, value: List[Generator]) -> List[Generator]:

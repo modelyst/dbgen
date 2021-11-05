@@ -17,7 +17,7 @@ from hypothesis import given
 from pydantic import ValidationError
 
 from dbgen.core.args import Arg, Const
-from dbgen.core.func import Env, Func
+from dbgen.core.func import Env, Func, func_from_callable
 from dbgen.core.node.transforms import PyBlock
 from dbgen.exceptions import DBgenMissingInfo, DBgenPyBlockError
 from tests.example_functions import nonary, ternary
@@ -91,7 +91,7 @@ def test_two_pyblocks():
 
 
 def test_func():
-    func = Func.from_callable(ternary)
+    func = func_from_callable(ternary)
     assert func.number_of_required_inputs == 2
 
 

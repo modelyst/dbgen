@@ -31,7 +31,7 @@ ERROR_MODULE = "Could not find module:\nModule: {0}\nPackage: {1}\nError: {2}"
 ERROR_PACKAGE = "Could not find package within module:\nModule: {0}\nPackage: {1}\nError: {2}"
 ERROR_NOT_MODEL = "Import String is not for a DBgen Model: \nImport String: {0}\nClass: {1}"
 ERROR_NOT_MODEL_FUNCTION = "Import String is for a function that does not produce a DBgen Model: \nImport String: {0}\nOutput Class: {1}"
-ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1}"
+ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1} \n{2}{3}"
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +116,14 @@ def validate_model_str(model_str: str) -> Model:
         elif isinstance(model, FunctionType):
             try:
                 model = model()
-            except TypeError:
-                raise basic_error(ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__])
+            except TypeError as exc:
+                print(exc)
+                import traceback
+
+                exc_str = traceback.format_exc()
+                raise basic_error(
+                    ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__, "#" * 24 + "\n", str(exc_str)]
+                )
             if isinstance(model, Model):
                 return model
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])

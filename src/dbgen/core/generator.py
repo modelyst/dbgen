@@ -13,8 +13,9 @@
 #   limitations under the License.
 
 import re
+from contextvars import ContextVar
 from functools import reduce
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Tuple, Union
 
 from pydantic import Field, PrivateAttr
 from pydantic.class_validators import root_validator, validator
@@ -22,12 +23,14 @@ from sqlalchemy.future import Engine
 
 from dbgen.core.args import Arg
 from dbgen.core.base import Base
+from dbgen.core.context import GeneratorContext, ModelContext
+from dbgen.core.decorators import FunctionNode
 from dbgen.core.dependency import Dependency
 from dbgen.core.metadata import GeneratorEntity
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PyBlock, Transform
 from dbgen.exceptions import DBgenMissingInfo
 from dbgen.utils.graphs import topsort_with_dict
 
@@ -39,6 +42,7 @@ if TYPE_CHECKING:
 list_field = Field(default_factory=lambda: [])
 
 NAME_REGEX = re.compile(r'^[\w.-]+$')
+DEFAULT_EXTRACT = Extract()
 
 
 class Generator(Base):
@@ -50,11 +54,22 @@ class Generator(Base):
     tags: List[str] = list_field
     batch_size: Optional[int] = None
     additional_dependencies: Optional[Dependency] = None
-    _graph: Optional["DiGraph"] = PrivateAttr(None)
     dependency: Optional[Dependency] = None
+    _graph: Optional["DiGraph"] = PrivateAttr(None)
+    _context: GeneratorContext = PrivateAttr(None)
     _hashexclude_ = {
         'dependency',
     }
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name=name, **kwargs)
+        gen_context = GeneratorContext.get()
+        if not gen_context:
+            self.validate_nodes()
+        model_context = ModelContext.get()
+        if model_context:
+            model = model_context['model']
+            model.add_gen(self)
 
     @validator('name')
     def validate_gen_name(cls, name):
@@ -64,9 +79,12 @@ class Generator(Base):
             )
         return name
 
-    @root_validator
-    def validate_all_included(cls, values):
-        nodes = values['loads'] + values['transforms'] + [values['extract']]
+    @validator('transforms', pre=True)
+    def convert_functional_node(cls, transforms):
+        return [val.pyblock if isinstance(val, FunctionNode) else val for val in transforms]
+
+    def validate_nodes(self):
+        nodes = self.loads + self.transforms + [self.extract]
         hashes = {node.hash for node in nodes}
 
         for node in nodes:
@@ -74,20 +92,27 @@ class Generator(Base):
                 if isinstance(arg, Arg) and arg.key not in hashes:
                     if arg.name.endswith('_id'):
                         hint = f"Arg name being asked for is '{arg.name}' which matches the pattern of a Load for Entity with name {arg.name[:-3]!r}. Are you missing a load?"
-                    elif values['extract'].hash == Extract().hash:
+                    elif self.extract.hash == Extract().hash:
                         hint = "Generator is using the default extract, did you remember your query or extractor to the extract field?"
                     else:
                         hint = "The arg details seem to match a PyBlock, did you add all pyblocks?"
                     raise ValueError(
-                        f"Generator(name={values['name']!r}) encountered a validation error as a node is missing in the computational graph.\n  "
+                        f"Generator(name={self.name!r}) encountered a validation error as a node is missing in the computational graph.\n  "
                         f"Node {node} is looking for an output named {arg.name!r} on another node with a hash {arg.key!r}\n  "
                         + hint
                     )
 
-        return values
-
     def __str__(self) -> str:
         return f"Gen<{self.name}>"
+
+    def __enter__(self) -> "Generator":
+        self._context = GeneratorContext(context_dict={'generator': self})
+        return self._context.__enter__()['generator']
+
+    def __exit__(self, *args):
+        self._context.__exit__(*args)
+        self.validate_nodes()
+        del self._context
 
     def _computational_graph(self) -> "DiGraph":
         if self._graph is None:
@@ -170,3 +195,22 @@ class Generator(Base):
             run_config,
             ordering,
         )
+
+    def add_node(self, node: 'ComputationalNode') -> None:
+        if isinstance(node, Extract):
+            if self.extract == DEFAULT_EXTRACT:
+                self.extract = node
+            else:
+                raise ValueError(
+                    f"Can only define 1 extractor per generator\n"
+                    "{self.extract} already defined defined on {self}\n"
+                    "Cannot add extract {node}"
+                )
+        elif isinstance(node, Transform):
+            self.transforms.append(node)
+        elif isinstance(node, FunctionNode):
+            self.transforms.append(node.pyblock)
+        elif isinstance(node, Load):
+            self.loads.append(node)
+        else:
+            raise ValueError(f"Unknown Node Type {node} {type(node)}")

@@ -14,11 +14,12 @@
 
 from typing import TYPE_CHECKING, Any, Dict
 from typing import Generator as GenType
-from typing import Optional, Union, overload
+from typing import Generic, Optional, TypeVar, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
-from sqlmodel.sql.expression import Select
+from sqlmodel.engine.result import Result
+from sqlmodel.sql.expression import Select, SelectOfScalar
 
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.extract import Extract
@@ -32,8 +33,10 @@ if TYPE_CHECKING:
 
 SCHEMA_DEFAULT = "public"
 
+T = TypeVar('T')
 
-class BaseQuery(Extract):
+
+class BaseQuery(Extract[T]):
     query: str
     dependency: Dependency = Field(default_factory=Dependency)
 
@@ -42,8 +45,8 @@ class BaseQuery(Extract):
 
     @classmethod
     def from_select_statement(
-        cls, select_statement: Select, connection: Connection = None, **kwargs
-    ) -> "BaseQuery":
+        cls, select_statement: Select[T], connection: Connection = None, **kwargs
+    ) -> "BaseQuery[T]":
         columns, tables, fks = get_statement_dependency(select_statement)
         outputs = _get_select_keys(select_statement)
         get_table_name = lambda x: f"{x.schema}.{x.name}" if getattr(x, "schema", "") else x.name
@@ -69,7 +72,7 @@ class BaseQuery(Extract):
         connection: Union['SAConnection', 'Session'] = None,
         yield_per: Optional[int] = None,
         **kwargs,
-    ) -> GenType[Dict[str, Any], None, None]:
+    ) -> GenType[Result[T], None, None]:
         assert connection, f"Need to pass in connection when setting the extractor"
         if yield_per:
             result = connection.execute(text(self.query))
@@ -79,7 +82,7 @@ class BaseQuery(Extract):
             return result.mappings()  # type: ignore
 
 
-class ExternalQuery(BaseQuery):
+class ExternalQuery(BaseQuery[T]):
     connection: Connection
 
     @classmethod
@@ -111,17 +114,25 @@ class ExternalQuery(BaseQuery):
 
 
 @overload
-def Query(select_statement: Select, connection: Connection) -> ExternalQuery:
+def Query(select_statement: SelectOfScalar[T], connection: Connection) -> ExternalQuery[T]:
     ...
 
 
 @overload
-def Query(select_statement: Select, connection: None = None) -> BaseQuery:
+def Query(select_statement: SelectOfScalar[T], connection: None = None) -> BaseQuery[T]:
     ...
 
 
-def Query(
-    select_statement: Select, connection: Optional[Connection] = None
-) -> Union[BaseQuery, ExternalQuery]:
+@overload
+def Query(select_statement: Select[T], connection: Connection) -> ExternalQuery[T]:
+    ...
+
+
+@overload
+def Query(select_statement: Select[T], connection: None = None) -> BaseQuery[T]:
+    ...
+
+
+def Query(select_statement, connection: Optional[Connection] = None) -> Union[BaseQuery, ExternalQuery]:
     cls = BaseQuery if connection is None else ExternalQuery
     return cls.from_select_statement(select_statement, connection=connection)

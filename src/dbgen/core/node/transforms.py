@@ -26,25 +26,31 @@ from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
 from dbgen.utils.log import capture_stdout
 
-
-class Transform(ComputationalNode):
-    pass
-
-
 Output = TypeVar('Output')
 
 
-class PyBlock(Transform, Generic[Output]):
+class Transform(ComputationalNode[Output]):
+    pass
+
+
+class PyBlock(Transform[Output]):
 
     function: Func[Output]
-    env: Env = Field(default_factory=lambda: Env(imports=set()))
+    env: Optional[Env] = Field(default_factory=lambda: Env(imports=set()))
 
-    def __init__(self, function: Callable[..., Output], env: Env = None, inputs=Undefined, outputs=Undefined):
+    def __init__(
+        self, function: Callable[..., Output], env: Env = Undefined, inputs=Undefined, outputs=Undefined
+    ):
+        # add explicit __init__ to allow for positional args
         assert callable(function) or isinstance(function, Func) or isinstance(function, dict)
         if callable(function):
             function = func_from_callable(function, env=env)
-        env = env or Env(imports=set())
-        super().__init__(function=function, env=env, inputs=inputs, outputs=outputs)
+        kwargs = {
+            k: val
+            for k, val in (('env', env), ('inputs', inputs), ('outputs', outputs))
+            if val is not Undefined and val is not None
+        }
+        super().__init__(function=function, **kwargs)
 
     def run(self, namespace_dict: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         inputvars = self._get_inputs(namespace_dict)
@@ -91,20 +97,3 @@ class PyBlock(Transform, Generic[Output]):
 
     def __call__(self, *args, **kwargs) -> Output:
         return self.function(*args, **kwargs)
-
-
-def apply_pyblock(
-    env: Env = None,
-    inputs: Union[Mapping[str, Union[Const, Arg]], List[Union[Const, Arg]]] = None,
-    outputs: List[str] = None,
-) -> Callable[[Callable], PyBlock]:
-    inputs = inputs or {}
-    outputs = outputs or ["out"]
-    env = env if env is not None else Env()
-    env = cast(Env, env)
-
-    def wrapper(function: Callable) -> PyBlock:
-        func = func_from_callable(function, env=env)
-        return PyBlock(function=func, inputs=inputs, outputs=outputs, env=env)
-
-    return wrapper

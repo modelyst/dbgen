@@ -20,14 +20,12 @@ from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
-from dbgen.core.args import Const
 from dbgen.core.decorators import node
 from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock
 
 my_registry = registry()
 
@@ -69,59 +67,35 @@ def inputs_skipped():
 
 
 def make_model():
+    with Model(name='new_api', registry=my_registry) as model:
+        with Generator('add_parent'):
+            new_extract = CustomExtractor(n=1000)
+            Parent.load(insert=True, label=new_extract["out"], validation='strict', myColumn={'a': 1})
 
-    new_extract = CustomExtractor(n=1000)
-    generator_1 = Generator(
-        name="add_parents",
-        extract=new_extract,
-        loads=[
-            Parent.load(insert=True, label=new_extract["out"], validation='strict', myColumn=Const({'a': 1}))
-        ],
-    )
-    generator_2 = Generator(
-        name="add_parents_v2",
-        loads=[Parent.load(insert=True, label="parentier")],
-    )
-    generator_4 = Generator(
-        name="add_parents_v3",
-        loads=[Parent.load(insert=True, label="parent")],
-    )
-    query = Query(select(Parent.id, Parent.label))
+        with Generator('add_parents_v2'):
+            Parent.load(insert=True, label="parentier")
 
-    @node
-    def concise_func(label: str) -> tuple[str]:
-        return (f"{label}-test",)
+        with Generator('add_parents_v3'):
+            Parent.load(insert=True, label="parent")
 
-    concise_pyblock = concise_func(query["label"])
-    child_load = Child.load(insert=True, label=concise_pyblock.results(), parent_id=query["id"])
-    generator_3 = Generator(
-        name="add_child",
-        extract=query,
-        transforms=[concise_pyblock],
-        loads=[child_load],
-    )
-    generator_5 = Generator(name="failing_gen", transforms=[failing_func()])
-    generator_6 = Generator(name="skip_gen", transforms=[inputs_skipped()])
-    model = Model(
-        name="test",
-        generators=[
-            generator_1,
-            generator_2,
-            generator_3,
-            generator_4,
-            generator_5,
-            generator_6,
-        ],
-        registry=my_registry,
-    )
+        @node
+        def concise_func(label: str) -> str:
+            return f"{label}-test"
+
+        with Generator('add_child'):
+            query = Query(select(Parent.id, Parent.label))
+            parent_id, parent_label = query.results()
+            concise_pyblock = concise_func(query["label"])
+            Child.load(insert=True, label=concise_pyblock.results(), parent_id=query["id"])
+
+        with Generator('failing_gen'):
+            failing_func()
+
+        with Generator('skip_gen'):
+            inputs_skipped()
     return model
 
 
-def test():
-
-    m = make_model()
-    print(m.hash)
-
-
-if __name__ == '__main__':
-    test()
+@node
+def funky(val: int) -> tuple[int, str]:
+    return val, str(val)

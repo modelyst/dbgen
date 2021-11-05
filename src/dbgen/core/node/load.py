@@ -26,6 +26,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 from uuid import UUID
@@ -35,6 +36,7 @@ from psycopg import Connection as PG3Conn
 from psycopg2._psycopg import connection
 from pydantic import Field, PrivateAttr, ValidationError, root_validator, validate_model, validator
 from pydantic.error_wrappers import ErrorWrapper
+from pydantic.fields import Undefined
 from pydasher import hasher
 from pydasher.import_module import import_string
 
@@ -165,8 +167,10 @@ class LoadEntity(Base):
 
 NUM_QUERY_TRIES = 10
 
+T = TypeVar('T')
 
-class Load(ComputationalNode):
+
+class Load(ComputationalNode[T]):
     load_entity: LoadEntity
     primary_key: Optional[Union[Arg, Const]] = None
     _output: Dict[UUID, Iterable[Any]] = PrivateAttr(default_factory=dict)

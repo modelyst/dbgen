@@ -11,29 +11,33 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
+import inspect
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Dict,
     Generic,
-    Iterable,
     List,
     Optional,
     Tuple,
     TypedDict,
     TypeVar,
     Union,
-    cast,
+    get_args,
+    get_origin,
     overload,
 )
 
-from pydantic.main import Undefined
 from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
 from dbgen.core.func import Env
+from dbgen.core.node.query import Query as BaseQuery
 from dbgen.core.node.transforms import PyBlock
+
+if TYPE_CHECKING:
+    from contextvars import Token
+
 
 In = ParamSpec('In')
 Out = TypeVar('Out')
@@ -43,6 +47,10 @@ T2 = TypeVar('T2')
 T3 = TypeVar('T3')
 T4 = TypeVar('T4')
 TDict = TypeVar('TDict', bound=TypedDict)
+
+
+def Query():
+    return BaseQuery(*args)
 
 
 class TypeArg(Arg, Generic[T]):
@@ -64,17 +72,10 @@ class FunctionNode(Generic[In, Out]):
         self.inputs = inputs or []
         self.outputs = outputs or ['out']
         self.pyblock = self.to_pyblock()
-        self._arglist: 'Out' = tuple(iter(self))
+        self._arglist = tuple(iter(map(self.pyblock.__getitem__, self.pyblock.outputs)))
 
     def __call__(self: 'FunctionNode[In,Out]', *args: In.args, **kwargs: In.kwargs) -> Out:
         return self.function(*args, **kwargs)
-
-    @overload
-    def __iter__(self: 'FunctionNode[In,Tuple[T1]]') -> Iterable[TypeArg[T1]]:
-        ...
-
-    def __iter__(self: 'FunctionNode[In,Out]') -> Iterable['Arg']:
-        return iter(map(self.pyblock.__getitem__, self.pyblock.outputs))
 
     def __getitem__(self: 'FunctionNode[In,Out]', key: Union[str, int]):
         if isinstance(key, str):
@@ -104,13 +105,8 @@ class FunctionNode(Generic[In, Out]):
     ) -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3], TypeArg[T4]]:
         ...
 
-    # @overload
-    # def results(self: 'FunctionNode[In,T1]') -> T1:
-    #     ...
-
     def results(self):
-        out = tuple(iter(self))
-        return out[0] if len(out) == 1 else out
+        return self._arglist[0] if len(self._arglist) == 1 else self._arglist
 
     def to_pyblock(self):
         return PyBlock(function=self.function, env=self.env, inputs=self.inputs, outputs=self.outputs)
@@ -131,6 +127,18 @@ def node(
 def node(function=None, *, env: Optional[Env] = None, outputs: List[str] = None):
 
     if function:
+        if not outputs:
+
+            # TODO add dict outputs or list of dict outputs!
+            sig = inspect.signature(function)
+            if outputs is None and sig.return_annotation:
+                annotation = sig.return_annotation
+                origin = get_origin(annotation)
+                if origin is not None and issubclass(origin, (list, tuple)):
+                    args = get_args(annotation)
+                    bad_args = list(filter(lambda x: not isinstance(x, type), args))
+                    if not bad_args:
+                        outputs = [str(i) for i, _ in enumerate(args)]
         func = partial(FunctionNode, function=function, env=env, outputs=outputs)
 
         def set_inputs(*inputs: List[Arg]) -> FunctionNode[In, Out]:

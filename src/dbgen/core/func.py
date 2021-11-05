@@ -33,6 +33,7 @@ from types import LambdaType
 from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Set, TypeVar, Union
 
 from pydantic import Field, constr, root_validator, validator
+from pydantic.fields import Undefined
 from typing_extensions import ParamSpec
 
 from dbgen.configuration import config
@@ -126,6 +127,8 @@ class Env(Base):
     imports: List[Import] = Field(default_factory=lambda: list())
 
     def __init__(self, imports=None):
+        if isinstance(imports, Import):
+            imports = [imports]
         imports = imports or []
         super().__init__(imports=imports)
 
@@ -437,13 +440,13 @@ def get_callable_source_code(f: Callable) -> str:
     return func
 
 
-def func_from_callable(func_: Callable[..., Output], env: Optional[Env]) -> Func[Output]:
+def func_from_callable(func_: Callable[..., Output], env: Optional[Env] = None) -> Func[Output]:
     """
     Generate a func from a variety of possible input data types.
     """
     if isinstance(env, dict):
         env = Env.from_dict(env)
-    elif env is None:
+    elif env is None or env is Undefined:
         env = Env()
     if isinstance(func_, Func):
         # assert not getattr(env,'imports',False)

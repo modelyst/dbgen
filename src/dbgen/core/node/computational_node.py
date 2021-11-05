@@ -12,19 +12,32 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, TypeVar, Union, overload
 
 from pydantic import Field, validator
 
 from dbgen.core.args import Arg, ArgLike, Const
 from dbgen.core.base import Base
+from dbgen.core.context import GeneratorContext
 from dbgen.core.dependency import Dependency
 from dbgen.exceptions import DBgenMissingInfo
 
+T1 = TypeVar('T1')
+T2 = TypeVar('T2')
+Output = TypeVar('Output')
 
-class ComputationalNode(Base):
+
+class ComputationalNode(Base, Generic[Output]):
     inputs: Mapping[str, Union[Const, Arg]] = Field(default_factory=lambda: {})
     outputs: List[str] = Field(default_factory=lambda: ["out"], min_items=1)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        gen_context = GeneratorContext.get()
+        if gen_context:
+            gen = gen_context['generator']
+            gen.add_node(self)
 
     def _get_dependency(self) -> Dependency:
         return Dependency()
@@ -77,3 +90,15 @@ class ComputationalNode(Base):
 
     def run(self, namespace: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         return {}
+
+    @overload
+    def results(self: 'ComputationalNode[Tuple[T1,T2]]') -> Tuple[Arg[T1], Arg[T2]]:
+        ...
+
+    @overload
+    def results(self: 'ComputationalNode[T1]') -> Arg[T1]:
+        ...
+
+    def results(self):
+        arglist = tuple(iter(map(self.__getitem__, self.outputs)))
+        return arglist[0] if len(arglist) == 1 else arglist

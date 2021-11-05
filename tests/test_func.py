@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from dbgen.core.func import Func, get_callable_source_code
+from dbgen.core.func import Func, func_from_callable, get_callable_source_code
 
 
 def basic_function(arg_1: int, arg_2: str, arg_3: float) -> str:
@@ -43,6 +43,6 @@ def test_lambda_parser(tmpdir):
 
 
 def test_func_from_callable():
-    func = Func.from_callable(basic_function)
+    func = func_from_callable(basic_function)
     assert func.name == "basic_function"
     assert func == Func.parse_obj(func.dict())

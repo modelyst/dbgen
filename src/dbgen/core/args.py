@@ -13,19 +13,22 @@
 #   limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 from dbgen.core.base import Base
-from dbgen.core.func import Func
+from dbgen.core.func import func_from_callable
 from dbgen.exceptions import DBgenMissingInfo
 
 if TYPE_CHECKING:
     from dbgen.core.node.transforms import PyBlock
 
 
-class ArgLike(Base, metaclass=ABCMeta):
+T = TypeVar('T')
+
+
+class ArgLike(Base, Generic[T], metaclass=ABCMeta):
     @abstractmethod
-    def arg_get(self, dic: dict) -> Any:
+    def arg_get(self, dic: dict):
         raise NotImplementedError
 
     def map(self, function: Callable[[Any], Any]) -> 'PyBlock':
@@ -34,7 +37,7 @@ class ArgLike(Base, metaclass=ABCMeta):
         return PyBlock(inputs=[self], function=function)
 
 
-class Arg(ArgLike):
+class Arg(ArgLike[T]):
     """
     How a function refers to a namespace
     """
@@ -45,7 +48,7 @@ class Arg(ArgLike):
     def __str__(self) -> str:
         return f"Arg({str(self.key)[:4]}...,{self.name})"
 
-    def arg_get(self, namespace: dict) -> Any:
+    def arg_get(self, namespace: dict) -> T:
         """
         Common interface for Const and Arg to get values out of namespace
         """
@@ -62,16 +65,16 @@ class Arg(ArgLike):
                 raise DBgenMissingInfo(err % (self.name, list(namespace[self.key].keys())))
 
 
-class Const(ArgLike):
-    val: Any
+class Const(ArgLike[T]):
+    val: T
 
-    def __init__(self, val: Any, *args, **kwargs) -> None:
+    def __init__(self, val: T, *args, **kwargs) -> None:
         if callable(val):
-            val = Func.from_callable(val)
+            val = func_from_callable(val)
         super().__init__(val=val, *args, **kwargs)
 
     def __str__(self) -> str:
         return f"Const<{self.val}>"
 
-    def arg_get(self, _: dict) -> Any:
+    def arg_get(self, _: dict) -> T:
         return self.val
