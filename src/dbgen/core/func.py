@@ -30,9 +30,10 @@ from inspect import (
 from os.path import exists
 from pathlib import Path
 from types import LambdaType
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Union
+from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Set, TypeVar, Union
 
 from pydantic import Field, constr, root_validator, validator
+from typing_extensions import ParamSpec
 
 from dbgen.configuration import config
 from dbgen.core.base import Base
@@ -175,7 +176,13 @@ class Env(Base):
             return cls.from_str(f.read())
 
 
-class Func(Base):
+Input = ParamSpec('Input')
+Output = TypeVar('Output')
+FuncIn = ParamSpec('FuncIn')
+FuncOut = TypeVar('FuncOut')
+
+
+class Func(Base, Generic[FuncOut]):
     """
     A function that can be used during the DB generation process.
     """
@@ -188,7 +195,7 @@ class Func(Base):
         s = "" if n == 1 else "s"
         return "<Func (%d line%s)>" % (n, s)
 
-    def __call__(self, *args: Any) -> Any:
+    def __call__(self, *args, **kwargs) -> FuncOut:
         if hasattr(self, "_func") and self.path.exists():
             return self._func(*args)
         else:
@@ -307,22 +314,6 @@ class Func(Base):
             raise DBgenInternalError(
                 f"Error while trying to load source code. You may be missing an import in your PyBlocks Env object. \nPath:{pth}\nFile Contents:\n--------\n{content}\n--------\nLoad Error: {e}"
             )
-
-    @classmethod
-    def from_callable(cls, f: Union[Callable, "Func"], env: Optional[Env] = None) -> "Func":
-        """
-        Generate a func from a variety of possible input data types.
-        """
-        if isinstance(env, dict):
-            env = Env.from_dict(env)
-        elif env is None:
-            env = Env()
-        if isinstance(f, Func):
-            # assert not getattr(env,'imports',False)
-            return cls(src=f.src, env=env)
-        else:
-            assert callable(f), f"tried to instantiate Func, but not callable {type(f)}"
-            return cls(src=get_callable_source_code(f), env=env)
 
 
 def get_short_lambda_source(lambda_func):
@@ -444,3 +435,19 @@ def get_callable_source_code(f: Callable) -> str:
         raise ValueError(f"Cannot parse the source code due to syntax error:\n#####\n{func}")
     assert callable(eval_func)
     return func
+
+
+def func_from_callable(func_: Callable[..., Output], env: Optional[Env]) -> Func[Output]:
+    """
+    Generate a func from a variety of possible input data types.
+    """
+    if isinstance(env, dict):
+        env = Env.from_dict(env)
+    elif env is None:
+        env = Env()
+    if isinstance(func_, Func):
+        # assert not getattr(env,'imports',False)
+        return Func(src=func_.src, env=env)
+    else:
+        assert callable(func_), f"tried to instantiate Func, but not callable {type(func_)}"
+        return Func(src=get_callable_source_code(func_), env=env)

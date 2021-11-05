@@ -13,13 +13,15 @@
 #   limitations under the License.
 
 from traceback import format_exc
-from typing import Any, Callable, Dict, List, Mapping, Union, cast
+from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, TypeVar, Union, cast, overload
 
 from pydantic import Field, validator
 from pydantic.class_validators import root_validator
+from pydantic.fields import Undefined
+from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg, Const
-from dbgen.core.func import Env, Func
+from dbgen.core.func import Env, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
 from dbgen.utils.log import capture_stdout
@@ -29,16 +31,20 @@ class Transform(ComputationalNode):
     pass
 
 
-class PyBlock(Transform):
-    env: Env = Field(default_factory=lambda: Env(imports=set()))
-    function: Func
+Output = TypeVar('Output')
 
-    @validator("function", pre=True)
-    def convert_callable(cls, func, values):
-        assert callable(func) or isinstance(func, Func) or isinstance(func, dict)
-        if callable(func):
-            return Func.from_callable(func, env=values.get("env"))
-        return func
+
+class PyBlock(Transform, Generic[Output]):
+
+    function: Func[Output]
+    env: Env = Field(default_factory=lambda: Env(imports=set()))
+
+    def __init__(self, function: Callable[..., Output], env: Env = None, inputs=Undefined, outputs=Undefined):
+        assert callable(function) or isinstance(function, Func) or isinstance(function, dict)
+        if callable(function):
+            function = func_from_callable(function, env=env)
+        env = env or Env(imports=set())
+        super().__init__(function=function, env=env, inputs=inputs, outputs=outputs)
 
     def run(self, namespace_dict: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         inputvars = self._get_inputs(namespace_dict)
@@ -83,6 +89,9 @@ class PyBlock(Transform):
         ), f"Too many arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nMax Number of Args: {num_max_args}\n"
         return values
 
+    def __call__(self, *args, **kwargs) -> Output:
+        return self.function(*args, **kwargs)
+
 
 def apply_pyblock(
     env: Env = None,
@@ -95,7 +104,7 @@ def apply_pyblock(
     env = cast(Env, env)
 
     def wrapper(function: Callable) -> PyBlock:
-        func = Func.from_callable(function, env=env)
+        func = func_from_callable(function, env=env)
         return PyBlock(function=func, inputs=inputs, outputs=outputs, env=env)
 
     return wrapper

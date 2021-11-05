@@ -31,11 +31,15 @@ class ComputationalNode(Base):
 
     @validator("inputs", pre=True)
     def convert_list_to_dict(cls, inputs):
-        if isinstance(inputs, Sequence):
-            if not all(map(lambda x: isinstance(x, ArgLike), inputs)):
-                raise TypeError(f"Non-Arglike Inputs: {inputs}")
-            inputs = {str(i): val for i, val in enumerate(inputs)}
-        return inputs
+        if isinstance(inputs, dict):
+            return inputs
+        new_inputs = {}
+        for arg_idx, arg_val in enumerate(inputs):
+            if not isinstance(arg_val, ArgLike):
+                new_inputs[str(arg_idx)] = Const(arg_val)
+            else:
+                new_inputs[str(arg_idx)] = arg_val
+        return new_inputs
 
     @validator("outputs", pre=True)
     def unique_keys(cls, outputs):
