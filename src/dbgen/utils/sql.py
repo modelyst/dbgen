@@ -78,7 +78,7 @@ class Connection(Base):
 
     def get_engine(self):
         return create_engine(
-            url=self.url(),
+            url=self.url(mask_password=False),
             connect_args={"options": f"-csearch_path={self.schema_}"},
             json_serializer=json_dumps,
         )

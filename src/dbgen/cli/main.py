@@ -91,8 +91,8 @@ def test_conn(
     connect: DBgenDatabase = typer.Argument(DBgenDatabase.MAIN, help="Database to connect the meta or main."),
     config_file: Optional[Path] = config_option,
     test: bool = typer.Option(False, "-t", "--test", help="Test the main and metadb connections"),
-    with_password: bool = typer.Option(
-        False, "-p", "--password", help="Expose password in printed dsn when testing."
+    show_password: bool = typer.Option(
+        False, "-p", "--show-password", help="Expose password in printed dsn when testing."
     ),
 ):
     """
@@ -139,11 +139,13 @@ def test_conn(
             check = conn.test()
         test_output = "\n".join(new_stdout.getvalue().strip().split("\n")[1:])
         if check:
-            styles.good_typer_print(f"Connection to {label} DB at {conn.url(with_password,True)} all good!")
+            styles.good_typer_print(
+                f"Connection to {label} DB at {conn.url(not show_password,True)} all good!"
+            )
             if test_output:
                 styles.good_typer_print(test_output)
         else:
-            styles.bad_typer_print(f"Cannot connect to {label} DB at {conn.url(with_password,True)}!")
+            styles.bad_typer_print(f"Cannot connect to {label} DB at {conn.url(not show_password,True)}!")
             if test_output:
                 styles.bad_typer_print("Error Message:")
                 styles.bad_typer_print("\n".join(["\t" + line for line in test_output.split("\n")]))
