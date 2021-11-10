@@ -12,9 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 from typing import Generator as GenType
-from typing import Generic, Optional, TypeVar, Union, overload
+from typing import Optional, TypeVar, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
@@ -27,8 +27,8 @@ from dbgen.core.statement_parsing import _get_select_keys, get_statement_depende
 from dbgen.utils.sql import Connection
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import Connection as SAConnection
-    from sqlmodel import Session
+    from sqlalchemy.engine import Connection as SAConnection  # pragma: no cover
+    from sqlmodel import Session  # pragma: no cover
 
 
 SCHEMA_DEFAULT = "public"

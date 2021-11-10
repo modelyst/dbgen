@@ -27,7 +27,7 @@ from dbgen.utils.log import setup_logger
 from dbgen.utils.sql import Connection
 
 if TYPE_CHECKING:
-    from sqlalchemy.future import Engine
+    from sqlalchemy.future import Engine  # pragma: no cover
 
 
 # Force postgresql schemes for connection for sqlalchemy

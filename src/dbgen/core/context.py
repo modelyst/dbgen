@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Dict
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from contextvars import Token
+    from contextvars import Token  # pragma: no cover
 
 
 class BaseContext(BaseModel):

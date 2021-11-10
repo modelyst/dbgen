@@ -13,31 +13,13 @@
 #   limitations under the License.
 import inspect
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Generic,
-    List,
-    Optional,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-    overload,
-)
+from typing import Callable, Generic, List, Optional, Tuple, TypeVar, Union, get_args, get_origin, overload
 
 from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
 from dbgen.core.func import Env
-from dbgen.core.node.query import Query as BaseQuery
 from dbgen.core.node.transforms import PyBlock
-
-if TYPE_CHECKING:
-    from contextvars import Token
-
 
 In = ParamSpec('In')
 Out = TypeVar('Out')
@@ -46,11 +28,6 @@ T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 T3 = TypeVar('T3')
 T4 = TypeVar('T4')
-TDict = TypeVar('TDict', bound=TypedDict)
-
-
-def Query():
-    return BaseQuery(*args)
 
 
 class TypeArg(Arg, Generic[T]):
@@ -85,25 +62,25 @@ class FunctionNode(Generic[In, Out]):
 
     @overload
     def results(self: 'FunctionNode[In,Tuple[T1]]') -> Tuple[TypeArg[T1]]:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def results(self: 'FunctionNode[In,Tuple[T1,T2]]') -> Tuple[TypeArg[T1], TypeArg[T2]]:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def results(self: 'FunctionNode[In,Tuple[T1,T2,T3]]') -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3]]:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def results(self: 'FunctionNode[In,T1]') -> TypeArg[T1]:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def results(
         self: 'FunctionNode[In,Tuple[T1,T2,T3,T4]]',
     ) -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3], TypeArg[T4]]:
-        ...
+        ...  # pragma: no cover
 
     def results(self):
         return self._arglist[0] if len(self._arglist) == 1 else self._arglist
@@ -113,18 +90,18 @@ class FunctionNode(Generic[In, Out]):
 
 
 @overload
-def node(function: Callable[In, Out]) -> Callable[In, FunctionNode[In, Out]]:
-    ...
+def transform(function: Callable[In, Out]) -> Callable[In, FunctionNode[In, Out]]:
+    ...  # pragma: no cover
 
 
 @overload
-def node(
+def transform(
     *, env: Env = None, outputs: List[str] = None
 ) -> Callable[[Callable[In, Out]], Callable[In, FunctionNode[In, Out]]]:
-    ...
+    ...  # pragma: no cover
 
 
-def node(function=None, *, env: Optional[Env] = None, outputs: List[str] = None):
+def transform(function=None, *, env: Optional[Env] = None, outputs: List[str] = None):
 
     if function:
         if not outputs:
@@ -146,4 +123,4 @@ def node(function=None, *, env: Optional[Env] = None, outputs: List[str] = None)
 
         return set_inputs
     else:
-        return partial(node, env=env, outputs=outputs)
+        return partial(transform, env=env, outputs=outputs)

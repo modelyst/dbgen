@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import os
-
-from sqlmodel import create_engine
-
-from dbgen.configuration import config
-
-dsn = os.environ.get('TEST_DSN', config.main_dsn)
-sql_engine = create_engine(config.main_dsn, future=True)
+autoflake \
+    --remove-all-unused-imports \
+    --in-place \
+    --ignore-init-module-imports \
+    --exclude src/dbgen/types.py \
+    -r \
+    src/dbgen

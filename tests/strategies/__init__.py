@@ -122,7 +122,7 @@ def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStr
                 min_size=n_args,
                 max_size=n_args,
             ),
-            outnames=st.lists(st.text(), min_size=1, unique=True),
+            outputs=st.lists(st.text(), min_size=1, unique=True),
         )
     )
 

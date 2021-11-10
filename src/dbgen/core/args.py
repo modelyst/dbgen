@@ -16,11 +16,13 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 from dbgen.core.base import Base
-from dbgen.core.func import func_from_callable
 from dbgen.exceptions import DBgenMissingInfo
 
 if TYPE_CHECKING:
-    from dbgen.core.node.transforms import PyBlock
+    from dbgen.core.func import Func  # pragma: no cover
+    from dbgen.core.node.transforms import PyBlock  # pragma: no cover
+
+    Func
 
 
 T = TypeVar('T')
@@ -68,10 +70,8 @@ class Arg(ArgLike[T]):
 class Const(ArgLike[T]):
     val: T
 
-    def __init__(self, val: T, *args, **kwargs) -> None:
-        if callable(val):
-            val = func_from_callable(val)
-        super().__init__(val=val, *args, **kwargs)
+    def __init__(self, val: T):
+        super().__init__(val=val)
 
     def __str__(self) -> str:
         return f"Const<{self.val}>"

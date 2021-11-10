@@ -13,12 +13,11 @@
 #   limitations under the License.
 
 import re
-from contextvars import ContextVar
 from functools import reduce
-from typing import TYPE_CHECKING, Dict, Iterator, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from pydantic import Field, PrivateAttr
-from pydantic.class_validators import root_validator, validator
+from pydantic.class_validators import validator
 from sqlalchemy.future import Engine
 
 from dbgen.core.args import Arg
@@ -30,26 +29,26 @@ from dbgen.core.metadata import GeneratorEntity
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
-from dbgen.core.node.transforms import PyBlock, Transform
+from dbgen.core.node.transforms import Transform
 from dbgen.exceptions import DBgenMissingInfo
 from dbgen.utils.graphs import topsort_with_dict
 
 if TYPE_CHECKING:
-    from networkx import DiGraph
+    from networkx import DiGraph  # pragma: no cover
 
-    from dbgen.core.node.computational_node import ComputationalNode
+    from dbgen.core.node.computational_node import ComputationalNode  # pragma: no cover
 
 list_field = Field(default_factory=lambda: [])
 
 NAME_REGEX = re.compile(r'^[\w.-]+$')
-DEFAULT_EXTRACT = Extract()
+DEFAULT_EXTRACT: Extract[dict] = Extract()
 
 
 class Generator(Base):
     name: str
     description: str = "<no description>"
     extract: Union[BaseQuery, Extract] = Field(default_factory=Extract)
-    transforms: List[PyBlock] = list_field
+    transforms: List[Transform] = list_field
     loads: List[Load] = list_field
     tags: List[str] = list_field
     batch_size: Optional[int] = None

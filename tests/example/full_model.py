@@ -21,13 +21,12 @@ from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
 from dbgen.core.args import Const
-from dbgen.core.decorators import node
+from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock
 
 my_registry = registry()
 
@@ -56,12 +55,12 @@ class CustomExtractor(Extract):
         return self.n
 
 
-@node
+@transform
 def failing_func():
     raise ValueError("Failed")
 
 
-@node
+@transform
 def inputs_skipped():
     from dbgen.exceptions import DBgenSkipException
 
@@ -88,7 +87,7 @@ def make_model():
     )
     query = Query(select(Parent.id, Parent.label))
 
-    @node
+    @transform
     def concise_func(label: str) -> tuple[str]:
         return (f"{label}-test",)
 

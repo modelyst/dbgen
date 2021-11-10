@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import logging
+import os
 import sys
 
 import pytest
@@ -38,7 +39,8 @@ def clear_registry():
 
 @pytest.fixture(scope="module")
 def sql_engine():
-    engine = create_engine(config.main_dsn)
+    dsn = os.environ.get('TEST_DSN', config.main_dsn)
+    engine = create_engine(dsn)
     return engine
 
 

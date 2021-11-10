@@ -23,7 +23,7 @@ from dbgen.cli.styles import LOGO_STYLE, bad_typer_print
 from dbgen.core.model import Model
 
 if TYPE_CHECKING:
-    from dbgen.utils.sql import Connection
+    from dbgen.utils.sql import Connection  # pragma: no cover
 
 # Errors
 ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"

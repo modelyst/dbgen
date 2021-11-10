@@ -36,6 +36,7 @@ basic_to_str = lambda x: escape_str_replace(x)
 bytes_to_str = lambda x: escape_str_replace(x.decode('utf-8')) if x is not None else str(x)
 
 # TODO create central location for all json serialization (pydasher does hashing serialization)
+# DOCS create central location for all json serialization (pydasher does hashing serialization)
 def json_dumps(thing):
     def json_default(thing: Any) -> str:
         if isinstance(thing, datetime_types):

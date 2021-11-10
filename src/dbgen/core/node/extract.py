@@ -37,7 +37,7 @@ class Extract(ComputationalNode[T]):
     _extractor: GenType[Dict[str, Any], None, None] = PrivateAttr(None)
 
     # Overwrite these when writing custom extractor
-    def setup(self, **_) -> Optional[GenType[Dict[str, Any], None, None]]:
+    def setup(self, **_) -> Optional[GenType[Any, None, None]]:
         pass
 
     def extract(self):

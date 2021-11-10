@@ -18,10 +18,11 @@ __author__ = "Michael Statt"
 __email__ = "michael.statt@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.5.6"
+__version__ = "0.0.0"  # this is placeholder automatically set by poetry-dynamic-versioning
 
 
 from dbgen.core.args import Const
+from dbgen.core.decorators import transform
 from dbgen.core.entity import BaseEntity, Entity
 from dbgen.core.func import Env, Import
 from dbgen.core.generator import Generator

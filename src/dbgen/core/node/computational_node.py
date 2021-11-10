@@ -48,10 +48,12 @@ class ComputationalNode(Base, Generic[Output]):
             return inputs
         new_inputs = {}
         for arg_idx, arg_val in enumerate(inputs):
-            if not isinstance(arg_val, ArgLike):
-                new_inputs[str(arg_idx)] = Const(arg_val)
-            else:
+            if isinstance(arg_val, (str, int, bool, float)):
+                new_inputs[str(arg_idx)] = Const(val=arg_val)
+            elif isinstance(arg_val, ArgLike):
                 new_inputs[str(arg_idx)] = arg_val
+            else:
+                raise TypeError(f"Bad input type provided: {type(arg_val)} {arg_val}")
         return new_inputs
 
     @validator("outputs", pre=True)
@@ -84,7 +86,7 @@ class ComputationalNode(Base, Generic[Output]):
             invalid_args = [getattr(arg, "arg_get", None) is None for arg in self.inputs]
             missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
             raise DBgenMissingInfo(
-                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Arguement?"
+                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Argument?"
             )
         return input_variables
 
@@ -96,7 +98,7 @@ class ComputationalNode(Base, Generic[Output]):
         ...
 
     @overload
-    def results(self: 'ComputationalNode[T1]') -> Arg[T1]:
+    def results(self: 'ComputationalNode[Tuple[T1]]') -> Arg[T1]:
         ...
 
     def results(self):

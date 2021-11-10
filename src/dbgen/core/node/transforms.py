@@ -13,14 +13,10 @@
 #   limitations under the License.
 
 from traceback import format_exc
-from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, TypeVar, Union, cast, overload
+from typing import Any, Callable, Dict, Mapping, Optional, TypeVar, Union
 
-from pydantic import Field, validator
-from pydantic.class_validators import root_validator
-from pydantic.fields import Undefined
-from typing_extensions import ParamSpec
+from pydantic import Field, root_validator, validator
 
-from dbgen.core.args import Arg, Const
 from dbgen.core.func import Env, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
@@ -35,22 +31,33 @@ class Transform(ComputationalNode[Output]):
 
 class PyBlock(Transform[Output]):
 
-    function: Func[Output]
     env: Optional[Env] = Field(default_factory=lambda: Env(imports=set()))
+    function: Func[Output]
 
-    def __init__(
-        self, function: Callable[..., Output], env: Env = Undefined, inputs=Undefined, outputs=Undefined
-    ):
-        # add explicit __init__ to allow for positional args
-        assert callable(function) or isinstance(function, Func) or isinstance(function, dict)
-        if callable(function):
-            function = func_from_callable(function, env=env)
-        kwargs = {
-            k: val
-            for k, val in (('env', env), ('inputs', inputs), ('outputs', outputs))
-            if val is not Undefined and val is not None
-        }
-        super().__init__(function=function, **kwargs)
+    @validator('function', pre=True)
+    def convert_callable_to_func(cls, function: Union[Func[Output], Callable[..., Output]], values):
+        env = values.get('env', Env())
+        if isinstance(function, (Func, dict)):
+            return function
+        elif callable(function):
+            return func_from_callable(function, env=env)
+        raise ValueError(f"Unknown function type {type(function)} {function}")
+
+    @root_validator
+    def check_nargs(cls, values):
+        if "function" not in values:
+            return values
+        inputs = values.get("inputs")
+        num_req_args = values.get("function").number_of_required_inputs
+        num_max_args = values.get("function").nIn
+        n_inputs = len(inputs)
+        assert (
+            n_inputs >= num_req_args
+        ), f"Too few arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nNumber of Args: {num_req_args}\n{values}"
+        assert (
+            n_inputs <= num_max_args
+        ), f"Too many arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nMax Number of Args: {num_max_args}\n"
+        return values
 
     def run(self, namespace_dict: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         inputvars = self._get_inputs(namespace_dict)
@@ -78,22 +85,6 @@ class PyBlock(Transform[Output]):
         except Exception:
             msg = f"Error encountered while applying function named {self.function.name!r}:\n\t"
             raise DBgenExternalError(msg + format_exc())
-
-    @root_validator
-    def check_nargs(cls, values):
-        if "function" not in values:
-            return values
-        inputs = values.get("inputs")
-        num_req_args = values.get("function").number_of_required_inputs
-        num_max_args = values.get("function").nIn
-        n_inputs = len(inputs)
-        assert (
-            n_inputs >= num_req_args
-        ), f"Too few arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nNumber of Args: {num_req_args}\n{values}"
-        assert (
-            n_inputs <= num_max_args
-        ), f"Too many arguments supplied to Func:\nNumber of Inputs: {n_inputs}\nMax Number of Args: {num_max_args}\n"
-        return values
 
     def __call__(self, *args, **kwargs) -> Output:
         return self.function(*args, **kwargs)

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +14,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import os
-
-from sqlmodel import create_engine
-
-from dbgen.configuration import config
-
-dsn = os.environ.get('TEST_DSN', config.main_dsn)
-sql_engine = create_engine(config.main_dsn, future=True)
+set -e
+set -x
+mypy --config setup.cfg src/dbgen
+flake8 src/dbgen tests docs_src
+black src/dbgen tests docs_src --check
+isort src/dbgen tests docs_src --check-only

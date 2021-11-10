@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +14,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import os
+set -e
+set -x
 
-from sqlmodel import create_engine
-
-from dbgen.configuration import config
-
-dsn = os.environ.get('TEST_DSN', config.main_dsn)
-sql_engine = create_engine(config.main_dsn, future=True)
+coverage run -m pytest tests
+coverage combine
+coverage report --show-missing
+coverage xml

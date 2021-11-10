@@ -36,7 +36,6 @@ from psycopg import Connection as PG3Conn
 from psycopg2._psycopg import connection
 from pydantic import Field, PrivateAttr, ValidationError, root_validator, validate_model, validator
 from pydantic.error_wrappers import ErrorWrapper
-from pydantic.fields import Undefined
 from pydasher import hasher
 from pydasher.import_module import import_string
 
@@ -49,7 +48,7 @@ from dbgen.core.type_registry import column_registry
 from dbgen.utils.lists import broadcast, is_broadcastable
 
 if TYPE_CHECKING:
-    from dbgen.core.entity import BaseEntity
+    from dbgen.core.entity import BaseEntity  # pragma: no cover
 
 
 def hash_tuple(tuple_to_hash: Tuple[Any, ...]) -> UUID:
@@ -310,7 +309,7 @@ class Load(ComputationalNode[T]):
         sorted_keys = sorted(self.inputs.keys())
         self._output.update(
             {
-                primary_key: (value[key] for key in sorted_keys)
+                primary_key: [value[key] for key in sorted_keys]
                 for primary_key, value in zip(primary_keys, broadcasted_values)
             }
         )

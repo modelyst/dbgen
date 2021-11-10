@@ -27,7 +27,7 @@ from dbgen.core.run import RemoteGeneratorRun, RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
 
 if TYPE_CHECKING:
-    from sqlalchemy.future import Engine
+    from sqlalchemy.future import Engine  # pragma: no cover
 
 generator_app = typer.Typer()
 

@@ -32,7 +32,7 @@ from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
-    from dbgen.core.run import RunConfig
+    from dbgen.core.run import RunConfig  # pragma: no cover
 
 
 class Model(Base):

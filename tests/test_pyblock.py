@@ -39,7 +39,7 @@ def test_pyblock_errors():
     basic_lambda = lambda x: 1
     good_inputs = {"function": basic_lambda, "inputs": [Const(1)], "outputs": ["test"]}
     PyBlock(**good_inputs)
-    for name, val in (("function", 1), ("inputs", [1]), ("outputs", [])):
+    for name, val in (("function", 1), ("inputs", [(1,)]), ("outputs", [])):
         with pytest.raises(ValidationError):
             PyBlock(**{**good_inputs, name: val})
 
