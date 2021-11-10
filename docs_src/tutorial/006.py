@@ -1,9 +1,8 @@
-from dbgen.core.decorators import node
-from dbgen import Env, Import
+from dbgen import Env, Import, transform
 import numpy as np
 
 
-@node(env=Env(Import(['numpy', 'np'])), outputs=['voc', 'jsc'])
+@transform(env=Env(Import(['numpy', 'np'])), outputs=['voc', 'jsc'])
 def parse_jv_csv(file_path: str) -> tuple[float, float]:
     jv_arr = np.genfromtxt(file_path, delimiter=',', skip_header=1, dtype=float)
     for row in range(np.shape[0]):
