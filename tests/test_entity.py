@@ -377,6 +377,7 @@ def test_duplicate_table_name(clear_registry):
         # Table3._get_load_entity()
 
 
+@pytest.mark.database
 def test_registry_and_schema_interaction(connection, clear_registry):
     """Add three to various schema and connect to them through a custom registry."""
     registry_1 = registry()
@@ -415,6 +416,7 @@ def test_registry_and_schema_interaction(connection, clear_registry):
         connection.commit()
 
 
+@pytest.mark.database
 def test_create_entity(connection, session, clear_registry):
     registry_1 = registry()
     Dummy = create_entity(
@@ -455,8 +457,3 @@ def test_create_entity(connection, session, clear_registry):
     )
     assert "child_name" in DummyChild._hashinclude_
     assert "name" in DummyChild._hashinclude_
-
-
-def test_entity_with_bad_datattype():
-    # class BadEntity(Entity):
-    pass

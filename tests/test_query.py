@@ -11,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import pytest
 
 from dbgen.core.args import Arg
 from dbgen.core.node.query import BaseQuery, Connection, ExternalQuery
@@ -20,6 +21,7 @@ test_connection = Connection.from_uri(dsn)
 test_engine = test_connection.get_engine()
 
 
+@pytest.mark.database
 def test_base_query(seed_db):
     ext = BaseQuery(query="Select 1 as test", outputs=["test"])
     engine = test_connection.get_engine()
@@ -31,6 +33,7 @@ def test_base_query(seed_db):
         assert isinstance(ext["test"], Arg)
 
 
+@pytest.mark.database
 def test_external_connection(seed_db):
     ext = ExternalQuery(query="Select 1 as test", outputs=["test"], connection=test_connection)
     ext.set_extractor()
@@ -49,6 +52,7 @@ def test_external_connection(seed_db):
     assert output[0] == {"name": "user_0"}
 
 
+@pytest.mark.database
 def test_external_connection_streaming(seed_db):
     ext = ExternalQuery(
         query="Select name from users order by id asc",

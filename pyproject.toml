@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.8"
+version = "0.5.9"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -86,6 +86,10 @@ requires = ["poetry-core>=1.0.0"]
 dbgen = "dbgen.__main__:main"
 
 [tool.pytest.ini_options]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "database: marks a test that requires a database (deselt with '-m \"not database\"",
+]
 testpaths = [
   "tests",
 ]

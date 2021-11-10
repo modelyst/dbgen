@@ -27,6 +27,7 @@ from tests.example.full_model import Parent
 from tests.example_functions import binary_lambda
 
 
+@pytest.mark.database
 def test_meta_registry(connection, recreate_meta):
     """assert creating metadb doesn't create Entity DBs"""
     with Session(connection) as sess:
@@ -37,6 +38,7 @@ def test_meta_registry(connection, recreate_meta):
             sess.exec(select(Parent))
 
 
+@pytest.mark.database
 def test_run_insertion_and_update(connection, recreate_meta):
     run_1 = RunEntity(status="initialized")
 
@@ -86,6 +88,7 @@ generators = [
 ]
 
 
+@pytest.mark.database
 @pytest.mark.parametrize("gen", generators)
 def test_gen_insertion(connection, recreate_meta, gen: Generator):
     """Test that generators can be inserted into the database and deserialized upon querying."""
@@ -100,6 +103,7 @@ def test_gen_insertion(connection, recreate_meta, gen: Generator):
         assert query_gen.hash == gen.hash
 
 
+@pytest.mark.database
 def test_gen_run_insertion(connection, recreate_meta):
     gen = generators[0]._get_gen_row()
     run = RunEntity()

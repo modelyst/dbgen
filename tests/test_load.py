@@ -50,6 +50,7 @@ def simple_load():
     return load
 
 
+@pytest.mark.database
 def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw_pg3_connection):
 
     reload(entities)

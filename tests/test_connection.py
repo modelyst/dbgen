@@ -62,6 +62,7 @@ def test_get_engine_from_connection():
     )
 
 
+@pytest.mark.database
 def test_test_connection():
     assert test_connection.test()
     bad_conn = Connection.from_uri("postgresql://not_existing:@localhost/dbgen")

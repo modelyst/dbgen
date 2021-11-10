@@ -110,6 +110,7 @@ def test_no_extractor(sql_engine: Engine, raw_connection):
         assert result.one()
 
 
+@pytest.mark.database
 def test_dumb_extractor(connection, sql_engine, recreate_meta):
     class User(Entity, table=True):
         __identifying__ = {"label"}

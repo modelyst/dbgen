@@ -50,6 +50,7 @@ def test_basic_generator_graph():
     Model(name="test", generators=[a_gen, b_gen, c_gen, d_gen])
 
 
+@pytest.mark.database
 def test_model_sync(sql_engine, debug_logger):
     sa_registry = registry()
 
