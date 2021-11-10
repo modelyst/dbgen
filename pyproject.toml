@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.0.0"
+version = "0.5.8"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -46,7 +46,7 @@ prettytable = "^2.2.1"
 psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
 pydantic = "^1.8.2"
-pydasher = "^0.0.8"
+pydasher = "^0.0.11"
 python = ">=3.7,<4.0"
 python-dotenv = "^0.19.1"
 sqlmodel = {git = "https://github.com/statt8900/sqlmodel.git", rev = "develop"}
@@ -68,10 +68,6 @@ pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 requests = "^2.26.0"
 
-[build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-
 [tool.poetry.extras]
 docs = [
   "mkdocs",
@@ -82,6 +78,9 @@ docs = [
   "mkdocstrings",
   "pdocs",
 ]
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
 
 [tool.poetry.scripts]
 dbgen = "dbgen.__main__:main"
@@ -90,8 +89,3 @@ dbgen = "dbgen.__main__:main"
 testpaths = [
   "tests",
 ]
-
-[tool.poetry-dynamic-versioning]
-enable = true
-[tool.poetry-dynamic-versioning.substitution]
-files = ['src/dbgen/__init__.py']

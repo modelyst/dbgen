@@ -704,7 +704,7 @@ email = ["email-validator (>=1.0.3)"]
 
 [[package]]
 name = "pydasher"
-version = "0.0.8"
+version = "0.0.11"
 description = "A small set of utility functions for deterministically hashing pydantic base-models."
 category = "main"
 optional = false
@@ -1127,7 +1127,7 @@ docs = ["mkdocs", "mkdocs-autorefs", "mkdocs-markdownextradata-plugin", "mkdocs-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4.0"
-content-hash = "ce3ed8686eb272dbfe9dd82adbbd40457ec904ea3880a66ebc5ee64a855026f8"
+content-hash = "92ac1ee05a810fea39fa1aa166daac5adc7311016d3ec0467cb0df3d3f3a4fdd"
 
 [metadata.files]
 astunparse = [
@@ -1544,8 +1544,8 @@ pydantic = [
     {file = "pydantic-1.8.2.tar.gz", hash = "sha256:26464e57ccaafe72b7ad156fdaa4e9b9ef051f69e175dbbb463283000c05ab7b"},
 ]
 pydasher = [
-    {file = "pydasher-0.0.8-py3-none-any.whl", hash = "sha256:9ed74e591bf490daf36adaf8879a131bd92bf02907cb38700aaa0d9d56acba6d"},
-    {file = "pydasher-0.0.8.tar.gz", hash = "sha256:d60479854ac6c6e774afb944c99f32f8bd123829c1f0cc0d8727055dc704b07a"},
+    {file = "pydasher-0.0.11-py3-none-any.whl", hash = "sha256:f5e8e6edfb51234fb00bfcc83ac6711811f145b4ddc6c611307dc94dbf7571ed"},
+    {file = "pydasher-0.0.11.tar.gz", hash = "sha256:26697894f6aa3afb73ac2040bea7ad125e6dd04d0b9c78f332ab83a348bfd9e8"},
 ]
 pyflakes = [
     {file = "pyflakes-2.3.1-py2.py3-none-any.whl", hash = "sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3"},

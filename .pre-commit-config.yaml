@@ -156,6 +156,12 @@ repos:
         entry: "\\|\\s*safe"
         files: \.html$
         pass_filenames: true
+      - id: pre-commit-bump-version
+        name: Ensure the version is bumped
+        entry: python3 ./scripts/ci/pre_commit/pre_commit_bump_version.py
+        language: system
+        files: ^src/.*\.py$|^pyproject.toml
+        pass_filenames: true
       - id: no-relative-imports
         language: pygrep
         name: No relative imports
