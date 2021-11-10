@@ -46,7 +46,7 @@ prettytable = "^2.2.1"
 psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
 pydantic = "^1.8.2"
-pydasher = {git = "https://github.com/modelyst/pydasher.git", rev = "main"}
+pydasher = "^0.0.11"
 python = ">=3.7,<4.0"
 python-dotenv = "^0.19.1"
 sqlmodel = {git = "https://github.com/statt8900/sqlmodel.git", rev = "develop"}
