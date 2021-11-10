@@ -102,7 +102,16 @@ Orchestrators: Many tools exist to orchestrate python workflows. However, these 
 
 Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.7 to install the package.
 ```Bash
-{!../docs_src/installation/git_installation.sh!}
+# Get DBgen
+git clone https://github.com/modelyst/dbgen
+cd ./dbgen
+# Get Poetry
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3 -
+# Install Poetrywhich ma
+poetry install
+poetry shell
+# Test dbgen
+dbgen serialize dbgen.example.main:make_model
 ```
 ### Via Pip
 ```Bash

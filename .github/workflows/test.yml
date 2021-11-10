@@ -16,6 +16,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-20.04
+    if: github.ref == 'refs/heads/master'
     strategy:
       matrix:
         python-version: [3.9]
