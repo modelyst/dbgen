@@ -709,12 +709,19 @@ description = "A small set of utility functions for deterministically hashing py
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
+develop = false
 
 [package.dependencies]
-pydantic = {version = ">=1.8.2,<2.0.0", extras = ["dotenv"]}
+pydantic = {version = "^1.8.2", extras = ["dotenv"]}
 
 [package.extras]
-docs = ["markdown-include (==0.6.0)", "mkdocs (>=1.1.2,<2.0.0)", "mkdocs-autorefs (>=0.1.1,<0.2.0)", "mkdocs-markdownextradata-plugin (>=0.2.4,<0.3.0)", "mkdocs-material (>=7.0.6,<8.0.0)", "mkdocstrings (>=0.15.0,<0.16.0)", "pdocs[docs] (>=1.1.1,<2.0.0)", "pymdown-extensions (>=8.2,<9.0)"]
+docs = ["mkdocs (>=1.1.2,<2.0.0)", "mkdocs-autorefs (>=0.1.1,<0.2.0)", "pymdown-extensions (>=8.2,<9.0)", "mkdocs-markdownextradata-plugin (>=0.2.4,<0.3.0)", "mkdocs-material (>=7.0.6,<8.0.0)", "markdown-include (==0.6.0)", "mkdocstrings (>=0.15.0,<0.16.0)", "pdocs[docs] (>=1.1.1,<2.0.0)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/modelyst/pydasher.git"
+reference = "main"
+resolved_reference = "da4e31cdcc44d195b2360b9b7145c2dfa47eeccd"
 
 [[package]]
 name = "pyflakes"
@@ -1127,7 +1134,7 @@ docs = ["mkdocs", "mkdocs-autorefs", "mkdocs-markdownextradata-plugin", "mkdocs-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4.0"
-content-hash = "92ac1ee05a810fea39fa1aa166daac5adc7311016d3ec0467cb0df3d3f3a4fdd"
+content-hash = "105a2767aabe665e79e7c6cf71bf8c25e8c7adc554db6fda38d35cfda7e50c38"
 
 [metadata.files]
 astunparse = [
@@ -1543,10 +1550,7 @@ pydantic = [
     {file = "pydantic-1.8.2-py3-none-any.whl", hash = "sha256:fec866a0b59f372b7e776f2d7308511784dace622e0992a0b59ea3ccee0ae833"},
     {file = "pydantic-1.8.2.tar.gz", hash = "sha256:26464e57ccaafe72b7ad156fdaa4e9b9ef051f69e175dbbb463283000c05ab7b"},
 ]
-pydasher = [
-    {file = "pydasher-0.0.11-py3-none-any.whl", hash = "sha256:f5e8e6edfb51234fb00bfcc83ac6711811f145b4ddc6c611307dc94dbf7571ed"},
-    {file = "pydasher-0.0.11.tar.gz", hash = "sha256:26697894f6aa3afb73ac2040bea7ad125e6dd04d0b9c78f332ab83a348bfd9e8"},
-]
+pydasher = []
 pyflakes = [
     {file = "pyflakes-2.3.1-py2.py3-none-any.whl", hash = "sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3"},
     {file = "pyflakes-2.3.1.tar.gz", hash = "sha256:f5bc8ecabc05bb9d291eb5203d6810b49040f6ff446a756326104746cc00c1db"},

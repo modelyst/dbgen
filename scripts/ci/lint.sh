@@ -16,7 +16,13 @@
 
 set -e
 set -x
-mypy --config setup.cfg src/dbgen
+# Get pydasher version
+python -c 'import pydasher; print(pydasher.__version__)'
+flake8 --version
 flake8 src/dbgen tests docs_src
+black --version
 black src/dbgen tests docs_src --check
+isort --version
 isort src/dbgen tests docs_src --check-only
+mypy --version
+mypy --config setup.cfg src/dbgen
