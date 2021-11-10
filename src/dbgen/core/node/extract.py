@@ -36,6 +36,11 @@ class Extract(ComputationalNode[T]):
 
     _extractor: GenType[Dict[str, Any], None, None] = PrivateAttr(None)
 
+    class Config:
+        """Pydantic Config"""
+
+        underscore_attrs_are_private = True
+
     # Overwrite these when writing custom extractor
     def setup(self, **_) -> Optional[GenType[Any, None, None]]:
         pass

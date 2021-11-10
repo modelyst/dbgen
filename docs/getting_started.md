@@ -64,7 +64,7 @@ Using DBgen, entities are defined by subclassing dbgen.core.entity.EntityID with
 table=True.
 
 ```python3
-{!../docs_src/tutorial/000.py!}
+{!../docs_src/tutorial/tutorial000.py!}
 ```
 
 This defines a database table called SimplestPossibleTable, which has no columns
@@ -77,7 +77,7 @@ SQLModels (attribute_name: data_type). In the example below, we define the
 Sample table from the JV-curve example by adding attributes.
 
 ```python3
-{!../docs_src/tutorial/001.py!}
+{!../docs_src/tutorial/tutorial001.py!}
 ```
 
 # Identifying Attributes
@@ -104,7 +104,7 @@ In DBgen, the identifying attributes are specified by setting the
 \__identifying__ attribute in the table's class definition, as shown below:
 
 ```python3
-{!../docs_src/tutorial/002.py!}
+{!../docs_src/tutorial/tutorial002.py!}
 ```
 
 # Adding foreign keys
@@ -115,7 +115,7 @@ same solar cell sample. Therefore, we should add a foreign key from the JVCurve
 table to the Sample table. The syntax for doing that is shown below.
 
 ```python3
-{!../docs_src/tutorial/003.py!}
+{!../docs_src/tutorial/tutorial003.py!}
 ```
 
 # Inheritance
@@ -126,7 +126,7 @@ not a table in the database, it is defined as a DBGen EntityID with table=False.
 The syntax for doing this is shown below.
 
 ```python3
-{!../docs_src/tutorial/004.py!}
+{!../docs_src/tutorial/tutorial004.py!}
 ```
 
 ## Defining the ETL Graph
@@ -155,7 +155,7 @@ custom extract that gets CSV files.
 
 
 ```python3
-{!../docs_src/tutorial/005.py!}
+{!../docs_src/tutorial/tutorial005.py!}
 ```
 
 # Transforms
@@ -164,7 +164,7 @@ Transforms are simply python functions with a decorator added to specify the
 environment and the names of the inputs and outputs.
 
 ```python3
-{!../docs_src/tutorial/006.py!}
+{!../docs_src/tutorial/tutorial006.py!}
 ```
 
 It is important to note that because we added the decorator to the function
@@ -184,7 +184,7 @@ rows into the JVCurve table, populating three columns: full path, open circuit
 voltage, and short circuit current density.
 
 ```python3
-{!../docs_src/tutorial/007.py!}
+{!../docs_src/tutorial/tutorial007.py!}
 ```
 Taken out of context, this isn't very interesting, so, let's add some context to
 this line by putting the extract, transform, and load all together into a
@@ -200,7 +200,7 @@ transform and load, and we are wiring the proper outputs from the transform to
 the proper inputs of the load.
 
 ```python3
-{!../docs_src/tutorial/008.py!}
+{!../docs_src/tutorial/tutorial008.py!}
 ```
 
 
@@ -237,7 +237,7 @@ need to be added to the model. There are two ways to do that. The generators can
 be added by defining them within a with block, as shown below.
 
 ```python3
-{!../docs_src/tutorial/009.py!}
+{!../docs_src/tutorial/tutorial009.py!}
 ```
 
 Alternatively, generators can be added using `model.add_gen(generator)`.
@@ -249,7 +249,7 @@ discussed above. This example creates a table called JVCurve with three columns
 and populates them.
 
 ```python3
-{!../docs_src/tutorial/010.py!}
+{!../docs_src/tutorial/tutorial010.py!}
 ```
 
 Finally, to run the model, run `dbgen run --model path.to.model:make_model`

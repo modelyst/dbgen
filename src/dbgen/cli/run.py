@@ -79,6 +79,7 @@ def run_model(
     batch: Optional[int] = typer.Option(None, help="Batch size for all generators"),
     level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteGenerator Runner'),
     bar: bool = typer.Option(True, help="Show progress bar"),
+    pdb: bool = typer.Option(False, '--pdb', help="Drop into pdb on breakpoints"),
     config_file: Path = config_option,
     remote: bool = typer.Option(True, help='Use the RemoteGenerator Runner'),
     no_conf: bool = typer.Option(
@@ -135,6 +136,8 @@ def run_model(
     # Grab engine from each connection
     main_engine, meta_engine = main_conn.get_engine(), meta_conn.get_engine()
     # Pass all the arguments to the model run command
+    if pdb:
+        config.pdb = pdb
     try:
         out_run = model.run(
             main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed, remote=remote

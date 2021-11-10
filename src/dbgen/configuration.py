@@ -52,6 +52,7 @@ class DBgenConfiguration(BaseSettings):
     meta_password: Optional[SecretStr] = None
     temp_dir: Path = Path(tempfile.gettempdir())
     validation: ValidationEnum = ValidationEnum.COERCE
+    pdb: bool = False
 
     class Config:
         """Pydantic configuration"""

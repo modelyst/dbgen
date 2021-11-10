@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, TypeVar, Union
 
 from pydantic import Field, root_validator, validator
 
+from dbgen.configuration import config
 from dbgen.core.func import Env, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
@@ -64,7 +65,7 @@ class PyBlock(Transform[Output]):
         args = {key: val for key, val in inputvars.items() if key.isdigit()}
         kwargs = {key: val for key, val in inputvars.items() if key not in args}
         try:
-            wrapped = capture_stdout(self.function)
+            wrapped = capture_stdout(self.function) if not config.pdb else self.function
             output = wrapped(*args.values(), **kwargs)
             if isinstance(output, tuple):
                 l1, l2 = len(output), len(self.outputs)

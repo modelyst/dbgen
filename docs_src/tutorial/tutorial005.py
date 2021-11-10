@@ -1,12 +1,15 @@
 import os
+from typing import List
 
 from dbgen import Extract
 
 
 class LocalCSVExtract(Extract):
     data_dir: str
+    outputs: List[str] = ['file_path']
+    _file_paths = None
 
-    def setup(self):
+    def setup(self, **_):
         self._file_paths = [
             os.path.join(self.data_dir, fname)
             for fname in os.listdir(self.data_dir)
