@@ -39,16 +39,12 @@
 
 ---
 
-:exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes.
+:exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes. :exclamation:
 
 ---
 DBgen (Database Generator) is an open-source Python library for
 connecting raw data, scientific theories, and relational databases.
-These are some of the main features:
-
-1.  Very easy to work with
-2.  Integration with the PostgreSQL databases.
-
+The package was designed with a focus on the developer experience at the core.
 DBgen was initially developed by [Modelyst](https://www.modelyst.com/).
 
 ## What is DBgen?
@@ -70,29 +66,28 @@ characteristics:
       complicated enough on their own, we can't afford to introduce
       any more complexity via our framework.
 
-DBGen is an opinionated ETL tool. ETL tools exist but they rarely
-give the tools necessary for a scientific workflow. Opinionated
-aspect: it really cares about what the end product is (ID columns on
-all the tables). We're dealing with a much more restricted ETL
-problem (extracting and ).
+DBGen is an opinionated ETL tool. While many other ETL tools exist, they rarely
+give the tools necessary for a scientific workflow.
+DBGen is a tool that helps populate a single postgresql database using a transparent, flexible, and mainatable data pipeline.
 
-Comparison to
+### Alternative tools
 
+Orchestrators: Many tools exist to orchestrate python workflows. However, these tools often often are too general to help the average scientist wrangle their data or are so specific to storing a given workflow type they lack the flexibility needed to address the specifics of a scientist's data problems. Many other tools also come packaged with powerful
+#### General Orchestration Tools
 1. [Airflow](https://airflow.apache.org/)
+2. [Prefect](https://www.prefect.io/)
+3. [Luigi](https://github.com/spotify/luigi)
 
-   - Has a priority for ETL scalability
-
-2. [Fireworks](https://materialsproject.github.io/fireworks/)
-
-3. [AiiDA](http://www.aiida.net/) or [Atomate](https://atomate.org/)
-   - We don't focus on the actual submission of computational
-     science workflows.
+#### Computational Science Workflow Tools
+1. [Fireworks](https://materialsproject.github.io/fireworks/)
+2. [AiiDA](http://www.aiida.net/)
+3. [Atomate](https://atomate.org/)
 
 ## What isn't DBgen?
 
 1. An [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) tool (see [Hibernate](http://hibernate.org/orm/) for Java or [SQLAlchemy](https://www.sqlalchemy.org/) for Python)
 
-   - DBgen operates at a higher level of abstraction, not exposing the user to low level SQL commands like SELECT or INSERT.
+   - DBGen utilizes the popular SQLAlchemy ORM to operate at an even higher level extraction, allowing the users to build pipelines and schema without actively thinking about the database tables or insert and select statements required to connect the workflow together.
 
 2. A database manager (see
    [MySQLWorkbench](https://www.mysql.com/products/workbench/),
@@ -106,22 +101,10 @@ Comparison to
 ### Via Github
 
 Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.7 to install the package.
-
 ```Bash
-# Get DBgen
-git clone https://github.com/modelyst/dbgen
-cd ./dbgen
-# Get Poetry
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3 -
-# Install Poetrywhich ma
-poetry install
-poetry shell
-# Test dbgen
-dbgen serialize dbgen.example.main:make_model
+{!../docs_src/installation/git_installation.sh!}
 ```
-
 ### Via Pip
-
 ```Bash
 pip install modelyst-dbgen
 ```

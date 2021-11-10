@@ -11,6 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+import sys
+from os import getcwd
 
 from dbgen.cli.main import app
 
@@ -21,4 +23,6 @@ def main():
 
 # Run App
 if __name__ == "__main__":
+    # Append current working directory to python path to ensure that we can grab models in current folder
+    sys.path.append(getcwd())
     main()

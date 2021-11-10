@@ -26,23 +26,15 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.11"
+version = "0.5.12"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
 SQLAlchemy = "^1.4.25"
 boto3 = "^1.18.42"
 colorama = "^0.4.4"
-markdown-include = {version = "^0.6.0", optional = true}
-mkdocs = {version = "^1.2.3", optional = true}
-mkdocs-autorefs = {version = "^0.3.0", optional = true}
-mkdocs-markdownextradata-plugin = {version = "^0.2.4", optional = true}
-mkdocs-material = {version = "^7.3.3", optional = true}
-mkdocs-pymdownx-material-extras = {version = "^1.5.4", optional = true}
-mkdocstrings = {version = "^0.16.2", optional = true}
 modelyst-sqlmodel = "^0.0.5"
 networkx = "^2.6.3"
-pdocs = {version = "^1.1.1", optional = true}
 prettytable = "^2.2.1"
 psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
@@ -61,23 +53,21 @@ black = "^21.9b0"
 flake8 = "^3.9.2"
 hypothesis = "^6.21.3"
 isort = "^5.9.3"
+markdown-include = "^0.6.0"
+mkdocs = "^1.2.3"
+mkdocs-autorefs = "^0.3.0"
+mkdocs-markdownextradata-plugin = "^0.2.4"
+mkdocs-material = "^7.3.3"
+mkdocs-pymdownx-material-extras = "^1.5.4"
+mkdocstrings = "^0.16.2"
 mypy = {git = "https://github.com/python/mypy.git"}
+pdocs = "^1.1.1"
 pytest = "^6.2.5"
 pytest-benchmark = "^3.4.1"
 pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 requests = "^2.26.0"
 
-[tool.poetry.extras]
-docs = [
-  "mkdocs",
-  "mkdocs-autorefs",
-  "mkdocs-markdownextradata-plugin",
-  "mkdocs-material",
-  "markdown-include",
-  "mkdocstrings",
-  "pdocs",
-]
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]

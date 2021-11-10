@@ -22,6 +22,7 @@ from dbgen.core.context import GeneratorContext
 from dbgen.core.dependency import Dependency
 from dbgen.exceptions import DBgenMissingInfo
 
+T = TypeVar('T')
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 Output = TypeVar('Output')
@@ -99,6 +100,10 @@ class ComputationalNode(Base, Generic[Output]):
 
     @overload
     def results(self: 'ComputationalNode[Tuple[T1]]') -> Arg[T1]:
+        ...
+
+    @overload
+    def results(self: 'ComputationalNode[T]') -> T1:
         ...
 
     def results(self):

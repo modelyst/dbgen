@@ -19,6 +19,18 @@
 <p align="center">
   <a href="https://dbgen.modelyst.com"><img src="img/dbgen_logo.png" alt="DBgen"></a>
 </p>
+
+<p align="center">
+   <a href="https://github.com/modelyst/dbgen   /actions?query=workflow%3ATest" target="_blank">
+      <img src="https://github.com/modelyst/dbgen/workflows/Test/badge.svg" alt="Test">
+   </a>
+   <a href="https://github.com/modelyst/dbgen/actions?query=workflow%3APublish" target="_blank">
+      <img src="https://github.com/modelyst/dbgen/workflows/Publish/badge.svg" alt="Publish">
+   </a>
+   <a href="https://codecov.io/gh/modelyst/dbgen">
+      <img src="https://codecov.io/gh/modelyst/dbgen/branch/master/graph/badge.svg?token=V4I8PPUIBU"/>
+   </a>
+</p>
 ---
 
 **Documentation**: <a href="https://dbgen.modelyst.com" target="_blank">https://dbgen.modelyst.com</a>
@@ -27,13 +39,12 @@
 
 ---
 
+:exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes. :exclamation:
+
+---
 DBgen (Database Generator) is an open-source Python library for
 connecting raw data, scientific theories, and relational databases.
-These are some of the main features:
-
-1.  Very easy to work with
-2.  Integration with the PostgreSQL databases.
-
+The package was designed with a focus on the developer experience at the core.
 DBgen was initially developed by [Modelyst](https://www.modelyst.com/).
 
 ## What is DBgen?
@@ -55,29 +66,28 @@ characteristics:
       complicated enough on their own, we can't afford to introduce
       any more complexity via our framework.
 
-DBGen is an opinionated ETL tool. ETL tools exist but they rarely
-give the tools necessary for a scientific workflow. Opinionated
-aspect: it really cares about what the end product is (ID columns on
-all the tables). We're dealing with a much more restricted ETL
-problem (extracting and ).
+DBGen is an opinionated ETL tool. While many other ETL tools exist, they rarely
+give the tools necessary for a scientific workflow.
+DBGen is a tool that helps populate a single postgresql database using a transparent, flexible, and mainatable data pipeline.
 
-Comparison to
+### Alternative tools
 
+Many tools exist to orchestrate python workflows. However, these tools often often are too general to help the average scientist wrangle their data or are so specific to storing a given computational workflow type they lack the flexibility needed to address the specifics of a scientist's data problems. Many other tools also come packaged with powerful yet complex scheduling systems (such as airflow and prefect) that can be quite complex to setup and can make the initial development very difficult for scientists without extensive devops experience.
+#### General Orchestration Tools
 1. [Airflow](https://airflow.apache.org/)
+2. [Prefect](https://www.prefect.io/)
+3. [Luigi](https://github.com/spotify/luigi)
 
-   - Has a priority for ETL scalability
-
-2. [Fireworks](https://materialsproject.github.io/fireworks/)
-
-3. [AiiDA](http://www.aiida.net/) or [Atomate](https://atomate.org/)
-   - We don't focus on the actual submission of computational
-     science workflows.
+#### Computational Science Workflow Tools
+1. [Fireworks](https://materialsproject.github.io/fireworks/)
+2. [AiiDA](http://www.aiida.net/)
+3. [Atomate](https://atomate.org/)
 
 ## What isn't DBgen?
 
 1. An [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) tool (see [Hibernate](http://hibernate.org/orm/) for Java or [SQLAlchemy](https://www.sqlalchemy.org/) for Python)
 
-   - DBgen operates at a higher level of abstraction, not exposing the user to low level SQL commands like SELECT or INSERT.
+   - DBGen utilizes the popular SQLAlchemy ORM to operate at an even higher level extraction, allowing the users to build pipelines and schema without actively thinking about the database tables or insert and select statements required to connect the workflow together.
 
 2. A database manager (see
    [MySQLWorkbench](https://www.mysql.com/products/workbench/),
