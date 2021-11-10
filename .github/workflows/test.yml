@@ -44,7 +44,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --force git+https://github.com/python-poetry/poetry-core.git@ad33bc2
           python -m pip install "poetry==1.2.0a2"
-          python -m poetry plugin add poetry-version-plugin
       - name: Configure poetry
         run: python -m poetry config virtualenvs.create false
       - name: Install Dependencies
