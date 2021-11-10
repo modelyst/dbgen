@@ -46,13 +46,13 @@ prettytable = "^2.2.1"
 psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
 pydantic = "^1.8.2"
-pydasher = {git = "https://github.com/modelyst/pydasher", rev = "main"}
 python = ">=3.7,<4.0"
 python-dotenv = "^0.19.1"
 sqlmodel = {git = "https://github.com/statt8900/sqlmodel.git", rev = "develop"}
 tqdm = "^4.62.2"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
+pydasher = "^0.0.8"
 
 [tool.poetry.dev-dependencies]
 Faker = "^9.7.1"

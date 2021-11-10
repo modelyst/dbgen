@@ -513,7 +513,7 @@ pytkdocs = ">=0.2.0,<0.13.0"
 
 [[package]]
 name = "mypy"
-version = "0.920+dev.b1c438d20971fcfaad011153763a60e8cb5c4054"
+version = "0.920+dev.47b22c5485852faaaa39389744b524dcb0111593"
 description = "Optional static typing for Python"
 category = "dev"
 optional = false
@@ -534,7 +534,7 @@ python2 = ["typed-ast (>=1.4.0,<1.5.0)"]
 type = "git"
 url = "https://github.com/python/mypy.git"
 reference = "master"
-resolved_reference = "b1c438d20971fcfaad011153763a60e8cb5c4054"
+resolved_reference = "47b22c5485852faaaa39389744b524dcb0111593"
 
 [[package]]
 name = "mypy-extensions"
@@ -695,6 +695,7 @@ optional = false
 python-versions = ">=3.6.1"
 
 [package.dependencies]
+python-dotenv = {version = ">=0.10.4", optional = true, markers = "extra == \"dotenv\""}
 typing-extensions = ">=3.7.4.3"
 
 [package.extras]
@@ -703,24 +704,17 @@ email = ["email-validator (>=1.0.3)"]
 
 [[package]]
 name = "pydasher"
-version = "0.0.5"
+version = "0.0.8"
 description = "A small set of utility functions for deterministically hashing pydantic base-models."
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
-develop = false
 
 [package.dependencies]
-pydantic = "^1.8.2"
+pydantic = {version = ">=1.8.2,<2.0.0", extras = ["dotenv"]}
 
 [package.extras]
-docs = ["mkdocs (>=1.1.2,<2.0.0)", "mkdocs-autorefs (>=0.1.1,<0.2.0)", "pymdown-extensions (>=8.2,<9.0)", "mkdocs-markdownextradata-plugin (>=0.2.4,<0.3.0)", "mkdocs-material (>=7.0.6,<8.0.0)", "markdown-include (==0.6.0)", "mkdocstrings (>=0.15.0,<0.16.0)", "pdocs[docs] (>=1.1.1,<2.0.0)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/modelyst/pydasher"
-reference = "main"
-resolved_reference = "43d0a91905b7d4c55f17650e278f1a0d3ad60540"
+docs = ["markdown-include (==0.6.0)", "mkdocs (>=1.1.2,<2.0.0)", "mkdocs-autorefs (>=0.1.1,<0.2.0)", "mkdocs-markdownextradata-plugin (>=0.2.4,<0.3.0)", "mkdocs-material (>=7.0.6,<8.0.0)", "mkdocstrings (>=0.15.0,<0.16.0)", "pdocs[docs] (>=1.1.1,<2.0.0)", "pymdown-extensions (>=8.2,<9.0)"]
 
 [[package]]
 name = "pyflakes"
@@ -1133,7 +1127,7 @@ docs = ["mkdocs", "mkdocs-autorefs", "mkdocs-markdownextradata-plugin", "mkdocs-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4.0"
-content-hash = "cd115fe7df1d4e0b80f181785b0a6965d703edbfb188763f5f8c1ba7572e8533"
+content-hash = "ce3ed8686eb272dbfe9dd82adbbd40457ec904ea3880a66ebc5ee64a855026f8"
 
 [metadata.files]
 astunparse = [
@@ -1549,7 +1543,10 @@ pydantic = [
     {file = "pydantic-1.8.2-py3-none-any.whl", hash = "sha256:fec866a0b59f372b7e776f2d7308511784dace622e0992a0b59ea3ccee0ae833"},
     {file = "pydantic-1.8.2.tar.gz", hash = "sha256:26464e57ccaafe72b7ad156fdaa4e9b9ef051f69e175dbbb463283000c05ab7b"},
 ]
-pydasher = []
+pydasher = [
+    {file = "pydasher-0.0.8-py3-none-any.whl", hash = "sha256:9ed74e591bf490daf36adaf8879a131bd92bf02907cb38700aaa0d9d56acba6d"},
+    {file = "pydasher-0.0.8.tar.gz", hash = "sha256:d60479854ac6c6e774afb944c99f32f8bd123829c1f0cc0d8727055dc704b07a"},
+]
 pyflakes = [
     {file = "pyflakes-2.3.1-py2.py3-none-any.whl", hash = "sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3"},
     {file = "pyflakes-2.3.1.tar.gz", hash = "sha256:f5bc8ecabc05bb9d291eb5203d6810b49040f6ff446a756326104746cc00c1db"},
