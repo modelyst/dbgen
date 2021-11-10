@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.10"
+version = "0.5.11"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -40,6 +40,7 @@ mkdocs-markdownextradata-plugin = {version = "^0.2.4", optional = true}
 mkdocs-material = {version = "^7.3.3", optional = true}
 mkdocs-pymdownx-material-extras = {version = "^1.5.4", optional = true}
 mkdocstrings = {version = "^0.16.2", optional = true}
+modelyst-sqlmodel = "^0.0.5"
 networkx = "^2.6.3"
 pdocs = {version = "^1.1.1", optional = true}
 prettytable = "^2.2.1"
@@ -49,7 +50,6 @@ pydantic = "^1.8.2"
 pydasher = "^0.0.12"
 python = ">=3.7,<4.0"
 python-dotenv = "^0.19.1"
-sqlmodel = {git = "https://github.com/statt8900/sqlmodel.git", rev = "develop"}
 tqdm = "^4.62.2"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
