@@ -193,9 +193,9 @@ pydantic==1.8.2; python_full_version >= "3.6.1" \
     --hash=sha256:4be75bebf676a5f0f87937c6ddb061fa39cbea067240d98e298508c1bda6f3f3 \
     --hash=sha256:fec866a0b59f372b7e776f2d7308511784dace622e0992a0b59ea3ccee0ae833 \
     --hash=sha256:26464e57ccaafe72b7ad156fdaa4e9b9ef051f69e175dbbb463283000c05ab7b
-pydasher==0.0.8; python_version >= "3.7" and python_version < "4.0" \
-    --hash=sha256:9ed74e591bf490daf36adaf8879a131bd92bf02907cb38700aaa0d9d56acba6d \
-    --hash=sha256:d60479854ac6c6e774afb944c99f32f8bd123829c1f0cc0d8727055dc704b07a
+pydasher==0.0.11; python_version >= "3.7" and python_version < "4.0" \
+    --hash=sha256:f5e8e6edfb51234fb00bfcc83ac6711811f145b4ddc6c611307dc94dbf7571ed \
+    --hash=sha256:26697894f6aa3afb73ac2040bea7ad125e6dd04d0b9c78f332ab83a348bfd9e8
 python-dateutil==2.8.2; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.3.0" and python_version >= "3.6" \
     --hash=sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86 \
     --hash=sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9
