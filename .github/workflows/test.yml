@@ -32,6 +32,9 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: dbgen
+        ports:
+          # Opens tcp port 5432 on the host and service container
+          - 5432:5432
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -73,6 +76,6 @@ jobs:
         # Environment variables used by the `client.js` script to create a new PostgreSQL table.
         env:
           # The hostname used to communicate with the PostgreSQL service container
-          DBGEN_MAIN_DSN: postgresql://postgres:postgres@postgres:5432/dbgen
+          DBGEN_MAIN_DSN: postgresql://postgres:postgres@localhost:5432/dbgen
       - name: Upload coverage
         uses: codecov/codecov-action@v1
