@@ -74,6 +74,8 @@ nav:
   - Getting Started: getting_started.md
   - Installation: installation.md
   - License: license.md
+  - Reference:
+      - reference/dbgen/index.md
 extra_css:
   - css/termynal.css
   - css/custom.css
