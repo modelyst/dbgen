@@ -52,7 +52,7 @@ def serialize_graph(
     graph,
     node_serializer: Callable[[Any], SerializedNode],
     metadata: Dict[str, Union[str, float, int, None]] = None,
-) -> SerializedGraph:
+) -> Dict[str, Any]:
     metadata = metadata or {}
     output: SerializedGraph = SerializedGraph(nodes={}, edges=[], metadata=metadata)
     for key, data in graph.nodes.items():

@@ -41,7 +41,7 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
     tags = tags or []
-    statement = select(
+    statement = select(  # type: ignore
         ModelEntity.id,
         ModelEntity.name,
         ModelEntity.created_at,
