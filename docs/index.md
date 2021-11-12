@@ -42,7 +42,7 @@
 
 ---
 
-:exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes. :exclamation:
+:exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes.
 
 ---
 DBgen (Database Generator) is an open-source Python library for
