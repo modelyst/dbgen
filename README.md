@@ -30,6 +30,12 @@
    <a href="https://codecov.io/gh/modelyst/dbgen">
       <img src="https://codecov.io/gh/modelyst/dbgen/branch/master/graph/badge.svg?token=V4I8PPUIBU"/>
    </a>
+   <a href="https://codecov.io/gh/modelyst/dbgen">
+      <img src="docs/img/interrogate.svg"/>
+   </a>
+   <a href="https://app.netlify.com/sites/dbgen/deploys">
+      <img src="https://api.netlify.com/api/v1/badges/f3529f54-2ee9-4427-8e13-668b5636ad0f/deploy-status"/>
+   </a>
 </p>
 ---
 

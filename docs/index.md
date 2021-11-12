@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-   <a href="https://github.com/modelyst/dbgen   /actions?query=workflow%3ATest" target="_blank">
+   <a href="https://github.com/modelyst/dbgen/actions?query=workflow%3ATest" target="_blank">
       <img src="https://github.com/modelyst/dbgen/workflows/Test/badge.svg" alt="Test">
    </a>
    <a href="https://github.com/modelyst/dbgen/actions?query=workflow%3APublish" target="_blank">
@@ -29,6 +29,9 @@
    </a>
    <a href="https://codecov.io/gh/modelyst/dbgen">
       <img src="https://codecov.io/gh/modelyst/dbgen/branch/master/graph/badge.svg?token=V4I8PPUIBU"/>
+   </a>
+   <a href="/status">
+      <img src="img/interrogate.svg"/>
    </a>
 </p>
 ---
