@@ -27,6 +27,9 @@
    <a href="https://github.com/modelyst/dbgen/actions?query=workflow%3APublish" target="_blank">
       <img src="https://github.com/modelyst/dbgen/workflows/Publish/badge.svg" alt="Publish">
    </a>
+   <a href="https://github.com/modelyst/dbgen/actions/workflows/publish_docs.yml" target="_blank">
+      <img src="https://github.com/modelyst/dbgen/actions/workflows/publish_docs.yml/badge.svg">
+   </a>
    <a href="https://codecov.io/gh/modelyst/dbgen">
       <img src="https://codecov.io/gh/modelyst/dbgen/branch/master/graph/badge.svg?token=V4I8PPUIBU"/>
    </a>
