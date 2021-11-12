@@ -94,8 +94,3 @@ def make_model():
         with Generator('skip_gen'):
             inputs_skipped()
     return model
-
-
-@transform
-def funky(val: int) -> tuple[int, str]:
-    return val, str(val)

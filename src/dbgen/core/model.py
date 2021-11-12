@@ -13,8 +13,7 @@
 #   limitations under the License.
 
 from collections import Counter
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
 from uuid import UUID
 
 import sqlalchemy

@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -35,8 +35,8 @@ class LocalCSVExtract(Extract):
         return len(self._file_paths)
 
 
-@transform(env=Env(Import('numpy', lib_alias='np')), outputs=['voc', 'jsc'])
-def parse_jv_csv(file_path: str) -> tuple[float, float]:
+@transform(env=Env([Import('numpy', lib_alias='np'), Import('typing', 'Tuple')]), outputs=['voc', 'jsc'])
+def parse_jv_csv(file_path: str) -> Tuple[float, float]:
     jv_arr = np.genfromtxt(file_path, delimiter=',', skip_header=1, dtype=float)
     nrows, *_ = np.shape(jv_arr)
     for row in range(nrows):

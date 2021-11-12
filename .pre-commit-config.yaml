@@ -79,21 +79,6 @@ repos:
           - --license-filepath
           - license-templates/LICENSE.txt
           - --fuzzy-match-generates-todo
-  - repo: https://github.com/econchick/interrogate
-    rev: 1.5.0
-    hooks:
-      - id: interrogate
-        args:
-          [
-            --quiet,
-            --fail-under=13,
-            -c,
-            pyproject.toml,
-            --generate-badge,
-            docs/img/interrogate.svg,
-            src/dbgen,
-            tests,
-          ]
   - repo: https://github.com/psf/black
     rev: 20.8b1
     hooks:

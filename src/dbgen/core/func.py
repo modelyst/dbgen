@@ -412,7 +412,8 @@ def get_callable_source_code(f: Callable) -> str:
 
     if isinstance(f, LambdaType) and f.__name__ == "<lambda>":
         source_code = get_short_lambda_source(f)
-        return source_code
+        if source_code:
+            return source_code
 
     # Handle 'def'-ed functions and long lambdas
     if source_lines[0].strip().startswith("@"):

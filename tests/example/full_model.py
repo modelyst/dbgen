@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import Optional
+from typing import Optional, Tuple
 from uuid import UUID
 
 import sqlalchemy.types as types
@@ -20,6 +20,7 @@ from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
+from dbgen import Env, Import
 from dbgen.core.args import Const
 from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
@@ -87,8 +88,8 @@ def make_model():
     )
     query = Query(select(Parent.id, Parent.label))
 
-    @transform
-    def concise_func(label: str) -> tuple[str]:
+    @transform(env=Env([Import('typing', ['Tuple'])]))
+    def concise_func(label: str) -> Tuple[str]:
         return (f"{label}-test",)
 
     concise_pyblock = concise_func(query["label"])

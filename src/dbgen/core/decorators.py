@@ -13,8 +13,9 @@
 #   limitations under the License.
 import inspect
 from functools import partial
-from typing import Callable, Generic, List, Optional, Tuple, TypeVar, Union, get_args, get_origin, overload
+from typing import Callable, Generic, List, Optional, Tuple, TypeVar, Union, overload
 
+from pydantic.typing import get_args, get_origin
 from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg

@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.13"
+version = "0.5.14"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -52,6 +52,7 @@ autoflake = "^1.4"
 black = "^21.9b0"
 flake8 = "^3.9.2"
 hypothesis = "^6.21.3"
+interrogate = "^1.5.0"
 isort = "^5.9.3"
 markdown-include = "^0.6.0"
 mkdocs = "^1.2.3"
@@ -67,7 +68,6 @@ pytest-benchmark = "^3.4.1"
 pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 requests = "^2.26.0"
-interrogate = "^1.5.0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
