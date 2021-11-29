@@ -43,7 +43,7 @@ class Child(Entity, registry=my_registry, table=True):
     parent_id: Optional[UUID] = Field(None, foreign_key="public.parent.id")
 
 
-class CustomExtractor(Extract):
+class CustomExtractor(Extract[int]):
     n: int = 1000
 
     def extract(self):

@@ -163,7 +163,14 @@ class BaseGeneratorRun(Base):
         else:
             extract.set_extractor()
         self._logger.debug('Fetching extractor length')
-        row_count = extract.length(connection=extractor_connection)
+        try:
+            row_count = extract.length(connection=extractor_connection)
+        except TypeError:
+            self._logger.error(
+                f'Extract {extract}\'s length method does not accept the required kwargs, please add **_ kwarg to suppress this error.'
+            )
+            row_count = None
+
         gen_run.inputs_extracted = row_count
         meta_session.commit()
 
@@ -186,6 +193,7 @@ class BaseGeneratorRun(Base):
             position=1,
             leave=False,
             desc="Transforming...",
+            unit=" Rows",
             disable=not run_config.progress_bar,
         )
         try:
@@ -230,9 +238,9 @@ class BaseGeneratorRun(Base):
                     gen_run.inputs_skipped += 1
                 # External errors are raised whenever a node fails due to internal logic
                 except DBgenExternalError as e:
-                    msg = f"\n\nError when running generator {generator.name}\n"
+                    msg = f"Error when running generator {generator.name}"
                     self._logger.error(msg)
-                    self._logger.error(f"\n{e}")
+                    # self._logger.error(f"\n{e}")
                     gen_run.status = Status.failed
                     gen_run.error = str(e)
                     run = meta_session.get(RunEntity, run_id)
@@ -409,7 +417,12 @@ class ModelRun(Base):
             self._logger.debug(
                 f"Only running generators: {gen_names[start_idx:until_idx]} due to start/until"
             )
-        with tqdm(total=len(sorted_generators), position=0, disable=not run_config.progress_bar) as tq:
+        with tqdm(
+            total=len(sorted_generators),
+            position=0,
+            disable=not run_config.progress_bar,
+            unit=' Generator',
+        ) as tq:
             for i, generator in enumerate(sorted_generators):
                 tq.set_description(generator.name)
                 gen_run = self.get_gen_run(generator)

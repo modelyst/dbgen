@@ -442,8 +442,14 @@ def get_callable_source_code(f: Callable) -> str:
 
 
 def func_from_callable(func_: Callable[..., Output], env: Optional[Env] = None) -> Func[Output]:
-    """
-    Generate a func from a variety of possible input data types.
+    """Generate a func from a variety of possible input data types.
+
+    Args:
+        func_ (Callable[..., Output]): Python function to convert to Func object
+        env (Optional[Env], optional): Env object to include on the Function. Defaults to None.
+
+    Returns:
+        Func[Output]: Output Func object wrapped around the input function
     """
     if isinstance(env, dict):
         env = Env.from_dict(env)
