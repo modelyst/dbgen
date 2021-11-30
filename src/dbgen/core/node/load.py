@@ -66,6 +66,7 @@ class LoadEntity(Base):
     identifying_attributes: Set[str] = Field(default_factory=dict)
     identifying_foreign_keys: Set[str] = Field(default_factory=set)
     attributes: Dict[str, str] = Field(default_factory=dict)
+    required: Set[str] = Field(default_factory=set)
     foreign_keys: Set[str] = Field(default_factory=set)
     _entity: Optional[Type['BaseEntity']] = PrivateAttr(None)
 
@@ -77,6 +78,7 @@ class LoadEntity(Base):
             f"id_attrs={self.identifying_attributes}, "
             f"id_fks={self.identifying_foreign_keys}, "
             f"attributes={self.attributes}, "
+            f"required={self.required}, "
             f"fks={self.foreign_keys}>"
         )
 

@@ -217,13 +217,20 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         all_fks = {col.name: col for col in columns if col.foreign_keys}
 
         # Create the attribute dict which maps attribute name to column type
-        attributes = {}
+        attributes: Dict[str, str] = {}
+        required: Set[str] = set()
         for col_name, col in columns.items():
             try:
                 dt = column_registry[col.type]
+                field = cls.__fields__[col_name]
+                # append [] to the type name if the column is an array type
                 attributes[col_name] = (
                     f"{dt.type_name}[]" if getattr(col.type, '_is_array', False) else dt.type_name
                 )
+                # Check for required fields
+                if field.required:
+                    required.add(col_name)
+
             except KeyError:
                 raise TypeError(
                     f"Cannot parse column {col_name} on table {cls.__tablename__} due to its unknown type {type(col.type)}"
@@ -237,6 +244,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
             entity_class_str=f"{cls.__module__}.{cls.__qualname__}",
             primary_key_name=primary_key_name,
             attributes=attributes,
+            required=required,
             foreign_keys=foreign_keys,
             identifying_attributes=identifying_attributes,
             identifying_foreign_keys=identifying_fks,
@@ -268,7 +276,12 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
                     " Missing essential data: {}"
                 )
                 raise DBgenMissingInfo(err.format(name, missing))
-
+        if insert:
+            required_fields = {key for key, val in cls.__fields__.items() if val.required}
+            missing_required = required_fields - set(kwargs)
+            if missing_required:
+                err = "Cannot insert a row in {} without a required data." " Missing required data: {}"
+                raise DBgenMissingInfo(err.format(name, missing_required))
         # Iterate through the columns to ensure we have no unknown kwargs
         class_columns: List[Column] = list(cls._columns()) or []
         all_attrs = {col.name: col for col in class_columns if not col.foreign_keys}
