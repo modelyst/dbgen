@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 from typing import Generator as GenType
 from typing import Optional, TypeVar, Union, overload
 
@@ -38,6 +38,7 @@ T = TypeVar('T')
 
 class BaseQuery(Extract[T]):
     query: str
+    params: Dict[str, Any] = Field(default_factory=dict)
     dependency: Dependency = Field(default_factory=Dependency)
 
     def _get_dependency(self) -> Dependency:
@@ -54,12 +55,21 @@ class BaseQuery(Extract[T]):
             tables_needed=[get_table_name(x) for x in tables],
             columns_needed=[f"{get_table_name(x.table)}.{x.name}" for x in columns.union(fks)],
         )
+        compiled_statement = select_statement.compile()
         return cls(
             inputs=[],
             outputs=outputs,
-            query=str(select_statement),
+            query=str(compiled_statement),
+            params=compiled_statement.params,
             dependency=dependency,
         )
+
+    def render_query(self) -> str:
+        """Stringifies the query with the bound parameters."""
+        compiled_query = (
+            text(self.query).bindparams(**self.params).compile(compile_kwargs={'literal_binds': True})
+        )
+        return str(compiled_query)
 
     def length(self, *, connection: 'SAConnection' = None, **_) -> int:
         assert connection
@@ -75,7 +85,7 @@ class BaseQuery(Extract[T]):
     ) -> GenType[Result[T], None, None]:
         assert connection, f"Need to pass in connection when setting the extractor"
         if yield_per:
-            result = connection.execute(text(self.query))
+            result = connection.execute(text(self.query), **self.params)
             return result.yield_per(yield_per).mappings()  # type: ignore
         else:
             result = connection.execute(text(self.query))

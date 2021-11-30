@@ -12,6 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import re
+
 import pytest
 from sqlalchemy.orm import aliased
 from sqlmodel import func, select
@@ -132,6 +134,7 @@ def test_base_query():
     assert base_query.dict(exclude={"tester", "dependency", "inputs"}) == {
         "query": str(basic_statement),
         "outputs": ["id", "label", "col_label"],
+        "params": {},
     }
     assert isinstance(base_query.hash, str)
     assert isinstance(base_query.dict(), dict)
@@ -142,3 +145,13 @@ def test_base_query():
 
     with pytest.raises(AssertionError):
         base_query["non_existent"]
+
+
+def test_where_clause():
+    """Test basic where clause literal binding"""
+    query = BaseQuery.from_select_statement(basic_statement.where(model.Sample.label == "string_to_find"))
+    assert re.search(r'string_to_find', query.render_query())
+    query = BaseQuery.from_select_statement(basic_statement.where(model.Sample.label == 1))
+    assert re.search(r'label\s*=\s*1$', query.render_query())
+    query = BaseQuery.from_select_statement(basic_statement.where(model.Sample.label == 1.0))
+    assert re.search(r'label\s*=\s*1\.0$', query.render_query())
