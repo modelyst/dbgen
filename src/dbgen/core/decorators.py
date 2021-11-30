@@ -31,10 +31,6 @@ T3 = TypeVar('T3')
 T4 = TypeVar('T4')
 
 
-class TypeArg(Arg, Generic[T]):
-    pass
-
-
 class FunctionNode(Generic[In, Out]):
     """Temporary wrapper API for pyblocks."""
 
@@ -62,25 +58,25 @@ class FunctionNode(Generic[In, Out]):
         return self._arglist[key]
 
     @overload
-    def results(self: 'FunctionNode[In,Tuple[T1]]') -> Tuple[TypeArg[T1]]:
+    def results(self: 'FunctionNode[In,Tuple[T1]]') -> Tuple[Arg[T1]]:
         ...  # pragma: no cover
 
     @overload
-    def results(self: 'FunctionNode[In,Tuple[T1,T2]]') -> Tuple[TypeArg[T1], TypeArg[T2]]:
+    def results(self: 'FunctionNode[In,Tuple[T1,T2]]') -> Tuple[Arg[T1], Arg[T2]]:
         ...  # pragma: no cover
 
     @overload
-    def results(self: 'FunctionNode[In,Tuple[T1,T2,T3]]') -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3]]:
+    def results(self: 'FunctionNode[In,Tuple[T1,T2,T3]]') -> Tuple[Arg[T1], Arg[T2], Arg[T3]]:
         ...  # pragma: no cover
 
     @overload
-    def results(self: 'FunctionNode[In,T1]') -> TypeArg[T1]:
+    def results(self: 'FunctionNode[In,T1]') -> Arg[T1]:
         ...  # pragma: no cover
 
     @overload
     def results(
         self: 'FunctionNode[In,Tuple[T1,T2,T3,T4]]',
-    ) -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3], TypeArg[T4]]:
+    ) -> Tuple[Arg[T1], Arg[T2], Arg[T3], Arg[T4]]:
         ...  # pragma: no cover
 
     def results(self):
