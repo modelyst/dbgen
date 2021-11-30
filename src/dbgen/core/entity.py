@@ -79,6 +79,9 @@ def __dataclass_transform__(
     return lambda a: a
 
 
+# TODO validate the kwargs passed to entity so that we can catch mispelled
+
+
 @__dataclass_transform__(
     kw_only_default=True,
     field_descriptors=(

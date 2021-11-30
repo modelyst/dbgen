@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import re
+from functools import partial
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
@@ -94,13 +95,23 @@ class LoadEntity(Base):
                 return None
         return self._entity
 
-    def _validate(self, input_data: Dict[str, Any], use_defaults: bool = False):
+    # TODO Merge validate and strict validate into one method
+    # TODO Decide whether use default is a valid flag for dbgen
+    def _validate(self, input_data: Dict[str, Any], use_defaults: bool = False, insert: bool = False):
         entity = self._load_entity()
         if entity is None:
             return input_data
         validated_data, fields_set, errors = validate_model(entity, input_data)
+        # If we have errors during validation check if we are inserting
+        # if we are not inserting we ignore missing values as updates don't require all info
+        # TODO decide whether there is a better way to handle required info
         if errors:
-            raise errors
+            sub_errors = errors.errors()
+            if not insert:
+                sub_errors = list(filter(lambda x: x.get('type') != 'value_error.missing', sub_errors))
+            # if we still have sub-errors raise the errors to the user
+            if sub_errors:
+                raise errors
         base_fields = {'id', 'gen_id', 'created_at'}
         return {
             k: v
@@ -108,15 +119,20 @@ class LoadEntity(Base):
             if k not in base_fields and (use_defaults or k in fields_set)
         }
 
-    def _strict_validate(self, input_data: Dict[str, Any], use_defaults: bool = False):
+    def _strict_validate(self, input_data: Dict[str, Any], use_defaults: bool = False, insert: bool = False):
+        # Check basic validation
+        self._validate(input_data, use_defaults=use_defaults, insert=insert)
+        # Add additional check for expected type for strict typing
         errors = []
         for key, val in input_data.items():
             type_str = self.attributes[key]
+            # if the type str ends with brackets the expected type is an array
+            # TODO check the elements types for lists
             if type_str.endswith('[]'):
                 expected_type: type = list
             else:
                 expected_type = column_registry[type_str].get_python_type()
-
+            # If the val is not the expected type append a TypeError and continue on so we can collect all the errors
             if not isinstance(val, expected_type):
                 errors.append(
                     ErrorWrapper(
@@ -127,6 +143,7 @@ class LoadEntity(Base):
                         loc=key,
                     )
                 )
+        # If we found any errors raise them
         if errors:
             raise ValidationError(errors, self.__class__)
         return input_data
@@ -280,10 +297,11 @@ class Load(ComputationalNode[T]):
         # Load
         validation = self.validation or config.validation
         if validation == ValidationEnum.STRICT:
-            broadcasted_values = list(map(self.load_entity._strict_validate, broadcasted_values))
+            validation_func = self.load_entity._strict_validate
         elif validation == ValidationEnum.COERCE:
-            broadcasted_values = list(map(self.load_entity._validate, broadcasted_values))
+            validation_func = self.load_entity._validate
 
+        broadcasted_values = list(map(partial(validation_func, insert=self.insert), broadcasted_values))
         # If we have a user supplied Primary Key go get it and broadcast it
         if self.primary_key is not None:
             primary_arg_val = self.primary_key.arg_get(row)
