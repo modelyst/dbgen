@@ -27,6 +27,7 @@ from sqlmodel import Field, select
 from dbgen.core.args import Const
 from dbgen.core.entity import BaseEntity, Entity, EntityMetaclass, create_entity
 from dbgen.core.node.load import LoadEntity
+from dbgen.exceptions import InvalidArgument
 from tests.strategies.entity import example_entity, fill_required_fields
 
 id_field = Field(
@@ -457,3 +458,23 @@ def test_create_entity(connection, session, clear_registry):
     )
     assert "child_name" in DummyChild._hashinclude_
     assert "name" in DummyChild._hashinclude_
+
+
+@pytest.mark.parametrize(
+    'kwarg_name',
+    (
+        'all_id',
+        'all_ids',
+        '__identifying_',
+        '_hash_include_',
+        '_hash_exclude_',
+        'is_table',
+    ),
+)
+def test_invalid_kwarg_names(kwarg_name):
+    kwargs = {}
+    kwargs[kwarg_name] = None
+    with pytest.raises(InvalidArgument):
+
+        class Test(Entity, **kwargs):
+            pass

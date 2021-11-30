@@ -46,7 +46,7 @@ from dbgen.core.attribute import Attribute
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.type_registry import column_registry
-from dbgen.exceptions import DBgenInvalidArgument, DBgenMissingInfo
+from dbgen.exceptions import DBgenMissingInfo, InvalidArgument
 
 
 def inherit_field(
@@ -79,7 +79,16 @@ def __dataclass_transform__(
     return lambda a: a
 
 
-# TODO validate the kwargs passed to entity so that we can catch mispelled
+valid_kwargs_names = {
+    '__identifying__',
+    '_hashexclude_',
+    '_hashinclude_',
+    'table',
+    'registry',
+    'all_identifying',
+    '__annotations__',
+    'force_validation',
+}
 
 
 @__dataclass_transform__(
@@ -92,6 +101,12 @@ def __dataclass_transform__(
 )
 class EntityMetaclass(SQLModelMetaclass, BaseMeta):
     def __new__(mcs, name, bases, attrs, **kwargs):
+        # validate kwargs passed in to catch user input errors
+        invalid_kwargs = [name for name in kwargs if name not in valid_kwargs_names]
+        if invalid_kwargs:
+            raise InvalidArgument(
+                f"Unknown kwargs {invalid_kwargs} passed to Entity {name}. The only valid kwargs are {valid_kwargs_names}"
+            )
         # Join the keys from all parents for __identifying__, _hashinclude_, and _hashexclude_
         new_attrs = attrs.copy()
         for value in ("__identifying__", "_hashexclude_", "_hashinclude_"):
@@ -100,10 +115,10 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
                 starting = set(starting)
             new_attrs[value] = starting.union(inherit_field(bases, value))
 
-        if kwargs.get('all_id', False):
+        if kwargs.get('all_identifying', False):
             assert (
                 "__identifying__" not in attrs
-            ), f"Error with Entity {name}. Can't supply both all_id kwarg and __identifying__ attr"
+            ), f"Error with Entity {name}. Can't supply both all_identifying kwarg and __identifying__ attr"
             new_attrs['__identifying__'] = new_attrs['__identifying__'].union(
                 {key for key in attrs.get('__annotations__', {})}
             )
@@ -290,7 +305,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         fks = {key: col for key, col in kwargs.items() if key not in attrs}
         for fk in fks:
             if fk not in all_fks:
-                raise DBgenInvalidArgument(f'unknown "{fk}" kwarg in Load of {name}')
+                raise InvalidArgument(f'unknown "{fk}" kwarg in Load of {name}')
 
         for k, v in fks.items():
             if isinstance(v, Load):

@@ -67,7 +67,7 @@ class DBgenMissingInfo(DBgenException):
     """Raise when there is missing info in a class/function initialization"""
 
 
-class DBgenInvalidArgument(DBgenException):
+class InvalidArgument(DBgenException):
     """Raise when there is missing info in a class/function initialization"""
 
 

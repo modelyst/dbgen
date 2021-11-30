@@ -38,7 +38,7 @@ from typing_extensions import ParamSpec
 
 from dbgen.configuration import config
 from dbgen.core.base import Base
-from dbgen.exceptions import DBgenInternalError, DBgenInvalidArgument
+from dbgen.exceptions import DBgenInternalError, InvalidArgument
 from dbgen.utils.misc import reserved_words
 
 
@@ -393,7 +393,7 @@ def get_callable_source_code(f: Callable) -> str:
     """
     # Check for built in functions as their source code can not be fetched
     if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
-        raise DBgenInvalidArgument(
+        raise InvalidArgument(
             f"Error getting source code for PyBlock. {f} is a built-in function.\n"
             f"Please wrap in lambda like so: `lambda x: {f.__name__}(x)`"
         )
