@@ -60,5 +60,5 @@ class Dependency(Base):
             tables_needed=self.tables_needed.union(other.tables_needed),
             columns_needed=self.columns_needed.union(other.columns_needed),
             tables_yielded=self.tables_yielded.union(other.tables_yielded),
-            columns_yielded=self.tables_yielded.union(other.tables_yielded),
+            columns_yielded=self.columns_yielded.union(other.columns_yielded),
         )
