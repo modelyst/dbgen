@@ -74,7 +74,7 @@ class BaseQuery(Extract[T]):
     def length(self, *, connection: 'SAConnection' = None, **_) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
-        rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
+        rows: int = connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
         return rows
 
     def setup(
@@ -88,7 +88,7 @@ class BaseQuery(Extract[T]):
             result = connection.execute(text(self.query), **self.params)
             return result.yield_per(yield_per).mappings()  # type: ignore
         else:
-            result = connection.execute(text(self.query))
+            result = connection.execute(text(self.query), **self.params)
             return result.mappings()  # type: ignore
 
 
@@ -106,21 +106,20 @@ class ExternalQuery(BaseQuery[T]):
             connection=connection,
         )
 
-    def set_extractor(
+    def setup(
         self,
-        *,
         connection: Union['SAConnection', 'Session'] = None,
         yield_per: Optional[int] = None,
         **kwargs,
-    ) -> None:
+    ) -> GenType[Result[T], None, None]:
         engine = self.connection.get_engine()
         with engine.connect() as conn:
             if yield_per:
-                result = conn.execute(text(self.query))
-                self._extractor = result.yield_per(yield_per).mappings()
+                result = conn.execute(text(self.query), **self.params)
+                return result.yield_per(yield_per).mappings()  # type: ignore
             else:
-                result = conn.execute(text(self.query))
-                self._extractor = result.mappings()
+                result = conn.execute(text(self.query), **self.params)
+                return result.mappings()  # type: ignore
 
 
 @overload
