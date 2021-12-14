@@ -17,12 +17,22 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from sqlalchemy.orm.util import _ORMJoin
 from sqlalchemy.schema import Table as SATable
-from sqlalchemy.sql.elements import BinaryExpression, BindParameter, ColumnElement, TextClause
+from sqlalchemy.sql.elements import (
+    BinaryExpression,
+    BindParameter,
+    ClauseList,
+    ColumnClause,
+    ColumnElement,
+    TextClause,
+)
 from sqlalchemy.sql.expression import Alias, BooleanClauseList, Function, Label  # type: ignore
 from sqlalchemy.sql.expression import Select as _Select
 from sqlalchemy.sql.schema import Column as SAColumn
 
 from dbgen.exceptions import QueryParsingError
+from dbgen.utils.lists import flatten
+
+# TODO Allow for arrow expressions
 
 
 def expand_clause_list(clause_statement):
@@ -69,12 +79,12 @@ def expand_col(column: ColumnElement):
         return [column]
     elif isinstance(column, Label):
         return expand_col(column.element)
-    elif isinstance(column, Function):
-        return expand_clause_list(column)
     elif isinstance(column, BinaryExpression):
         return [*expand_col(column.left), *expand_col(column.right)]
     elif isinstance(column, (BindParameter, TextClause)):
         return []
+    elif getattr(column, 'get_children', None):
+        return list(flatten(map(expand_col, column.get_children())))
     else:
         raise NotImplementedError(f"Unknown selected column type:\n{column}\n{type(column)}")
 
@@ -108,7 +118,7 @@ def get_from_dependency(from_statement: Union[_ORMJoin, ColumnElement]):
             fks.add(child)
         elif isinstance(child, SAColumn):
             columns.update(expand_col(child))
-        elif isinstance(child, (_ORMJoin, ColumnElement)):
+        elif isinstance(child, (_ORMJoin, ColumnElement, ClauseList)):
             c_columns, c_tables, c_fks = get_from_dependency(child)
             tables.update(c_tables)
             columns.update(c_columns)
@@ -195,10 +205,14 @@ def _parse_column(column: Any) -> Tuple[str, str]:
             expanded_col = expand_col(column)
             marker = expanded_col
             return (col_key, marker)
-        elif isinstance(column, Function):
+        elif isinstance(column, ColumnClause):
+            expanded_col = expand_col(column)
+            if len(expanded_col) == 0:
+                return (column.name, None)
+        elif isinstance(column, (Function, BinaryExpression)):
             raise QueryParsingError(
                 "SQLAlchemy Functions need to be labeld due to the imprecise naming of function columns in sqlalchemy.\n"
-                f"Try something like \"{column.name}(YOUR_COLUMN).label('my_{column.name}')\""
+                f"Try something like \"{getattr(column,'name','COLUMN_NAME')}(YOUR_COLUMN).label('my_column_name')\""
             )
     except QueryParsingError:
         raise

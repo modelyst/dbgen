@@ -79,17 +79,21 @@ class BaseQuery(Extract[T]):
 
     def setup(
         self,
-        connection: Union['SAConnection', 'Session'] = None,
+        connection: 'SAConnection' = None,
         yield_per: Optional[int] = None,
         **kwargs,
     ) -> GenType[Result[T], None, None]:
         assert connection, f"Need to pass in connection when setting the extractor"
         if yield_per:
-            result = connection.execute(text(self.query), **self.params)
-            return result.yield_per(yield_per).mappings()  # type: ignore
+            result = connection.execution_options(stream_results=True).execute(
+                text(self.query), **self.params
+            )
+            while chunk := result.fetchmany(yield_per):
+                for row in chunk:
+                    yield dict(row)
         else:
             result = connection.execute(text(self.query), **self.params)
-            return result.mappings()  # type: ignore
+            yield from result.mappings()
 
 
 class ExternalQuery(BaseQuery[T]):
@@ -116,10 +120,10 @@ class ExternalQuery(BaseQuery[T]):
         with engine.connect() as conn:
             if yield_per:
                 result = conn.execute(text(self.query), **self.params)
-                return result.yield_per(yield_per).mappings()  # type: ignore
+                yield from result.yield_per(yield_per).mappings()  # type: ignore
             else:
                 result = conn.execute(text(self.query), **self.params)
-                return result.mappings()  # type: ignore
+                yield from result.mappings()  # type: ignore
 
 
 @overload

@@ -27,6 +27,8 @@ BasicType = TypeVar('BasicType', int, float, str, bytes, Path)
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 T3 = TypeVar('T3')
+T4 = TypeVar('T4')
+T5 = TypeVar('T5')
 Output = TypeVar('Output')
 
 
@@ -95,6 +97,16 @@ class ComputationalNode(Base, Generic[Output]):
 
     def run(self, namespace: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         return {}
+
+    @overload
+    def results(
+        self: 'ComputationalNode[Tuple[T1,T2,T3,T4,T5]]',
+    ) -> Tuple[Arg[T1], Arg[T2], Arg[T3], Arg[T4], Arg[T5]]:
+        ...
+
+    @overload
+    def results(self: 'ComputationalNode[Tuple[T1,T2,T3,T4]]') -> Tuple[Arg[T1], Arg[T2], Arg[T3], Arg[T4]]:
+        ...
 
     @overload
     def results(self: 'ComputationalNode[Tuple[T1,T2,T3]]') -> Tuple[Arg[T1], Arg[T2], Arg[T3]]:

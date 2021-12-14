@@ -30,6 +30,7 @@ class Transform(ComputationalNode[Output]):
     pass
 
 
+# TODO add better error messaging when user passes in a non-arg to pyblock
 class PyBlock(Transform[Output]):
 
     env: Optional[Env] = Field(default_factory=lambda: Env(imports=set()))

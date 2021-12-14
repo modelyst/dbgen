@@ -123,7 +123,7 @@ def validate_model_str(model_str: str) -> Model:
                 exc_str = traceback.format_exc()
                 raise basic_error(
                     ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__, "#" * 24 + "\n", str(exc_str)]
-                )
+                ) from exc
             if isinstance(model, Model):
                 return model
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
@@ -131,10 +131,8 @@ def validate_model_str(model_str: str) -> Model:
         raise basic_error(ERROR_NOT_MODEL, [model_str, type(model).__name__])
     except ModuleNotFoundError as exc:
         if "No module" in str(exc):
-            raise basic_error(ERROR_MODULE, [module, package, str(exc)])
-        raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
-    except AttributeError as exc:
-        raise typer.BadParameter(str(exc))
+            raise basic_error(ERROR_MODULE, [module, package, str(exc)]) from exc
+        raise basic_error(ERROR_PACKAGE, [module, package, str(exc)]) from exc
 
 
 CONNECT_ERROR = "Cannot connect to database({name!r}) with connection string {url}. You can test your connection with dbgen connect --test"

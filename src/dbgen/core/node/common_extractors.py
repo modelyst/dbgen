@@ -12,9 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import re
 from pathlib import Path
 from typing import Generator as GenType
-from typing import List, Optional, Pattern
+from typing import List, Optional
 
 from pydantic import DirectoryPath
 
@@ -23,7 +24,7 @@ from dbgen.core.node.extract import Extract
 
 class FileExtractor(Extract[Path]):
     directory: DirectoryPath
-    pattern: Optional[Pattern]
+    pattern: Optional[str]
     recursive: bool = False
     outputs: List[str] = ['file_name']
     _file_paths: List[Path]
@@ -31,7 +32,7 @@ class FileExtractor(Extract[Path]):
     def setup(self, **_):
         file_gen = self.directory.rglob('*') if self.recursive else self.directory.iterdir()
         self._file_paths = [
-            x for x in file_gen if x.is_file() and (self.pattern is None or self.pattern.search(x.name))
+            x for x in file_gen if x.is_file() and (self.pattern is None or re.search(self.pattern, x.name))
         ]
 
     def extract(self) -> GenType[Path, None, None]:

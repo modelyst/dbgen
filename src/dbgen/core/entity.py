@@ -41,6 +41,7 @@ from sqlalchemy.sql.base import ImmutableColumnCollection
 from sqlalchemy.sql.schema import Table
 from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
+from dbgen.configuration import config as dbgen_config
 from dbgen.core.args import ArgLike, Const
 from dbgen.core.attribute import Attribute
 from dbgen.core.base import Base, BaseMeta
@@ -81,12 +82,12 @@ def __dataclass_transform__(
 
 valid_kwargs_names = {
     '__identifying__',
+    '__annotations__',
     '_hashexclude_',
     '_hashinclude_',
     'table',
     'registry',
     'all_identifying',
-    '__annotations__',
     'force_validation',
 }
 
@@ -153,7 +154,7 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         schema = getattr(cls, schema_key, "") or overwrite_parent(bases, schema_key)
         table_args = getattr(cls, "__table_args__", None) or dict().copy()
         if not schema:
-            schema = "public"
+            schema = dbgen_config.main_schema
         if schema:
             setattr(cls, schema_key, schema)
             table_args = table_args.copy()
@@ -287,15 +288,19 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
             missing = cls.__identifying__ - set(kwargs)
             if missing:
                 err = (
-                    "Cannot refer to a row in {} without a PK or essential data."
-                    " Missing essential data: {}"
+                    f"Cannot refer to a row in {name} without a PK or essential data."
+                    f" Missing essential data: {missing}\n"
+                    f" Did you provide the primary_key to the wrong column name? the correct column name is the table name (i.e. {name}=...)"
                 )
-                raise DBgenMissingInfo(err.format(name, missing))
+                raise DBgenMissingInfo(err)
         if insert:
             required_fields = {key for key, val in cls.__fields__.items() if val.required}
             missing_required = required_fields - set(kwargs)
             if missing_required:
-                err = "Cannot insert a row in {} without a required data." " Missing required data: {}"
+                err = (
+                    "Cannot insert a row into table {!r} without a required data."
+                    " Missing required data: {}"
+                )
                 raise DBgenMissingInfo(err.format(name, missing_required))
         # Iterate through the columns to ensure we have no unknown kwargs
         class_columns: List[Column] = list(cls._columns()) or []
@@ -387,6 +392,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
             None,
             foreign_key=f"{cls.__fulltablename__}.{load_entity.primary_key_name}",
             primary_key=primary_key,
+            sa_column_kwargs={'index': True},
         )
 
 

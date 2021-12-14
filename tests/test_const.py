@@ -12,12 +12,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Store useful python type hints for use in project."""
-from typing import Any, Callable, Optional, Type, Union
-from uuid import UUID
+from dbgen import Const, Entity
 
-import sqlalchemy.types as sa_types
 
-COLUMN_TYPE = Union[Type[sa_types.TypeEngine], sa_types.TypeEngine]
-NoArgAnyCallable = Callable[[], Any]
-IDType = Optional[UUID]
+class Boring(Entity, table=True):
+    __identifying__ = {"dict_attr"}
+    dict_attr: dict
+
+
+list_of_dicts = [{"key": i} for i in range(3)]
+
+
+def test_list_of_dicts_const():
+    Boring.load(insert=True, dict_attr=Const(list_of_dicts))

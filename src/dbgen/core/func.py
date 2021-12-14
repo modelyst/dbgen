@@ -29,6 +29,7 @@ from inspect import (
 )
 from os.path import exists
 from pathlib import Path
+from textwrap import dedent
 from types import LambdaType
 from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Set, TypeVar, Union
 
@@ -386,7 +387,7 @@ def get_short_lambda_source(lambda_func):
 lambda_pattern = r"\s*(\w+)\s*=\s*(lambda.*)"
 lambda_regex = re.compile(lambda_pattern)
 
-
+# TODO parsing functions with multiline decoration
 def get_callable_source_code(f: Callable) -> str:
     """
     Return the source code, even if it's lambda function.
@@ -415,12 +416,16 @@ def get_callable_source_code(f: Callable) -> str:
         if source_code:
             return source_code
 
-    # Handle 'def'-ed functions and long lambdas
-    if source_lines[0].strip().startswith("@"):
-        src = "".join(source_lines[1:]).strip()
-    else:
-        src = "".join(source_lines).strip()
-
+    # If we have regular def function() type function we need to parse out any decorators
+    # to do this we parse the function with ast and remove any lines that are not relevant
+    source_code = dedent(''.join(source_lines))
+    source_ast = ast.parse(source_code)
+    # Get the first FunctionDef node by walking through the parsed ast tree
+    function_node = next((node for node in ast.walk(source_ast) if isinstance(node, ast.FunctionDef)), None)
+    if function_node is None:
+        raise ValueError(f"Can't parse function:\n{source_code}")
+    src = ''.join(source_lines[function_node.lineno - 1 : function_node.end_lineno])
+    src = dedent(src).strip()
     if len(source_lines) > 1 and src[:3] == "def":
         return src
 

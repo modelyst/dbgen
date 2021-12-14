@@ -85,3 +85,11 @@ class SerializationError(DBgenException):
 
 class RepeatException(DBgenException):
     """Error raised when serializing and deserializing dbgen objects."""
+
+
+class DatabaseError(DBgenException):
+    """Error raised when interacting with the database"""
+
+
+class ValidationError(DBgenException):
+    """Error raised when data fails validation"""

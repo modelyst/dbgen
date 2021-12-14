@@ -108,7 +108,7 @@ def transform(function=None, *, env: Optional[Env] = None, outputs: List[str] = 
             if outputs is None and sig.return_annotation:
                 annotation = sig.return_annotation
                 origin = get_origin(annotation)
-                if origin is not None and issubclass(origin, (list, tuple)):
+                if origin is not None and origin is not Union and issubclass(origin, (list, tuple)):
                     args = get_args(annotation)
                     bad_args = list(filter(lambda x: not isinstance(x, type), args))
                     if not bad_args:

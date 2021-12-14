@@ -46,6 +46,7 @@ class DBgenConfiguration(BaseSettings):
     """Settings for the pg4j, especially database connections."""
 
     main_dsn: PostgresqlDsn = parse_obj_as(PostgresqlDsn, "postgresql://postgres@localhost:5432/dbgen")
+    main_schema: str = "public"
     main_password: SecretStr = ""  # type: ignore
     meta_dsn: Optional[PostgresqlDsn]
     meta_schema: str = "dbgen_log"
@@ -109,7 +110,7 @@ def update_config(config_file: 'Path') -> DBgenConfiguration:
 
 
 def get_connections(config: DBgenConfiguration) -> Tuple['Connection', 'Connection']:
-    main_conn = Connection.from_uri(config.main_dsn, password=config.main_password)
+    main_conn = Connection.from_uri(config.main_dsn, config.main_schema, password=config.main_password)
     meta_dsn = config.meta_dsn or config.main_dsn
     meta_password = config.meta_password or config.main_password
     meta_conn = Connection.from_uri(meta_dsn, config.meta_schema, meta_password)

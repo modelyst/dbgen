@@ -28,6 +28,7 @@ from dbgen.core.context import ModelContext
 from dbgen.core.entity import BaseEntity
 from dbgen.core.generator import Generator
 from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
+from dbgen.exceptions import DatabaseError
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
@@ -178,7 +179,10 @@ class Model(Base):
 
         assert isinstance(schemas, Iterable), f"schemas must be iterable: {schemas}"
         # Drop the expected tables
-        metadata.drop_all(engine)
+        try:
+            metadata.drop_all(engine)
+        except sqlalchemy.exc.InternalError as exc:
+            raise DatabaseError("Error occurred during nuking. Please drop the schema manually...") from exc
         # Iterate through the schemas this metadata describes and drop all the tables within them
         for schema in schemas:
             self._logger.info(f"Nuking the schema={schema!r}...")

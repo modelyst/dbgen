@@ -76,9 +76,12 @@ def run_model(
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
     start: Optional[str] = typer.Option(None, help="Generator to start run at"),
     until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
-    batch: Optional[int] = typer.Option(None, help="Batch size for all generators"),
     level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteGenerator Runner'),
     bar: bool = typer.Option(True, help="Show progress bar"),
+    skip_row_count: bool = typer.Option(False, help="Show progress bar"),
+    skip_on_error: bool = typer.Option(False, help="Skip a row in generator on error"),
+    batch: Optional[int] = typer.Option(None, help="Batch size for all generators in run."),
+    batch_number: int = typer.Option(10, help="Default number of batches per generator."),
     pdb: bool = typer.Option(False, '--pdb', help="Drop into pdb on breakpoints"),
     config_file: Path = config_option,
     remote: bool = typer.Option(True, help='Use the RemoteGenerator Runner'),
@@ -114,8 +117,11 @@ def run_model(
         exclude=exclude,
         include=include,
         progress_bar=bar,
-        batch_size=batch,
         log_level=level,
+        skip_row_count=skip_row_count,
+        skip_on_error=skip_on_error,
+        batch_size=batch,
+        batch_number=batch_number,
     )
     if not bar:
         add_stdout_logger(root_logger, stdout_level=run_config.log_level)
