@@ -62,12 +62,13 @@ mkdocs-pymdownx-material-extras = "^1.5.4"
 mkdocstrings = "^0.16.2"
 mypy = {git = "https://github.com/python/mypy.git"}
 pdocs = "^1.1.1"
+pre-commit = "^2.16.0"
+pydocstyle = "^6.1.1"
 pytest = "^6.2.5"
 pytest-benchmark = "^3.4.1"
 pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 pytest-xdist = "^2.5.0"
-pydocstyle = "^6.1.1"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
