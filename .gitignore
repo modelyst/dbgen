@@ -135,3 +135,10 @@ bin/
 /scratch/
 .DS_STORE
 git_version
+
+# Local Netlify folder
+.netlify
+# Local benchmark folder
+.benchmarks
+
+.venv/

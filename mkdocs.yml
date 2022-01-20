@@ -70,9 +70,14 @@ plugins:
               - "!^_" # exlude all members starting with _
               - "^__init__$" # but always include __init__ modules and methods
 nav:
-  - DBgen: index.md
-  - Getting Started: getting_started.md
+  - Introduction: index.md
   - Installation: installation.md
+  - Getting Started: getting_started.md
+  - DBgen Overview and Concepts: overview_and_concepts.md
+  - Tutorial: tutorial.md
+  - Running and Debugging Models: running_and_debugging.md
+  - Common Errors: common_errors.md
+  - Technical Documentation: technical_documentation.md
   - License: license.md
 extra_css:
   - css/termynal.css
