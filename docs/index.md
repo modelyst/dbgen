@@ -87,38 +87,10 @@ Many tools exist to orchestrate python workflows. However, these tools often oft
 
 1. An [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) tool (see [Hibernate](http://hibernate.org/orm/) for Java or [SQLAlchemy](https://www.sqlalchemy.org/) for Python)
 
-   - DBGen utilizes the popular SQLAlchemy ORM to operate at an even higher level extraction, allowing the users to build pipelines and schema without actively thinking about the database tables or insert and select statements required to connect the workflow together.
+   - DBGen utilizes the popular SQLAlchemy ORM to operate at an even higher level of abstraction, allowing the users to build pipelines and schema without actively thinking about the database tables or SQL insert and select statements required to populate the database.
 
 2. A database manager (see
    [MySQLWorkbench](https://www.mysql.com/products/workbench/),
    [DBeaver](https://dbeaver.io/), [TablePlus](https://tableplus.com/),
    etc.)
-3. An opinionated tool with a particular schema for scientific data /
-   theories.
-
-## Getting DBgen
-
-### Via Github
-
-Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.7 to install the package.
-```Bash
-{!../docs_src/installation/git_installation.sh!}
-```
-### Via Pip
-```Bash
-pip install modelyst-dbgen
-```
-
-### API documentation
-
-Documentation of modules and classes can be found in
-API docs \</modules\>.
-
-#### Reporting bugs
-
-Please report any bugs and issues at DBgen's [Github Issues
-page](https://github.com/modelyst/dbgen/issues).
-
-## License
-
-DBgen is released under the [Apache 2.0 License](license/).
+3. An tool that can only be used with specific schemas.
