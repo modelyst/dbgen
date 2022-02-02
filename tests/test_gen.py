@@ -132,7 +132,7 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
     query = BaseQuery.from_select_statement(statement)
     assert query.length(connection=connection) == num_users
     pyblock = PyBlock(function=transform_func, inputs=[query["label"]])
-    u_load = User.load(user=query["id"], new_label=pyblock["out"])
+    u_load = User.load(id=query["id"], new_label=pyblock["out"])
     run = RunEntity()
     sess.add(run)
     sess.commit()

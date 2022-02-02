@@ -282,7 +282,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
                 raise ValueError(f"Non-jsonable constant value found: {arg_name}\n{invalid_arg}")
 
         # get PK
-        pk = kwargs.pop(name, None)
+        pk = kwargs.pop('id', None)
         # if we don't have a PK reference check for missing ID info
         if not pk:
             missing = cls.__identifying__ - set(kwargs)

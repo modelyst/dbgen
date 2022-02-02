@@ -25,4 +25,4 @@ black src/dbgen tests docs_src --check
 isort --version
 isort src/dbgen tests docs_src --check-only
 mypy --version
-mypy --config setup.cfg src/dbgen
+mypy --config setup.cfg --no-increment src/dbgen
