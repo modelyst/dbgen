@@ -88,7 +88,8 @@ def broadcast(*args: Sequence[T]) -> Generator[Tuple[T, ...], None, None]:
     num_active = len(iterators)
     empty_lists = [l for l in args if len(l) == 0]
     if empty_lists:
-        yield from ([] for _ in range(num_active))
+        # If there are empty lists return N empty lists
+        yield from ([] for _ in range(num_active))  # type: ignore
         return
     fillvalue: Dict[int, T] = {}
     if not num_active:

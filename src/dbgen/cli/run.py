@@ -19,7 +19,9 @@ from typing import List, Optional
 from uuid import UUID
 
 import typer
-from prettytable import ALL, PrettyTable
+from rich.console import Console
+from rich.table import Column, Table
+from rich.text import Text
 from sqlmodel import Session, select
 
 import dbgen.cli.styles as styles
@@ -47,6 +49,7 @@ def status(
         [], '-s', '--status', help='Filter out only statuses that match input val'
     ),
 ):
+    column_dict = {'error': Column('Error'), 'status': Column('Status', style='green')}
     _, meta_conn = initialize()
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
@@ -60,11 +63,30 @@ def status(
         *(c.name for c in GeneratorRunEntity.__table__.c if c.name not in filtered_keys),
     ]
     show_cols = {col: col.replace('number_of_', '') for col in columns}
-    table = PrettyTable(field_names=show_cols.values(), align='l', hrules=ALL)
+    table = Table(
+        *[column_dict.get(col, col) for col in show_cols],
+        title='run',
+        show_lines=True,
+        highlight=True,
+        border_style='magenta',
+    )
+    status_map = {'failed': 'white on red', 'completed': 'green', 'excluded': 'grey'}
+
+    def style(key, col):
+        if key == 'status':
+            return Text(str(col), style=status_map.get(col))
+        elif key == 'memory_usage':
+            return f"{col:3.1f} MB" if col else ''
+        elif key == 'runtime':
+            return f"{col} (s)" if col else 'N/A'
+        return str(col)
 
     for row in get_runs(run_id, meta_engine, all_runs, statuses, last):
-        table.add_row([row[col] for col in show_cols.keys()])
-    styles.theme_typer_print(str(table))
+        table.add_row(
+            *[style(key, row[key]) for (key, col) in show_cols.items()],
+        )
+    console = Console()
+    console.print(table)
 
 
 @run_app.callback(invoke_without_command=True)
@@ -106,6 +128,12 @@ def run_model(
     """Run a model."""
     if ctx.invoked_subcommand is not None:
         return
+    # Start connection from config
+    main_conn, meta_conn = initialize(config_file)
+    # Use config model_str if none is provided
+    if model_str is None:
+        model_str = config.model_str
+    # validate the model_str
     model = validate_model_str(model_str)
     styles.delimiter(styles.typer.colors.GREEN)
     styles.good_typer_print(f"Running model {model.name}...")
@@ -132,8 +160,6 @@ def run_model(
         error = "\n".join(lines)
         raise typer.BadParameter(f"Invalid run configuration parameters passed:\n{error}")
 
-    # Start connection from config
-    main_conn, meta_conn = initialize(config_file)
     # Test each connection with simple select command
     logger.debug('testing connections')
     for name, conn in (('main', main_conn), ('meta', meta_conn)):

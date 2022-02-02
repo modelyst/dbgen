@@ -51,6 +51,7 @@ class DBgenConfiguration(BaseSettings):
     meta_dsn: Optional[PostgresqlDsn]
     meta_schema: str = "dbgen_log"
     meta_password: Optional[SecretStr] = None
+    model_str: str = 'model.main:make_model'
     temp_dir: Path = Path(tempfile.gettempdir())
     validation: ValidationEnum = ValidationEnum.COERCE
     pdb: bool = False

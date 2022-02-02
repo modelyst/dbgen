@@ -14,9 +14,16 @@
 
 import contextlib
 import logging
-import sys
 from enum import Enum
 from io import StringIO
+from logging import Formatter
+
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.traceback import install
+
+install()
+console = Console()
 
 
 class LogLevel(str, Enum):
@@ -31,7 +38,7 @@ def get_log_level(log_level: LogLevel):
     return getattr(logging, log_level)
 
 
-def capture_stdout(func, level: int = logging.INFO):
+def capture_stdout(func):
     def wrapped(*args, **kwargs):
         logger = logging.getLogger(f"dbgen.pyblock.{func.name}")
         stream = StringIO()
@@ -39,26 +46,22 @@ def capture_stdout(func, level: int = logging.INFO):
             output = func(*args, **kwargs)
         stdout = stream.getvalue().strip()
         if stdout:
-            logger.log(level, stdout)
+            logger.debug(stdout)
         return output
 
     return wrapped
 
 
-def setup_logger(level: LogLevel = LogLevel.INFO, log_to_stdout=True):
+def setup_logger(level: LogLevel = LogLevel.DEBUG, log_to_stdout=True):
     custom_logger = logging.getLogger("dbgen")
     custom_logger.propagate = True
     custom_logger.setLevel(get_log_level(level))
     return custom_logger
 
 
-def add_stdout_logger(logger, stdout_level: LogLevel = LogLevel.WARNING):
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    formatter = logging.Formatter(log_format)
-    console_handler = logging.StreamHandler(stream=sys.stdout)
-    console_handler.setFormatter(formatter)
+def add_stdout_logger(logger, stdout_level: LogLevel = LogLevel.DEBUG):
     level_val = get_log_level(stdout_level)
-    if level_val < logger.level:
-        logger.setLevel(level_val)
-    console_handler.setLevel(level_val)
-    logger.addHandler(console_handler)
+    rich_handler = RichHandler(level=level_val, markup=True, console=console)
+    log_format = r"[magenta]\[%(name)s][/magenta] - %(message)s"
+    rich_handler.setFormatter(Formatter(log_format))
+    logger.addHandler(rich_handler)

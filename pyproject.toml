@@ -32,18 +32,18 @@ version = "0.5.15"
 Jinja2 = "^3.0.1"
 SQLAlchemy = "^1.4.25"
 boto3 = "^1.18.42"
-colorama = "^0.4.4"
-modelyst-sqlmodel = "^0.0.5"
+modelyst-sqlmodel = "^0.0.7"
 networkx = "^2.6.3"
-prettytable = "^2.2.1"
 psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
 pydantic = {version = "^1.8.2", extras = ["dotenv"]}
-pydasher = "^0.0.12"
+pydasher = "^0.0.13"
 python = ">=3.7,<4.0"
 tqdm = "^4.62.2"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
+psutil = "^5.9.0"
+cookiecutter = {version = "^1.7.3", optional = true}
 
 [tool.poetry.dev-dependencies]
 Faker = "^9.7.1"
@@ -60,7 +60,7 @@ mkdocs-markdownextradata-plugin = "^0.2.4"
 mkdocs-material = "^7.3.3"
 mkdocs-pymdownx-material-extras = "^1.5.4"
 mkdocstrings = "^0.16.2"
-mypy = {git = "https://github.com/python/mypy.git"}
+mypy = "^0.930"
 pdocs = "^1.1.1"
 pre-commit = "^2.16.0"
 pydocstyle = "^6.1.1"
@@ -69,6 +69,10 @@ pytest-benchmark = "^3.4.1"
 pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 pytest-xdist = "^2.5.0"
+rich = "^11.0.0"
+
+[tool.poetry.extras]
+cookiecutter = ["cookiecutter"]
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

@@ -19,7 +19,8 @@ from typing import List
 from uuid import UUID
 
 import typer
-from prettytable import ALL, PrettyTable
+from rich.console import Console
+from rich.table import Table
 from sqlalchemy import update
 from sqlmodel import Session, select
 
@@ -51,12 +52,19 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
     if tags:
         statement = statement.where(ModelEntity.tags.op('&&')(tags))  # type: ignore
     columns = ['id', 'name', 'created_at', 'last_run', 'tags']
-    table = PrettyTable(field_names=columns, align='l', hrules=ALL)
+    table = Table(
+        *columns,
+        title='run',
+        show_lines=True,
+        highlight=True,
+        border_style='magenta',
+    )
     with Session(meta_engine) as session:
         result = session.exec(statement)
         for model_id, model_name, created_at, last_run, tags in result:
-            table.add_row((model_id, model_name, created_at, last_run, tags))
-    styles.theme_typer_print(str(table))
+            table.add_row(*map(str, (model_id, model_name, created_at, last_run, tags)))
+    console = Console()
+    console.print(table)
 
 
 @model_app.command('tag')

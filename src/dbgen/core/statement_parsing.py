@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 """Parsing utilities for extracting dependencies from SQL Alchemy select statements."""
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 from sqlalchemy.orm.util import _ORMJoin
 from sqlalchemy.schema import Table as SATable
@@ -105,7 +105,7 @@ def get_select_dependency(select_stmt: _Select):
     return columns, tables, fks
 
 
-def get_from_dependency(from_statement: Union[_ORMJoin, ColumnElement]):
+def get_from_dependency(from_statement: Union[_ORMJoin, ColumnElement, ClauseList]):
     tables = set()
     columns = set()
     fks = set()
@@ -176,7 +176,7 @@ def get_statement_dependency(
 
 
 def _get_select_keys(select_statement: _Select) -> List[str]:
-    output_keys: Dict[str, str] = {}
+    output_keys: Dict[str, Optional[str]] = {}
 
     for column in select_statement.selected_columns:
         col_key, marker = _parse_column(column)
@@ -189,7 +189,7 @@ def _get_select_keys(select_statement: _Select) -> List[str]:
     return list(output_keys.keys())
 
 
-def _parse_column(column: Any) -> Tuple[str, str]:
+def _parse_column(column: Any) -> Tuple[str, Optional[str]]:
 
     try:
         if isinstance(column, SAColumn):
@@ -208,7 +208,10 @@ def _parse_column(column: Any) -> Tuple[str, str]:
         elif isinstance(column, ColumnClause):
             expanded_col = expand_col(column)
             if len(expanded_col) == 0:
-                return (column.name, None)
+                if isinstance(str, column.name):
+                    column.name = cast(str, column.name)  # type: ignore
+                    return (column.name, None)
+                raise QueryParsingError(f"Unknown column name: {column}")
         elif isinstance(column, (Function, BinaryExpression)):
             raise QueryParsingError(
                 "SQLAlchemy Functions need to be labeld due to the imprecise naming of function columns in sqlalchemy.\n"

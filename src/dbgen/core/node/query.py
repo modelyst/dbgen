@@ -90,10 +90,10 @@ class BaseQuery(Extract[T]):
             )
             while chunk := result.fetchmany(yield_per):
                 for row in chunk:
-                    yield dict(row)
+                    yield dict(row)  # type: ignore
         else:
             result = connection.execute(text(self.query), **self.params)
-            yield from result.mappings()
+            yield from result.mappings()  # type: ignore
 
 
 class ExternalQuery(BaseQuery[T]):
