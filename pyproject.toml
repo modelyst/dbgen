@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.16"
+version = "0.5.17"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
@@ -40,7 +40,8 @@ psycopg = "^3.0.1"
 psycopg2-binary = "^2.9.1"
 pydantic = {version = "^1.8.2", extras = ["dotenv"]}
 pydasher = "^0.0.13"
-python = ">=3.7,<4.0"
+python = ">=3.8,<4.0"
+rich = "^11.1.0"
 tqdm = "^4.62.2"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
