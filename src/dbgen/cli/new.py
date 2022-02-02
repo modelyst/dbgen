@@ -16,7 +16,15 @@ from enum import Enum
 from pathlib import Path
 
 import typer
-from cookiecutter.main import cookiecutter  # type: ignore
+
+from dbgen.cli.styles import bad_typer_print
+
+try:
+    from cookiecutter.main import cookiecutter  # type: ignore
+
+    has_cookiecutter = True
+except ImportError:
+    has_cookiecutter = False
 
 # Create project from the cookiecutter-pypackage.git repo template
 new_app = typer.Typer(name='new')
@@ -24,7 +32,6 @@ new_app = typer.Typer(name='new')
 
 class Template(str, Enum):
     SIMPLE = 'simple'
-    COMPLEX = 'complex'
 
 
 complexity_map = {
@@ -39,6 +46,13 @@ def new(
     output_dir: Path = typer.Option(Path('.'), '--output', '-o'),
     config_file: Path = typer.Option(None, '--config', '-c'),
 ):
+    if not has_cookiecutter:
+        from dbgen import __version__
+
+        bad_typer_print(
+            f"cookiecutter extra not installed, please install with command:\npip install 'modelyst-dbgen[cookiecutter]'=={__version__}"
+        )
+        raise typer.Exit(code=2)
     template_url = complexity_map.get(template, template)
     typer.secho(f'Downloading template from {template_url}...', fg='green')
     cookiecutter(
