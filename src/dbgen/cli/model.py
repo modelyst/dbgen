@@ -25,9 +25,9 @@ from sqlalchemy import update
 from sqlmodel import Session, select
 
 import dbgen.cli.styles as styles
-from dbgen.cli.options import config_option, model_arg_option
-from dbgen.cli.utils import test_connection, validate_model_str
-from dbgen.configuration import initialize
+from dbgen.cli.options import config_option, model_arg_option, model_string_option, verbose_option
+from dbgen.cli.utils import state, test_connection, validate_model_str
+from dbgen.configuration import config, initialize
 from dbgen.core.metadata import ModelEntity
 
 model_app = typer.Typer(name='model', no_args_is_help=True)
@@ -142,3 +142,22 @@ def model_export(
 
     out_file.write_text(dumps(graph_json))
     styles.good_typer_print(f"Wrote serialized graph to {out_file}")
+
+
+@model_app.command('validate')
+def validate(
+    model_str: str = model_string_option, config_file: Path = config_option, _verbose: bool = verbose_option()
+):
+    """Quick utility method for quickly validating a model will compile without any need for database connections."""
+    # Start connection from config
+    initialize(config_file)
+    # Use config model_str if none is provided
+    if model_str is None:
+        model_str = config.model_str
+    model = validate_model_str(model_str)
+    styles.good_typer_print(f"Model(name={model.name!r}) was successfully validated")
+    styles.good_typer_print(
+        f'Model contains {len(model.generators)} generators and {len(model.registry.metadata.tables)} two entities.'
+    )
+    if state['verbose']:
+        styles.good_typer_print(f'Model contains {len(model.generators)} generators.')

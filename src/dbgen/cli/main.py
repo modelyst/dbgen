@@ -38,10 +38,10 @@ app.add_typer(new_app, name='new')
 
 @app.command()
 def print_logo():
-    typer.echo(styles.LOGO_STYLE)
+    styles.console.print(styles.LOGO_STYLE)
 
 
-app.command("version")(lambda: typer.echo(styles.LOGO_STYLE))
+app.command("version")(lambda: styles.console.print(styles.LOGO_STYLE))
 
 
 @app.command(name="config")

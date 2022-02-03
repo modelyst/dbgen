@@ -45,7 +45,7 @@ WORKDIR ${DBGEN_HOME}
 # Install poetry
 RUN pip install "poetry==$POETRY_VERSION"
 # Add the lock file
-COPY poetry.lock pyproject.toml  ${DBGEN_HOME}
+COPY poetry.lock pyproject.toml  ${DBGEN_HOME}/
 
 
 # Set environment
