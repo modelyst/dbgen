@@ -1,255 +1,112 @@
-<!--
-   Copyright 2021 Modelyst LLC
+## Introduction
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+In this tutorial, we walk through a series of lessons that demonstrate the usage of DBgen's core functionality.
 
-       http://www.apache.org/licenses/LICENSE-2.0
+In this tutorial, Alice and Bob run a lab in which researchers make temperature measurements. First, we'll add the researchers' names into the database from a CSV. Next, we'll show how to use custom parsers to import temperature data stored in a directory of text files. Finally, we'll show a very simple analysis of the data: converting the temperature from F to C.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
- -->
 
-# Usage
 
-This page walks through an extended example which can expose new users
-to elements of the DBgen code base.
+## Models
 
-## The scenario
+A Model is the conceptually "largest" object in DBgen. A Model contains all of the information required to build a database. When defining a Model, there are two key steps:
+- Define the tables and columns that will exist in your database.
+- Define the procedure for populating those tables with actual data.
 
-![image](img/jvcurve.png)
+In order to accomplish the first step, we need to understand DBgen "Entities," and in order to accomplish the second step, we need to understand DBgen "Extracts", Transforms", Loads", and "Generators". These concepts are introduced below.
 
-> Consider a materials science example of analyzing experimental solar
-> cell data.
+## Entities
 
-### Schema Graph vs Fact Graph
-
-The scientist's knowledge is formalized in two data structures, a
-_schema graph_ and an _ETL graph_. The schema graph declares what
-entities exist and what relations hold between them. This structure maps
-neatly onto the notion of a schema for a relational database, and a
-database with this structure (populated with the correct contents) is
-the end result of running a DBgen model. In this example, our entities
-are J-V curves (the result of an experiment) and material samples. Note
-the edge sample_id indicates a many-to-one relationship, i.e. each
-material could have multiple J-V curve-measuring experiments done on it.
-The process of constructing this via DBgen will be discussed further
-below.
-
-![image](img/schemagraph.png)
-
-> The ETL graph is defined in reference to the schema graph and concerns
-> specifying the process by which the schema is populated with instance
-> data. The figure below shows an example fact; at a high level, the
-> relevant metric to derive from the raw experimental data is a _fill
-> factor_, and this metric is itself computed from three independent facts
-> derivable from an experiment's raw data. Again, the code that can
-> specify this process will be demonstrated below.
-
-![image](img/factgraph.png)
-
-## Defining the Schema Graph
-
-The schema is specified by providing a list of entities. Each entity represents
-one table. Entities have attributes (the columns of the table)and foreign keys
-to other entitesLet's walk through defining entities, attributes, and foreign
-keys one step at a time.
-
-# Defining Entities
-Using DBgen, entities are defined by subclassing dbgen.core.entity.EntityID with
+Using DBgen, entities are defined by subclassing dbgen.core.entity.Entity with
 table=True.
+
+Let's define a table called Person to store information about Alice and Bob's
+researchers. In the example below, we define the Person table with just three
+attributes: first_name, last_name, and age.
+
+
+DBgen Entity is a subclass of Pydantic's SQLModel. Therefore, the syntax for adding
+attributes to DBgen entities is the same as adding properties to Pydantic
+SQLModels (attribute_name: data_type).
+
+Additionally, we can give the table a name that will be used when creating the
+database by setting the `__tablename__` attribute. This way, the name of your
+python class and your database table don't need to be the same.
+
+We can make columns optional (null values allowed) by wrapping the data type
+with `Optional[]`, where `Optional` is imported from python's `typing` built-in
+library.
 
 ```python3
 {!../docs_src/tutorial/tutorial000.py!}
 ```
 
-This defines a database table called SimplestPossibleTable, which has no columns
-and is therefore not very useful in any practical application.
 
-# Adding Attributes
-DBgen EntityID's subclass Pydantic SQLModels. Therefore, the syntax for adding
-attributes to DBgen entities is the same as adding properties to Pydantic
-SQLModels (attribute_name: data_type). In the example below, we define the
-Sample table from the JV-curve example by adding attributes.
+### Identifying Attributes
+Finally, you'll notice that we have set an attribute called `__identifying__`.
 
-```python3
-{!../docs_src/tutorial/tutorial001.py!}
-```
-
-# Identifying Attributes
 The distinction between identifying and non-identifying attributes is important
 in DBgen. The identifying attributes answer the question, "what defines one row
 in this table?" The identifying information is the minimum set of information
 that is guaranteed to return one row. In more technical terms, the primary key
 for each row in a table created using DBgen is a hash of that row's identifying
-attributes. For example, if we defined a "Person" table, we could choose to make
-the following columns identifying: first name, last name, birthday, and
-hometown. This design choice would make it impossible for there to be two rows
-in the person table with the same first name, last name, and birthday. We could
-instead choose to make social security number (SSN) the one identifying
-attribute. This design choice would allow for multiple rows with the same first
-name, last name, and birthday, but it would require a person's SSN to be known
-in order to insert rows into the database.
+attributes. In this case, we have specified that a row in this table fully identified by the person's first and last name. With this design decision, it is impossible for us to insert two people with the same first and last name into the database. 
 
-Non-identifying attributes are simply additional information that may or may not
-be known for a given row and may or may not be added to a row after the time the
-row is created. For example, we may add height and favorite food as
-non-identifying columns to our person table.
 
-In DBgen, the identifying attributes are specified by setting the
-\__identifying__ attribute in the table's class definition, as shown below:
+### Adding foreign keys
+
+Foreign keys specify the relationships between the entities in the schema. For
+example, in this example, the same person may make many temperature
+measurements. Let's define a table to capture temperature measurements, which
+order they were captured in, and who recorded them.
+
+```python3
+{!../docs_src/tutorial/tutorial001.py!}
+```
+
+## Populating Tables
+
+The three steps for populating tables are always: 1) extract, 2) transform, 3) load.
+
+Let's walk through the code for populating the person table with data. Let's say
+that the names of the researchers are currently stored in a .csv file that has
+columns first_name, last_name, and age, which looks like this:
+
+```
+{!../docs_src/tutorial/names.csv!}
+```
+
+### Extract
+
+First, we must write an Extract to get the data out of the file system. When defining extracts, we always subclass the Extract class, which is imported from DBgen.
+
+Next, we define an attribute named "outputs" which always contains a list of strings that specify the names of the outputs. For example, in this CSV extract, we are just going to return one row of the csv at a time, so we have named the output "row."
+
+Next, we can define any additional attributes that we want to supply when creating an instance of our Extract class later. In this case, the one attribute we will need is the location of the csv, which we have named `data_dir`.
+
+Finally, if any internal attributes (not supplied by the user at the time of creating an instance) are needed for our extract class to function, we define those as `PrivateAttr`'s as shown below.
+
+All that remains is to overwrite two methods: setup and extract. `setup` is always run before `extract`. In this case, all we do in the `setup` method is read the csv.
+
+The `extract` method must be a generator that yields a dictionary where the keys are the names of the outputs. In this case, we have just one output named "row."
 
 ```python3
 {!../docs_src/tutorial/tutorial002.py!}
 ```
 
-# Adding foreign keys
+### Transform
 
-Foreign keys specify the relationships between the entities in the schema. For
-example, in this tutorial's example, many J-V curves can be measured using the
-same solar cell sample. Therefore, we should add a foreign key from the JVCurve
-table to the Sample table. The syntax for doing that is shown below.
+Next, we will walk through transforms and loads.
+
+A `transform` is simply a function with an `@transform` decorator. In the decorator, we define the output names of the function and the python environment required to execute the function. We will walk through custom python environments in a later section of the tutorial.
 
 ```python3
 {!../docs_src/tutorial/tutorial003.py!}
 ```
 
-# Inheritance
-Notice that both Samples and JVCurves have  `created` and `created_by` as
-attributes. Instead of defining these twice, we can instead define a base class
-that both the Sample and the JVCurve class inherit from. Since the base class is
-not a table in the database, it is defined as a DBGen EntityID with table=False.
-The syntax for doing this is shown below.
+### Load
+
+Finally, we need to create a DBgen "Generator" and add it to our model. The Generator contains the extract, transform, and load steps.
 
 ```python3
 {!../docs_src/tutorial/tutorial004.py!}
 ```
-
-## Defining the ETL Graph
-
-Each node in the ETL graph is called a Generator and has a similar structure:
-Extract, Transform, Load. We'll go through these step-by-step
-
-# Extracts
-
-The source of the data for a given node in the ETL graph could be either the
-database itself or an outside source. When the source of the data is outside the
-database, defining a custom Extract is useful. To do this, we sublcass the dbgen
-`Extract` class and overwrite the extract method. This method should be a python
-generator, so `yield` should be used rather than `return`. Optionally, we can
-overwrite the `length` method so that the custom extract can tell DBgen how many
-items it expects to yield. This enables features like the progress bar.
-Additionally, if there is some initial setup or final teardown that needs to be
-done in the extract, the `setup` and `teardown` methods can be overwritten.
-`setup` is always run before `extract` or `length` are called, and `teardown` is
-run at the end (`extract` and `length` are never called after `teardown`). So,
-internal variables can be set in the `setup` and safely be used in the
-`extract`. It is important to note that extracts must yield dictionaries. This
-is so that the outputs are named (by their keys) and DBgen will know what data
-to pass as arguments to other nodes in the ETL graph. Below is a very simple
-custom extract that gets CSV files.
-
-
-```python3
-{!../docs_src/tutorial/tutorial005.py!}
-```
-
-# Transforms
-
-Transforms are simply python functions with a decorator added to specify the
-environment and the names of the inputs and outputs.
-
-```python3
-{!../docs_src/tutorial/tutorial006.py!}
-```
-
-It is important to note that because we added the decorator to the function
-definition, the name parse_jv_csv no longer refers to a python function.
-Instead, it refers to a DBgen Transform. The Generators section below shows how
-DBgen Transforms are used in context.
-
-# Loads
-
-Loads are performed by calling the `load` classmethod on the `Entity` subclass
-for the table we want to insert into. All of the identifying information for
-that table must be supplied as keyword arguments when the `load` classmethod is
-called. If we intend for the load to insert new rows (and not just update
-existing rows), `insert=True` must also be passed to the `load` classmethod.
-Just to show its simplicity, the line below shows a load statement to insert
-rows into the JVCurve table, populating three columns: full path, open circuit
-voltage, and short circuit current density.
-
-```python3
-{!../docs_src/tutorial/tutorial007.py!}
-```
-Taken out of context, this isn't very interesting, so, let's add some context to
-this line by putting the extract, transform, and load all together into a
-Generator.
-
-# Generators
-
-When a generator is defined, the actual code for the extracts, transforms, and
-loads are not run. That happens later when the model is run. Defining a
-generator simply stitches together the computational graph. In other words, we
-are wiring the proper outputs from the extract to the proper inputs of the
-transform and load, and we are wiring the proper outputs from the transform to
-the proper inputs of the load.
-
-```python3
-{!../docs_src/tutorial/tutorial008.py!}
-```
-
-
-
-First, we created an instance of our custom LocalCSVExtract class and
-passing in the data directory using an environment variable (this assumes that
-the DATA_DIR environment variable is already set elsewhere to be a folder
-containing jv curve csv's). We also assign the output of the e By creating this insance in the
-with block for this generator, the extract is automatically added to this
-generator.
-
-Next, we assign the `file_path` key to a variable called `file_path`. The type
-of this variable is a DBgen `Arg`, not a string. We are simply specifying where
-the actual file path string will be sent when the model is rub. Again, in this
-code, we are only wiring together the computational graph, not executing it.
-
-Next, we see the transform definition copied directly from the Transforms
-section above. After that, in the line `voc, jsc =
-parse_jv_csv(file_path).results()`, by passing `file_path` (a DBgen Arg, which
-knows that it is the output of the extract at key 'file_path') to parse_jv_csv,
-we are specifying that, when the model is run, DBgen should go to the dictionary
-yielded by the extract, look for key 'file_path', and pipe the string that it
-finds there to the first input of the parse_jv_csv function. By calling
-`.results()` on the transform, we get back a tuple of DBgen Args, which know
-that they are the outputs of the parse_jv_csv function. Finally, in the load
-statement, we again pass DBgen Args, this time to the load method of the table
-we would like to insert into, specifying which outputs from the extract and
-transform should be sent to which columns in the database.
-
-# Models
-
-A model is simply a set of generators. So, once the generators are defined, they
-need to be added to the model. There are two ways to do that. The generators can
-be added by defining them within a with block, as shown below.
-
-```python3
-{!../docs_src/tutorial/tutorial009.py!}
-```
-
-Alternatively, generators can be added using `model.add_gen(generator)`.
-
-Whichever syntax is used, we must define a function that returns a model. This
-function is what will be passed as a command line argument when the model is
-actually run. Below is a complete example with pared down elements of everything
-discussed above. This example creates a table called JVCurve with three columns
-and populates them.
-
-```python3
-{!../docs_src/tutorial/tutorial010.py!}
-```
-
-Finally, to run the model, run `dbgen run --model path.to.model:make_model`
