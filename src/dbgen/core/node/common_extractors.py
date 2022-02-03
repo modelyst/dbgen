@@ -32,10 +32,11 @@ class FileExtractor(Extract[Path]):
     def setup(self, **_):
         file_gen = self.directory.rglob('*') if self.recursive else self.directory.iterdir()
         self._file_paths = [
-            x for x in file_gen if x.is_file() and (self.pattern is None or re.search(self.pattern, x.name))
+            {'file_name':x} for x in file_gen if x.is_file() and (self.pattern is None or re.search(self.pattern, x.name))
         ]
 
     def extract(self) -> GenType[Path, None, None]:
+        self.setup()
         yield from self._file_paths
 
     def length(self, **_):

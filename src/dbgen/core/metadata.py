@@ -107,6 +107,7 @@ class GeneratorRunEntity(Root, registry=meta_registry, table=True):
     inputs_processed: int = 0
     rows_inserted: int = 0
     rows_updated: int = 0
+    memory_usage: float = 0.0
     query: Optional[str]
     error: Optional[str]
     run: RunEntity = Relationship(back_populates='generator_runs')

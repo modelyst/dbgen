@@ -107,6 +107,7 @@ def run_model(
     pdb: bool = typer.Option(False, '--pdb', help="Drop into pdb on breakpoints"),
     config_file: Path = config_option,
     remote: bool = typer.Option(True, help='Use the RemoteGenerator Runner'),
+    run_async: bool = typer.Option(False, '--async', help='Use the RemoteGenerator Runner'),
     no_conf: bool = typer.Option(
         False,
         "--no-confirm",
@@ -151,7 +152,7 @@ def run_model(
         batch_size=batch,
         batch_number=batch_number,
     )
-    if not bar:
+    if not bar or run_async:
         add_stdout_logger(root_logger, stdout_level=run_config.log_level)
     # Validate the run configuration parameters
     invalid_run_config_vals = run_config.get_invalid_markers(model)
@@ -172,7 +173,13 @@ def run_model(
         config.pdb = pdb
     try:
         out_run = model.run(
-            main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed, remote=remote
+            main_engine,
+            meta_engine,
+            run_config,
+            nuke=nuke,
+            rerun_failed=rerun_failed,
+            remote=remote,
+            run_async=run_async,
         )
     except exceptions.SerializationError as exc:
         raise typer.BadParameter(

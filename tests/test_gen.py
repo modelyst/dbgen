@@ -21,6 +21,7 @@ from sqlmodel import Session, func, select
 
 import tests.example.entities as entities
 from dbgen.core.args import Const
+from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
 from dbgen.core.func import Import
 from dbgen.core.generator import Generator
@@ -53,7 +54,7 @@ def test_basic_graph_sort(basic_generator: Generator):
     """Ensure a simple Query->PyBlock->Load is sorted correctly."""
     graph = basic_generator._computational_graph()
     assert len(graph) == 3
-    sorted_nodes = basic_generator._sort_graph()
+    sorted_nodes = basic_generator._sort_nodes()
     query, transform, load = sorted_nodes
     assert isinstance(query, BaseQuery)
     assert isinstance(transform, PyBlock)
@@ -61,8 +62,8 @@ def test_basic_graph_sort(basic_generator: Generator):
 
 
 def test_basic_graph_in_place(basic_generator: Generator):
-    """Ensure that changes to the output of ._sort_graph() are in place and affect the generator as well."""
-    query, transform, load = basic_generator._sort_graph()
+    """Ensure that changes to the output of ._sort_nodes() are in place and affect the generator as well."""
+    query, transform, load = basic_generator._sort_nodes()
     assert isinstance(load, Load)
     load.run({transform.hash: {"newnames": ("1", "2")}})
     assert load._output == basic_generator._sorted_loads()[0]._output
@@ -146,3 +147,27 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
     )
     connection.commit()
     gen.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
+
+
+def test_generator_transform():
+    """test the ._transform method on generator"""
+
+    @transform
+    def add_one(x):
+        return x + 1
+
+    @transform
+    def add(x, y):
+        return x + y
+
+    with Generator(name='test') as gen:
+        first_transform = add_one(Const(1))
+        second_transform = add_one(first_transform.results())
+        third_tform = add(first_transform.results(), second_transform.results())
+        x = entities.Parent.load(type=Const('Dummy'), label=third_tform.results(), insert=True)
+    rows_to_load = {x.hash: {}}
+    output, _ = gen._transform({}, rows_to_load)
+    assert output[first_transform.pyblock.hash]['out'] == 2
+    assert output[second_transform.pyblock.hash]['out'] == 3
+    assert output[third_tform.pyblock.hash]['out'] == 5
+    assert len(output[x.hash]['parent_id']) == 1

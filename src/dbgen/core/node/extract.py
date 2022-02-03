@@ -59,22 +59,8 @@ class Extract(ComputationalNode[T]):
 
     def run(self, _: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         try:
-            output = next(self._extractor)
-            if output is None:
-                return {}
-            elif isinstance(output, Mapping):
-                return dict(output)
-            elif isinstance(output, Sequence):
-                l1, l2 = len(output), len(self.outputs)
-                if l1 != l2:
-                    raise ValueError(f"Expected {l2} from extract {self}, but got {l1}")
-                return {name: val for name, val in zip(self.outputs, output)}
-            else:
-                if len(self.outputs) != 1:
-                    raise ValueError(
-                        f"{self} expected multiple outputs but output a {type(output)} which cannot have its length measured"
-                    )
-                return {list(self.outputs)[0]: output}
+            row = next(self._extractor)
+            return self.process_row(row)
         except StopIteration:
             return None
 
@@ -87,6 +73,23 @@ class Extract(ComputationalNode[T]):
             self._extractor = self.extract()
         else:
             raise NotImplementedError(f"No way of getting the extractor from extract {self}")
+
+    def process_row(self, row):
+        if row is None:
+            return {}
+        elif isinstance(row, Mapping):
+            return dict(row)
+        elif isinstance(row, Sequence):
+            l1, l2 = len(row), len(self.outputs)
+            if l1 != l2:
+                raise ValueError(f"Expected {l2} from extract {self}, but got {l1}")
+            return {name: val for name, val in zip(self.outputs, row)}
+        else:
+            if len(self.outputs) != 1:
+                raise ValueError(
+                    f"{self} expected multiple outputs but output a {type(row)} which cannot have its length measured"
+                )
+            return {list(self.outputs)[0]: row}
 
     def __str__(self):
         return f"{self.__class__.__qualname__}<outputs= {self.outputs}>"

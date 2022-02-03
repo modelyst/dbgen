@@ -33,6 +33,7 @@ from typing import (
     overload,
 )
 from uuid import UUID
+from psycopg import AsyncConnection
 
 from sqlalchemy import Column, DateTime
 from sqlalchemy.orm import registry
@@ -290,7 +291,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
                 err = (
                     f"Cannot refer to a row in {name} without a PK or essential data."
                     f" Missing essential data: {missing}\n"
-                    f" Did you provide the primary_key to the wrong column name? the correct column name is the table name (i.e. {name}=...)"
+                    " Did you provide the primary_key to the wrong column name? the correct column name is the table name (i.e. id=...)"
                 )
                 raise DBgenMissingInfo(err)
         if insert:
@@ -377,6 +378,59 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         with connection.cursor() as curs:
             curs.execute(drop_temp_table)
         connection.commit()
+
+    # TODO Refactor async and non async quickload
+    @classmethod
+    async def _async_quick_load(
+        cls, connection: AsyncConnection, rows: Iterable[Iterable[Any]], column_names: List[str]
+    ) -> None:
+        """Bulk load many rows into entity"""
+        from dbgen.templates import jinja_env
+
+        # Temporary table to copy data into
+        # Set name to be hash of input rows to ensure uniqueness for parallelization
+        temp_table_name = f"{cls.__tablename__}_temp_load_table"
+
+        load_entity = cls._get_load_entity()
+        # Need to create a temp table to copy data into
+        # Add an auto_inc column so that data can be ordered by its insert location
+        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
+        create_temp_table = """
+        CREATE TEMPORARY TABLE {temp_table_name} AS
+        TABLE {schema}.{obj}
+        WITH NO DATA;
+        ALTER TABLE {temp_table_name}
+        ADD COLUMN auto_inc SERIAL NOT NULL;
+        """.format(
+            obj=load_entity.name,
+            schema=load_entity.schema_,
+            temp_table_name=temp_table_name,
+        )
+        insert_template = jinja_env.get_template("insert.sql.jinja")
+        template_args = dict(
+            obj=load_entity.name,
+            obj_pk_name=load_entity.primary_key_name,
+            temp_table_name=temp_table_name,
+            all_column_names=column_names,
+            schema=load_entity.schema_,
+            first=False,
+            update=True,
+        )
+        insert_statement = insert_template.render(**template_args)
+        col_str = ','.join(map(lambda x: f"\"{x}\"", column_names))
+        async with connection.cursor() as cursor:
+            await cursor.execute(drop_temp_table)
+            await cursor.execute(create_temp_table)
+        await connection.commit()
+        async with connection.cursor() as cursor:
+            # Load data into temp table
+            async with cursor.copy(f'COPY {temp_table_name} ({col_str}) FROM STDIN') as copy:
+                for row_curr in rows:
+                    await copy.write_row(row_curr)
+            await cursor.execute(insert_statement)
+            await cursor.execute(drop_temp_table)
+
+        await connection.commit()
 
     @classmethod
     def clear_registry(cls):

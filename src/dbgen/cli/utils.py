@@ -23,6 +23,7 @@ import typer
 
 from dbgen.cli.styles import LOGO_STYLE, bad_typer_print
 from dbgen.core.model import Model
+from dbgen.utils.log import setup_logger
 
 if TYPE_CHECKING:
     from dbgen.utils.sql import Connection  # pragma: no cover
@@ -37,7 +38,7 @@ ERROR_NOT_MODEL = "Import String is not for a DBgen Model: \nImport String: {0}\
 ERROR_NOT_MODEL_FUNCTION = "Import String is for a function that does not produce a DBgen Model: \nImport String: {0}\nOutput Class: {1}"
 ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1} \n{2}{3}"
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('dbgen.cli')
 
 state = {"confirm": True, 'verbose': True}
 
@@ -138,7 +139,6 @@ def validate_model_str(model_str: str) -> Model:
                     ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__, "#" * 24 + "\n", str(exc_str)]
                 ) from exc
             if isinstance(model, Model):
-                sys.path.remove(cwd)
                 return model
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
 

@@ -84,10 +84,9 @@ class PyBlock(Transform[Output]):
                 return {list(self.outputs)[0]: output}
         except (DBgenSkipException, DBgenPyBlockError):
             raise
-        except Exception:
+        except Exception as e:
             msg = f"Error encountered while applying function named {self.function.name!r}"
-            self._logger.exception(format_exc())
-            raise DBgenExternalError(msg)
+            raise DBgenExternalError(msg) from e
 
     def __call__(self, *args, **kwargs) -> Output:
         return self.function(*args, **kwargs)

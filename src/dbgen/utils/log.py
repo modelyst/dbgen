@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import contextlib
+from distutils.core import setup
 import logging
 from enum import Enum
 from io import StringIO
@@ -59,7 +60,9 @@ def setup_logger(level: LogLevel = LogLevel.DEBUG, log_to_stdout=True):
     return custom_logger
 
 
-def add_stdout_logger(logger, stdout_level: LogLevel = LogLevel.DEBUG):
+def add_stdout_logger(logger=None, stdout_level: LogLevel = LogLevel.DEBUG):
+    if not logger:
+        logger = setup_logger()
     level_val = get_log_level(stdout_level)
     rich_handler = RichHandler(level=level_val, markup=True, console=console)
     log_format = r"[magenta]\[%(name)s][/magenta] - %(message)s"

@@ -14,13 +14,13 @@
 
 from typing import List, Optional
 from uuid import UUID, uuid4
-
+from time import sleep
 import requests
 from pydantic import HttpUrl
 from pydantic.tools import parse_obj_as
 from sqlalchemy.sql.expression import text
 from sqlmodel import Session, select
-
+import asyncio
 from dbgen import Const, Entity, Extract, Generator, Model, Query
 from dbgen.configuration import config, get_engines
 from dbgen.core.node.transforms import PyBlock
@@ -29,18 +29,27 @@ from dbgen.core.node.transforms import PyBlock
 class CustomJsonExtract(Extract):
     url: HttpUrl = parse_obj_as(HttpUrl, 'https://jsonplaceholder.typicode.com/posts')
     outputs: List[str] = ['out', 'uuid']
+    _response: dict
 
     def setup(self, **_):
         self._response = requests.get(self.url).json()
         self._response += [{}]
 
     def extract(self):
+        self._response = requests.get(self.url).json()
+        self._response += [{}]
         for row in self._response:
             row['uuid'] = uuid4()
+            sleep(0.05)
             yield {'out': row, 'uuid': row['uuid']}
 
+    async def async_extract(self):
+        async for row in self.extract():
+            yield row
+            await asyncio.sleep(0.00005)
+
     def length(self, **_):
-        return len(self._response)
+        return 100
 
 
 class JSONEntityBase(Entity):

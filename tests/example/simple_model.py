@@ -26,7 +26,7 @@ from dbgen.core.generator import Generator
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock, apply_pyblock
+from dbgen.core.node.transforms import PyBlock
 from tests.example.database import sql_engine
 
 

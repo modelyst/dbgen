@@ -18,6 +18,7 @@ from typing import Optional, TypeVar, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
 from sqlmodel.engine.result import Result
 from sqlmodel.sql.expression import Select, SelectOfScalar
 
@@ -34,6 +35,8 @@ if TYPE_CHECKING:
 SCHEMA_DEFAULT = "public"
 
 T = TypeVar('T')
+
+postgresql_dialect = postgresql.dialect()
 
 
 class BaseQuery(Extract[T]):
@@ -73,9 +76,24 @@ class BaseQuery(Extract[T]):
 
     def length(self, *, connection: 'SAConnection' = None, **_) -> int:
         assert connection
-        count_statement = f"select count(1) from ({self.query}) as X;"
-        rows: int = connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
+        rows: int = connection.execute(text(f'select count(1) from ({self.query}) as X'), **self.params).scalar()  # type: ignore
         return rows
+
+    async def _async_length(self, *, connection: 'AsyncConnection' = None, **_) -> int:
+        result = await connection.execute(
+            self.count_statement,
+            self.params,
+        )
+        (count,) = await result.fetchone()
+        return count
+
+    @property
+    def compiled_query(self):
+        return str(text(self.query).compile(dialect=postgresql_dialect))
+
+    @property
+    def count_statement(self):
+        return str(text(f'select count(1) from ({self.query}) as X').compile(dialect=postgresql_dialect))
 
     def setup(
         self,

@@ -218,7 +218,7 @@ class BaseGeneratorRun(Base):
             while True:
                 row: Dict[str, Mapping[str, Any]] = {}
                 try:
-                    for node in generator._sort_graph():
+                    for node in generator._sort_nodes():
                         output = node.run(row)
                         # Extract outputs need to be fed to our repeat checker and need to be checked for stop iterations
                         if isinstance(node, Extract):
