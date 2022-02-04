@@ -140,3 +140,5 @@ git_version
 .netlify
 # Local benchmark folder
 .benchmarks
+
+.venv/
