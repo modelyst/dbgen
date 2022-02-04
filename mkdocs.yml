@@ -43,7 +43,7 @@ repo_url: https://github.com/modelyst/dbgen
 markdown_extensions:
   - toc:
       permalink: true
-  - markdown_include.include:
+  - mdx_include:
       base_path: docs
   - attr_list
   - pymdownx.emoji:
@@ -75,7 +75,12 @@ nav:
   - Getting Started: getting_started.md
   - Database Basics and Terminology: database_basics.md
   - DBgen Overview and Concepts: overview_and_concepts.md
-  - Tutorial: tutorial.md
+  - Tutorial:
+    - Directory Structure: tutorial/directory_structure.md
+    - Defining the Schema: tutorial/schema.md
+    - CSV to Database: tutorial/io_gen_simple.md
+    - Custom Text File to Database: tutorial/io_gen_complex.md
+    - Refining Data in the Database: tutorial/etl.md
   - Running and Debugging Models: running_and_debugging.md
   - Common Errors: common_errors.md
   - Technical Documentation: technical_documentation.md
