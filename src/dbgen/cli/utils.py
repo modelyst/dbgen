@@ -13,6 +13,8 @@
 #   limitations under the License.
 
 import logging
+import os
+import sys
 from pathlib import Path
 from types import FunctionType
 from typing import TYPE_CHECKING
@@ -27,15 +29,17 @@ if TYPE_CHECKING:
 
 # Errors
 ERROR_FORMAT = "Model is not in MODULE:PACKAGE format: {0}"
+ERROR_DEFAULT_MODEL = "Could not find model at model.main:make_model.\nThis is the default --model value, did you forget to set --model?"
 ERROR_MODULE = "Could not find module:\nModule: {0}\nPackage: {1}\nError: {2}"
 ERROR_PACKAGE = "Could not find package within module:\nModule: {0}\nPackage: {1}\nError: {2}"
+ERROR_ATTR = "Could not find Attribute within package:\nModule: {0}\nPackage: {1}\nError: {2}"
 ERROR_NOT_MODEL = "Import String is not for a DBgen Model: \nImport String: {0}\nClass: {1}"
 ERROR_NOT_MODEL_FUNCTION = "Import String is for a function that does not produce a DBgen Model: \nImport String: {0}\nOutput Class: {1}"
 ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or required arguments: \nImport String: {0}\nOutput Class: {1} \n{2}{3}"
 
 logger = logging.getLogger(__name__)
 
-state = {"confirm": True}
+state = {"confirm": True, 'verbose': True}
 
 
 # Callback functions for parsing and validating args
@@ -56,6 +60,11 @@ def confirm_nuke(value: bool):
 def set_confirm(value: bool):
     """Auto confirm all prompted values"""
     state["confirm"] = not value
+
+
+def set_verbosity(verbose: bool):
+    """Auto confirm all prompted values"""
+    state["verbose"] = not verbose
 
 
 def file_existence(value: Path):
@@ -95,7 +104,11 @@ def validate_model_str(model_str: str) -> Model:
     Returns:
         Model: the output model after checks are in place
     """
-    basic_error = lambda fmt, val: typer.BadParameter(fmt.format(*val))
+    # Add current workind directory to the path at the end
+    cwd = os.getcwd()
+    sys.path.insert(0, cwd)
+
+    basic_error = lambda fmt, val: typer.BadParameter(fmt.format(*val), param_hint='--model')
 
     if model_str is None:
         raise typer.BadParameter("--model is required.")
@@ -123,18 +136,22 @@ def validate_model_str(model_str: str) -> Model:
                 exc_str = traceback.format_exc()
                 raise basic_error(
                     ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__, "#" * 24 + "\n", str(exc_str)]
-                )
+                ) from exc
             if isinstance(model, Model):
+                sys.path.remove(cwd)
                 return model
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
 
         raise basic_error(ERROR_NOT_MODEL, [model_str, type(model).__name__])
-    except ModuleNotFoundError as exc:
+    except (ModuleNotFoundError, AttributeError) as exc:
+        if model_str == 'model.main:make_model':
+            raise basic_error(ERROR_DEFAULT_MODEL, []) from exc
+
         if "No module" in str(exc):
-            raise basic_error(ERROR_MODULE, [module, package, str(exc)])
-        raise basic_error(ERROR_PACKAGE, [module, package, str(exc)])
-    except AttributeError as exc:
-        raise typer.BadParameter(str(exc))
+            raise basic_error(ERROR_MODULE, [module, package, str(exc)]) from exc
+        if isinstance(exc, AttributeError):
+            raise basic_error(ERROR_ATTR, [module, package, str(exc)]) from exc
+        raise basic_error(ERROR_PACKAGE, [module, package, str(exc)]) from exc
 
 
 CONNECT_ERROR = "Cannot connect to database({name!r}) with connection string {url}. You can test your connection with dbgen connect --test"

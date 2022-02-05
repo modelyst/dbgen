@@ -197,13 +197,13 @@ class Generator(Base):
 
     def add_node(self, node: 'ComputationalNode') -> None:
         if isinstance(node, Extract):
-            if self.extract == DEFAULT_EXTRACT:
+            if self.extract.__class__ == DEFAULT_EXTRACT.__class__:
                 self.extract = node
             else:
                 raise ValueError(
                     f"Can only define 1 extractor per generator\n"
-                    "{self.extract} already defined defined on {self}\n"
-                    "Cannot add extract {node}"
+                    f"{self.extract} already defined defined on {self}\n"
+                    f"Cannot add extract {node}"
                 )
         elif isinstance(node, Transform):
             self.transforms.append(node)

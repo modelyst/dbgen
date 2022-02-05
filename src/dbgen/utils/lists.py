@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from collections.abc import Iterable
 from functools import reduce
 from itertools import repeat
 from typing import Dict, Generator, Sequence, Set, Tuple, TypeVar, overload
@@ -32,7 +33,7 @@ def is_broadcastable(*args) -> bool:
     length_set: Set[int] = reduce(lambda x, y: x.union([len(y)]), args, set())
     # Check lengths
     error_message = f"Found {len(length_set)-(1 in length_set)} different >1-length iterables, cannot broadcast: \nLengths: {length_set}"
-    if not len(length_set) <= 2 or (len(length_set) > 1 and 1 not in length_set):
+    if not len(length_set) <= 2 or (len(length_set) > 1 and 1 not in length_set and 0 not in length_set):
         raise ValueError(error_message)
     return True
 
@@ -85,6 +86,11 @@ def broadcast(*args: Sequence[T]) -> Generator[Tuple[T, ...], None, None]:
     is_broadcastable(*args)
     iterators = [iter(arg) for arg in args]
     num_active = len(iterators)
+    empty_lists = [l for l in args if len(l) == 0]
+    if empty_lists:
+        # If there are empty lists return N empty lists
+        yield from ([] for _ in range(num_active))  # type: ignore
+        return
     fillvalue: Dict[int, T] = {}
     if not num_active:
         return
@@ -95,10 +101,21 @@ def broadcast(*args: Sequence[T]) -> Generator[Tuple[T, ...], None, None]:
                 value = next(it)
                 fillvalue[i] = value
             except StopIteration:
-                num_active -= 1
-                if not num_active:
-                    return
-                iterators[i] = repeat(fillvalue[i])
-                value = fillvalue[i]
+                try:
+                    num_active -= 1
+                    if not num_active:
+                        return
+                    iterators[i] = repeat(fillvalue[i])
+                    value = fillvalue[i]
+                except KeyError:
+                    raise ValueError(f"Error broadcasting lists: {args}")
             values.append(value)
         yield tuple(values)
+
+
+def flatten(thing):
+    for element in thing:
+        if isinstance(element, Iterable) and not isinstance(element, str):
+            yield from flatten(element)
+        else:
+            yield element

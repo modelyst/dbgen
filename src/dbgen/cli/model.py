@@ -19,14 +19,15 @@ from typing import List
 from uuid import UUID
 
 import typer
-from prettytable import ALL, PrettyTable
+from rich.console import Console
+from rich.table import Table
 from sqlalchemy import update
 from sqlmodel import Session, select
 
 import dbgen.cli.styles as styles
-from dbgen.cli.options import config_option, model_arg_option
-from dbgen.cli.utils import test_connection, validate_model_str
-from dbgen.configuration import initialize
+from dbgen.cli.options import config_option, model_arg_option, model_string_option, verbose_option
+from dbgen.cli.utils import state, test_connection, validate_model_str
+from dbgen.configuration import config, initialize
 from dbgen.core.metadata import ModelEntity
 
 model_app = typer.Typer(name='model', no_args_is_help=True)
@@ -41,7 +42,7 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
     tags = tags or []
-    statement = select(
+    statement = select(  # type: ignore
         ModelEntity.id,
         ModelEntity.name,
         ModelEntity.created_at,
@@ -51,12 +52,19 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
     if tags:
         statement = statement.where(ModelEntity.tags.op('&&')(tags))  # type: ignore
     columns = ['id', 'name', 'created_at', 'last_run', 'tags']
-    table = PrettyTable(field_names=columns, align='l', hrules=ALL)
+    table = Table(
+        *columns,
+        title='run',
+        show_lines=True,
+        highlight=True,
+        border_style='magenta',
+    )
     with Session(meta_engine) as session:
         result = session.exec(statement)
         for model_id, model_name, created_at, last_run, tags in result:
-            table.add_row((model_id, model_name, created_at, last_run, tags))
-    styles.theme_typer_print(str(table))
+            table.add_row(*map(str, (model_id, model_name, created_at, last_run, tags)))
+    console = Console()
+    console.print(table)
 
 
 @model_app.command('tag')
@@ -134,3 +142,22 @@ def model_export(
 
     out_file.write_text(dumps(graph_json))
     styles.good_typer_print(f"Wrote serialized graph to {out_file}")
+
+
+@model_app.command('validate')
+def validate(
+    model_str: str = model_string_option, config_file: Path = config_option, _verbose: bool = verbose_option()
+):
+    """Quick utility method for quickly validating a model will compile without any need for database connections."""
+    # Start connection from config
+    initialize(config_file)
+    # Use config model_str if none is provided
+    if model_str is None:
+        model_str = config.model_str
+    model = validate_model_str(model_str)
+    styles.good_typer_print(f"Model(name={model.name!r}) was successfully validated")
+    styles.good_typer_print(
+        f'Model contains {len(model.generators)} generators and {len(model.registry.metadata.tables)} two entities.'
+    )
+    if state['verbose']:
+        styles.good_typer_print(f'Model contains {len(model.generators)} generators.')

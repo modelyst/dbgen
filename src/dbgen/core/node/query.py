@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 from typing import Generator as GenType
 from typing import Optional, TypeVar, Union, overload
 
@@ -38,6 +38,7 @@ T = TypeVar('T')
 
 class BaseQuery(Extract[T]):
     query: str
+    params: Dict[str, Any] = Field(default_factory=dict)
     dependency: Dependency = Field(default_factory=Dependency)
 
     def _get_dependency(self) -> Dependency:
@@ -54,32 +55,45 @@ class BaseQuery(Extract[T]):
             tables_needed=[get_table_name(x) for x in tables],
             columns_needed=[f"{get_table_name(x.table)}.{x.name}" for x in columns.union(fks)],
         )
+        compiled_statement = select_statement.compile()
         return cls(
             inputs=[],
             outputs=outputs,
-            query=str(select_statement),
+            query=str(compiled_statement),
+            params=compiled_statement.params,
             dependency=dependency,
         )
+
+    def render_query(self) -> str:
+        """Stringifies the query with the bound parameters."""
+        compiled_query = (
+            text(self.query).bindparams(**self.params).compile(compile_kwargs={'literal_binds': True})
+        )
+        return str(compiled_query)
 
     def length(self, *, connection: 'SAConnection' = None, **_) -> int:
         assert connection
         count_statement = f"select count(1) from ({self.query}) as X;"
-        rows: int = connection.execute(text(count_statement)).scalar()  # type: ignore
+        rows: int = connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
         return rows
 
     def setup(
         self,
-        connection: Union['SAConnection', 'Session'] = None,
+        connection: 'SAConnection' = None,
         yield_per: Optional[int] = None,
         **kwargs,
     ) -> GenType[Result[T], None, None]:
         assert connection, f"Need to pass in connection when setting the extractor"
         if yield_per:
-            result = connection.execute(text(self.query))
-            return result.yield_per(yield_per).mappings()  # type: ignore
+            result = connection.execution_options(stream_results=True).execute(
+                text(self.query), **self.params
+            )
+            while chunk := result.fetchmany(yield_per):
+                for row in chunk:
+                    yield dict(row)  # type: ignore
         else:
-            result = connection.execute(text(self.query))
-            return result.mappings()  # type: ignore
+            result = connection.execute(text(self.query), **self.params)
+            yield from result.mappings()  # type: ignore
 
 
 class ExternalQuery(BaseQuery[T]):
@@ -96,21 +110,20 @@ class ExternalQuery(BaseQuery[T]):
             connection=connection,
         )
 
-    def set_extractor(
+    def setup(
         self,
-        *,
         connection: Union['SAConnection', 'Session'] = None,
         yield_per: Optional[int] = None,
         **kwargs,
-    ) -> None:
+    ) -> GenType[Result[T], None, None]:
         engine = self.connection.get_engine()
         with engine.connect() as conn:
             if yield_per:
-                result = conn.execute(text(self.query))
-                self._extractor = result.yield_per(yield_per).mappings()
+                result = conn.execute(text(self.query), **self.params)
+                yield from result.yield_per(yield_per).mappings()  # type: ignore
             else:
-                result = conn.execute(text(self.query))
-                self._extractor = result.mappings()
+                result = conn.execute(text(self.query), **self.params)
+                yield from result.mappings()  # type: ignore
 
 
 @overload

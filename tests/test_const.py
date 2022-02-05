@@ -11,3 +11,17 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+from dbgen import Const, Entity
+
+
+class Boring(Entity, table=True):
+    __identifying__ = {"dict_attr"}
+    dict_attr: dict
+
+
+list_of_dicts = [{"key": i} for i in range(3)]
+
+
+def test_list_of_dicts_const():
+    Boring.load(insert=True, dict_attr=Const(list_of_dicts))

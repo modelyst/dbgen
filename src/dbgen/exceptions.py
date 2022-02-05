@@ -67,7 +67,7 @@ class DBgenMissingInfo(DBgenException):
     """Raise when there is missing info in a class/function initialization"""
 
 
-class DBgenInvalidArgument(DBgenException):
+class InvalidArgument(DBgenException):
     """Raise when there is missing info in a class/function initialization"""
 
 
@@ -85,3 +85,11 @@ class SerializationError(DBgenException):
 
 class RepeatException(DBgenException):
     """Error raised when serializing and deserializing dbgen objects."""
+
+
+class DatabaseError(DBgenException):
+    """Error raised when interacting with the database"""
+
+
+class ValidationError(DBgenException):
+    """Error raised when data fails validation"""

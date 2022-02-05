@@ -2,6 +2,7 @@ ARG PYTHON_VERSION="3.8"
 
 # base image
 FROM python:$PYTHON_VERSION-slim-buster as base
+ARG DBGEN_VERSION="0.5.18"
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
@@ -11,6 +12,7 @@ ARG RUNTIME_APT_DEPS="\
     dumb-init \
     postgresql \
     postgresql-client \
+    git \
     sudo "
 
 ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS} \
@@ -50,7 +52,7 @@ ENV ENVIRONMENT=${ENVIRONMENT}
 # Project initialization:
 RUN if [ "$ENVIRONMENT" = "development" ] ; then pip install pytest ; else echo ; fi
 
-RUN pip install modelyst-dbgen
+RUN pip install modelyst-dbgen==$DBGEN_VERSION
 RUN dbgen run --version > dbgen.version
 
 # add entrypoint.sh

@@ -17,6 +17,6 @@
 set -e
 set -x
 
-coverage run -m pytest tests -m 'not database'
+coverage run -m pytest tests
 coverage report --show-missing
 coverage xml

@@ -156,6 +156,11 @@ def test_broadcast():
         list(broadcast(*[[1, 2, 3], (1, 2)]))
 
 
+def test_empty_list_broadcast():
+    out = broadcast(*[[], [1, 2, 3]])
+    assert all(map(lambda x: len(x) == 0, out))
+
+
 def test_load_validation():
     good_kwargs = {
         "load_entity": LoadEntity(name="test", entity_class_str='', primary_key_name="id"),

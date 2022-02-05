@@ -13,12 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 # Write Git version
-python ./scripts/ci/pre_commit_write_gitversion.py
+python ./scripts/ci/pre_commit/pre_commit_write_gitversion.py
 VERSION=$(python -c "from dbgen import __version__; print(__version__)")
 for PYTHON_VERSION in '3.9'
 do
 echo $PYTHON_VERSION
-docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION
+docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry -f ./docker/dbgen/Dockerfile --build-arg PYTHON_VERSION=$PYTHON_VERSION
 # docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry-extras -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION --build-arg EXTRAS="true"
 done
 exit 0

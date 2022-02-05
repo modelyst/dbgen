@@ -29,6 +29,7 @@ from inspect import (
 )
 from os.path import exists
 from pathlib import Path
+from textwrap import dedent
 from types import LambdaType
 from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Set, TypeVar, Union
 
@@ -38,7 +39,7 @@ from typing_extensions import ParamSpec
 
 from dbgen.configuration import config
 from dbgen.core.base import Base
-from dbgen.exceptions import DBgenInternalError, DBgenInvalidArgument
+from dbgen.exceptions import DBgenInternalError, InvalidArgument
 from dbgen.utils.misc import reserved_words
 
 
@@ -386,14 +387,14 @@ def get_short_lambda_source(lambda_func):
 lambda_pattern = r"\s*(\w+)\s*=\s*(lambda.*)"
 lambda_regex = re.compile(lambda_pattern)
 
-
+# TODO parsing functions with multiline decoration
 def get_callable_source_code(f: Callable) -> str:
     """
     Return the source code, even if it's lambda function.
     """
     # Check for built in functions as their source code can not be fetched
     if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
-        raise DBgenInvalidArgument(
+        raise InvalidArgument(
             f"Error getting source code for PyBlock. {f} is a built-in function.\n"
             f"Please wrap in lambda like so: `lambda x: {f.__name__}(x)`"
         )
@@ -412,14 +413,19 @@ def get_callable_source_code(f: Callable) -> str:
 
     if isinstance(f, LambdaType) and f.__name__ == "<lambda>":
         source_code = get_short_lambda_source(f)
-        return source_code
+        if source_code:
+            return source_code
 
-    # Handle 'def'-ed functions and long lambdas
-    if source_lines[0].strip().startswith("@"):
-        src = "".join(source_lines[1:]).strip()
-    else:
-        src = "".join(source_lines).strip()
-
+    # If we have regular def function() type function we need to parse out any decorators
+    # to do this we parse the function with ast and remove any lines that are not relevant
+    source_code = dedent(''.join(source_lines))
+    source_ast = ast.parse(source_code)
+    # Get the first FunctionDef node by walking through the parsed ast tree
+    function_node = next((node for node in ast.walk(source_ast) if isinstance(node, ast.FunctionDef)), None)
+    if function_node is None:
+        raise ValueError(f"Can't parse function:\n{source_code}")
+    src = ''.join(source_lines[function_node.lineno - 1 : function_node.end_lineno])
+    src = dedent(src).strip()
     if len(source_lines) > 1 and src[:3] == "def":
         return src
 
@@ -441,8 +447,14 @@ def get_callable_source_code(f: Callable) -> str:
 
 
 def func_from_callable(func_: Callable[..., Output], env: Optional[Env] = None) -> Func[Output]:
-    """
-    Generate a func from a variety of possible input data types.
+    """Generate a func from a variety of possible input data types.
+
+    Args:
+        func_ (Callable[..., Output]): Python function to convert to Func object
+        env (Optional[Env], optional): Env object to include on the Function. Defaults to None.
+
+    Returns:
+        Func[Output]: Output Func object wrapped around the input function
     """
     if isinstance(env, dict):
         env = Env.from_dict(env)

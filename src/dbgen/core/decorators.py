@@ -13,8 +13,9 @@
 #   limitations under the License.
 import inspect
 from functools import partial
-from typing import Callable, Generic, List, Optional, Tuple, TypeVar, Union, get_args, get_origin, overload
+from typing import Callable, Generic, List, Optional, Tuple, TypeVar, Union, overload
 
+from pydantic.typing import get_args, get_origin
 from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
@@ -28,10 +29,6 @@ T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 T3 = TypeVar('T3')
 T4 = TypeVar('T4')
-
-
-class TypeArg(Arg, Generic[T]):
-    pass
 
 
 class FunctionNode(Generic[In, Out]):
@@ -61,25 +58,25 @@ class FunctionNode(Generic[In, Out]):
         return self._arglist[key]
 
     @overload
-    def results(self: 'FunctionNode[In,Tuple[T1]]') -> Tuple[TypeArg[T1]]:
+    def results(self: 'FunctionNode[In,Tuple[T1]]') -> Tuple[Arg[T1]]:
         ...  # pragma: no cover
 
     @overload
-    def results(self: 'FunctionNode[In,Tuple[T1,T2]]') -> Tuple[TypeArg[T1], TypeArg[T2]]:
+    def results(self: 'FunctionNode[In,Tuple[T1,T2]]') -> Tuple[Arg[T1], Arg[T2]]:
         ...  # pragma: no cover
 
     @overload
-    def results(self: 'FunctionNode[In,Tuple[T1,T2,T3]]') -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3]]:
+    def results(self: 'FunctionNode[In,Tuple[T1,T2,T3]]') -> Tuple[Arg[T1], Arg[T2], Arg[T3]]:
         ...  # pragma: no cover
 
     @overload
-    def results(self: 'FunctionNode[In,T1]') -> TypeArg[T1]:
+    def results(self: 'FunctionNode[In,T1]') -> Arg[T1]:
         ...  # pragma: no cover
 
     @overload
     def results(
         self: 'FunctionNode[In,Tuple[T1,T2,T3,T4]]',
-    ) -> Tuple[TypeArg[T1], TypeArg[T2], TypeArg[T3], TypeArg[T4]]:
+    ) -> Tuple[Arg[T1], Arg[T2], Arg[T3], Arg[T4]]:
         ...  # pragma: no cover
 
     def results(self):
@@ -111,7 +108,7 @@ def transform(function=None, *, env: Optional[Env] = None, outputs: List[str] = 
             if outputs is None and sig.return_annotation:
                 annotation = sig.return_annotation
                 origin = get_origin(annotation)
-                if origin is not None and issubclass(origin, (list, tuple)):
+                if origin is not None and origin is not Union and issubclass(origin, (list, tuple)):
                     args = get_args(annotation)
                     bad_args = list(filter(lambda x: not isinstance(x, type), args))
                     if not bad_args:

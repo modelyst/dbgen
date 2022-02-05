@@ -14,10 +14,16 @@
 
 """Utilities for printing things to screen for CLI."""
 import typer
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.text import Text
+from rich.theme import Theme
 
 from dbgen import __version__
 
 THEME_COLOR = typer.colors.BRIGHT_MAGENTA
+theme = Theme({'theme': 'magenta'})
+console = Console(theme=theme)
 LOGO = """
     ____  ____
    / __ \\/ __ )____ ____  ____
@@ -27,22 +33,23 @@ LOGO = """
             /____/
 """
 
-PRINT_LOGO = f"""
------------------------------------{LOGO}-----------------------------------
-VERSION: {__version__}
------------------------------------
-"""
+VERSION = f"""VERSION: {__version__}"""
 
 
 def delimiter(color: str = THEME_COLOR):
     typer.echo(typer.style("---------------------------------------------", fg=color, bold=True))
 
 
-LOGO_STYLE = typer.style(PRINT_LOGO, blink=True, fg=THEME_COLOR)
+LOGO_STYLE = Panel.fit(
+    Group(Panel(Text(LOGO)), Panel(Text(VERSION, justify='center'))),
+    style='theme',
+)
+
+
 # Easy printers
-typer_print = lambda color: lambda msg: typer.echo(typer.style(msg, fg=color))
-good_typer_print = typer_print(typer.colors.GREEN)
-bad_typer_print = typer_print(typer.colors.RED)
-theme_typer_print = typer_print(THEME_COLOR)
+typer_print = lambda color: lambda msg: console.print(msg, style=color)
+good_typer_print = typer_print('green')
+bad_typer_print = typer_print('red')
+theme_typer_print = typer_print('theme')
 greens = lambda x: typer.style(x, fg=typer.colors.BRIGHT_GREEN)
 reds = lambda x: typer.style(x, fg=typer.colors.BRIGHT_RED)

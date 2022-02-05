@@ -14,15 +14,16 @@
 
 from typing import Any, Dict
 from typing import Generator as GenType
-from typing import Mapping, Optional, TypeVar
+from typing import Mapping, Optional, Sequence, TypeVar, Union
 
-from pydantic.fields import PrivateAttr
+from pydantic import PrivateAttr
 
 from dbgen.core.node.computational_node import ComputationalNode
 
 extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
 
 T = TypeVar('T')
+T1 = TypeVar('T1')
 
 
 class Extract(ComputationalNode[T]):
@@ -34,7 +35,7 @@ class Extract(ComputationalNode[T]):
     Must also be subscriptable to connect to the transforms when coding a model.
     """
 
-    _extractor: GenType[Dict[str, Any], None, None] = PrivateAttr(None)
+    _extractor: GenType[Union[Dict[str, Any], T], None, None] = PrivateAttr(None)
 
     class Config:
         """Pydantic Config"""
@@ -45,8 +46,8 @@ class Extract(ComputationalNode[T]):
     def setup(self, **_) -> Optional[GenType[Any, None, None]]:
         pass
 
-    def extract(self):
-        yield {}
+    def extract(self: 'Extract[T]') -> GenType[T, None, None]:
+        yield {}  # type: ignore
 
     def teardown(self, **_):
         pass
@@ -59,19 +60,33 @@ class Extract(ComputationalNode[T]):
     def run(self, _: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
         try:
             output = next(self._extractor)
+            if output is None:
+                return {}
+            elif isinstance(output, Mapping):
+                return dict(output)
+            elif isinstance(output, Sequence):
+                l1, l2 = len(output), len(self.outputs)
+                if l1 != l2:
+                    raise ValueError(f"Expected {l2} from extract {self}, but got {l1}")
+                return {name: val for name, val in zip(self.outputs, output)}
+            else:
+                if len(self.outputs) != 1:
+                    raise ValueError(
+                        f"{self} expected multiple outputs but output a {type(output)} which cannot have its length measured"
+                    )
+                return {list(self.outputs)[0]: output}
         except StopIteration:
             return None
-        return dict(output)
 
-    def set_extractor(self, *, connection=None, yield_per=None, **kwargs):
-        extractor = self.setup(connection=connection, yield_per=yield_per, **kwargs)
+    def set_extractor(self, *, connection=None, yield_per=None):
+        extractor = self.setup(connection=connection, yield_per=yield_per)
         # Check if setup assigned the extractor already
         if extractor is not None:
             self._extractor = extractor
         elif getattr(self, 'extract', None) and callable(self.extract):
             self._extractor = self.extract()
         else:
-            raise NotImplementedError(f"No way of getting the extractor from this extract")
+            raise NotImplementedError(f"No way of getting the extractor from extract {self}")
 
     def __str__(self):
-        return f"Extract<{self.outputs}>"
+        return f"{self.__class__.__qualname__}<outputs= {self.outputs}>"

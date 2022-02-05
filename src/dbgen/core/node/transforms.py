@@ -30,6 +30,7 @@ class Transform(ComputationalNode[Output]):
     pass
 
 
+# TODO add better error messaging when user passes in a non-arg to pyblock
 class PyBlock(Transform[Output]):
 
     env: Optional[Env] = Field(default_factory=lambda: Env(imports=set()))
@@ -84,8 +85,9 @@ class PyBlock(Transform[Output]):
         except (DBgenSkipException, DBgenPyBlockError):
             raise
         except Exception:
-            msg = f"Error encountered while applying function named {self.function.name!r}:\n\t"
-            raise DBgenExternalError(msg + format_exc())
+            msg = f"Error encountered while applying function named {self.function.name!r}"
+            self._logger.exception(format_exc())
+            raise DBgenExternalError(msg)
 
     def __call__(self, *args, **kwargs) -> Output:
         return self.function(*args, **kwargs)

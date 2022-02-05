@@ -50,6 +50,11 @@ class Arg(ArgLike[T]):
     def __str__(self) -> str:
         return f"Arg({str(self.key)[:4]}...,{self.name})"
 
+    def __iter__(self):
+        raise TypeError(
+            f"You are attempting to iterate/unpack the arg object {self}. This can commonly occur when a Extract or Transform outputs a single output when you expected two. Did you remember to set the outputs on your Extract or Transform?"
+        )
+
     def arg_get(self, namespace: dict) -> T:
         """
         Common interface for Const and Arg to get values out of namespace

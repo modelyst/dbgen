@@ -20,7 +20,7 @@ from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
-from dbgen.core.decorators import node
+from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
@@ -43,7 +43,7 @@ class Child(Entity, registry=my_registry, table=True):
     parent_id: Optional[UUID] = Field(None, foreign_key="public.parent.id")
 
 
-class CustomExtractor(Extract):
+class CustomExtractor(Extract[int]):
     n: int = 1000
 
     def extract(self):
@@ -54,12 +54,12 @@ class CustomExtractor(Extract):
         return self.n
 
 
-@node
+@transform
 def failing_func():
     raise ValueError("Failed")
 
 
-@node
+@transform
 def inputs_skipped():
     from dbgen.exceptions import DBgenSkipException
 
@@ -78,7 +78,7 @@ def make_model():
         with Generator('add_parents_v3'):
             Parent.load(insert=True, label="parent")
 
-        @node
+        @transform
         def concise_func(label: str) -> str:
             return f"{label}-test"
 
@@ -94,8 +94,3 @@ def make_model():
         with Generator('skip_gen'):
             inputs_skipped()
     return model
-
-
-@node
-def funky(val: int) -> tuple[int, str]:
-    return val, str(val)

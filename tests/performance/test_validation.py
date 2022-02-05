@@ -35,7 +35,7 @@ DictStrAny = Dict[str, Any]
 ROOT_KEY = '__root__'
 
 
-class BenchmarkEntity(Entity, table=True, id_all=True):
+class BenchmarkEntity(Entity, table=True, all_identifying=True):
     int_val: int
     str_val: str
     bool_val: bool

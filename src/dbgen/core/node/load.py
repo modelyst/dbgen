@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 import re
+from functools import partial
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
@@ -34,7 +35,9 @@ from uuid import UUID
 import psycopg2
 from psycopg import Connection as PG3Conn
 from psycopg2._psycopg import connection
-from pydantic import Field, PrivateAttr, ValidationError, root_validator, validate_model, validator
+from pydantic import Field, PrivateAttr
+from pydantic import ValidationError as PydValidationError
+from pydantic import root_validator, validate_model, validator
 from pydantic.error_wrappers import ErrorWrapper
 from pydasher import hasher
 from pydasher.import_module import import_string
@@ -45,6 +48,7 @@ from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.core.type_registry import column_registry
+from dbgen.exceptions import ValidationError
 from dbgen.utils.lists import broadcast, is_broadcastable
 
 if TYPE_CHECKING:
@@ -65,6 +69,7 @@ class LoadEntity(Base):
     identifying_attributes: Set[str] = Field(default_factory=dict)
     identifying_foreign_keys: Set[str] = Field(default_factory=set)
     attributes: Dict[str, str] = Field(default_factory=dict)
+    required: Set[str] = Field(default_factory=set)
     foreign_keys: Set[str] = Field(default_factory=set)
     _entity: Optional[Type['BaseEntity']] = PrivateAttr(None)
 
@@ -76,6 +81,7 @@ class LoadEntity(Base):
             f"id_attrs={self.identifying_attributes}, "
             f"id_fks={self.identifying_foreign_keys}, "
             f"attributes={self.attributes}, "
+            f"required={self.required}, "
             f"fks={self.foreign_keys}>"
         )
 
@@ -94,13 +100,24 @@ class LoadEntity(Base):
                 return None
         return self._entity
 
-    def _validate(self, input_data: Dict[str, Any], use_defaults: bool = False):
+    # TODO Merge validate and strict validate into one method
+    # TODO Decide whether use default is a valid flag for dbgen
+    def _validate(self, input_data: Dict[str, Any], use_defaults: bool = False, insert: bool = False):
         entity = self._load_entity()
         if entity is None:
             return input_data
         validated_data, fields_set, errors = validate_model(entity, input_data)
+        # If we have errors during validation check if we are inserting
+        # if we are not inserting we ignore missing values as updates don't require all info
+        # TODO decide whether there is a better way to handle required info
         if errors:
-            raise errors
+            sub_errors = errors.errors()
+            # If insert is not true we cannot check required fields as we are inserting with primary key
+            if not insert:
+                sub_errors = list(filter(lambda x: x.get('type') != 'value_error.missing', sub_errors))
+            # if we still have sub-errors raise the errors to the user
+            if sub_errors:
+                raise errors
         base_fields = {'id', 'gen_id', 'created_at'}
         return {
             k: v
@@ -108,15 +125,20 @@ class LoadEntity(Base):
             if k not in base_fields and (use_defaults or k in fields_set)
         }
 
-    def _strict_validate(self, input_data: Dict[str, Any], use_defaults: bool = False):
+    def _strict_validate(self, input_data: Dict[str, Any], use_defaults: bool = False, insert: bool = False):
+        # Check basic validation
+        self._validate(input_data, use_defaults=use_defaults, insert=insert)
+        # Add additional check for expected type for strict typing
         errors = []
         for key, val in input_data.items():
             type_str = self.attributes[key]
+            # if the type str ends with brackets the expected type is an array
+            # TODO check the elements types for lists
             if type_str.endswith('[]'):
                 expected_type: type = list
             else:
                 expected_type = column_registry[type_str].get_python_type()
-
+            # If the val is not the expected type append a TypeError and continue on so we can collect all the errors
             if not isinstance(val, expected_type):
                 errors.append(
                     ErrorWrapper(
@@ -127,8 +149,9 @@ class LoadEntity(Base):
                         loc=key,
                     )
                 )
+        # If we found any errors raise them
         if errors:
-            raise ValidationError(errors, self.__class__)
+            raise PydValidationError(errors, self.__class__)
         return input_data
 
     def _get_hash(self, arg_dict: Dict[str, Any]) -> UUID:
@@ -256,34 +279,46 @@ class Load(ComputationalNode[T]):
 
     def run(self, row: Dict[str, Mapping[str, Any]]) -> Dict[str, List[UUID]]:
         not_list = lambda x: not isinstance(x, (list, tuple))
-        lists_allowed = (
-            lambda x: self.load_entity.attributes[x].endswith('[]')
-            or self.load_entity.attributes[x] == 'json'
-        )
+        lists_allowed = lambda x: self.load_entity.attributes[x].endswith('[]')
         arg_dict = {
             key: [val] if not_list(val) or lists_allowed(key) else val
             for key, val in sorted(self._get_inputs(row).items())
         }
+        # Check for empty lists, as that will cause the row to be ignored
+        if any(map(lambda x: len(x) == 0, arg_dict.values())):
+            self._logger.debug(f'Row {arg_dict} produced 0 rows for load {self}')
+            return {self.outputs[0]: []}
         # Check for broadcastability
         try:
             is_broadcastable(*arg_dict.values())
         except ValueError as exc:
             raise ValueError(
-                "While assembling rows for loading found two sequences in the inputs to the load with non-equal, >1 length\n"
+                f"While assembling rows for loading into {self} found two sequences in the inputs to the load with non-equal, >1 length\n"
                 "This can occur when two outputs from pyblocks/queries are unequal in length.\n"
                 "If so, please make the relevant cartesian product of the two lists before loading\n"
             ) from exc
-        broadcasted_values = [
-            {key: val for key, val in zip(arg_dict.keys(), row)} for row in broadcast(*arg_dict.values())
-        ]
+        try:
+            broadcasted_values = [
+                {key: val for key, val in zip(arg_dict.keys(), row)} for row in broadcast(*arg_dict.values())
+            ]
+        except ValueError as exc:
+            raise ValueError(
+                f"Error occurred during the loading of row {(str(arg_dict)[:100])} into entity {self.load_entity.full_name}"
+            ) from exc
 
         # Load
         validation = self.validation or config.validation
         if validation == ValidationEnum.STRICT:
-            broadcasted_values = list(map(self.load_entity._strict_validate, broadcasted_values))
+            validation_func = self.load_entity._strict_validate
         elif validation == ValidationEnum.COERCE:
-            broadcasted_values = list(map(self.load_entity._validate, broadcasted_values))
+            validation_func = self.load_entity._validate
 
+        try:
+            broadcasted_values = list(map(partial(validation_func, insert=self.insert), broadcasted_values))
+        except PydValidationError as exc:
+            raise ValidationError(
+                f"Error occurred during data validation while loading into {self.load_entity.full_name!r}:\n{exc}"
+            ) from exc
         # If we have a user supplied Primary Key go get it and broadcast it
         if self.primary_key is not None:
             primary_arg_val = self.primary_key.arg_get(row)

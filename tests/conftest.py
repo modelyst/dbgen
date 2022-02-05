@@ -120,6 +120,7 @@ def debug_logger():
 
 @pytest.fixture(scope='function')
 def recreate_meta(connection):
+    connection.execute(text(f'create schema if not exists {config.meta_schema}'))
     meta_registry.metadata.drop_all(connection)
     meta_registry.metadata.create_all(connection)
     yield

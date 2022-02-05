@@ -40,7 +40,7 @@ class BaseTypeEntity(Entity):
     bool_val: bool
 
 
-class TypeEntity(BaseTypeEntity, all_id=True, table=True, registry=type_registry):
+class TypeEntity(BaseTypeEntity, all_identifying=True, table=True, registry=type_registry):
     __tablename__ = 'type_entity'
     big_int_val: int = Attribute(..., sa_column=Column(BigInteger))
     float_val: float

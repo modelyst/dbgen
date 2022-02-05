@@ -41,12 +41,13 @@ from sqlalchemy.sql.base import ImmutableColumnCollection
 from sqlalchemy.sql.schema import Table
 from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
+from dbgen.configuration import config as dbgen_config
 from dbgen.core.args import ArgLike, Const
 from dbgen.core.attribute import Attribute
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.type_registry import column_registry
-from dbgen.exceptions import DBgenInvalidArgument, DBgenMissingInfo
+from dbgen.exceptions import DBgenMissingInfo, InvalidArgument
 
 
 def inherit_field(
@@ -79,6 +80,18 @@ def __dataclass_transform__(
     return lambda a: a
 
 
+valid_kwargs_names = {
+    '__identifying__',
+    '__annotations__',
+    '_hashexclude_',
+    '_hashinclude_',
+    'table',
+    'registry',
+    'all_identifying',
+    'force_validation',
+}
+
+
 @__dataclass_transform__(
     kw_only_default=True,
     field_descriptors=(
@@ -89,6 +102,12 @@ def __dataclass_transform__(
 )
 class EntityMetaclass(SQLModelMetaclass, BaseMeta):
     def __new__(mcs, name, bases, attrs, **kwargs):
+        # validate kwargs passed in to catch user input errors
+        invalid_kwargs = [name for name in kwargs if name not in valid_kwargs_names]
+        if invalid_kwargs:
+            raise InvalidArgument(
+                f"Unknown kwargs {invalid_kwargs} passed to Entity {name}. The only valid kwargs are {valid_kwargs_names}"
+            )
         # Join the keys from all parents for __identifying__, _hashinclude_, and _hashexclude_
         new_attrs = attrs.copy()
         for value in ("__identifying__", "_hashexclude_", "_hashinclude_"):
@@ -97,10 +116,10 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
                 starting = set(starting)
             new_attrs[value] = starting.union(inherit_field(bases, value))
 
-        if kwargs.get('all_id', False):
+        if kwargs.get('all_identifying', False):
             assert (
                 "__identifying__" not in attrs
-            ), f"Error with Entity {name}. Can't supply both all_id kwarg and __identifying__ attr"
+            ), f"Error with Entity {name}. Can't supply both all_identifying kwarg and __identifying__ attr"
             new_attrs['__identifying__'] = new_attrs['__identifying__'].union(
                 {key for key in attrs.get('__annotations__', {})}
             )
@@ -135,7 +154,7 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
         schema = getattr(cls, schema_key, "") or overwrite_parent(bases, schema_key)
         table_args = getattr(cls, "__table_args__", None) or dict().copy()
         if not schema:
-            schema = "public"
+            schema = dbgen_config.main_schema
         if schema:
             setattr(cls, schema_key, schema)
             table_args = table_args.copy()
@@ -214,13 +233,20 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         all_fks = {col.name: col for col in columns if col.foreign_keys}
 
         # Create the attribute dict which maps attribute name to column type
-        attributes = {}
+        attributes: Dict[str, str] = {}
+        required: Set[str] = set()
         for col_name, col in columns.items():
             try:
                 dt = column_registry[col.type]
+                field = cls.__fields__[col_name]
+                # append [] to the type name if the column is an array type
                 attributes[col_name] = (
                     f"{dt.type_name}[]" if getattr(col.type, '_is_array', False) else dt.type_name
                 )
+                # Check for required fields
+                if field.required:
+                    required.add(col_name)
+
             except KeyError:
                 raise TypeError(
                     f"Cannot parse column {col_name} on table {cls.__tablename__} due to its unknown type {type(col.type)}"
@@ -234,6 +260,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
             entity_class_str=f"{cls.__module__}.{cls.__qualname__}",
             primary_key_name=primary_key_name,
             attributes=attributes,
+            required=required,
             foreign_keys=foreign_keys,
             identifying_attributes=identifying_attributes,
             identifying_foreign_keys=identifying_fks,
@@ -255,17 +282,26 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
                 raise ValueError(f"Non-jsonable constant value found: {arg_name}\n{invalid_arg}")
 
         # get PK
-        pk = kwargs.pop(name, None)
+        pk = kwargs.pop('id', None)
         # if we don't have a PK reference check for missing ID info
         if not pk:
             missing = cls.__identifying__ - set(kwargs)
             if missing:
                 err = (
-                    "Cannot refer to a row in {} without a PK or essential data."
-                    " Missing essential data: {}"
+                    f"Cannot refer to a row in {name} without a PK or essential data."
+                    f" Missing essential data: {missing}\n"
+                    f" Did you provide the primary_key to the wrong column name? the correct column name is the table name (i.e. {name}=...)"
                 )
-                raise DBgenMissingInfo(err.format(name, missing))
-
+                raise DBgenMissingInfo(err)
+        if insert:
+            required_fields = {key for key, val in cls.__fields__.items() if val.required}
+            missing_required = required_fields - set(kwargs)
+            if missing_required:
+                err = (
+                    "Cannot insert a row into table {!r} without a required data."
+                    " Missing required data: {}"
+                )
+                raise DBgenMissingInfo(err.format(name, missing_required))
         # Iterate through the columns to ensure we have no unknown kwargs
         class_columns: List[Column] = list(cls._columns()) or []
         all_attrs = {col.name: col for col in class_columns if not col.foreign_keys}
@@ -274,7 +310,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         fks = {key: col for key, col in kwargs.items() if key not in attrs}
         for fk in fks:
             if fk not in all_fks:
-                raise DBgenInvalidArgument(f'unknown "{fk}" kwarg in Load of {name}')
+                raise InvalidArgument(f'unknown "{fk}" kwarg in Load of {name}')
 
         for k, v in fks.items():
             if isinstance(v, Load):
@@ -356,6 +392,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
             None,
             foreign_key=f"{cls.__fulltablename__}.{load_entity.primary_key_name}",
             primary_key=primary_key,
+            sa_column_kwargs={'index': True},
         )
 
 

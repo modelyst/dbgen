@@ -14,9 +14,12 @@
 
 from typer import Argument, Option
 
-from dbgen.cli.utils import version_callback
+from dbgen.cli.utils import set_verbosity, version_callback
 
 model_string_option = Option(None, '--model', envvar=["DBGEN_MODEL_STR", "dbgen_model_str"])
 model_arg_option = Argument('--model', envvar=["DBGEN_MODEL_STR", "dbgen_model_str"])
 version_option = Option(None, "--version", callback=version_callback, is_eager=True)
 config_option = Option('.env', "--config", "-c", help="Configuration file.", envvar='DBGEN_CONFIG')
+verbose_option = lambda v=True: Option(
+    v, "--verbose", "-v", callback=set_verbosity, help="Increases the verbosity of printed messages"
+)

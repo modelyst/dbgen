@@ -15,6 +15,7 @@
 """Objects related to the running of Models and Generators."""
 from bdb import BdbQuit
 from datetime import datetime, timedelta
+from math import ceil
 from time import time
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 from uuid import UUID
@@ -41,7 +42,13 @@ from dbgen.core.metadata import (
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import BaseQuery
-from dbgen.exceptions import DBgenExternalError, DBgenSkipException, RepeatException, SerializationError
+from dbgen.exceptions import (
+    DBgenExternalError,
+    DBgenSkipException,
+    RepeatException,
+    SerializationError,
+    ValidationError,
+)
 from dbgen.utils.log import LogLevel
 
 
@@ -55,6 +62,9 @@ class RunConfig(Base):
     until: Optional[str]
     batch_size: Optional[int]
     progress_bar: bool = True
+    skip_row_count: bool = False
+    skip_on_error: bool = False
+    batch_number: int = 10
     log_level: LogLevel = LogLevel.INFO
 
     def should_gen_run(self, generator: Generator) -> bool:
@@ -159,11 +169,21 @@ class BaseGeneratorRun(Base):
         extractor_connection = main_engine.connect()
         extract = generator.extract
         if isinstance(extract, BaseQuery):
-            extract.set_extractor(connection=extractor_connection)
+            extract.set_extractor(connection=extractor_connection, yield_per=generator.batch_size)
         else:
             extract.set_extractor()
         self._logger.debug('Fetching extractor length')
-        row_count = extract.length(connection=extractor_connection)
+        if not run_config.skip_row_count:
+            try:
+                row_count = extract.length(connection=extractor_connection)
+            except TypeError:
+                self._logger.error(
+                    f'Extract {extract}\'s length method does not accept the required kwargs, please add **_ kwarg to suppress this error.'
+                )
+                row_count = None
+        else:
+            row_count = None
+
         gen_run.inputs_extracted = row_count
         meta_session.commit()
 
@@ -174,23 +194,28 @@ class BaseGeneratorRun(Base):
         )
         # The batch_size is set either on the run_config or the generator
         batch_size = run_config.batch_size or generator.batch_size
+        if batch_size is None and row_count:
+            batch_size = ceil(row_count / run_config.batch_number)
         assert batch_size is None or batch_size > 0, f"Invalid batch size batch_size must be >0: {batch_size}"
         # Open raw connections for fast loading
         main_raw_connection = pg3_connect(str(main_engine.url))
         meta_raw_connection = meta_engine.raw_connection()
-        batch_done = lambda x: x % batch_size == 0 if batch_size is not None else False
+        batch_done = lambda x: (x and x % batch_size == 0) if batch_size is not None else False
         # Start while loop to iterate through the nodes
         self._logger.info('Looping through extracted rows...')
         progress_bar = tqdm(
             total=row_count,
             position=1,
             leave=False,
-            desc="Transforming...",
+            unit=" Rows",
             disable=not run_config.progress_bar,
         )
+        batch_num = 1
+        total_batches = f" of {str(ceil(row_count / batch_size))}" if row_count and batch_size else ''
+        batch_message = "Batch {}{}: {:10}"
+        progress_bar.set_description(batch_message.format(batch_num, total_batches, 'Transforming'))
         try:
             while True:
-                gen_run.inputs_processed += 1
                 row: Dict[str, Mapping[str, Any]] = {}
                 try:
                     for node in generator._sort_graph():
@@ -198,7 +223,9 @@ class BaseGeneratorRun(Base):
                         # Extract outputs need to be fed to our repeat checker and need to be checked for stop iterations
                         if isinstance(node, Extract):
                             if output is None or batch_done(gen_run.inputs_processed):
-                                self._logger.debug('loading batch...')
+                                load_msg = batch_message.format(batch_num, total_batches, 'Loading')
+                                progress_bar.set_description(load_msg)
+                                self._logger.debug(load_msg)
                                 self._load_repeats(meta_raw_connection, generator)
                                 rows_inserted, rows_updated = self._load(main_raw_connection, generator)
                                 gen_run.rows_inserted += rows_inserted
@@ -207,9 +234,15 @@ class BaseGeneratorRun(Base):
                                 self._logger.debug('done loading batch.')
                                 self._logger.debug(f'inserted {rows_inserted} rows.')
                                 self._logger.debug(f'updated {rows_updated} rows.')
+                                # Increment batch and move to T-step
+                                batch_num += 1
+                                transform_msg = batch_message.format(batch_num, total_batches, 'Transforming')
+                                progress_bar.set_description(transform_msg)
+                                self._logger.debug(transform_msg)
                             # if we are out of rows break out of while loop
                             if output is None:
                                 raise StopIteration
+                            gen_run.inputs_processed += 1
                             is_repeat, input_hash = self._check_repeat(output, generator.uuid)
                             if not run_config.retry and is_repeat:
                                 raise RepeatException()
@@ -223,16 +256,23 @@ class BaseGeneratorRun(Base):
                     break
                 # A repeated input from the extract will also cause a row to be skipped
                 except RepeatException:
+                    progress_bar.update()
                     continue
                 # Any node can raise a skip exception to skip the input before loading
                 except DBgenSkipException as exc:
                     self._logger.debug(f"Skipped Row: {exc.msg}")
                     gen_run.inputs_skipped += 1
+                    progress_bar.update()
                 # External errors are raised whenever a node fails due to internal logic
-                except DBgenExternalError as e:
-                    msg = f"\n\nError when running generator {generator.name}\n"
+                except (DBgenExternalError, ValidationError) as e:
+                    msg = f"Error when running generator {generator.name}"
                     self._logger.error(msg)
-                    self._logger.error(f"\n{e}")
+                    self._logger.error(e)
+                    if run_config.skip_on_error:
+                        gen_run.inputs_skipped += 1
+                        progress_bar.update()
+                        continue
+                    # self._logger.error(f"\n{e}")
                     gen_run.status = Status.failed
                     gen_run.error = str(e)
                     run = meta_session.get(RunEntity, run_id)
@@ -253,6 +293,8 @@ class BaseGeneratorRun(Base):
                     )
                     update_run_by_id(run_id, Status.failed, meta_session)
                     raise
+                # finally:
+                #     progress_bar.update()
         # Close all connections
         finally:
             gen_run.runtime = round(time() - start, 3)
@@ -409,7 +451,12 @@ class ModelRun(Base):
             self._logger.debug(
                 f"Only running generators: {gen_names[start_idx:until_idx]} due to start/until"
             )
-        with tqdm(total=len(sorted_generators), position=0, disable=not run_config.progress_bar) as tq:
+        with tqdm(
+            total=len(sorted_generators),
+            position=0,
+            disable=not run_config.progress_bar,
+            unit=' Generator',
+        ) as tq:
             for i, generator in enumerate(sorted_generators):
                 tq.set_description(generator.name)
                 gen_run = self.get_gen_run(generator)

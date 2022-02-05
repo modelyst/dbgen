@@ -18,8 +18,13 @@ __author__ = "Michael Statt"
 __email__ = "michael.statt@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "0.5.13"
+__version__ = "0.5.18"
 
+
+from sqlalchemy.orm import registry
+
+# External packages that we reexport for convenience
+from sqlmodel import select
 
 from dbgen.core.args import Const
 from dbgen.core.decorators import transform
@@ -30,3 +35,4 @@ from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
 from dbgen.core.node.transforms import PyBlock
+from dbgen.utils.typing import IDType

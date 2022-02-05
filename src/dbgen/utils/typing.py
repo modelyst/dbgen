@@ -13,9 +13,11 @@
 #   limitations under the License.
 
 """Store useful python type hints for use in project."""
-from typing import Any, Callable, Type, Union
+from typing import Any, Callable, Optional, Type, Union
+from uuid import UUID
 
 import sqlalchemy.types as sa_types
 
 COLUMN_TYPE = Union[Type[sa_types.TypeEngine], sa_types.TypeEngine]
 NoArgAnyCallable = Callable[[], Any]
+IDType = Optional[UUID]

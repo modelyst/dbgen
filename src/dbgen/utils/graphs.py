@@ -13,11 +13,12 @@
 #   limitations under the License.
 
 from pprint import pformat
-from typing import Any, Callable, Dict, List, Set, Tuple, TypedDict, Union
+from typing import Any, Callable, Dict, List, Set, Tuple, Union
 from uuid import UUID
 
 from networkx import DiGraph, NetworkXUnfeasible
 from networkx.algorithms import lexicographical_topological_sort, simple_cycles
+from pydantic import BaseModel
 
 
 # Graph
@@ -35,13 +36,13 @@ def topsort_with_dict(G: DiGraph) -> List:
         raise ValueError(f"Cycles found: {cycles}")
 
 
-class SerializedNode(TypedDict):
+class SerializedNode(BaseModel):
     id: UUID
     name: str
     dependency: Dict[str, Set[str]]
 
 
-class SerializedGraph(TypedDict):
+class SerializedGraph(BaseModel):
     metadata: Dict[str, Union[str, float, int, None]]
     nodes: Dict[str, SerializedNode]
     edges: List[Tuple[str, str]]
@@ -51,18 +52,18 @@ def serialize_graph(
     graph,
     node_serializer: Callable[[Any], SerializedNode],
     metadata: Dict[str, Union[str, float, int, None]] = None,
-) -> SerializedGraph:
+) -> Dict[str, Any]:
     metadata = metadata or {}
-    output: SerializedGraph = {'nodes': {}, 'edges': [], 'metadata': metadata}
+    output: SerializedGraph = SerializedGraph(nodes={}, edges=[], metadata=metadata)
     for key, data in graph.nodes.items():
         node = data
-        output['nodes'][key] = node_serializer(node)
+        output.nodes[key] = node_serializer(node)
     for source, target in graph.edges:
         assert isinstance(source, str) and isinstance(
             target, str
         ), f"Edge keys not strings! {type(source)} {type(target)}"
-        output['edges'].append((source, target))
-    return output
+        output.edges.append((source, target))
+    return output.dict()
 
 
 # def topological_sort(G, key=None):

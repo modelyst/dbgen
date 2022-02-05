@@ -3,24 +3,37 @@ name: Test
 
 on:
   push:
+    branches:
+      - master
   pull_request:
     types: [opened, synchronize]
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        description: "Run the build with tmate debugging enabled \
-          (https://github.com/marketplace/actions/debugging-with-tmate)"
-        required: false
-        default: false
 
 jobs:
   test:
     runs-on: ubuntu-20.04
-    if: github.ref == 'refs/heads/master'
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ["3.8", "3.9", "3.10"]
       fail-fast: false
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:13
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dbgen
+        ports:
+          # Opens tcp port 5432 on the host and service container
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
@@ -28,12 +41,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      # Allow debugging with tmate
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
-        with:
-          limit-access-to-actor: true
       - uses: actions/cache@v2
         id: cache
         with:
@@ -53,5 +60,9 @@ jobs:
         run: python -m poetry run bash scripts/ci/lint.sh
       - name: Test
         run: python -m poetry run bash scripts/ci/test.sh
+        # Environment variables used by the `client.js` script to create a new PostgreSQL table.
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          DBGEN_MAIN_DSN: postgresql://postgres:postgres@localhost:5432/dbgen
       - name: Upload coverage
         uses: codecov/codecov-action@v1
