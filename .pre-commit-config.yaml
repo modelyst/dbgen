@@ -163,11 +163,11 @@ repos:
       - id: no-relative-imports
         language: pygrep
         name: No relative imports
-        description: Airflow style is to use absolute imports only
+        description: DBgen is to use absolute imports only
         entry: "^\\s*from\\s+\\."
         pass_filenames: true
         files: \.py$
-        exclude: ^src/dbgen/cli/newfiles/|^tests/
+        exclude: ^src/dbgen/cli/newfiles/|^tests/|^docs_src/tutorials
       - id: consistent-pylint
         language: pygrep
         name: Check for inconsistent pylint disable/enable without space

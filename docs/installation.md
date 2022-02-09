@@ -61,12 +61,12 @@ The easiest way to install dbgen is using pip. The name of the package on [pypi.
 The fastest way to get started is to navigate to the root directory for your project and run the command:
 
 ```Console
-$ python -m dbgen config > .env
+$ dbgen config > .env
 ```
 
 This will create a file named `.env`, which is where you can customize your own DBgen default settings. The only two crucial settings for getting started are the `dbgen_main_dsn` and the `dbgen_main_password`. These are needed for DBgen to connect to a database.
 
-If you are running PostgreSQL on the same machine that you will use to run DBgen, the `dbgen_main_dsn` should be set to `postgresql://[username]@localhost:[port]/[database_name]` where `[username]` is your PostgreSQL username, the port is the port that PostgreSQL is running on (default is 5432), and the `[database_name]` is whatever you want to name your database. 
+If you are running PostgreSQL on the same machine that you will use to run DBgen, the `dbgen_main_dsn` should be set to `postgresql://[username]@localhost:[port]/[database_name]` where `[username]` is your PostgreSQL username, the port is the port that PostgreSQL is running on (default is 5432), and the `[database_name]` is whatever you want to name your database.
 
 ```python
 dbgen_main_dsn=postgresql://username@localhost:5432/my_database
@@ -100,7 +100,7 @@ postgres=## exit
 To test that your setup is complete, enter the command:
 
 ```Console
-$ python -m dbgen connect --test
+$ dbgen connect --test
 ```
 
 You should see green text indicating that the connection was successful.

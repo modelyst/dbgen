@@ -1,29 +1,53 @@
+<!--
+   Copyright 2021 Modelyst LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ -->
+
 # Directory Structure
 
-Previously, in the "Getting Started" section, we showed than a valid DBgen pipeline can be written in 9 lines of code; however, in most real cases, a more complex data pipeline is required.
+Previously, in the "Getting Started" section, we showed than a valid DBgen pipeline can be written in 9 lines of code; however, in most real cases, a significantly more complex data pipeline is required.
 
-Let's start by walking through the directory structure of a typical DBgen project. You can get started quickly with a directory structure like this with some boiler plate code by cloning the <a href="https://github.com/modelyst/dbgen-model-template">DBgen cookie cutter repo</a>.
+Let's start by walking through the directory structure of a typical DBgen project.
 
-<!-- ![](../docs_src/directory_screenshot.png)
+You can follow along with this tutorial by copying some boiler plate code by running the command:
+<div class='termy'>
+```Console
+$ dbgen new --template tutorial1
+<span style='color: green;'>Downloading template from https://github.com/modelyst/dbgen-model-template....</span>
+```
+</div>
 
-<img src="docs_src/directory_screenshot.png"/> -->
+This will prompt you to download the relevant files to a local directory with the directory structure shown below. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen-model-template">DBgen cookie cutter repo</a>.
+
 
 ```
 ├── data
-├── extracts
-│   ├── __init__.py
-│   ├── extract_1.py
-├── generators
-│   ├── __init__.py
-│   ├── generator_1.py
-│   ├── generator_2.py
-├── transforms
-│   ├── __init__.py
-│   ├── transform_1.py
-├── __init__.py
-├── constants.py
-├── main.py
-├── schema.py
+├── alice_bob_model
+    ├── extracts
+    │   ├── __init__.py
+    │   ├── extract_1.py
+    ├── generators
+    │   ├── __init__.py
+    │   ├── generator_1.py
+    │   ├── generator_2.py
+    ├── transforms
+    │   ├── __init__.py
+    │   ├── transform_1.py
+    ├── __init__.py
+    ├── constants.py
+    ├── main.py
+    ├── schema.py
 ```
 
 ## main.py
@@ -34,7 +58,7 @@ The contents of `main.py` are shown below.
 
 
 ```python3 hl_lines="9-12"
-{!../docs_src/tutorials/alice_bob_lab/main.py [ln:1-12] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/main.py [ln:1-12] !}
 ```
 
 ## constants.py
@@ -48,7 +72,7 @@ This is a place to store any constants that are specific to the DBgen model defi
 The contents of `constants.py` used in this tutorial are shown below.
 
 ```python3 hl_lines="9-12"
-{!../docs_src/tutorials/alice_bob_lab/constants.py [ln:1-12] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/constants.py [ln:1-12] !}
 ```
 
 ## schema.py
@@ -58,7 +82,7 @@ This is the file that specifies the empty database schema. In other words, this 
 Part of the `schema.py` used in this tutorial is shown below.
 
 ```python3
-{!../docs_src/tutorials/alice_bob_lab/schema.py [ln:3-12] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/schema.py [ln:3-12] !}
 ```
 
 ## extracts
@@ -68,7 +92,7 @@ Part of the `schema.py` used in this tutorial is shown below.
 Below, we show an example of an `extract` that reads a csv stored in the local file system and returns its contents one row at a time. We'll walk through this in more detail later in the tutorial.
 
 ```python3
-{!../docs_src/tutorials/alice_bob_lab/extracts/csv_extract.py [ln:1-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
 ```
 
 ## transforms
@@ -80,7 +104,7 @@ However, if the function is specific to a particular generator and will not be r
 An example of a `transform` is shown below.
 
 ```python3
-{!../docs_src/tutorials/alice_bob_lab/generators/read_csv.py [ln:10-16] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/read_csv.py [ln:10-16] !}
 ```
 
 ## generators
@@ -94,7 +118,7 @@ The purpose of generators is essentially to define where data will come from, wh
 Whenever we write a new generator, we write a function that accepts the model as an input and adds that generator to the model. An example is shown below.
 
 ```python3
-{!../docs_src/tutorials/alice_bob_lab/generators/read_csv.py [ln:18-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/read_csv.py [ln:18-] !}
 ```
 
 ## generators.\__init__.py
@@ -104,7 +128,5 @@ This is where we tell `main.py` to add the generators to the model. You can see 
 When we finish writing a new generator, the last thing to is to add it to `generators.__init__.py` so that `main.py` picks it up. The pattern is simple: for each generator, import the function that adds that generator to the model, and call that function in `add_generators()` as shown below.
 
 ```python3
-{!../docs_src/tutorials/alice_bob_lab/generators/__init__.py [ln:1-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/__init__.py [ln:1-] !}
 ```
-
-

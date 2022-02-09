@@ -1,3 +1,19 @@
+<!--
+   Copyright 2021 Modelyst LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ -->
+
 # Refining Data in the Database
 
 When working with scientific data, it is very common to pass data through a series of data analysis steps. The nature of these analysis steps are highly domain-specific. To avoid any domain-specific jargon, in this tutorial, we walk through a very simple data analysis method: converting Fahrenheit to Celsius.
@@ -17,7 +33,7 @@ In this case, instead of using a custom extract class to define the data source,
 As always, we begin by adding a new file to the `generators` module and define a function that accepts the model as an input then begins with `with model:` then `with Generator(name=...):`
 
 ```python3
-{!../docs_src/tutorials/alice_bob_lab/generators/f_to_c.py [ln:18-20] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/f_to_c.py [ln:18-20] !}
 ```
 
 ## Query
@@ -33,7 +49,7 @@ For queries that include only one table (which is the case in this example), the
 Similarly to the extracts shown in the previous generators, by calling `.results()` on the `Query`, a tuple of the outputs are returned in the order that they are listed in the `select` statement.
 
 ```python3 hl_lines="11-13"
-{!../docs_src/tutorials/alice_bob_lab/generators/f_to_c.py [ln:1-2,4,18-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/f_to_c.py [ln:1-2,4,18-] !}
 ```
 
 ## Imports and Environments
@@ -67,7 +83,7 @@ Essentially, whenever a line like...
 Finally, it is worth noting that dbgen `Env` objects can be added together. So, if there is a default `Env` that is used for most transforms, and we just need to add one extra import to that, rather than define a new `Env` from scratch that includes every package, we can simply create an `Env` with just the one new import and add it to the default `Env`. An example of doing just that is shown below.
 
 ```python3 hl_lines="8"
-{!../docs_src/tutorials/alice_bob_lab/generators/f_to_c.py [ln:1-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/f_to_c.py [ln:1-] !}
 ```
 
 
@@ -76,7 +92,7 @@ Finally, it is worth noting that dbgen `Env` objects can be added together. So, 
 Once the environment is defined, the transform step is very similar to the previously-shown transform steps. We define a function that carries out the desired data analysis and add the `@transform` decorator to specify the output names and the python environment.
 
 ```python3 hl_lines="7-15"
-{!../docs_src/tutorials/alice_bob_lab/generators/f_to_c.py [ln:1-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/f_to_c.py [ln:1-] !}
 ```
 
 ## Load
@@ -89,10 +105,10 @@ And, as always, when `.load()` is called, we must supply either:
 
 - keyword arguments for each of the identifying columns (as specified in `schema.py`, or
 - the keyword `[tablename]` and the corresponding id for the row). This id either comes from:
-    - querying for the `.id` column (as shown in this example), or 
+    - querying for the `.id` column (as shown in this example), or
     - calling `Tablename.load()`, which always returns the id of the specified row (as shown in the previous generator).
 
 
 ```python3 hl_lines="25-28"
-{!../docs_src/tutorials/alice_bob_lab/generators/f_to_c.py [ln:1-] !}
+{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/f_to_c.py [ln:1-] !}
 ```

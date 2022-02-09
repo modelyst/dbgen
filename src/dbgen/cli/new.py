@@ -32,10 +32,12 @@ new_app = typer.Typer(name='new')
 
 class Template(str, Enum):
     SIMPLE = 'simple'
+    TUTORIAL_1 = 'tutorial1'
 
 
 complexity_map = {
-    Template.SIMPLE: 'https://github.com/modelyst/dbgen-model-template',
+    Template.SIMPLE: ('https://github.com/modelyst/dbgen-model-template', 'simple'),
+    Template.TUTORIAL_1: ('https://github.com/modelyst/dbgen-model-template', 'tutorials/alice_bob_lab'),
 }
 
 
@@ -46,6 +48,7 @@ def new(
     output_dir: Path = typer.Option(Path('.'), '--output', '-o'),
     config_file: Path = typer.Option(None, '--config', '-c'),
 ):
+
     if not has_cookiecutter:
         from dbgen import __version__
 
@@ -53,8 +56,12 @@ def new(
             f"cookiecutter extra not installed, please install with command:\npip install 'modelyst-dbgen[cookiecutter]'=={__version__}"
         )
         raise typer.Exit(code=2)
-    template_url = complexity_map.get(template, template)
+    template_url, directory = complexity_map.get(template, template)
     typer.secho(f'Downloading template from {template_url}...', fg='green')
     cookiecutter(
-        template_url, overwrite_if_exists=overwrite_if_exists, output_dir=output_dir, config_file=config_file
+        template_url,
+        overwrite_if_exists=overwrite_if_exists,
+        output_dir=output_dir,
+        config_file=config_file,
+        directory=directory,
     )

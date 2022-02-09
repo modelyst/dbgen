@@ -18,7 +18,7 @@ VERSION=$(python -c "from dbgen import __version__; print(__version__)")
 for PYTHON_VERSION in '3.9'
 do
 echo $PYTHON_VERSION
-docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry -f ./docker/dbgen/Dockerfile --build-arg PYTHON_VERSION=$PYTHON_VERSION
+docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry -t dbgen:latest -f ./docker/dbgen/Dockerfile --build-arg PYTHON_VERSION=$PYTHON_VERSION
 # docker build . -t dbgen:$VERSION-py$PYTHON_VERSION-poetry-extras -f ./docker/dbgen/Dockerfile.poetry --build-arg PYTHON_VERSION=$PYTHON_VERSION --build-arg EXTRAS="true"
 done
 exit 0
