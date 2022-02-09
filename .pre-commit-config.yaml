@@ -95,6 +95,13 @@ repos:
       - id: fix-encoding-pragma
         args:
           - --remove
+  - repo: https://github.com/python-poetry/poetry
+    rev: 31657e7e5c47da758c14645035e59eb7813ac2f8
+    hooks:
+      - id: poetry-check
+      - id: poetry-lock
+      - id: poetry-export
+        args: ["-f", "requirements.txt", "-o", "requirements.txt"]
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.10.0
     hooks:
@@ -152,12 +159,6 @@ repos:
         description: the Safe filter is error-prone, use Markup() in code instead
         entry: "\\|\\s*safe"
         files: \.html$
-        pass_filenames: true
-      - id: pre-commit-bump-version
-        name: Ensure the version is bumped
-        entry: python3 ./scripts/ci/pre_commit/pre_commit_bump_version.py
-        language: system
-        files: ^src/.*\.py$
         pass_filenames: true
       - id: no-relative-imports
         language: pygrep

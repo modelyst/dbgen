@@ -1,4 +1,5 @@
-from dbgen import Model, Generator, Entity, Const
+from dbgen import Const, Entity, Generator, Model
+
 
 class SimpleTable(Entity, table=True, all_identifying=True):
     string_column: str
@@ -11,4 +12,3 @@ def make_model() -> Model:
             SimpleTable.load(insert=True, string_column=Const('hello world'))
 
     return model
-

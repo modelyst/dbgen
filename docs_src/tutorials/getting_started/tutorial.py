@@ -1,4 +1,4 @@
-from dbgen import Model, Generator, Entity, Const
+from dbgen import Const, Entity, Generator, Model
 
 
 class Person(Entity, table=True, all_identifying=True):

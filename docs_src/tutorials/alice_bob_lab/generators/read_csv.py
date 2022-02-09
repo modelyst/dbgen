@@ -1,10 +1,11 @@
 from os.path import join
 from typing import List, Tuple
 
-from dbgen import Generator, Model, transform
 from tutorials.alice_bob_lab.constants import DATA_DIR, DEFAULT_ENV
 from tutorials.alice_bob_lab.extracts.csv_extract import CSVExtract
 from tutorials.alice_bob_lab.schema import Person
+
+from dbgen import Generator, Model, transform
 
 
 @transform(outputs=["first_name", "last_name", "age"], env=DEFAULT_ENV)

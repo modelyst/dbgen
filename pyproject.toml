@@ -71,6 +71,7 @@ pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 pytest-xdist = "^2.5.0"
 rich = "^11.0.0"
+mdx-include = "^1.4.1"
 
 [tool.poetry.extras]
 cookiecutter = ["cookiecutter"]

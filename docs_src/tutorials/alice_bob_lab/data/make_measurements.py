@@ -1,8 +1,9 @@
-from hashlib import new
-import numpy as np
 import csv
+from hashlib import new
 
-with open("names.csv", "r") as f:
+import numpy as np
+
+with open("names.csv") as f:
     reader = csv.reader(f)
     for row in reader:
         fname = row[0]

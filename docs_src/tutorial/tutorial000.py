@@ -1,5 +1,6 @@
-from dbgen import Entity
 from typing import Optional
+
+from dbgen import Entity
 
 
 class Person(Entity, table=True):

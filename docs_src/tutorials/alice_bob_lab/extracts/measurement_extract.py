@@ -2,8 +2,9 @@ from os import listdir
 from os.path import join
 from typing import List
 
-from dbgen import Extract
 from pydantic import PrivateAttr
+
+from dbgen import Extract
 
 
 class MeasurementExtract(Extract):
@@ -16,7 +17,7 @@ class MeasurementExtract(Extract):
 
     def extract(self):
         for fname in self._fnames:
-            f = open(join(self.data_dir, fname), "r")
+            f = open(join(self.data_dir, fname))
             contents = f.read()
             f.close()
             yield {"filename": fname, "contents": contents}

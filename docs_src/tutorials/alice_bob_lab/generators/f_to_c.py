@@ -1,8 +1,9 @@
-from dbgen import Generator, Model, transform, Query, Import, Env
+from scipy.constants import convert_temperature
 from sqlmodel import select
 from tutorials.alice_bob_lab.constants import DATA_DIR, DEFAULT_ENV
 from tutorials.alice_bob_lab.schema import TemperatureMeasurement
-from scipy.constants import convert_temperature
+
+from dbgen import Env, Generator, Import, Model, Query, transform
 
 outputs = ["temp_c"]
 env = DEFAULT_ENV + Env([Import("scipy.constants", "convert_temperature")])

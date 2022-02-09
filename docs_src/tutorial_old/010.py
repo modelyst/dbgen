@@ -1,7 +1,8 @@
-from dbgen import Entity, Extract, Model, Generator, Env, Import, transform
+import os
 
 import numpy
-import os
+
+from dbgen import Entity, Env, Extract, Generator, Import, Model, transform
 
 
 class JVCurve(Entity, table=True):

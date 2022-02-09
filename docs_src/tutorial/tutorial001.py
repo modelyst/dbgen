@@ -1,7 +1,7 @@
+from typing import Optional
 from uuid import UUID
 
 from dbgen import Entity
-from typing import Optional
 
 
 class Person(Entity, table=True):

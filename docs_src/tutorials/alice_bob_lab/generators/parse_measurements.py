@@ -1,10 +1,11 @@
 from os.path import join
 from typing import Tuple
 
-from dbgen import Generator, Model, transform
 from tutorials.alice_bob_lab.constants import DATA_DIR, DEFAULT_ENV
 from tutorials.alice_bob_lab.extracts.measurement_extract import MeasurementExtract
 from tutorials.alice_bob_lab.schema import Person, TemperatureMeasurement
+
+from dbgen import Generator, Model, transform
 
 outputs = ["first_name", "last_name", "ordering", "temperature"]
 env = DEFAULT_ENV
