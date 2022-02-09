@@ -41,7 +41,7 @@ jobs:
       - name: Build Docs
         run: python -m poetry run mkdocs build
       - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v1.1.5
+        uses: nwtgck/actions-netlify@v1.2
         with:
           publish-dir: "./site"
           production-branch: master
