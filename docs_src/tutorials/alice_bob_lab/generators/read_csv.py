@@ -20,6 +20,6 @@ def parse_names(row: List[str]) -> Tuple[str, str, int]:
 def add_io_generator(model: Model) -> None:
     with model:
         with Generator(name="names"):
-            row = CSVExtract(data_dir=join(DATA_DIR, "names.csv")).results()
-            first_name, last_name, age = parse_names(row).results()
-            Person.load(insert=True, first_name=first_name, last_name=last_name, age=age)
+            row = CSVExtract(data_dir=join(DATA_DIR, "names.csv")).results()  ## extract
+            first_name, last_name, age = parse_names(row).results()  ## transform
+            Person.load(insert=True, first_name=first_name, last_name=last_name, age=age)  ## load
