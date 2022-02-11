@@ -1,0 +1,2 @@
+modelyst-dbgen==0.5.18
+scipy

@@ -1,0 +1,7 @@
+{
+  "repo_name": "dbgen-model",
+  "model_name": "model",
+  "version": "0.1.0",
+  "database_dsn": "postgresql://postgres:@localhost:5432/dbgen",
+  "clean": ["false", "true"]
+}

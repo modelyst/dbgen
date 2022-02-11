@@ -87,12 +87,15 @@ repos:
     hooks:
       - id: black
         args: [--config=./pyproject.toml]
+        exclude: ^examples/simple
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
+        exclude: ^examples/simple
       - id: check-builtin-literals
+        exclude: ^examples/simple
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending
@@ -142,15 +145,7 @@ repos:
         name: Run pydocstyle
         args:
           - --config=setup.cfg
-        exclude: |
-          (?x)
-          ^tests/.*\.py$|
-          ^scripts/.*\.py$|
-          ^dev|
-          ^provider_packages|
-          ^kubernetes_tests|
-          .*example_dags/.*|
-          ^chart/.*\.py$
+        exclude: ^examples/simple
   - repo: local
     hooks:
       - id: pydevd
@@ -173,7 +168,7 @@ repos:
         entry: "^\\s*from\\s+\\."
         pass_filenames: true
         files: \.py$
-        exclude: ^src/dbgen/cli/newfiles/|^tests/|^docs_src/tutorials
+        exclude: ^src/dbgen/cli/newfiles/|^tests/|^docs_src/tutorials|^examples/simple
       - id: consistent-pylint
         language: pygrep
         name: Check for inconsistent pylint disable/enable without space
@@ -206,4 +201,4 @@ repos:
       - id: flake8
         args: ["--config", "setup.cfg", "src/dbgen"]
         files: \.py$
-        exclude: ^docs_src/
+        exclude: ^docs_src/|^examples/simple
