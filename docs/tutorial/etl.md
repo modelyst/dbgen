@@ -60,11 +60,11 @@ In this example, although it is quite simple to write a function to convert F to
 The `@transform` decorator specifies two things:
 
 - The output names (a list of strings the same length as the number of the function's outputs)
-- The python environment (a `dbgen.Env` object)
+- The python environment (a `dbgen.Environment` object)
 
-To define a `dbgen.Env` object, we start by importing `Env` and `Import` from dbgen.
+To define a `dbgen.Environment` object, we start by importing `Environment` and `Import` from dbgen.
 
-To create an `Env` object, we pass a list of `Imports` to `Env()`. To create an `Import`, we pass two arguments to `Import()`:
+To create an `Environment` object, we pass a list of `Imports` to `Env()`. To create an `Import`, we pass two arguments to `Import()`:
 
 - The name of the python module that we would like to import a function or class from (a string)
 - The name of that function or class (a string)
@@ -79,9 +79,9 @@ Essentially, whenever a line like...
 
 ```Import("library", "function")```
 
-...in the list of imports in the dbgen `Env`.
+...in the list of imports in the dbgen `Environment`.
 
-Finally, it is worth noting that dbgen `Env` objects can be added together. So, if there is a default `Env` that is used for most transforms, and we just need to add one extra import to that, rather than define a new `Env` from scratch that includes every package, we can simply create an `Env` with just the one new import and add it to the default `Env`. An example of doing just that is shown below.
+Finally, it is worth noting that dbgen `Environment` objects can be added together. So, if there is a default `Environment` that is used for most transforms, and we just need to add one extra import to that, rather than define a new `Environment` from scratch that includes every package, we can simply create an `Environment` with just the one new import and add it to the default `Environment`. An example of doing just that is shown below.
 
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/f_to_c.py [ln:1-] !}

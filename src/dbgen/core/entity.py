@@ -42,7 +42,7 @@ from sqlalchemy.sql.schema import Table
 from sqlmodel.main import Field, FieldInfo, SQLModel, SQLModelMetaclass
 
 from dbgen.configuration import config as dbgen_config
-from dbgen.core.args import ArgLike, Const
+from dbgen.core.args import ArgLike, Constant
 from dbgen.core.attribute import Attribute
 from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
@@ -277,7 +277,7 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         for arg_name, invalid_arg in invalid_args:
             # Check Invalid args to see if a const block would be appropriate
             if isinstance(invalid_arg, JSONAble):
-                kwargs[arg_name] = Const(invalid_arg)
+                kwargs[arg_name] = Constant(invalid_arg)
             else:
                 raise ValueError(f"Non-jsonable constant value found: {arg_name}\n{invalid_arg}")
 

@@ -120,7 +120,7 @@ class Import(Base):
         raise TypeError(f"'<' not supported between instances of '{type(self)}' and '{type(other)}'")
 
 
-class Env(Base):
+class Environment(Base):
     """
     Environment in which a python statement gets executed
     """
@@ -140,13 +140,13 @@ class Env(Base):
     def __str__(self) -> str:
         return "\n".join(map(str, self.imports))
 
-    def __add__(self, other: "Env") -> "Env":
-        return Env(imports=list(set(self.imports + other.imports)))
+    def __add__(self, other: "Environment") -> "Environment":
+        return Environment(imports=list(set(self.imports + other.imports)))
 
     # Public methods #
 
     @staticmethod
-    def from_str(import_string: str) -> "Env":
+    def from_str(import_string: str) -> "Environment":
         """Parse a header"""
         imports = []
         for node in ast.iter_child_nodes(ast.parse(import_string)):
@@ -172,10 +172,10 @@ class Env(Base):
                 lib = node.names[0].name
                 lib_alias = node.names[0].asname or ""
                 imports.append(Import(lib=lib, lib_alias=lib_alias))
-        return Env(imports=imports)
+        return Environment(imports=imports)
 
     @classmethod
-    def from_file(cls, pth: Path) -> "Env":
+    def from_file(cls, pth: Path) -> "Environment":
         with open(pth) as f:
             return cls.from_str(f.read())
 
@@ -192,7 +192,7 @@ class Func(Base, Generic[FuncOut]):
     """
 
     src: str
-    env: Env
+    env: Environment
 
     def __str__(self) -> str:
         n = self.src.count("\n")
@@ -446,7 +446,7 @@ def get_callable_source_code(f: Callable) -> str:
     return func
 
 
-def func_from_callable(func_: Callable[..., Output], env: Optional[Env] = None) -> Func[Output]:
+def func_from_callable(func_: Callable[..., Output], env: Optional[Environment] = None) -> Func[Output]:
     """Generate a func from a variety of possible input data types.
 
     Args:
@@ -457,9 +457,9 @@ def func_from_callable(func_: Callable[..., Output], env: Optional[Env] = None) 
         Func[Output]: Output Func object wrapped around the input function
     """
     if isinstance(env, dict):
-        env = Env.from_dict(env)
+        env = Environment.from_dict(env)
     elif env is None or env is Undefined:
-        env = Env()
+        env = Environment()
     if isinstance(func_, Func):
         # assert not getattr(env,'imports',False)
         return Func(src=func_.src, env=env)

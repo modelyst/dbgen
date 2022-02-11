@@ -19,7 +19,7 @@ from pydantic.typing import get_args, get_origin
 from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
-from dbgen.core.func import Env
+from dbgen.core.func import Environment
 from dbgen.core.node.transforms import PyBlock
 
 In = ParamSpec('In')
@@ -38,7 +38,7 @@ class FunctionNode(Generic[In, Out]):
         self,
         *inputs,
         function: Callable[In, Out] = None,
-        env: Optional[Env] = None,
+        env: Optional[Environment] = None,
         outputs=None,
     ):
         self.function = function
@@ -93,12 +93,12 @@ def transform(function: Callable[In, Out]) -> Callable[In, FunctionNode[In, Out]
 
 @overload
 def transform(
-    *, env: Env = None, outputs: List[str] = None
+    *, env: Environment = None, outputs: List[str] = None
 ) -> Callable[[Callable[In, Out]], Callable[In, FunctionNode[In, Out]]]:
     ...  # pragma: no cover
 
 
-def transform(function=None, *, env: Optional[Env] = None, outputs: List[str] = None):
+def transform(function=None, *, env: Optional[Environment] = None, outputs: List[str] = None):
 
     if function:
         if not outputs:

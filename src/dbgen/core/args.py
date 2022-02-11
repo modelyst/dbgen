@@ -72,14 +72,14 @@ class Arg(ArgLike[T]):
                 raise DBgenMissingInfo(err % (self.name, list(namespace[self.key].keys())))
 
 
-class Const(ArgLike[T]):
+class Constant(ArgLike[T]):
     val: T
 
     def __init__(self, val: T):
         super().__init__(val=val)
 
     def __str__(self) -> str:
-        return f"Const<{self.val}>"
+        return f"Constant<{self.val}>"
 
     def arg_get(self, _: dict) -> T:
         return self.val

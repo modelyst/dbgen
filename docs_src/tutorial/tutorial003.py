@@ -1,11 +1,8 @@
-from os.path import join
 from typing import List, Tuple
 
-from tutorials.tutorial2.constants import DATA_DIR, DEFAULT_ENV
-from tutorials.tutorial2.extracts.csv_extract import CSVExtract
-from tutorials.tutorial2.schema import Person
+from tutorials.tutorial2.constants import DEFAULT_ENV
 
-from dbgen import Generator, Model, transform
+from dbgen import transform
 
 
 @transform(outputs=["first_name", "last_name", "age"], env=DEFAULT_ENV)

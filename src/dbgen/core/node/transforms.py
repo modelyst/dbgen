@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, TypeVar, Union
 from pydantic import Field, root_validator, validator
 
 from dbgen.configuration import config
-from dbgen.core.func import Env, Func, func_from_callable
+from dbgen.core.func import Environment, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
 from dbgen.utils.log import capture_stdout
@@ -33,12 +33,12 @@ class Transform(ComputationalNode[Output]):
 # TODO add better error messaging when user passes in a non-arg to pyblock
 class PyBlock(Transform[Output]):
 
-    env: Optional[Env] = Field(default_factory=lambda: Env(imports=set()))
+    env: Optional[Environment] = Field(default_factory=lambda: Environment(imports=set()))
     function: Func[Output]
 
     @validator('function', pre=True)
     def convert_callable_to_func(cls, function: Union[Func[Output], Callable[..., Output]], values):
-        env = values.get('env', Env())
+        env = values.get('env', Environment())
         if isinstance(function, (Func, dict)):
             return function
         elif callable(function):

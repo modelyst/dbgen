@@ -20,7 +20,7 @@ from uuid import UUID
 from pydantic import Field
 from sqlmodel import Session, select
 
-from dbgen.core.args import Const
+from dbgen.core.args import Constant
 from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
 from dbgen.core.model import Model
@@ -65,14 +65,16 @@ def make_model() -> Model:
     model = Model(name="tests")
 
     # Load First Parent
-    parent_load = Parent.load(insert=True, label=Const("Ken"), type=Const("Engineer"))
-    child_load = Child.load(insert=True, label=Const("Test"), type=Const("Test"), parent_id=parent_load)
+    parent_load = Parent.load(insert=True, label=Constant("Ken"), type=Constant("Engineer"))
+    child_load = Child.load(insert=True, label=Constant("Test"), type=Constant("Test"), parent_id=parent_load)
     gen_1 = Generator(name="load_first_parent", loads=[child_load])
     model.add_gen(gen_1)
 
     # Load First Parent
     query = Query(select(Parent.id))
-    child_load = Child.load(insert=True, label=Const("Brian"), type=Const("surfer"), parent_id=query["id"])
+    child_load = Child.load(
+        insert=True, label=Constant("Brian"), type=Constant("surfer"), parent_id=query["id"]
+    )
     gen_2 = Generator(name="load_first_child", extract=query, loads=[child_load])
     model.add_gen(gen_2)
     # Load Transform Parent

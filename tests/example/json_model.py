@@ -21,7 +21,7 @@ from pydantic.tools import parse_obj_as
 from sqlalchemy.sql.expression import text
 from sqlmodel import Session, select
 
-from dbgen import Const, Entity, Extract, Generator, Model, Query
+from dbgen import Constant, Entity, Extract, Generator, Model, Query
 from dbgen.configuration import config, get_engines
 from dbgen.core.node.transforms import PyBlock
 
@@ -58,7 +58,7 @@ class JSONEntity(JSONEntityBase, table=True):
 
 
 model = Model(name='test_json')
-load_json = Generator(name='load_json', loads=[JSONEntity.load(insert=True, json_val=Const({}))])
+load_json = Generator(name='load_json', loads=[JSONEntity.load(insert=True, json_val=Constant({}))])
 model.add_gen(load_json)
 
 extract = CustomJsonExtract()

@@ -6,11 +6,12 @@ from alice_bob_model.constants import DATA_DIR, DEFAULT_ENV
 from alice_bob_model.extracts.measurement_extract import MeasurementExtract
 from alice_bob_model.schema import Person, TemperatureMeasurement
 
-from dbgen import Env, Generator, Import, Model, transform
+from dbgen import Environment, Generator, Import, Model, transform
 
 
 @transform(
-    outputs=["first_name", "last_name", "ordering", "temperature"], env=DEFAULT_ENV + Env(Import("re"))
+    outputs=["first_name", "last_name", "ordering", "temperature"],
+    env=DEFAULT_ENV + Environment(Import("re")),
 )
 def parse_measurements(file_name: str, contents: str) -> Tuple[str, str, int, float]:
     regex = r"([A-Za-z]+)_([A-Za-z]+)_(\d+).txt"

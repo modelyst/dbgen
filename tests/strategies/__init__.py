@@ -20,8 +20,8 @@ from hypothesis import assume
 from hypothesis import strategies as st
 from hypothesis.strategies._internal.strategies import SearchStrategy
 
-from dbgen.core.args import Arg, Const
-from dbgen.core.func import Env, Import, func_from_callable
+from dbgen.core.args import Arg, Constant
+from dbgen.core.func import Environment, Import, func_from_callable
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.node.transforms import PyBlock
 from dbgen.core.type_registry import column_registry
@@ -80,7 +80,7 @@ def with_imports_strat(draw, module=None, packages=None):
 
 
 import_strat = st.one_of(aliased_lib_strat, with_imports_strat())
-env_strat = st.builds(Env, imports=st.lists(import_strat, max_size=3))
+env_strat = st.builds(Environment, imports=st.lists(import_strat, max_size=3))
 
 
 def basic_function(arg_1: int, arg_2: str, arg_3: float) -> str:
@@ -93,7 +93,7 @@ function_strat = st.one_of(list(map(st.just, example_callables)))  # type: ignor
 func_strat = st.one_of(list(map(st.just, map(func_from_callable, example_callables))))
 any_strat = st.one_of(st.floats(), st.just(None), st.text(), st.booleans(), st.integers())
 const_strat = st.builds(
-    Const,
+    Constant,
     val=any_strat,
 )
 arg_strat = st.builds(
@@ -102,7 +102,7 @@ arg_strat = st.builds(
     name=lowercase(),
 )
 arg_like_strat = st.one_of(arg_strat, const_strat)
-primary_key_strat = st.one_of(arg_strat, st.builds(Const, val=st.just(None)))
+primary_key_strat = st.one_of(arg_strat, st.builds(Constant, val=st.just(None)))
 
 
 @st.composite
@@ -118,7 +118,7 @@ def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStr
             env=env_strat,
             function=st.just(function),
             inputs=st.lists(
-                st.one_of(st.builds(Arg), st.builds(Const, val=st.floats())),
+                st.one_of(st.builds(Arg), st.builds(Constant, val=st.floats())),
                 min_size=n_args,
                 max_size=n_args,
             ),

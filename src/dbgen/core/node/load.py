@@ -43,7 +43,7 @@ from pydasher import hasher
 from pydasher.import_module import import_string
 
 from dbgen.configuration import ValidationEnum, config
-from dbgen.core.args import Arg, Const
+from dbgen.core.args import Arg, Constant
 from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
@@ -194,7 +194,7 @@ T = TypeVar('T')
 
 class Load(ComputationalNode[T]):
     load_entity: LoadEntity
-    primary_key: Optional[Union[Arg, Const]] = None
+    primary_key: Optional[Union[Arg, Constant]] = None
     _output: Dict[UUID, Iterable[Any]] = PrivateAttr(default_factory=dict)
     insert: bool = False
     validation: Optional[ValidationEnum] = None
@@ -221,7 +221,7 @@ class Load(ComputationalNode[T]):
 
     @validator("primary_key")
     def check_const_primary_key(cls, primary_key):
-        if isinstance(primary_key, Const):
+        if isinstance(primary_key, Constant):
             assert (
                 primary_key.val is None
             ), f"Currently don't allow const primary keys to be used unless None is the value: {primary_key}"
@@ -235,7 +235,7 @@ class Load(ComputationalNode[T]):
         pk = values.get("primary_key")
         if load_entity is None:
             raise ValueError("Missing load_entity")
-        pk_is_missing = pk is None or (isinstance(pk, Const) and pk.val is None)
+        pk_is_missing = pk is None or (isinstance(pk, Constant) and pk.val is None)
         if insert or pk_is_missing:
             missing_attrs = filter(lambda x: x not in inputs, load_entity.identifying_attributes)
             missing_fks = filter(lambda x: x not in inputs, load_entity.identifying_foreign_keys)

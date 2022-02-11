@@ -20,8 +20,8 @@ from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
-from dbgen import Env, Import
-from dbgen.core.args import Const
+from dbgen import Environment, Import
+from dbgen.core.args import Constant
 from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
 from dbgen.core.generator import Generator
@@ -75,7 +75,9 @@ def make_model():
         name="add_parents",
         extract=new_extract,
         loads=[
-            Parent.load(insert=True, label=new_extract["out"], validation='strict', myColumn=Const({'a': 1}))
+            Parent.load(
+                insert=True, label=new_extract["out"], validation='strict', myColumn=Constant({'a': 1})
+            )
         ],
     )
     generator_2 = Generator(
@@ -88,7 +90,7 @@ def make_model():
     )
     query = Query(select(Parent.id, Parent.label))
 
-    @transform(env=Env([Import('typing', ['Tuple'])]))
+    @transform(env=Environment([Import('typing', ['Tuple'])]))
     def concise_func(label: str) -> Tuple[str]:
         return (f"{label}-test",)
 

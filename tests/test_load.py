@@ -21,7 +21,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 import tests.example.entities as entities
-from dbgen.core.args import Arg, Const
+from dbgen.core.args import Arg, Constant
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.utils.lists import broadcast
@@ -44,7 +44,7 @@ def simple_load():
     )
     load = Load(
         load_entity=load_entity,
-        inputs={"key_1": Const("key_1_val"), "key_2": Const("key_2_val")},
+        inputs={"key_1": Constant("key_1_val"), "key_2": Constant("key_2_val")},
         insert=True,
     )
     return load
@@ -59,12 +59,12 @@ def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw
     parent_load = entities.Parent.load(
         insert=True,
         label=Arg(key="pyblock", name="label"),
-        type=Const("parent_type"),
+        type=Constant("parent_type"),
     )
     child_load = Child.load(
         insert=True,
-        label=Const("child_label"),
-        type=Const("child_type"),
+        label=Constant("child_label"),
+        type=Constant("child_type"),
         parent_id=parent_load,
     )
     Child.metadata.create_all(connection)
@@ -164,12 +164,12 @@ def test_empty_list_broadcast():
 def test_load_validation():
     good_kwargs = {
         "load_entity": LoadEntity(name="test", entity_class_str='', primary_key_name="id"),
-        "inputs": {"label": Const("test")},
-        "primary_key": Const(None),
+        "inputs": {"label": Constant("test")},
+        "primary_key": Constant(None),
         "insert": False,
     }
     load = Load(**good_kwargs)
-    assert load.primary_key == Const(None)
+    assert load.primary_key == Constant(None)
     with pytest.raises(ValidationError):
         Load(**{**good_kwargs, "primary_key": 1})
     with pytest.raises(ValidationError):
@@ -177,7 +177,7 @@ def test_load_validation():
     with pytest.raises(ValidationError):
         Load(**{**good_kwargs, "insert": True})
     with pytest.raises(ValidationError):
-        Load(**{**good_kwargs, "primary_key": Const(2)})
+        Load(**{**good_kwargs, "primary_key": Constant(2)})
 
 
 @given(basic_update_load_strat)
@@ -218,9 +218,9 @@ def test_load_dependency_no_insert(simple_load):
 
     parent_load = Parent.load(
         insert=False,
-        type=Const("test_type"),
-        label=Const("test_label"),
-        non_id=Const(2),
+        type=Constant("test_type"),
+        label=Constant("test_label"),
+        non_id=Constant(2),
     )
     dep = parent_load._get_dependency()
     full_name = parent_load.load_entity.full_name

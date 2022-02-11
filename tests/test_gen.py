@@ -20,7 +20,7 @@ from sqlalchemy.future import Engine
 from sqlmodel import Session, func, select
 
 import tests.example.entities as entities
-from dbgen.core.args import Const
+from dbgen.core.args import Constant
 from dbgen.core.entity import Entity
 from dbgen.core.func import Import
 from dbgen.core.generator import Generator
@@ -43,7 +43,7 @@ def basic_generator() -> Generator:
     assert isinstance(query.hash, str)
     pyblock = PyBlock(function=transform_func, inputs=[query["label"]], outputs=["newnames"])
 
-    load = Child.load(insert=True, label=pyblock["newnames"], type=Const("child_type"))
+    load = Child.load(insert=True, label=pyblock["newnames"], type=Constant("child_type"))
     assert isinstance(load.hash, str)
     gen = Generator(name="test", extract=query, transforms=[pyblock], loads=[load])
     return gen
@@ -78,9 +78,9 @@ def test_basic_graph_in_place(basic_generator: Generator):
 
 def test_sorted_loads():
     """Shuffle around the loads and make sure sorted_loads still works."""
-    val = Const("test")
+    val = Constant("test")
     gp_load = entities.GrandParent.load(label=val, type=val)
-    u_load = entities.Parent.load(label=val, type=Const("uncle"), grand_parent_id=gp_load)
+    u_load = entities.Parent.load(label=val, type=Constant("uncle"), grand_parent_id=gp_load)
     p_load = entities.Parent.load(label=val, type=val, grand_parent_id=gp_load)
     c_load = entities.Child.load(label=val, type=val, parent_id=p_load, uncle_id=u_load)
     loads = [gp_load, c_load, p_load, u_load]
@@ -98,8 +98,8 @@ def test_sorted_loads():
 def test_no_extractor(sql_engine: Engine, raw_connection):
     """Shuffle around the loads and make sure sorted_loads still works."""
     entities.Parent.metadata.create_all(sql_engine)
-    pyblock = PyBlock(function=transform_func, inputs=[Const("test")], outputs=["newnames"])
-    p_load = entities.GrandParent.load(insert=True, label=pyblock["newnames"], type=Const("gp_type"))
+    pyblock = PyBlock(function=transform_func, inputs=[Constant("test")], outputs=["newnames"])
+    p_load = entities.GrandParent.load(insert=True, label=pyblock["newnames"], type=Constant("gp_type"))
     gen = Generator(name="test", transforms=[pyblock], loads=[p_load])
     gen.run(sql_engine)
 

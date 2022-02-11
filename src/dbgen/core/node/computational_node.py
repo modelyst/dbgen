@@ -17,7 +17,7 @@ from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, TypeVar, 
 
 from pydantic import Field, validator
 
-from dbgen.core.args import Arg, ArgLike, Const
+from dbgen.core.args import Arg, ArgLike, Constant
 from dbgen.core.base import Base
 from dbgen.core.context import GeneratorContext
 from dbgen.core.dependency import Dependency
@@ -33,7 +33,7 @@ Output = TypeVar('Output')
 
 
 class ComputationalNode(Base, Generic[Output]):
-    inputs: Mapping[str, Union[Const, Arg]] = Field(default_factory=lambda: {})
+    inputs: Mapping[str, Union[Constant, Arg]] = Field(default_factory=lambda: {})
     outputs: List[str] = Field(default_factory=lambda: ["out"], min_items=1)
 
     def __init__(self, **kwargs):
@@ -54,7 +54,7 @@ class ComputationalNode(Base, Generic[Output]):
         new_inputs = {}
         for arg_idx, arg_val in enumerate(inputs):
             if isinstance(arg_val, (str, int, bool, float)):
-                new_inputs[str(arg_idx)] = Const(val=arg_val)
+                new_inputs[str(arg_idx)] = Constant(val=arg_val)
             elif isinstance(arg_val, ArgLike):
                 new_inputs[str(arg_idx)] = arg_val
             else:
