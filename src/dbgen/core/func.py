@@ -316,7 +316,7 @@ class Func(Base, Generic[FuncOut]):
                 with open(pth) as f:
                     content = f.read()
             raise DBgenInternalError(
-                f"Error while trying to load source code. You may be missing an import in your PyBlocks Env object. \nPath:{pth}\nFile Contents:\n--------\n{content}\n--------\nLoad Error: {e}"
+                f"Error while trying to load source code. You may be missing an import in your Transforms Env object. \nPath:{pth}\nFile Contents:\n--------\n{content}\n--------\nLoad Error: {e}"
             )
 
 
@@ -395,7 +395,7 @@ def get_callable_source_code(f: Callable) -> str:
     # Check for built in functions as their source code can not be fetched
     if isbuiltin(f) or (isclass(f) and getattr(f, "__module__", "") == "builtins"):
         raise InvalidArgument(
-            f"Error getting source code for PyBlock. {f} is a built-in function.\n"
+            f"Error getting source code for transform. {f} is a built-in function.\n"
             f"Please wrap in lambda like so: `lambda x: {f.__name__}(x)`"
         )
 

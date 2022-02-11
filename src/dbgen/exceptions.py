@@ -59,7 +59,7 @@ class DBgenLoadException(DBgenException):
     """Raise when there is loading problem"""
 
 
-class DBgenPyBlockError(DBgenException):
+class DBgenPythonTransformError(DBgenException):
     """Raise when there is loading problem"""
 
 

@@ -27,7 +27,7 @@ from dbgen.core.generator import Generator
 from dbgen.core.metadata import RunEntity
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 
 
 def transform_func(x):
@@ -41,7 +41,7 @@ def basic_generator() -> Generator:
     select_stmt = select(Parent.label)
     query = BaseQuery.from_select_statement(select_stmt)
     assert isinstance(query.hash, str)
-    pyblock = PyBlock(function=transform_func, inputs=[query["label"]], outputs=["newnames"])
+    pyblock = PythonTransform(function=transform_func, inputs=[query["label"]], outputs=["newnames"])
 
     load = Child.load(insert=True, label=pyblock["newnames"], type=Constant("child_type"))
     assert isinstance(load.hash, str)
@@ -50,13 +50,13 @@ def basic_generator() -> Generator:
 
 
 def test_basic_graph_sort(basic_generator: Generator):
-    """Ensure a simple Query->PyBlock->Load is sorted correctly."""
+    """Ensure a simple Query->transform->Load is sorted correctly."""
     graph = basic_generator._computational_graph()
     assert len(graph) == 3
     sorted_nodes = basic_generator._sort_graph()
     query, transform, load = sorted_nodes
     assert isinstance(query, BaseQuery)
-    assert isinstance(transform, PyBlock)
+    assert isinstance(transform, PythonTransform)
     assert isinstance(load, Load)
 
 
@@ -69,7 +69,7 @@ def test_basic_graph_in_place(basic_generator: Generator):
     assert isinstance(query, BaseQuery)
     query.outputs.append("test")
     assert basic_generator.extract == query
-    assert isinstance(transform, PyBlock)
+    assert isinstance(transform, PythonTransform)
     import_to_add = Import(lib="numpy", lib_alias="np")
     transform.env.imports.append(import_to_add)
     assert basic_generator.transforms[0] == transform
@@ -98,7 +98,7 @@ def test_sorted_loads():
 def test_no_extractor(sql_engine: Engine, raw_connection):
     """Shuffle around the loads and make sure sorted_loads still works."""
     entities.Parent.metadata.create_all(sql_engine)
-    pyblock = PyBlock(function=transform_func, inputs=[Constant("test")], outputs=["newnames"])
+    pyblock = PythonTransform(function=transform_func, inputs=[Constant("test")], outputs=["newnames"])
     p_load = entities.GrandParent.load(insert=True, label=pyblock["newnames"], type=Constant("gp_type"))
     gen = Generator(name="test", transforms=[pyblock], loads=[p_load])
     gen.run(sql_engine)
@@ -131,7 +131,7 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
     statement = select(User.id, User.label)
     query = BaseQuery.from_select_statement(statement)
     assert query.length(connection=connection) == num_users
-    pyblock = PyBlock(function=transform_func, inputs=[query["label"]])
+    pyblock = PythonTransform(function=transform_func, inputs=[query["label"]])
     u_load = User.load(id=query["id"], new_label=pyblock["out"])
     run = RunEntity()
     sess.add(run)

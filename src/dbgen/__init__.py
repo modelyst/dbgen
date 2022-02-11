@@ -34,5 +34,5 @@ from dbgen.core.generator import Generator
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 from dbgen.utils.typing import IDType

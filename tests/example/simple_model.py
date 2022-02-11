@@ -26,7 +26,7 @@ from dbgen.core.generator import Generator
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock, apply_pyblock
+from dbgen.core.node.transforms import PythonTransform, apply_pyblock
 from tests.example.database import sql_engine
 
 
@@ -86,7 +86,7 @@ def make_model() -> Model:
         return len(label)
 
     add_one = lambda x: x + 1
-    add_one_pb = PyBlock(function=add_one, inputs=[simple_pyblock["out"]])
+    add_one_pb = PythonTransform(function=add_one, inputs=[simple_pyblock["out"]])
 
     parent_update = Parent.load(parent=query["id"])
     gen_3 = Generator(
@@ -105,7 +105,7 @@ def make_model() -> Model:
         return len(label)
 
     add_one = lambda x: x + 1
-    add_one_pb = PyBlock(function=add_one, inputs=[simple_pyblock["out"]])
+    add_one_pb = PythonTransform(function=add_one, inputs=[simple_pyblock["out"]])
 
     parent_update = Parent.load(parent=query["id"])
     gen_4 = Generator(

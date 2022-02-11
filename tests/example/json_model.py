@@ -23,7 +23,7 @@ from sqlmodel import Session, select
 
 from dbgen import Constant, Entity, Extract, Generator, Model, Query
 from dbgen.configuration import config, get_engines
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 
 
 class CustomJsonExtract(Extract):
@@ -74,7 +74,7 @@ def get_title_words(text: str):
         return [{'word': word} for word in text.split(' ')]
 
 
-pb = PyBlock(function=get_title_words, inputs=[query['title']])
+pb = PythonTransform(function=get_title_words, inputs=[query['title']])
 load = JSONEntity.load(json_entity=query['id'], tags=pb['out'])
 add_tags = Generator(name='add_tags', extract=query, transforms=[pb], loads=[load])
 model.add_gen(add_tags)

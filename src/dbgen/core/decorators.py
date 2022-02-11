@@ -20,7 +20,7 @@ from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
 from dbgen.core.func import Environment
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 
 In = ParamSpec('In')
 Out = TypeVar('Out')
@@ -83,7 +83,7 @@ class FunctionNode(Generic[In, Out]):
         return self._arglist[0] if len(self._arglist) == 1 else self._arglist
 
     def to_pyblock(self):
-        return PyBlock(function=self.function, env=self.env, inputs=self.inputs, outputs=self.outputs)
+        return PythonTransform(function=self.function, env=self.env, inputs=self.inputs, outputs=self.outputs)
 
 
 @overload

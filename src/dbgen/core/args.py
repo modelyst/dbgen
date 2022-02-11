@@ -20,7 +20,7 @@ from dbgen.exceptions import DBgenMissingInfo
 
 if TYPE_CHECKING:
     from dbgen.core.func import Func  # pragma: no cover
-    from dbgen.core.node.transforms import PyBlock  # pragma: no cover
+    from dbgen.core.node.transforms import PythonTransform  # pragma: no cover
 
     Func
 
@@ -33,10 +33,10 @@ class ArgLike(Base, Generic[T], metaclass=ABCMeta):
     def arg_get(self, dic: dict):
         raise NotImplementedError
 
-    def map(self, function: Callable[[Any], Any]) -> 'PyBlock':
-        from dbgen.core.node.transforms import PyBlock
+    def map(self, function: Callable[[Any], Any]) -> 'PythonTransform':
+        from dbgen.core.node.transforms import PythonTransform
 
-        return PyBlock(inputs=[self], function=function)
+        return PythonTransform(inputs=[self], function=function)
 
 
 class Arg(ArgLike[T]):

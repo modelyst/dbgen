@@ -94,7 +94,7 @@ class Generator(Base):
                     elif self.extract.hash == Extract().hash:
                         hint = "Generator is using the default extract, did you remember your query or extractor to the extract field?"
                     else:
-                        hint = "The arg details seem to match a PyBlock, did you add all pyblocks?"
+                        hint = "The arg details seem to match a transform, did you add all pyblocks?"
                     raise ValueError(
                         f"Generator(name={self.name!r}) encountered a validation error as a node is missing in the computational graph.\n  "
                         f"Node {node} is looking for an output named {arg.name!r} on another node with a hash {arg.key!r}\n  "
@@ -129,7 +129,7 @@ class Generator(Base):
                         if arg.key not in nodes:
                             raise DBgenMissingInfo(
                                 f"Argument {key} of {node} refers to an object with a hash key {arg.key} asking for name \"{getattr(arg,'name','<No Name>')}\" that does not exist in the namespace.\n"
-                                "Did you make sure to include all PyBlocks and Queries in the func kwarg of Generator()?"
+                                "Did you make sure to include all transforms and Queries in the func kwarg of Generator()?"
                             )
                         edges.append((arg.key, node_id))
 

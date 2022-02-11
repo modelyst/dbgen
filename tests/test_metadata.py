@@ -22,7 +22,7 @@ from dbgen.core.args import Constant
 from dbgen.core.generator import Generator
 from dbgen.core.metadata import GeneratorEntity, GeneratorRunEntity, RunEntity
 from dbgen.core.node.query import BaseQuery
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 from tests.example.full_model import Parent
 from tests.example_functions import binary_lambda
 
@@ -66,7 +66,7 @@ query = BaseQuery(
     query="select 1 as label;",
     dependency={"tables_needed": {"test"}},
 )
-pb = PyBlock(inputs=[Constant(val=1), Constant(val=2)], function=binary_lambda)
+pb = PythonTransform(inputs=[Constant(val=1), Constant(val=2)], function=binary_lambda)
 generators = [
     Generator(name="test"),
     Generator(name="test_gen", tags=["a", "b", "c"]),

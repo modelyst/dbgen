@@ -91,7 +91,7 @@ class ComputationalNode(Base, Generic[Output]):
             invalid_args = [getattr(arg, "arg_get", None) is None for arg in self.inputs]
             missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
             raise DBgenMissingInfo(
-                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Argument?"
+                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a transform Argument?"
             )
         return input_variables
 

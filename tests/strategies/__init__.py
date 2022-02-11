@@ -23,7 +23,7 @@ from hypothesis.strategies._internal.strategies import SearchStrategy
 from dbgen.core.args import Arg, Constant
 from dbgen.core.func import Environment, Import, func_from_callable
 from dbgen.core.node.load import Load, LoadEntity
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 from dbgen.core.type_registry import column_registry
 from dbgen.utils.misc import reserved_words
 from tests.example_functions import example_callables
@@ -106,7 +106,7 @@ primary_key_strat = st.one_of(arg_strat, st.builds(Constant, val=st.just(None)))
 
 
 @st.composite
-def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStrategy[PyBlock]:
+def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStrategy[PythonTransform]:
     if not function:
         function = draw(function_strat)
     sig = inspect.signature(function)
@@ -114,7 +114,7 @@ def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStr
     n_args = len(sig.parameters)
     return draw(
         st.builds(
-            PyBlock,
+            PythonTransform,
             env=env_strat,
             function=st.just(function),
             inputs=st.lists(
