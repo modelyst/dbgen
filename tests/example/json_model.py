@@ -21,7 +21,7 @@ from pydantic.tools import parse_obj_as
 from sqlalchemy.sql.expression import text
 from sqlmodel import Session, select
 
-from dbgen import Constant, Entity, Extract, Generator, Model, Query
+from dbgen import Constant, Entity, ETLStep, Extract, Model, Query
 from dbgen.configuration import config, get_engines
 from dbgen.core.node.transforms import PythonTransform
 
@@ -58,13 +58,13 @@ class JSONEntity(JSONEntityBase, table=True):
 
 
 model = Model(name='test_json')
-load_json = Generator(name='load_json', loads=[JSONEntity.load(insert=True, json_val=Constant({}))])
-model.add_gen(load_json)
+load_json = ETLStep(name='load_json', loads=[JSONEntity.load(insert=True, json_val=Constant({}))])
+model.add_etl_step(load_json)
 
 extract = CustomJsonExtract()
 load = JSONEntity.load(insert=True, json_val=extract['out'], my_uuid=extract['uuid'])
-load_http_json = Generator(name='load_http_json', extract=extract, loads=[load])
-model.add_gen(load_http_json)
+load_http_json = ETLStep(name='load_http_json', extract=extract, loads=[load])
+model.add_etl_step(load_http_json)
 
 query = Query(select(JSONEntity.id, JSONEntity.json_val.op('->')(text("'title'")).label('title')))
 
@@ -76,8 +76,8 @@ def get_title_words(text: str):
 
 pb = PythonTransform(function=get_title_words, inputs=[query['title']])
 load = JSONEntity.load(json_entity=query['id'], tags=pb['out'])
-add_tags = Generator(name='add_tags', extract=query, transforms=[pb], loads=[load])
-model.add_gen(add_tags)
+add_tags = ETLStep(name='add_tags', extract=query, transforms=[pb], loads=[load])
+model.add_etl_step(add_tags)
 
 if __name__ == '__main__':
     main_engine, _ = get_engines(config)

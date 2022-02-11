@@ -22,8 +22,8 @@ from sqlmodel import Session, func, select
 import tests.example.entities as entities
 from dbgen.core.args import Constant
 from dbgen.core.entity import Entity
+from dbgen.core.etl_step import ETLStep
 from dbgen.core.func import Import
-from dbgen.core.generator import Generator
 from dbgen.core.metadata import RunEntity
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
@@ -35,7 +35,7 @@ def transform_func(x):
 
 
 @pytest.fixture(scope='function')
-def basic_generator() -> Generator:
+def basic_etl_step() -> ETLStep:
     Parent = entities.Parent
     Child = entities.Child
     select_stmt = select(Parent.label)
@@ -45,35 +45,35 @@ def basic_generator() -> Generator:
 
     load = Child.load(insert=True, label=pyblock["newnames"], type=Constant("child_type"))
     assert isinstance(load.hash, str)
-    gen = Generator(name="test", extract=query, transforms=[pyblock], loads=[load])
-    return gen
+    etl_step = ETLStep(name="test", extract=query, transforms=[pyblock], loads=[load])
+    return etl_step
 
 
-def test_basic_graph_sort(basic_generator: Generator):
+def test_basic_graph_sort(basic_etl_step: ETLStep):
     """Ensure a simple Query->transform->Load is sorted correctly."""
-    graph = basic_generator._computational_graph()
+    graph = basic_etl_step._computational_graph()
     assert len(graph) == 3
-    sorted_nodes = basic_generator._sort_graph()
+    sorted_nodes = basic_etl_step._sort_graph()
     query, transform, load = sorted_nodes
     assert isinstance(query, BaseQuery)
     assert isinstance(transform, PythonTransform)
     assert isinstance(load, Load)
 
 
-def test_basic_graph_in_place(basic_generator: Generator):
-    """Ensure that changes to the output of ._sort_graph() are in place and affect the generator as well."""
-    query, transform, load = basic_generator._sort_graph()
+def test_basic_graph_in_place(basic_etl_step: ETLStep):
+    """Ensure that changes to the output of ._sort_graph() are in place and affect the ETLStep as well."""
+    query, transform, load = basic_etl_step._sort_graph()
     assert isinstance(load, Load)
     load.run({transform.hash: {"newnames": ("1", "2")}})
-    assert load._output == basic_generator._sorted_loads()[0]._output
+    assert load._output == basic_etl_step._sorted_loads()[0]._output
     assert isinstance(query, BaseQuery)
     query.outputs.append("test")
-    assert basic_generator.extract == query
+    assert basic_etl_step.extract == query
     assert isinstance(transform, PythonTransform)
     import_to_add = Import(lib="numpy", lib_alias="np")
     transform.env.imports.append(import_to_add)
-    assert basic_generator.transforms[0] == transform
-    assert basic_generator.transforms[0].env.imports == [import_to_add]
+    assert basic_etl_step.transforms[0] == transform
+    assert basic_etl_step.transforms[0].env.imports == [import_to_add]
 
 
 def test_sorted_loads():
@@ -86,8 +86,8 @@ def test_sorted_loads():
     loads = [gp_load, c_load, p_load, u_load]
     for _ in range(10):
         shuffle(loads)
-        gen = Generator(name="test", loads=loads)
-        assert gen._sorted_loads() == [
+        etl_step = ETLStep(name="test", loads=loads)
+        assert etl_step._sorted_loads() == [
             gp_load,
             *sorted((u_load, p_load), key=lambda x: x.hash),
             c_load,
@@ -100,8 +100,8 @@ def test_no_extractor(sql_engine: Engine, raw_connection):
     entities.Parent.metadata.create_all(sql_engine)
     pyblock = PythonTransform(function=transform_func, inputs=[Constant("test")], outputs=["newnames"])
     p_load = entities.GrandParent.load(insert=True, label=pyblock["newnames"], type=Constant("gp_type"))
-    gen = Generator(name="test", transforms=[pyblock], loads=[p_load])
-    gen.run(sql_engine)
+    etl_step = ETLStep(name="test", transforms=[pyblock], loads=[p_load])
+    etl_step.run(sql_engine)
 
     with Session(sql_engine) as session:
         session = cast(Session, session)
@@ -137,7 +137,7 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
     sess.add(run)
     sess.commit()
     sess.refresh(run)
-    gen = Generator(
+    etl_step = ETLStep(
         name="test",
         extract=query,
         transforms=[pyblock],
@@ -145,4 +145,4 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
         batch_size=10000,
     )
     connection.commit()
-    gen.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
+    etl_step.run(sql_engine, sql_engine, run_id=run.id, ordering=0)

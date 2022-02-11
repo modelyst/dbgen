@@ -21,7 +21,7 @@
   "panels": [
     {
       "datasource": "${datasource}",
-      "description": "Summary of the status of each generator",
+      "description": "Summary of the status of each etl_step",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -129,7 +129,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "set search_path = $schema;\nselect now() as time, status as metric, count(*) from gens where run = $run group by status order by status;",
+          "rawSql": "set search_path = $schema;\nselect now() as time, status as metric, count(*) from etl_steps where run = $run group by status order by status;",
           "refId": "A",
           "select": [
             [
@@ -160,7 +160,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "${datasource}",
-      "description": "Number of inputs per generator",
+      "description": "Number of inputs per etl_step",
       "fieldConfig": {
         "defaults": {
           "color": {},
@@ -215,7 +215,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "set search_path = $schema;\nselect now() as time, name as \"metric\", avg(n_inputs) as \"value\"\nfrom gens where status = 'completed' and run = $run and rate is not null and rate != 0 group by name,gens.ind order by gens.ind",
+          "rawSql": "set search_path = $schema;\nselect now() as time, name as \"metric\", avg(n_inputs) as \"value\"\nfrom etl_steps where status = 'completed' and run = $run and rate is not null and rate != 0 group by name,etl_steps.ind order by etl_steps.ind",
           "refId": "edges",
           "select": [
             [
@@ -280,7 +280,7 @@
     },
     {
       "datasource": "${datasource}",
-      "description": "A Detailed Overview of the run with generator by generator information",
+      "description": "A Detailed Overview of the run with etl_step by etl_step information",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -589,7 +589,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "set search_path = $schema;\nselect\n  row_number() over () as \"Order\",\n\tname,\n\tcase\n\t\twhen status='initialized' then 0\n\t\twhen status='running' then 1\n\t\twhen status='failed' then 2\n\t\twhen status='completed' then 3\n\t\twhen status='excluded' then 4\n\t\telse -1\n\tend as \"status\",\n\tcoalesce(runtime,0)*60 as runtime,\n\tcoalesce(runtime,0)*100/(select sum(runtime) from gens where run = $run) as \"runtime %\",\n\tcoalesce(rate, 0.0) as rate,\n\tcoalesce(n_inputs,0) as n_inputs,\n\terror,\n\tquery\nfrom\n\tgens where run = $run",
+          "rawSql": "set search_path = $schema;\nselect\n  row_number() over () as \"Order\",\n\tname,\n\tcase\n\t\twhen status='initialized' then 0\n\t\twhen status='running' then 1\n\t\twhen status='failed' then 2\n\t\twhen status='completed' then 3\n\t\twhen status='excluded' then 4\n\t\telse -1\n\tend as \"status\",\n\tcoalesce(runtime,0)*60 as runtime,\n\tcoalesce(runtime,0)*100/(select sum(runtime) from etl_steps where run = $run) as \"runtime %\",\n\tcoalesce(rate, 0.0) as rate,\n\tcoalesce(n_inputs,0) as n_inputs,\n\terror,\n\tquery\nfrom\n\tetl_steps where run = $run",
           "refId": "A",
           "select": [
             [
@@ -869,7 +869,7 @@
           "value": "experimental_log"
         },
         "datasource": "${datasource}",
-        "definition": "select schemaname \nfrom\npg_catalog.pg_tables pt\nwhere\ntablename = 'gens';",
+        "definition": "select schemaname \nfrom\npg_catalog.pg_tables pt\nwhere\ntablename = 'etl_steps';",
         "description": null,
         "error": null,
         "hide": 0,
@@ -894,7 +894,7 @@
             "value": "testing"
           }
         ],
-        "query": "select schemaname \nfrom\npg_catalog.pg_tables pt\nwhere\ntablename = 'gens';",
+        "query": "select schemaname \nfrom\npg_catalog.pg_tables pt\nwhere\ntablename = 'etl_steps';",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,

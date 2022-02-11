@@ -118,7 +118,7 @@ class LoadEntity(Base):
             # if we still have sub-errors raise the errors to the user
             if sub_errors:
                 raise errors
-        base_fields = {'id', 'gen_id', 'created_at'}
+        base_fields = {'id', 'etl_step_id', 'created_at'}
         return {
             k: v
             for k, v in validated_data.items()
@@ -350,21 +350,21 @@ class Load(ComputationalNode[T]):
         )
         return {self.outputs[0]: primary_keys}
 
-    def load(self, cxn: connection, gen_id: UUID):
+    def load(self, cxn: connection, etl_step_id: UUID):
         """Run the Load statement for the given namespace rows.
 
         Args:
             namespace_rows (List[Dict[str, Any]]): A dictionary with the strings as hashes and the values as the local namespace dictionaries from PyBlocks, Queries, and Consts
         """
         self._logger.debug(f"Loading into {self.load_entity.name}")
-        self._load_data(cxn=cxn, gen_id=gen_id)
+        self._load_data(cxn=cxn, etl_step_id=etl_step_id)
         self._output = {}
 
     def _get_types(self):
         oids = list(map(lambda x: self.load_entity.attributes[x], sorted(self.inputs.keys())))
         return oids
 
-    def _load_data(self, cxn: PG3Conn, gen_id: UUID) -> None:
+    def _load_data(self, cxn: PG3Conn, etl_step_id: UUID) -> None:
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
         temp_table_name = self.load_entity.name + "_temp_load_table_" + self.hash
@@ -380,12 +380,12 @@ class Load(ComputationalNode[T]):
         ALTER TABLE {temp_table_name}
         ADD COLUMN auto_inc SERIAL NOT NULL;
         ALTER TABLE {temp_table_name}
-        ALTER COLUMN "gen_id" SET DEFAULT '{gen_id}';
+        ALTER COLUMN "etl_step_id" SET DEFAULT '{etl_step_id}';
         """.format(
             obj=self.load_entity.name,
             schema=self.load_entity.schema_,
             temp_table_name=temp_table_name,
-            gen_id=gen_id,
+            etl_step_id=etl_step_id,
         )
         with cxn.cursor() as cur:
             cur.execute(drop_temp_table)
@@ -407,7 +407,7 @@ class Load(ComputationalNode[T]):
             obj=self.load_entity.name,
             obj_pk_name=self.load_entity.primary_key_name,
             temp_table_name=temp_table_name,
-            all_column_names=cols + ["gen_id"],
+            all_column_names=cols + ["etl_step_id"],
             first=first,
             update=update,
             schema=self.load_entity.schema_,

@@ -234,7 +234,7 @@ def test_extra_attrs(entity_class: EntityMetaclass):
     assert instance.b == 99
 
 
-def test_dbgen_id_table(clear_registry):
+def test_dbetl_step_id_table(clear_registry):
     class TestEntity(Entity, table=True):
         __tablename__ = "tester"
         __identifying__ = {"label", "type"}

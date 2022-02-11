@@ -19,35 +19,35 @@ from sqlalchemy.orm import registry
 
 from dbgen.core.dependency import Dependency
 from dbgen.core.entity import Entity
-from dbgen.core.generator import Generator
+from dbgen.core.etl_step import ETLStep
 from dbgen.core.model import Model
 
 
-def test_generator_validation():
+def test_etl_step_validation():
     model = Model(name="test_model")
-    test_gen = Generator(name="test")
-    model.generators = [test_gen]
+    test_etl_step = ETLStep(name="test")
+    model.etl_steps = [test_etl_step]
     with pytest.raises(ValidationError):
-        Model(name="test", generators=[test_gen, test_gen])
+        Model(name="test", etl_steps=[test_etl_step, test_etl_step])
     with pytest.raises(ValueError):
-        model.add_gen(test_gen)
+        model.add_etl_step(test_etl_step)
 
 
-def test_basic_generator_graph():
-    a_gen = Generator(name="yields_a", additional_dependencies=Dependency(tables_yielded={"a"}))
-    b_gen = Generator(
+def test_basic_etl_step_graph():
+    a_etl_step = ETLStep(name="yields_a", additional_dependencies=Dependency(tables_yielded={"a"}))
+    b_etl_step = ETLStep(
         name="yields_b",
         additional_dependencies=Dependency(tables_needed={"a"}, tables_yielded={"b"}),
     )
-    c_gen = Generator(
+    c_etl_step = ETLStep(
         name="yields_c",
         additional_dependencies=Dependency(tables_needed={"a", "b"}, tables_yielded={"c"}),
     )
-    d_gen = Generator(
+    d_etl_step = ETLStep(
         name="yields_d",
         additional_dependencies=Dependency(tables_needed={"c"}, tables_yielded={"d"}),
     )
-    Model(name="test", generators=[a_gen, b_gen, c_gen, d_gen])
+    Model(name="test", etl_steps=[a_etl_step, b_etl_step, c_etl_step, d_etl_step])
 
 
 @pytest.mark.database
@@ -79,4 +79,4 @@ def test_model_sync(sql_engine, debug_logger):
 
 
 if __name__ == "__main__":
-    test_basic_generator_graph()
+    test_basic_etl_step_graph()

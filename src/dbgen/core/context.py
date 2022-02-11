@@ -46,5 +46,5 @@ class ModelContext(BaseContext):
     __context__: ContextVar = ContextVar('model')
 
 
-class GeneratorContext(BaseContext):
-    __context__: ContextVar = ContextVar('generator')
+class ETLStepContext(BaseContext):
+    __context__: ContextVar = ContextVar('etl_step')

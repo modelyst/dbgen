@@ -30,7 +30,7 @@ from dbgen.cli.options import config_option, model_string_option, version_option
 from dbgen.cli.queries import get_runs
 from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
 from dbgen.configuration import config, initialize, root_logger
-from dbgen.core.metadata import GeneratorRunEntity, ModelEntity, RunEntity
+from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity
 from dbgen.core.run import RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
 
@@ -53,14 +53,14 @@ def status(
     _, meta_conn = initialize()
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
-    filtered_keys = {'generator_id', 'created_at'}
+    filtered_keys = {'etl_step_id', 'created_at'}
     if not error:
         filtered_keys.add('error')
     if not query:
         filtered_keys.add('query')
     columns = [
         'name',
-        *(c.name for c in GeneratorRunEntity.__table__.c if c.name not in filtered_keys),
+        *(c.name for c in ETLStepRunEntity.__table__.c if c.name not in filtered_keys),
     ]
     show_cols = {col: col.replace('number_of_', '') for col in columns}
     table = Table(
@@ -93,20 +93,20 @@ def status(
 def run_model(
     ctx: typer.Context,
     model_str: str = model_string_option,
-    include: List[str] = typer.Option([], help="Generators to include"),
-    exclude: List[str] = typer.Option([], help="Generators to xclude"),
+    include: List[str] = typer.Option([], help="ETLSteps to include"),
+    exclude: List[str] = typer.Option([], help="ETLSteps to xclude"),
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
-    start: Optional[str] = typer.Option(None, help="Generator to start run at"),
-    until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
-    level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteGenerator Runner'),
+    start: Optional[str] = typer.Option(None, help="ETLStep to start run at"),
+    until: Optional[str] = typer.Option(None, help="ETLStep to finish run at."),
+    level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteETLStep Runner'),
     bar: bool = typer.Option(True, help="Show progress bar"),
     skip_row_count: bool = typer.Option(False, help="Show progress bar"),
-    skip_on_error: bool = typer.Option(False, help="Skip a row in generator on error"),
-    batch: Optional[int] = typer.Option(None, help="Batch size for all generators in run."),
-    batch_number: int = typer.Option(10, help="Default number of batches per generator."),
+    skip_on_error: bool = typer.Option(False, help="Skip a row in etl_step on error"),
+    batch: Optional[int] = typer.Option(None, help="Batch size for all etl_steps in run."),
+    batch_number: int = typer.Option(10, help="Default number of batches per etl_step."),
     pdb: bool = typer.Option(False, '--pdb', help="Drop into pdb on breakpoints"),
     config_file: Path = config_option,
-    remote: bool = typer.Option(True, help='Use the RemoteGenerator Runner'),
+    remote: bool = typer.Option(True, help='Use the RemoteETLStep Runner'),
     no_conf: bool = typer.Option(
         False,
         "--no-confirm",
@@ -116,7 +116,7 @@ def run_model(
     ),
     rerun_failed: bool = typer.Option(
         False,
-        help="Only rerun the generators that failed or were excluded in the previous run.",
+        help="Only rerun the etl_steps that failed or were excluded in the previous run.",
     ),
     nuke: bool = typer.Option(
         None,
@@ -176,24 +176,28 @@ def run_model(
         )
     except exceptions.SerializationError as exc:
         raise typer.BadParameter(
-            f"A generator in your model could not be deserialized. Did you use a custom extractor?"
+            f"A etl_step in your model could not be deserialized. Did you use a custom extractor?"
         ) from exc
 
     # Once run is done talk to the meta database to report to the user how the run went
     with Session(meta_engine) as session:
         run = session.exec(select(RunEntity).where(RunEntity.id == out_run.id)).one()
-        failed_gens = [gen_run.generator.name for gen_run in run.generator_runs if gen_run.status == 'failed']
-        rows_inserted = sum([gen_run.rows_inserted for gen_run in run.generator_runs])
-        rows_updated = sum([gen_run.rows_updated for gen_run in run.generator_runs])
+        failed_etl_steps = [
+            etl_step_run.etl_step.name
+            for etl_step_run in run.etl_step_runs
+            if etl_step_run.status == 'failed'
+        ]
+        rows_inserted = sum([etl_step_run.rows_inserted for etl_step_run in run.etl_step_runs])
+        rows_updated = sum([etl_step_run.rows_updated for etl_step_run in run.etl_step_runs])
 
     if run.errors:
         styles.delimiter(styles.typer.colors.RED)
-        styles.bad_typer_print(f"Encountered {run.errors} during the run! The following generators failed:")
-        styles.bad_typer_print('\n'.join(map(repr, failed_gens)))
+        styles.bad_typer_print(f"Encountered {run.errors} during the run! The following etl_steps failed:")
+        styles.bad_typer_print('\n'.join(map(repr, failed_etl_steps)))
     if run.runtime:
         styles.delimiter(styles.typer.colors.GREEN)
         styles.good_typer_print(
-            f"Finished Running {len(model.generators)} Generator(s) in {run.runtime.total_seconds():.3f}(s)."
+            f"Finished Running {len(model.etl_steps)} ETLStep(s) in {run.runtime.total_seconds():.3f}(s)."
         )
         styles.good_typer_print(
             f"The run attempted to insert {rows_inserted} and update {rows_updated} rows."

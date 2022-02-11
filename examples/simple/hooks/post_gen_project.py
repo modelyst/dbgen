@@ -2,7 +2,7 @@ import os
 import shutil
 
 REMOVE_PATHS = [
-    '{% if cookiecutter.clean=="true" %} {{cookiecutter.model_name}}/generators/io.py {% endif %}',
+    '{% if cookiecutter.clean=="true" %} {{cookiecutter.model_name}}/etl_steps/io.py {% endif %}',
     '{% if cookiecutter.clean=="true" %} {{cookiecutter.model_name}}/scripts/io.py {% endif %}',
     '{% if cookiecutter.clean=="true" %} data/ {% endif %}',
 ]

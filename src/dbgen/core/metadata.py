@@ -46,10 +46,10 @@ class Root(BaseEntity):
     __schema__ = META_SCHEMA
 
 
-class ModelGeneratorMap(Root, registry=meta_registry, table=True):
-    __tablename__ = 'model_generator'
+class ModelETLStepMap(Root, registry=meta_registry, table=True):
+    __tablename__ = 'model_etl_step'
     model_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.model.id", primary_key=True)
-    generator_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.generator.id", primary_key=True)
+    etl_step_id: Optional[UUID] = Field(None, foreign_key=f"{META_SCHEMA}.etl_step.id", primary_key=True)
 
 
 class ModelEntity(Root, registry=meta_registry, table=True):
@@ -60,11 +60,11 @@ class ModelEntity(Root, registry=meta_registry, table=True):
     name: str
     graph_json: Optional[dict]
     tags: List[str] = Field(default_factory=list)
-    generators: List['GeneratorEntity'] = Relationship(back_populates='models', link_model=ModelGeneratorMap)
+    etl_steps: List['ETLStepEntity'] = Relationship(back_populates='models', link_model=ModelETLStepMap)
 
 
-class GeneratorEntity(Root, registry=meta_registry, table=True):
-    __tablename__ = "generator"
+class ETLStepEntity(Root, registry=meta_registry, table=True):
+    __tablename__ = "etl_step"
     id: Optional[UUID] = id_field
     name: str
     query: Optional[str]
@@ -74,9 +74,9 @@ class GeneratorEntity(Root, registry=meta_registry, table=True):
     table_yielded: Optional[str]
     column_needed: Optional[str]
     column_yielded: Optional[str]
-    gen_json: Optional[dict]
-    generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='generator')
-    models: List['ModelEntity'] = Relationship(back_populates='generators', link_model=ModelGeneratorMap)
+    etl_step_json: Optional[dict]
+    etl_step_runs: List['ETLStepRunEntity'] = Relationship(back_populates='etl_step')
+    models: List['ModelEntity'] = Relationship(back_populates='etl_steps', link_model=ModelETLStepMap)
 
 
 class RunEntity(Root, registry=meta_registry, table=True):
@@ -90,12 +90,12 @@ class RunEntity(Root, registry=meta_registry, table=True):
     until: Optional[str]
     runtime: Optional[timedelta]
     errors: int = 0
-    generator_runs: List['GeneratorRunEntity'] = Relationship(back_populates='run')
+    etl_step_runs: List['ETLStepRunEntity'] = Relationship(back_populates='run')
 
 
-class GeneratorRunEntity(Root, registry=meta_registry, table=True):
-    __tablename__ = "generator_run"
-    generator_id: Optional[UUID] = GeneratorEntity.foreign_key(primary_key=True)
+class ETLStepRunEntity(Root, registry=meta_registry, table=True):
+    __tablename__ = "etl_step_run"
+    etl_step_id: Optional[UUID] = ETLStepEntity.foreign_key(primary_key=True)
     run_id: Optional[int] = RunEntity.foreign_key(primary_key=True)
     created_at: Optional[datetime] = get_created_at_field()
     ordering: Optional[int]
@@ -109,34 +109,30 @@ class GeneratorRunEntity(Root, registry=meta_registry, table=True):
     rows_updated: int = 0
     query: Optional[str]
     error: Optional[str]
-    run: RunEntity = Relationship(back_populates='generator_runs')
-    generator: GeneratorEntity = Relationship(back_populates='generator_runs')
+    run: RunEntity = Relationship(back_populates='etl_step_runs')
+    etl_step: ETLStepEntity = Relationship(back_populates='etl_step_runs')
 
 
 class Repeats(Root, registry=meta_registry, table=True):
     __tablename__ = "repeats"
-    generator_id: Optional[UUID] = GeneratorEntity.foreign_key()
+    etl_step_id: Optional[UUID] = ETLStepEntity.foreign_key()
     input_hash: UUID = Field(..., primary_key=True)
 
 
 run_view_statement = (
     select(
-        GeneratorEntity.name,
-        *(
-            getattr(GeneratorRunEntity, x)
-            for x in GeneratorRunEntity.__fields__
-            if x not in ("generator_id",)
-        ),
+        ETLStepEntity.name,
+        *(getattr(ETLStepRunEntity, x) for x in ETLStepRunEntity.__fields__ if x not in ("etl_step_id",)),
     )
-    .join_from(GeneratorRunEntity, GeneratorEntity)
-    .order_by(GeneratorRunEntity.run_id.desc(), GeneratorRunEntity.ordering)  # type: ignore
+    .join_from(ETLStepRunEntity, ETLStepEntity)
+    .order_by(ETLStepRunEntity.run_id.desc(), ETLStepRunEntity.ordering)  # type: ignore
 )
 
 current_run_view_statement = run_view_statement.where(
-    GeneratorRunEntity.run_id == select(func.max(RunEntity.id)).scalar_subquery()  # type: ignore
+    ETLStepRunEntity.run_id == select(func.max(RunEntity.id)).scalar_subquery()  # type: ignore
 )
 failed_run_view_statement = run_view_statement.where(
-    GeneratorRunEntity.status.in_(("failed", "running"))  # type: ignore
+    ETLStepRunEntity.status.in_(("failed", "running"))  # type: ignore
 )
 
 
@@ -158,20 +154,20 @@ class FailedRuns(BaseEntity, registry=meta_registry):
     )
 
 
-gens_to_run_stmt = text(
+etl_steps_to_run_stmt = text(
     f"""
 select
     distinct
-    gen.name, cr.generator_id, coalesce(gr_bad.status::text, 'never run') as last_status, gr_bad.error
+    etl_step.name, cr.etl_step_id, coalesce(gr_bad.status::text, 'never run') as last_status, gr_bad.error
 from
-    {META_SCHEMA}.generator_run cr
-join {META_SCHEMA}.generator gen on
-    gen.id = cr.generator_id
-left join {META_SCHEMA}.generator_run gr_completed on
-    cr.generator_id = gr_completed.generator_id
+    {META_SCHEMA}.etl_step_run cr
+join {META_SCHEMA}.etl_step etl_step on
+    etl_step.id = cr.etl_step_id
+left join {META_SCHEMA}.etl_step_run gr_completed on
+    cr.etl_step_id = gr_completed.etl_step_id
     and gr_completed.status = 'completed'
-left join {META_SCHEMA}.generator_run gr_bad on
-    cr.generator_id = gr_bad.generator_id
+left join {META_SCHEMA}.etl_step_run gr_bad on
+    cr.etl_step_id = gr_bad.etl_step_id
     and gr_bad.status = 'failed'
 where
     cr.status != 'completed'
@@ -187,15 +183,15 @@ where
 )
 
 
-class GensToRun(BaseEntity, registry=meta_registry):
+class ETLStepsToRun(BaseEntity, registry=meta_registry):
     __table__ = create_view(
-        "gens_to_run",
-        gens_to_run_stmt,
+        "etl_steps_to_run",
+        etl_steps_to_run_stmt,
         META_SCHEMA,
         meta_registry.metadata,
         [
             Column("name", AutoString()),
-            Column("generator_id", GUID()),
+            Column("etl_step_id", GUID()),
             Column("last_status", AutoString()),
             Column("error", AutoString()),
         ],

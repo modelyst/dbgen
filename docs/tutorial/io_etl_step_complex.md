@@ -48,7 +48,7 @@ Next, we need to overwrite the `setup` method. In this case, all we'll do is use
 
 ## Defining the extract method
 
-Finally, we need to define the `extract` method. The extract method must always be a generator that yields dictionaries where the keys are the output names and the values are the corresponding output values. In this case, the two things that we are trying to output are two strings: the file name and the file contents.
+Finally, we need to define the `extract` method. The extract method must always be a generator that yields dictionaries where the keys are the output names and the values are the corresponding output values. In this case, we would like to output two strings: the file name and the file contents.
 
 We loop over the filenames stored in our private attribute, and simply read the file and return a dictionary containing the file name and file contents.
 
@@ -66,38 +66,38 @@ The first step to defining a transform is to define the output names and the pyt
 We want our function to return four items: the researchers first name and last name, the order in which the measurement was taken, and the actual temperature measurement.
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/parse_measurements.py [ln:1-10] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:1-10] !}
 ```
 
 Next, we need to write a custom function that parses the filename and file contents to extract the information that we are interested in.
 
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/parse_measurements.py [ln:1-32] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:1-32] !}
 ```
 
 # Inserting the values into the database
 
-Next, in order to insert these values into the database, we need to define a dbgen Generator. The standard pattern is to define a function that accepts the model and adds the new generator to the model. By using `with model`, all Generators defined in that with block will automatically be added to the model. Similarly, by using `with Generator(...)`, all extracts, transforms, and loads instantiated in that with block will automatically be added to the new Generator. Lines similar to the ones highlighted below are used almost every time a new Generator is defined.
+Next, in order to insert these values into the database, we need to define a dbgen ETLStep. The standard pattern is to define a function that accepts the model and adds the new ETLStep to the model. By using `with model`, all ETLSteps defined in that with block will automatically be added to the model. Similarly, by using `with ETLStep(...)`, all extracts, transforms, and loads instantiated in that with block will automatically be added to the new ETLStep. Lines similar to the ones highlighted below are used almost every time a new ETLStep is defined.
 
 ```python3  hl_lines="2-3"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
 ```
 
 Next, we need to instantiate the custom extract we defined above. By calling `.results()` on the instance of our custom extract class, a tuple of the outputs is returned.
 
 ```python3 hl_lines="4"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
 ```
 
 After that, we want to pass the results from this extract to our custom transform (the parser defined above). Similarly, by calling `.results()` on the transform, a tuple of the outputs is returned.
 
 ```python3 hl_lines="5"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
 ```
 
 Finally, we call `.load(...)` on the table that we would like to insert data into, and we pass the values output by the transform as keyword arguments to the `.load` method. An important point is that any call to `.load` returns the ID of the row specified in the `.load(...)` statement. We do not always need to use this information, but we do need it to populate foreign keys. Simply put, foreign keys are always populated by calling the `.load` method on the table that you would like to create a foreign key to, as shown in the last line below.
 
 ```python3 hl_lines="6-11"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
 ```

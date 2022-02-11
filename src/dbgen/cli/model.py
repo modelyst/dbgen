@@ -157,7 +157,7 @@ def validate(
     model = validate_model_str(model_str)
     styles.good_typer_print(f"Model(name={model.name!r}) was successfully validated")
     styles.good_typer_print(
-        f'Model contains {len(model.generators)} generators and {len(model.registry.metadata.tables)} two entities.'
+        f'Model contains {len(model.etl_steps)} etl_steps and {len(model.registry.metadata.tables)} two entities.'
     )
     if state['verbose']:
-        styles.good_typer_print(f'Model contains {len(model.generators)} generators.')
+        styles.good_typer_print(f'Model contains {len(model.etl_steps)} etl_steps.')

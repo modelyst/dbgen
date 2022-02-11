@@ -74,8 +74,8 @@ def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw
     for row in namespace_rows:
         for load in (parent_load, child_load):
             row[load.hash] = load.run(row)
-    parent_load.load(raw_pg3_connection, gen_id=parent_load.hash)
-    child_load.load(raw_pg3_connection, gen_id=parent_load.hash)
+    parent_load.load(raw_pg3_connection, etl_step_id=parent_load.hash)
+    child_load.load(raw_pg3_connection, etl_step_id=parent_load.hash)
     # Query the Parent/child table and ensure number of rows is correct
     with Session(connection) as session:
         out = session.execute(select(func.count(Parent.id))).scalar()

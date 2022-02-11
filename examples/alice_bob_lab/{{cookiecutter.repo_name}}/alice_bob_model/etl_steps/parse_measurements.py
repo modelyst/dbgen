@@ -6,7 +6,7 @@ from alice_bob_model.constants import DATA_DIR, DEFAULT_ENV
 from alice_bob_model.extracts.measurement_extract import MeasurementExtract
 from alice_bob_model.schema import Person, TemperatureMeasurement
 
-from dbgen import Environment, Generator, Import, Model, transform
+from dbgen import Environment, ETLStep, Import, Model, transform
 
 
 @transform(
@@ -31,9 +31,9 @@ def parse_measurements(file_name: str, contents: str) -> Tuple[str, str, int, fl
     return first_name, last_name, ordering, temperature
 
 
-def add_temperature_generator(model: Model) -> None:
+def add_temperature_etl_step(model: Model) -> None:
     with model:
-        with Generator(name="temperature"):
+        with ETLStep(name="temperature"):
             filename, contents = MeasurementExtract(data_dir=join(DATA_DIR, "measurements")).results()
             first_name, last_name, ordering, temperature = parse_measurements(filename, contents).results()
             TemperatureMeasurement.load(

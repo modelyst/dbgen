@@ -22,7 +22,7 @@ from sqlmodel import Session, select
 
 from dbgen.core.args import Constant
 from dbgen.core.entity import Entity
-from dbgen.core.generator import Generator
+from dbgen.core.etl_step import ETLStep
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
@@ -67,16 +67,16 @@ def make_model() -> Model:
     # Load First Parent
     parent_load = Parent.load(insert=True, label=Constant("Ken"), type=Constant("Engineer"))
     child_load = Child.load(insert=True, label=Constant("Test"), type=Constant("Test"), parent_id=parent_load)
-    gen_1 = Generator(name="load_first_parent", loads=[child_load])
-    model.add_gen(gen_1)
+    etl_step_1 = ETLStep(name="load_first_parent", loads=[child_load])
+    model.add_etl_step(etl_step_1)
 
     # Load First Parent
     query = Query(select(Parent.id))
     child_load = Child.load(
         insert=True, label=Constant("Brian"), type=Constant("surfer"), parent_id=query["id"]
     )
-    gen_2 = Generator(name="load_first_child", extract=query, loads=[child_load])
-    model.add_gen(gen_2)
+    etl_step_2 = ETLStep(name="load_first_child", extract=query, loads=[child_load])
+    model.add_etl_step(etl_step_2)
     # Load Transform Parent
     query = Query(select(Parent.id, Parent.label))
 
@@ -89,13 +89,13 @@ def make_model() -> Model:
     add_one_pb = PythonTransform(function=add_one, inputs=[simple_pyblock["out"]])
 
     parent_update = Parent.load(parent=query["id"])
-    gen_3 = Generator(
+    etl_step_3 = ETLStep(
         name="update_parent",
         extract=query,
         transforms=[simple_pyblock, add_one_pb],
         loads=[parent_update],
     )
-    model.add_gen(gen_3)
+    model.add_etl_step(etl_step_3)
 
     @apply_pyblock(inputs=[query["label"]])
     def simple_pyblock(label: str):
@@ -108,28 +108,13 @@ def make_model() -> Model:
     add_one_pb = PythonTransform(function=add_one, inputs=[simple_pyblock["out"]])
 
     parent_update = Parent.load(parent=query["id"])
-    gen_4 = Generator(
-        name="slow_gen",
+    etl_step_4 = ETLStep(
+        name="slow_etl_step",
         extract=query,
         transforms=[simple_pyblock, add_one_pb],
         loads=[parent_update],
     )
-    model.add_gen(gen_4)
-
-    # Load into process data
-    # file_extractor = FileExtractor(directory="./test_files")
-
-    # int_extractor = IntExtractor(max_int=30)
-    # get_file_name = lambda x: f"plate_{x}.txt"
-    # pb = PyBlock(function=get_file_name, inputs=[int_extractor["out"]])
-    # pd_insert = ProcessData.load(insert=True, file_name=pb["out"])
-    # gen_5 = Generator(
-    #     name="load files new",
-    #     extract=int_extractor,
-    #     transforms=[pb],
-    #     loads=[pd_insert],
-    # )
-    # # model.add_gen(gen_5)
+    model.add_etl_step(etl_step_4)
 
     return model
 
@@ -158,11 +143,11 @@ def main():
 
 
 # with Dag(name={model.name}) as dag:
-#     for i in len(model.generators):
-#         gen_1 = GeneratorOperator(1, 1)
-#         gen_2 = GeneratorOperator(1, 2)
-#         gen_3 = GeneratorOperator(1, 3)
-#     gen_1 >> gen_2
-#     gen_2 >> gen_3
+#     for i in len(model.etl_steps):
+#         etl_step_1 = GeneratorOperator(1, 1)
+#         etl_step_2 = GeneratorOperator(1, 2)
+#         etl_step_3 = GeneratorOperator(1, 3)
+#     etl_step_1 >> etl_step_2
+#     etl_step_2 >> etl_step_3
 if __name__ == "__main__":
     main()

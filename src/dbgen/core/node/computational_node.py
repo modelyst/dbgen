@@ -19,7 +19,7 @@ from pydantic import Field, validator
 
 from dbgen.core.args import Arg, ArgLike, Constant
 from dbgen.core.base import Base
-from dbgen.core.context import GeneratorContext
+from dbgen.core.context import ETLStepContext
 from dbgen.core.dependency import Dependency
 from dbgen.exceptions import DBgenMissingInfo
 
@@ -39,10 +39,10 @@ class ComputationalNode(Base, Generic[Output]):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        gen_context = GeneratorContext.get()
-        if gen_context:
-            gen = gen_context['generator']
-            gen.add_node(self)
+        etl_step_context = ETLStepContext.get()
+        if etl_step_context:
+            etl_step = etl_step_context['etl_step']
+            etl_step.add_node(self)
 
     def _get_dependency(self) -> Dependency:
         return Dependency()

@@ -37,10 +37,10 @@ This will prompt you to download the relevant files to a local directory with th
     ├── extracts
     │   ├── __init__.py
     │   ├── extract_1.py
-    ├── generators
+    ├── etl_steps
     │   ├── __init__.py
-    │   ├── generator_1.py
-    │   ├── generator_2.py
+    │   ├── etl_step_1.py
+    │   ├── etl_step_2.py
     ├── transforms
     │   ├── __init__.py
     │   ├── transform_1.py
@@ -87,7 +87,7 @@ Part of the `schema.py` used in this tutorial is shown below.
 
 ## extracts
 
-`Extracts` are relatively small pieces of code that define how to read data from a custom data source. We write that code here, then import it when we are writing generators later.
+`Extracts` are relatively small pieces of code that define how to read data from a custom data source. We write that code here, then import it when we are writing ETLSteps later.
 
 Below, we show an example of an `extract` that reads a csv stored in the local file system and returns its contents one row at a time. We'll walk through this in more detail later in the tutorial.
 
@@ -97,36 +97,36 @@ Below, we show an example of an `extract` that reads a csv stored in the local f
 
 ## transforms
 
-In the transforms module, we write functions that parse or analyze incoming data. If the same function will be used multiple times, it is best to write the function in the transforms module and import it later when the generator is written.
+In the transforms module, we write functions that parse or analyze incoming data. If the same function will be used multiple times, it is best to write the function in the transforms module and import it later when the ETLStep is written.
 
-However, if the function is specific to a particular generator and will not be reused, it is common to define that transform in the same file as the generator (in the `generators` module) instead of in the transforms module.
+However, if the function is specific to a particular ETLStep and will not be reused, it is common to define that transform in the same file as the ETLStep (in the `etl_steps` module) instead of in the transforms module.
 
 An example of a `transform` is shown below.
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/read_csv.py [ln:10-16] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:10-16] !}
 ```
 
-## generators
+## etl_steps
 
-The generators module is where the code that populates the database is defined. Each generator is one "Extract, Transform, Load" (ETL) step. The "extract" portion of the ETL step defines the source of the data. The "transform" defines which functions will be used to parse or analyze the data, and the "load" step defines where in the database the results will be stored.
+The etl_steps module is where the code that populates the database is defined. Each ETLStep is one "Extract, Transform, Load" (ETL) step. The "extract" portion of the ETL step defines the source of the data. The "transform" defines which functions will be used to parse or analyze the data, and the "load" step defines where in the database the results will be stored.
 
 The extract step may be a custom extract that we defined earlier, or it may be a query on the database.
 
-The purpose of generators is essentially to define where data will come from, which function will analyze it, and where it will go.
+The purpose of ETLSteps is essentially to define where data will come from, which function will analyze it, and where it will go.
 
-Whenever we write a new generator, we write a function that accepts the model as an input and adds that generator to the model. An example is shown below.
+Whenever we write a new ETLStep, we write a function that accepts the model as an input and adds that ETLStep to the model. An example is shown below.
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/read_csv.py [ln:18-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:18-] !}
 ```
 
-## generators.\__init__.py
+## etl_steps.\__init__.py
 
-This is where we tell `main.py` to add the generators to the model. You can see that in `main.py`, we import a function called `add_generators` from the `generators.__init__.py` file. Then, `add_generators` is the only function called within `make_model()`.
+This is where we tell `main.py` to add the ETLSteps to the model. You can see that in `main.py`, we import a function called `add_etl_steps` from the `etl_steps.__init__.py` file. Then, `add_etl_steps` is the only function called within `make_model()`.
 
-When we finish writing a new generator, the last thing to is to add it to `generators.__init__.py` so that `main.py` picks it up. The pattern is simple: for each generator, import the function that adds that generator to the model, and call that function in `add_generators()` as shown below.
+When we finish writing a new ETLStep, the last thing to is to add it to `etl_steps.__init__.py` so that `main.py` picks it up. The pattern is simple: for each ETLStep, import the function that adds that ETLStep to the model, and call that function in `add_etl_steps()` as shown below.
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/__init__.py [ln:1-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/__init__.py [ln:1-] !}
 ```

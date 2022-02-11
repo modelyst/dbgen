@@ -22,32 +22,32 @@ import typer
 from sqlmodel import Session, func, select
 
 from dbgen.configuration import config, get_engines, root_logger
-from dbgen.core.metadata import GeneratorEntity, GeneratorRunEntity, RunEntity
-from dbgen.core.run import RemoteGeneratorRun, RunConfig
+from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
+from dbgen.core.run import RemoteETLStepRun, RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
 
 if TYPE_CHECKING:
     from sqlalchemy.future import Engine  # pragma: no cover
 
-generator_app = typer.Typer()
+etl_step_app = typer.Typer()
 
 
-def get_runnable_gens(
+def get_runnable_etl_steps(
     all_runs: bool = True, meta_engine: Optional['Engine'] = None
 ) -> GenType[Tuple[str, datetime, UUID], None, None]:
     statement = (
         select(  # type: ignore
-            GeneratorEntity.name,
-            func.max(GeneratorRunEntity.created_at),
-            GeneratorEntity.id,
+            ETLStepEntity.name,
+            func.max(ETLStepRunEntity.created_at),
+            ETLStepEntity.id,
         )
-        .join_from(GeneratorEntity, GeneratorRunEntity)
-        .group_by(GeneratorEntity.name, GeneratorEntity.id)
-        .order_by(GeneratorEntity.name, func.max(GeneratorRunEntity.created_at).desc())
+        .join_from(ETLStepEntity, ETLStepRunEntity)
+        .group_by(ETLStepEntity.name, ETLStepEntity.id)
+        .order_by(ETLStepEntity.name, func.max(ETLStepRunEntity.created_at).desc())
     )
     if not all_runs:
         statement = statement.where(
-            GeneratorRunEntity.run_id == select(func.max(RunEntity.id)).scalar_subquery()  # type: ignore
+            ETLStepRunEntity.run_id == select(func.max(RunEntity.id)).scalar_subquery()  # type: ignore
         )
 
     # If we don't have a metaengine grab one
@@ -59,32 +59,34 @@ def get_runnable_gens(
         yield from result
 
 
-@generator_app.command('list')
-def list_generators(
+@etl_step_app.command('list')
+def list_etl_steps(
     all_runs: bool = typer.Option(
-        False, '-a', '--all', help='Print all possible generators not just most recent'
+        False, '-a', '--all', help='Print all possible ETLSteps not just most recent'
     )
 ):
-    """List out the generators from the last run."""
+    """List out the ETLSteps from the last run."""
     typer.echo("-" * 77)
-    typer.echo(f"{'name':<20} {'last_run':<20} {'generator_id':20}")
+    typer.echo(f"{'name':<20} {'last_run':<20} {'etl_step_id':20}")
     typer.echo("-" * 77)
-    for gen_name, last_run, gen_id in get_runnable_gens(all_runs):
-        typer.echo(f"{gen_name!r:<20} {last_run.strftime('%m/%d/%Y %H:%M:%S'):<20} {str(gen_id):<20}")
+    for etl_step_name, last_run, etl_step_id in get_runnable_etl_steps(all_runs):
+        typer.echo(
+            f"{etl_step_name!r:<20} {last_run.strftime('%m/%d/%Y %H:%M:%S'):<20} {str(etl_step_id):<20}"
+        )
 
 
-@generator_app.command('run')
-def run_generator(
-    gen_id: UUID,
+@etl_step_app.command('run')
+def run_etl_step(
+    etl_step_id: UUID,
     run_id: Optional[int] = typer.Argument(None),
     ordering: Optional[int] = typer.Argument(None),
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
     level: LogLevel = typer.Option(LogLevel.INFO, help="Log level"),
-    include: List[str] = typer.Option([], help="Generators to include"),
-    exclude: List[str] = typer.Option([], help="Generators to xclude"),
-    start: Optional[str] = typer.Option(None, help="Generator to start run at"),
-    until: Optional[str] = typer.Option(None, help="Generator to finish run at."),
-    batch: Optional[int] = typer.Option(None, help="Batch size for all generators"),
+    include: List[str] = typer.Option([], help="ETLSteps to include"),
+    exclude: List[str] = typer.Option([], help="ETLSteps to xclude"),
+    start: Optional[str] = typer.Option(None, help="ETLStep to start run at"),
+    until: Optional[str] = typer.Option(None, help="ETLStep to finish run at."),
+    batch: Optional[int] = typer.Option(None, help="Batch size for all etl_steps"),
 ):
     # Retrieve the configured engines for
     main_engine, meta_engine = get_engines(config)
@@ -99,26 +101,29 @@ def run_generator(
         log_level=level,
     )
     add_stdout_logger(root_logger, stdout_level=level)
-    # Validate that the generator id provided is in the GeneratorEntity Table for remote running
-    gens = {gen_id: gen_name for gen_name, _, gen_id in get_runnable_gens(meta_engine=meta_engine)}
-    if gen_id not in gens:
-        raise typer.BadParameter(f"Invalid generator id, no generator found with uuid {gen_id}.")
+    # Validate that the etl_step id provided is in the ETLStepEntity Table for remote running
+    etl_steps = {
+        etl_step_id: etl_step_name
+        for etl_step_name, _, etl_step_id in get_runnable_etl_steps(meta_engine=meta_engine)
+    }
+    if etl_step_id not in etl_steps:
+        raise typer.BadParameter(f"Invalid etl_step id, no etl_step found with uuid {etl_step_id}.")
 
     # Need to validate the run_id to make sure that run has been initialized (i.e. a run exists with run_id)
-    # and that a gen_run has not already been created with this gen_id and run_id
+    # and that a etl_step_run has not already been created with this etl_step_id and run_id
     if run_id is not None:
         with Session(meta_engine) as session:
-            existing_gen_run = session.get(GeneratorRunEntity, (gen_id, run_id))
-            if existing_gen_run:
+            existing_etl_step_run = session.get(ETLStepRunEntity, (etl_step_id, run_id))
+            if existing_etl_step_run:
                 raise typer.BadParameter(
-                    f"Found an existing generator_run with (generator_id, run_id) equal to ({gen_id},{run_id})"
+                    f"Found an existing etl_step_run with (etl_step_id, run_id) equal to ({etl_step_id},{run_id})"
                 )
             run = session.get(RunEntity, run_id)
             if not run:
                 raise typer.BadParameter(
                     f"No Run exists with run_id = {run_id} has the run been initialized?"
                 )
-    code = RemoteGeneratorRun(generator_id=gen_id).execute(
+    code = RemoteETLStepRun(etl_step_id=etl_step_id).execute(
         main_engine, meta_engine, run_id, run_config, ordering
     )
     if code:

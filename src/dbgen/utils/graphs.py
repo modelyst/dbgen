@@ -67,7 +67,7 @@ def serialize_graph(
 
 
 # def topological_sort(G, key=None):
-#     """Returns a generator of nodes in lexicographically topologically sorted
+#     """Returns a etl_step of nodes in lexicographically topologically sorted
 #     order.
 
 #     A topological sort is a nonunique permutation of the nodes such that an

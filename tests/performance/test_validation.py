@@ -83,7 +83,7 @@ def basic_validator(values):
     return values
 
 
-bad_fields = {'id', 'gen_id', 'created_at'}
+bad_fields = {'id', 'etl_step_id', 'created_at'}
 
 
 def validate_model_version(data):

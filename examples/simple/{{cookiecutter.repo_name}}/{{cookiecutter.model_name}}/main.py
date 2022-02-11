@@ -1,11 +1,11 @@
 from dbgen import Model
 
 from . import schema  # noqa: F401
-from .generators import add_generators
+from .etl_steps import add_etl_steps
 
 
 def make_model():
     model = Model(name="{{cookiecutter.model_name}}")
-    # add gens to model
-    add_generators(model)
+    # add etl_steps to model
+    add_etl_steps(model)
     return model

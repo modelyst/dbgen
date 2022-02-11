@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Objects related to the running of Models and Generators."""
+"""Objects related to the running of Models and ETLSteps."""
 from bdb import BdbQuit
 from datetime import datetime, timedelta
 from math import ceil
@@ -29,11 +29,11 @@ from tqdm import tqdm
 
 import dbgen.exceptions as exceptions
 from dbgen.core.base import Base, encoders
-from dbgen.core.generator import Generator
+from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import (
-    GeneratorEntity,
-    GeneratorRunEntity,
-    GensToRun,
+    ETLStepEntity,
+    ETLStepRunEntity,
+    ETLStepsToRun,
     ModelEntity,
     Repeats,
     RunEntity,
@@ -53,7 +53,7 @@ from dbgen.utils.log import LogLevel
 
 
 class RunConfig(Base):
-    """Configuration for the running of a Generator and Model"""
+    """Configuration for the running of an ETLStep and Model"""
 
     retry: bool = False
     include: Set[str] = Field(default_factory=set)
@@ -67,9 +67,9 @@ class RunConfig(Base):
     batch_number: int = 10
     log_level: LogLevel = LogLevel.INFO
 
-    def should_gen_run(self, generator: Generator) -> bool:
-        """Check a generator against include/exclude to see if it should run."""
-        markers = [generator.name, *generator.tags]
+    def should_etl_step_run(self, etl_step: ETLStep) -> bool:
+        """Check an ETLStep against include/exclude to see if it should run."""
+        markers = [etl_step.name, *etl_step.tags]
         should_run = any(
             map(
                 lambda x: (not self.include or x in self.include) and x not in self.exclude,
@@ -81,11 +81,11 @@ class RunConfig(Base):
     def get_invalid_markers(self, model: Model) -> Dict[str, List[str]]:
         """Check that all inputs to RunConfig are meaningful for the model."""
         invalid_marks = {}
-        gen_names = model.gens().keys()
+        etl_step_names = model.etl_steps_dict().keys()
         # Validate start and until
         for attr in ("start", "until"):
             val: str = getattr(self, attr)
-            if val is not None and val not in gen_names:
+            if val is not None and val not in etl_step_names:
                 invalid_marks[attr] = [val]
         # Validate include and exclude as sets
         for attr in ("include", "exclude"):
@@ -109,7 +109,7 @@ class RunInitializer(Base):
 
     def execute(self, engine: Engine, run_config: RunConfig) -> int:
         # Use some metadatabase connection to initialize initialize the run
-        # Store the details of the run on the metadatabase so downstream GeneratorRuns can pick them up
+        # Store the details of the run on the metadatabase so downstream ETLStepRuns can pick them up
         # Sync the database with the registries
         with Session(engine) as session:
             run = RunEntity(status=Status.initialized)
@@ -124,13 +124,13 @@ class RunInitializer(Base):
         return run_id
 
 
-class BaseGeneratorRun(Base):
-    """A lightwieght wrapper for the Generator that grabs a specific Generator from metadatabase and runs it."""
+class BaseETLStepRun(Base):
+    """A lightwieght wrapper for the ETLStep that grabs a specific ETLStep from metadatabase and runs it."""
 
     _old_repeats: Set[UUID] = PrivateAttr(default_factory=set)
     _new_repeats: Set[UUID] = PrivateAttr(default_factory=set)
 
-    def get_gen(self, meta_engine: Engine, *args, **kwargs) -> Generator:
+    def get_etl_step(self, meta_engine: Engine, *args, **kwargs) -> ETLStep:
         raise NotImplementedError
 
     def execute(
@@ -146,30 +146,30 @@ class BaseGeneratorRun(Base):
         if run_config is None:
             run_config = RunConfig()
 
-        generator = self.get_gen(meta_engine=meta_engine)
-        # Initialize the generator_row in the meta database
+        etl_step = self.get_etl_step(meta_engine=meta_engine)
+        # Initialize the etl_step_row in the meta database
         meta_session = Session(meta_engine)
 
-        gen_run = self._initialize_gen_run(
-            generator=generator, session=meta_session, run_id=run_id, ordering=ordering
+        etl_step_run = self._initialize_etl_step_run(
+            etl_step=etl_step, session=meta_session, run_id=run_id, ordering=ordering
         )
-        # Check if our run config excludes our generator
-        if not run_config.should_gen_run(generator):
-            self._logger.info(f'Excluding generator {generator.name!r}')
-            gen_run.status = Status.excluded
+        # Check if our run config excludes our etl_step
+        if not run_config.should_etl_step_run(etl_step):
+            self._logger.info(f'Excluding etl_step {etl_step.name!r}')
+            etl_step_run.status = Status.excluded
             meta_session.commit()
             return
-        # Start the Generator
-        self._logger.info(f'Running generator {generator.name!r}...')
-        gen_run.status = Status.running
+        # Start the ETLStep
+        self._logger.info(f'Running ETLStep {etl_step.name!r}...')
+        etl_step_run.status = Status.running
         meta_session.commit()
         start = time()
         # Set the extractor
         self._logger.debug('Initializing extractor')
         extractor_connection = main_engine.connect()
-        extract = generator.extract
+        extract = etl_step.extract
         if isinstance(extract, BaseQuery):
-            extract.set_extractor(connection=extractor_connection, yield_per=generator.batch_size)
+            extract.set_extractor(connection=extractor_connection, yield_per=etl_step.batch_size)
         else:
             extract.set_extractor()
         self._logger.debug('Fetching extractor length')
@@ -184,16 +184,16 @@ class BaseGeneratorRun(Base):
         else:
             row_count = None
 
-        gen_run.inputs_extracted = row_count
+        etl_step_run.inputs_extracted = row_count
         meta_session.commit()
 
         self._logger.debug('Fetching repeats')
-        # Query the repeats table for input_hashes that match this generator's hash
+        # Query the repeats table for input_hashes that match this etl_step's hash
         self._old_repeats = set(
-            meta_session.exec(select(Repeats.input_hash).where(Repeats.generator_id == generator.uuid)).all()
+            meta_session.exec(select(Repeats.input_hash).where(Repeats.etl_step_id == etl_step.uuid)).all()
         )
-        # The batch_size is set either on the run_config or the generator
-        batch_size = run_config.batch_size or generator.batch_size
+        # The batch_size is set either on the run_config or the etl_step
+        batch_size = run_config.batch_size or etl_step.batch_size
         if batch_size is None and row_count:
             batch_size = ceil(row_count / run_config.batch_number)
         assert batch_size is None or batch_size > 0, f"Invalid batch size batch_size must be >0: {batch_size}"
@@ -218,18 +218,18 @@ class BaseGeneratorRun(Base):
             while True:
                 row: Dict[str, Mapping[str, Any]] = {}
                 try:
-                    for node in generator._sort_graph():
+                    for node in etl_step._sort_graph():
                         output = node.run(row)
                         # Extract outputs need to be fed to our repeat checker and need to be checked for stop iterations
                         if isinstance(node, Extract):
-                            if output is None or batch_done(gen_run.inputs_processed):
+                            if output is None or batch_done(etl_step_run.inputs_processed):
                                 load_msg = batch_message.format(batch_num, total_batches, 'Loading')
                                 progress_bar.set_description(load_msg)
                                 self._logger.debug(load_msg)
-                                self._load_repeats(meta_raw_connection, generator)
-                                rows_inserted, rows_updated = self._load(main_raw_connection, generator)
-                                gen_run.rows_inserted += rows_inserted
-                                gen_run.rows_updated += rows_updated
+                                self._load_repeats(meta_raw_connection, etl_step)
+                                rows_inserted, rows_updated = self._load(main_raw_connection, etl_step)
+                                etl_step_run.rows_inserted += rows_inserted
+                                etl_step_run.rows_updated += rows_updated
                                 meta_session.commit()
                                 self._logger.debug('done loading batch.')
                                 self._logger.debug(f'inserted {rows_inserted} rows.')
@@ -242,14 +242,14 @@ class BaseGeneratorRun(Base):
                             # if we are out of rows break out of while loop
                             if output is None:
                                 raise StopIteration
-                            gen_run.inputs_processed += 1
-                            is_repeat, input_hash = self._check_repeat(output, generator.uuid)
+                            etl_step_run.inputs_processed += 1
+                            is_repeat, input_hash = self._check_repeat(output, etl_step.uuid)
                             if not run_config.retry and is_repeat:
                                 raise RepeatException()
                         row[node.hash] = output  # type: ignore
                     if not is_repeat:
                         self._new_repeats.add(input_hash)
-                        gen_run.unique_inputs += 1
+                        etl_step_run.unique_inputs += 1
                     progress_bar.update()
                 # Stop iteration is used to catch the empty extractor
                 except StopIteration:
@@ -261,20 +261,20 @@ class BaseGeneratorRun(Base):
                 # Any node can raise a skip exception to skip the input before loading
                 except DBgenSkipException as exc:
                     self._logger.debug(f"Skipped Row: {exc.msg}")
-                    gen_run.inputs_skipped += 1
+                    etl_step_run.inputs_skipped += 1
                     progress_bar.update()
                 # External errors are raised whenever a node fails due to internal logic
                 except (DBgenExternalError, ValidationError) as e:
-                    msg = f"Error when running generator {generator.name}"
+                    msg = f"Error when running etl_step {etl_step.name}"
                     self._logger.error(msg)
                     self._logger.error(e)
                     if run_config.skip_on_error:
-                        gen_run.inputs_skipped += 1
+                        etl_step_run.inputs_skipped += 1
                         progress_bar.update()
                         continue
                     # self._logger.error(f"\n{e}")
-                    gen_run.status = Status.failed
-                    gen_run.error = str(e)
+                    etl_step_run.status = Status.failed
+                    etl_step_run.error = str(e)
                     run = meta_session.get(RunEntity, run_id)
                     assert run
                     run.errors = run.errors + 1 if run.errors else 1
@@ -287,9 +287,9 @@ class BaseGeneratorRun(Base):
                     SystemExit,
                     BdbQuit,
                 ) as e:
-                    gen_run.status = Status.failed
-                    gen_run.error = (
-                        f"Uncaught Error encountered during running of generator {generator.name}: {e!r}"
+                    etl_step_run.status = Status.failed
+                    etl_step_run.error = (
+                        f"Uncaught Error encountered during running of etl_step {etl_step.name}: {e!r}"
                     )
                     update_run_by_id(run_id, Status.failed, meta_session)
                     raise
@@ -297,29 +297,29 @@ class BaseGeneratorRun(Base):
                 #     progress_bar.update()
         # Close all connections
         finally:
-            gen_run.runtime = round(time() - start, 3)
+            etl_step_run.runtime = round(time() - start, 3)
             meta_session.commit()
             main_raw_connection.close()
             meta_raw_connection.close()
             extractor_connection.close()
 
-        gen_run.status = Status.completed
-        gen_run.runtime = round(time() - start, 3)
+        etl_step_run.status = Status.completed
+        etl_step_run.runtime = round(time() - start, 3)
         self._logger.info(
-            f"Finished running generator {generator.name}({generator.uuid}) in {gen_run.runtime}(s)."
+            f"Finished running etl_step {etl_step.name}({etl_step.uuid}) in {etl_step_run.runtime}(s)."
         )
-        self._logger.info(f"Loaded approximately {gen_run.rows_inserted} rows")
+        self._logger.info(f"Loaded approximately {etl_step_run.rows_inserted} rows")
         meta_session.commit()
         meta_session.close()
         return 0
 
-    def _initialize_gen_run(
+    def _initialize_etl_step_run(
         self,
         session: Session,
-        generator: Generator,
+        etl_step: ETLStep,
         run_id: Optional[int],
         ordering: Optional[int],
-    ) -> GeneratorRunEntity:
+    ) -> ETLStepRunEntity:
         # if no run_id is provided create one and mark it as a testing run
         if run_id is None:
             run = RunEntity(status='testing')
@@ -328,81 +328,81 @@ class BaseGeneratorRun(Base):
             session.refresh(run)
             ordering = 0
             run_id = run.id
-        gen_row = generator._get_gen_row()
-        session.merge(gen_row)
+        etl_step_row = etl_step._get_etl_step_row()
+        session.merge(etl_step_row)
         session.commit()
-        query = generator.extract.query if isinstance(generator.extract, BaseQuery) else ''
-        gen_run = GeneratorRunEntity(
+        query = etl_step.extract.query if isinstance(etl_step.extract, BaseQuery) else ''
+        etl_step_run = ETLStepRunEntity(
             run_id=run_id,
-            generator_id=gen_row.id,
+            etl_step_id=etl_step_row.id,
             status=Status.initialized,
             ordering=ordering,
             query=query,
         )
-        session.add(gen_run)
+        session.add(etl_step_run)
         session.commit()
-        session.refresh(gen_run)
-        return gen_run
+        session.refresh(etl_step_run)
+        return etl_step_run
 
-    def _load(self, connection, generator: Generator) -> Tuple[int, int]:
+    def _load(self, connection, etl_step: ETLStep) -> Tuple[int, int]:
         rows_inserted = 0
         rows_updated = 0
-        for load in generator._sorted_loads():
+        for load in etl_step._sorted_loads():
             if load.insert:
                 rows_inserted += len(load._output)
             else:
                 rows_updated += len(load._output)
-            load.load(connection, gen_id=self.uuid)
+            load.load(connection, etl_step_id=self.uuid)
         return (rows_inserted, rows_updated)
 
-    def _load_repeats(self, connection, generator: Generator) -> None:
-        rows = ((generator.uuid, input_hash) for input_hash in self._new_repeats)
-        Repeats._quick_load(connection, rows, column_names=["generator_id", "input_hash"])
+    def _load_repeats(self, connection, etl_step: ETLStep) -> None:
+        rows = ((etl_step.uuid, input_hash) for input_hash in self._new_repeats)
+        Repeats._quick_load(connection, rows, column_names=["etl_step_id", "input_hash"])
         self._old_repeats = self._old_repeats.union(self._new_repeats)
         self._new_repeats = set()
 
-    def _check_repeat(self, extracted_dict: Dict[str, Any], generator_uuid: UUID) -> Tuple[bool, UUID]:
+    def _check_repeat(self, extracted_dict: Dict[str, Any], etl_step_uuid: UUID) -> Tuple[bool, UUID]:
         # Convert Row to a dictionary so we can hash it for repeat-checking
-        input_hash = UUID(hasher((generator_uuid, extracted_dict), encoders=encoders))
+        input_hash = UUID(hasher((etl_step_uuid, extracted_dict), encoders=encoders))
         # If the input_hash has been seen and we don't have retry=True skip row
         is_repeat = input_hash in self._old_repeats or input_hash in self._new_repeats
         return (is_repeat, input_hash)
 
 
-class GeneratorRun(BaseGeneratorRun):
-    generator: Generator
+class ETLStepRun(BaseETLStepRun):
+    etl_step: ETLStep
 
-    def get_gen(self, meta_engine: Engine, *args, **kwargs):
-        return self.generator
+    def get_etl_step(self, meta_engine: Engine, *args, **kwargs):
+        return self.etl_step
 
 
-class RemoteGeneratorRun(BaseGeneratorRun):
-    generator_id: UUID
+class RemoteETLStepRun(BaseETLStepRun):
+    etl_step_id: UUID
 
-    def get_gen(self, meta_engine, *args, **kwargs):
+    def get_etl_step(self, meta_engine, *args, **kwargs):
         with Session(meta_engine) as sess:
-            gen_json = sess.exec(
-                select(GeneratorEntity.gen_json).where(GeneratorEntity.id == self.generator_id)
+            etl_step_json = sess.exec(
+                select(ETLStepEntity.etl_step_json).where(ETLStepEntity.id == self.etl_step_id)
             ).one()
             try:
-                generator = Generator.deserialize(gen_json)
+                etl_step = ETLStep.deserialize(etl_step_json)
             except ModuleNotFoundError as exc:
                 import os
 
                 raise SerializationError(
-                    f"While deserializing generator id {self.generator_id} an unknown module was encountered. Are you using custom dbgen objects reachable by your python environment? Make sure any custom extractors or code can be found in your PYTHONPATH environment variable\nError: {exc}\nPYTHONPATH={os.environ.get('PYTHONPATH')}"
+                    f"While deserializing etl_step id {self.etl_step_id} an unknown module was encountered. Are you using custom dbgen objects reachable by your python environment? Make sure any custom extractors or code can be found in your PYTHONPATH environment variable\nError: {exc}\nPYTHONPATH={os.environ.get('PYTHONPATH')}"
                 ) from exc
-            if generator.uuid != self.generator_id:
-                error = f"Deserialization Failed the generator hash has changed for generator named {generator.name}!\n{generator}\n{self.generator_id}"
+            if etl_step.uuid != self.etl_step_id:
+                error = f"Deserialization Failed the etl_step hash has changed for etl_step named {etl_step.name}!\n{etl_step}\n{self.etl_step_id}"
                 raise exceptions.SerializationError(error)
-        return generator
+        return etl_step
 
 
 class ModelRun(Base):
     model: Model
 
-    def get_gen_run(self, generator: Generator) -> BaseGeneratorRun:
-        return GeneratorRun(generator=generator)
+    def get_etl_step_run(self, etl_step: ETLStep) -> BaseETLStepRun:
+        return ETLStepRun(etl_step=etl_step)
 
     def execute(
         self,
@@ -418,18 +418,18 @@ class ModelRun(Base):
         # Sync the Database statew with the model state
         self.model.sync(main_engine, meta_engine, nuke=nuke)
 
-        # If doing last failed run query for gens to run and add to include
+        # If doing last failed run query for ETLSteps to run and add to include
         if rerun_failed:
             with meta_engine.connect() as conn:
-                result = conn.execute(select(GensToRun.__table__.c.name))
-                for (gen_name,) in result:
-                    run_config.include.add(gen_name)
+                result = conn.execute(select(ETLStepsToRun.__table__.c.name))
+                for (etl_step_name,) in result:
+                    run_config.include.add(etl_step_name)
 
         # Initialize the run
         run_init = RunInitializer()
         run_id = run_init.execute(meta_engine, run_config)
-        sorted_generators = self.model._sort_graph()
-        # Add generators to metadb
+        sorted_etl_steps = self.model._sort_graph()
+        # Add etl_steps to metadb
         with Session(meta_engine) as meta_session:
             model_row = self.model._get_model_row()
             model_row.last_run = datetime.now()
@@ -440,27 +440,29 @@ class ModelRun(Base):
                 existing_model.last_run = datetime.now()
             meta_session.commit()
 
-        # Apply start and until to exclude generators not between start_idx and until_idx
+        # Apply start and until to exclude etl_steps not between start_idx and until_idx
         if run_config.start or run_config.until:
-            gen_names = [gen.name for gen in sorted_generators]
-            start_idx = gen_names.index(run_config.start) if run_config.start else 0
-            until_idx = gen_names.index(run_config.until) + 1 if run_config.until else len(gen_names)
-            # Modify include to only include the gen_names that pass the test
-            run_config.include = run_config.include.union(gen_names[start_idx:until_idx])
-            print(f"Only running generators: {gen_names[start_idx:until_idx]} due to start/until")
+            etl_step_names = [etl_step.name for etl_step in sorted_etl_steps]
+            start_idx = etl_step_names.index(run_config.start) if run_config.start else 0
+            until_idx = (
+                etl_step_names.index(run_config.until) + 1 if run_config.until else len(etl_step_names)
+            )
+            # Modify include to only include the etl_step_names that pass the test
+            run_config.include = run_config.include.union(etl_step_names[start_idx:until_idx])
+            print(f"Only running etl_steps: {etl_step_names[start_idx:until_idx]} due to start/until")
             self._logger.debug(
-                f"Only running generators: {gen_names[start_idx:until_idx]} due to start/until"
+                f"Only running etl_steps: {etl_step_names[start_idx:until_idx]} due to start/until"
             )
         with tqdm(
-            total=len(sorted_generators),
+            total=len(sorted_etl_steps),
             position=0,
             disable=not run_config.progress_bar,
-            unit=' Generator',
+            unit=' ETLStep',
         ) as tq:
-            for i, generator in enumerate(sorted_generators):
-                tq.set_description(generator.name)
-                gen_run = self.get_gen_run(generator)
-                gen_run.execute(main_engine, meta_engine, run_id, run_config, ordering=i)
+            for i, etl_step in enumerate(sorted_etl_steps):
+                tq.set_description(etl_step.name)
+                etl_step_run = self.get_etl_step_run(etl_step)
+                etl_step_run.execute(main_engine, meta_engine, run_id, run_config, ordering=i)
                 tq.update()
 
         # Complete run
@@ -475,5 +477,5 @@ class ModelRun(Base):
 
 
 class RemoteModelRun(ModelRun):
-    def get_gen_run(self, generator):
-        return RemoteGeneratorRun(generator_id=generator.uuid)
+    def get_etl_step_run(self, etl_step):
+        return RemoteETLStepRun(etl_step_id=etl_step.uuid)

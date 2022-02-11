@@ -2,7 +2,7 @@ from alice_bob_model.constants import DEFAULT_ENV
 from alice_bob_model.schema import TemperatureMeasurement
 from sqlmodel import select
 
-from dbgen import Generator, Model, Query, transform
+from dbgen import ETLStep, Model, Query, transform
 
 
 @transform(outputs=["temp_c"], env=DEFAULT_ENV)
@@ -14,7 +14,7 @@ def f_to_c(temp_f: float) -> float:
 
 def add_f_to_c(model: Model) -> None:
     with model:
-        with Generator(name="f_to_c"):
+        with ETLStep(name="f_to_c"):
             temperature_measurement_id, temp_f = Query(
                 select(TemperatureMeasurement.id, TemperatureMeasurement.temperature_F)
             ).results()

@@ -1,3 +1,19 @@
+<!--
+   Copyright 2021 Modelyst LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ -->
+
 # DBgen Overview and Concepts
 
 Below, we introduce the most important concepts in DBgen.
@@ -8,7 +24,7 @@ A `Model` is the conceptually "largest" object in DBgen. A `Model` contains all 
 - Define the tables and columns that will exist in your database.
 - Define the procedure for populating those tables with actual data.
 
-In order to accomplish the first step, we need to understand DBgen "Entities," and in order to accomplish the second step, we need to understand DBgen "Extracts", Transforms", Loads", and "Generators". These concepts are introduced below.
+In order to accomplish the first step, we need to understand DBgen "Entities," and in order to accomplish the second step, we need to understand DBgen "Extracts", Transforms", Loads", and "ETLSteps". These concepts are introduced below.
 
 ## Defining the empty database schema
 
@@ -26,9 +42,9 @@ There are many tools available that assist with creating empty database schemas.
 
 The process of extracting data from one location, transforming it by passing it through one or more functions, and loading it into a database is referred to as the "Extract, Transform, Load" (or ETL) process.
 
-### Generators
+### ETLSteps
 
-The ETL process is often comprised of many ETL steps. In DBgen, each ETL step is a `Generator`, and each `Generator` has an Extract, a Transform, and a Load.
+The ETL process is often comprised of many ETL steps. In DBgen, each ETL step is an `ETLStep`, and each `ETLStep` has an Extract, a Transform, and a Load.
 
 ### Extracts
 
@@ -52,14 +68,14 @@ The goal is to define a database build procedure. The steps to do that are:
 - Define the empty schema
     - Define the tables, columns, and foreign keys
 - Define the data population procedure
-    - IO generators
+    - IO ETLSteps
         1. Define extracts to read data from its original location
         2. Define transforms to parse raw data
         3. Load this raw data into the database
-    - Analysis generators
+    - Analysis ETLSteps
         4. Query for raw data
         5. Define transforms that analyze raw data
         6. Load the results of analyses into the database
-- Add the generators to the model, and run.
+- Add the ETLSteps to the model, and run.
 
-The outline above describes a model with a single IO generator and and a single analysis generator. A real DBgen model will generally consist of at least one IO generator and many analysis generators. It is worth noting that there is no technical distinction in DBgen between an "IO Generator" and an "Analysis Generator;" these terms are only meant to describe the purpose of the generator.
+The outline above describes a model with a single IO ETLStep and and a single analysis ETLStep. A real DBgen model will generally consist of at least one IO ETLStep and many analysis ETLSteps. It is worth noting that there is no technical distinction in DBgen between an "IO ETLStep" and an "Analysis ETLStep;" these terms are only meant to describe the purpose of the ETLStep.

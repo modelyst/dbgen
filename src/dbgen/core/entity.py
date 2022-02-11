@@ -401,7 +401,7 @@ id_field = Field(
     primary_key=True,
     sa_column_kwargs={"autoincrement": False, "unique": True},
 )
-gen_id_field = Field(
+etl_step_id_field = Field(
     default=None,
 )
 
@@ -412,7 +412,7 @@ get_created_at_field = lambda: Field(
 
 class Entity(BaseEntity):
     id: Optional[UUID] = id_field
-    gen_id: Optional[UUID]
+    etl_step_id: Optional[UUID]
     created_at: Optional[datetime] = get_created_at_field()
 
 
