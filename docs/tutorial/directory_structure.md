@@ -23,12 +23,12 @@ Let's start by walking through the directory structure of a typical DBgen projec
 You can follow along with this tutorial by copying some boiler plate code by running the command:
 <div class='termy'>
 ```Console
-$ dbgen new --template tutorial1
+$ dbgen new --template alice-bob-lab
 <span style='color: green;'>Downloading template from https://github.com/modelyst/dbgen-model-template....</span>
 ```
 </div>
 
-This will prompt you to download the relevant files to a local directory with the directory structure shown below. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen-model-template">DBgen cookie cutter repo</a>.
+This will prompt you to download the relevant files to a local directory with the directory structure shown below. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen/tree/master/examples">DBgen Repo</a>.
 
 
 ```
@@ -57,8 +57,8 @@ The overall goal of this entire repository is to create a DBgen model, which spe
 The contents of `main.py` are shown below.
 
 
-```python3 hl_lines="9-12"
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/main.py [ln:1-12] !}
+```python3 hl_lines="6-9"
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/main.py [ln:1-14] !}
 ```
 
 ## constants.py
@@ -71,8 +71,8 @@ This is a place to store any constants that are specific to the DBgen model defi
 
 The contents of `constants.py` used in this tutorial are shown below.
 
-```python3 hl_lines="9-12"
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/constants.py [ln:1-12] !}
+```python3
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/constants.py [ln:1-14] !}
 ```
 
 ## schema.py
@@ -82,7 +82,7 @@ This is the file that specifies the empty database schema. In other words, this 
 Part of the `schema.py` used in this tutorial is shown below.
 
 ```python3
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/schema.py [ln:3-12] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:17-14] !}
 ```
 
 ## extracts
@@ -92,7 +92,7 @@ Part of the `schema.py` used in this tutorial is shown below.
 Below, we show an example of an `extract` that reads a csv stored in the local file system and returns its contents one row at a time. We'll walk through this in more detail later in the tutorial.
 
 ```python3
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
 ```
 
 ## transforms
@@ -104,7 +104,7 @@ However, if the function is specific to a particular generator and will not be r
 An example of a `transform` is shown below.
 
 ```python3
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/read_csv.py [ln:10-16] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/read_csv.py [ln:10-16] !}
 ```
 
 ## generators
@@ -118,7 +118,7 @@ The purpose of generators is essentially to define where data will come from, wh
 Whenever we write a new generator, we write a function that accepts the model as an input and adds that generator to the model. An example is shown below.
 
 ```python3
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/read_csv.py [ln:18-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/read_csv.py [ln:18-] !}
 ```
 
 ## generators.\__init__.py
@@ -128,5 +128,5 @@ This is where we tell `main.py` to add the generators to the model. You can see 
 When we finish writing a new generator, the last thing to is to add it to `generators.__init__.py` so that `main.py` picks it up. The pattern is simple: for each generator, import the function that adds that generator to the model, and call that function in `add_generators()` as shown below.
 
 ```python3
-{!../docs_src/tutorials/alice-bob-model/alice_bob_model/generators/__init__.py [ln:1-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/generators/__init__.py [ln:1-] !}
 ```
