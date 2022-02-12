@@ -1,7 +1,6 @@
 from typing import Optional
-from uuid import UUID
 
-from dbgen import Entity
+from dbgen import Entity, IDType
 
 
 class Person(Entity, table=True):
@@ -18,4 +17,4 @@ class TemperatureMeasurement(Entity, table=True):
     temperature_F: Optional[float]
     temperature_C: Optional[float]
     ordering: Optional[int]
-    person_id: UUID = Person.foreign_key()
+    person_id: IDType = Person.foreign_key()

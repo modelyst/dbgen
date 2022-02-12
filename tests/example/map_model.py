@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from dbgen import Entity, Extract, Generator, Model
+from dbgen import Entity, ETLStep, Extract, Model
 
 
 class MapEntity(Entity, table=True):
@@ -39,7 +39,7 @@ extract = CustomExtractor(n=100)
 map_pb = extract['out'].map(lambda x: str(x))
 # insert
 map_load = MapEntity.load(insert=True, validation='strict', label=map_pb['out'])
-gen = Generator(name='test_map', transforms=[], loads=[map_load])
+etl_step = ETLStep(name='test_map', transforms=[], loads=[map_load])
 
 model = Model(name='test_map')
-model.add_gen(gen)
+model.add_etl_step(etl_step)

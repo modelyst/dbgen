@@ -26,13 +26,13 @@ from sqlalchemy.orm import registry
 # External packages that we reexport for convenience
 from sqlmodel import select
 
-from dbgen.core.args import Const
+from dbgen.core.args import Constant
 from dbgen.core.decorators import transform
 from dbgen.core.entity import BaseEntity, Entity
-from dbgen.core.func import Env, Import
-from dbgen.core.generator import Generator
+from dbgen.core.etl_step import ETLStep
+from dbgen.core.func import Environment, Import
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 from dbgen.utils.typing import IDType

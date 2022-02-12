@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 """Tests related to testing function parsing."""
-from dbgen import Env, Import, transform
+from dbgen import Environment, Import, transform
 from dbgen.core.func import get_callable_source_code
 
 
@@ -26,7 +26,7 @@ def test_simple_function():
     assert source_code == """def simple_test():\n    pass"""
 
 
-@transform(env=Env([Import('typing'), Import('math')]))
+@transform(env=Environment([Import('typing'), Import('math')]))
 def test():
     pass
 
@@ -37,7 +37,7 @@ def test_decorated_function():
 
 
 @transform(
-    env=Env(
+    env=Environment(
         [
             Import('math'),
             Import('math'),
@@ -59,7 +59,7 @@ def test_multi_line_decorator():
 
 
 def test_nested_function():
-    @transform(env=Env([Import('typing'), Import('math')]))
+    @transform(env=Environment([Import('typing'), Import('math')]))
     def nested_test():
         pass
 

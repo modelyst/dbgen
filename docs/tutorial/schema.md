@@ -1,3 +1,19 @@
+<!--
+   Copyright 2021 Modelyst LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ -->
+
 ## Introduction
 
 
@@ -27,8 +43,8 @@ We can make columns optional (null values allowed) by wrapping the data type
 with `Optional[]`, where `Optional` is imported from python's `typing` built-in
 library.
 
-```python3 
-{!../docs_src/tutorial/tutorial000.py!}
+```python3
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:14-28] !}
 ```
 
 
@@ -40,7 +56,7 @@ in DBgen. The identifying attributes answer the question, "what defines one row
 in this table?" The identifying information is the minimum set of information
 that is guaranteed to return one row. In more technical terms, the primary key
 for each row in a table created using DBgen is a hash of that row's identifying
-attributes. In this case, we have specified that a row in this table fully identified by the person's first and last name. With this design decision, it is impossible for us to insert two people with the same first and last name into the database. 
+attributes. In this case, we have specified that a row in this table fully identified by the person's first and last name. With this design decision, it is impossible for us to insert two people with the same first and last name into the database.
 
 
 ### Adding foreign keys
@@ -51,6 +67,5 @@ measurements. Let's define a table to capture temperature measurements, which
 order they were captured in, and who recorded them.
 
 ```python3
-{!../docs_src/tutorial/tutorial001.py!}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:14-] !}
 ```
-

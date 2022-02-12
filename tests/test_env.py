@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from pydantic import ValidationError
 
-from dbgen.core.func import Env, Import
+from dbgen.core.func import Environment, Import
 from tests.strategies import env_strat, import_strat
 
 
@@ -41,6 +41,6 @@ def test_import_hypo(instance):
 
 @given(env_strat)
 def test_env_hypo(instance):
-    assert isinstance(instance, Env)
-    assert instance == Env.parse_obj(instance.dict())
+    assert isinstance(instance, Environment)
+    assert instance == Environment.parse_obj(instance.dict())
     assert instance.imports == sorted(instance.imports)

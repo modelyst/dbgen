@@ -24,7 +24,7 @@ from sqlalchemy import text
 from sqlalchemy.orm.decl_api import registry
 from sqlmodel import Field, select
 
-from dbgen.core.args import Const
+from dbgen.core.args import Constant
 from dbgen.core.entity import BaseEntity, Entity, EntityMetaclass, create_entity
 from dbgen.core.node.load import LoadEntity
 from dbgen.exceptions import InvalidArgument
@@ -124,7 +124,7 @@ def test_basic_load(clear_registry):
         key_2: str
         __identifying__ = {"key_1"}
 
-    load = Dummy4.load(key_1=Const(1))
+    load = Dummy4.load(key_1=Constant(1))
     assert load.load_entity.name == "dummy4"
     assert "key_1" in load.inputs
     assert "key_2" not in load.inputs
@@ -149,14 +149,14 @@ def test_basic_parent_child_load(clear_registry):
     assert load_entity.identifying_foreign_keys == {"dummy_parent_id"}
     assert load_entity.identifying_attributes == set()
 
-    parent_load = DummyParent.load(key_1=Const(1))
+    parent_load = DummyParent.load(key_1=Constant(1))
     child_load = DummyChild.load(insert=True, dummy_parent_id=parent_load)
     assert (
         "dummy_parent_id" in child_load.inputs
         and child_load.inputs["dummy_parent_id"] == parent_load["dummyparent_id"]
     )
-    child_load = DummyChild.load(insert=True, dummy_parent_id=Const(None))
-    assert "dummy_parent_id" in child_load.inputs and child_load.inputs["dummy_parent_id"] == Const(None)
+    child_load = DummyChild.load(insert=True, dummy_parent_id=Constant(None))
+    assert "dummy_parent_id" in child_load.inputs and child_load.inputs["dummy_parent_id"] == Constant(None)
 
 
 def test_identifying_info_validation(clear_registry):
@@ -234,7 +234,7 @@ def test_extra_attrs(entity_class: EntityMetaclass):
     assert instance.b == 99
 
 
-def test_dbgen_id_table(clear_registry):
+def test_dbetl_step_id_table(clear_registry):
     class TestEntity(Entity, table=True):
         __tablename__ = "tester"
         __identifying__ = {"label", "type"}

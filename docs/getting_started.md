@@ -53,11 +53,11 @@ In this example, there is only one table called "SimpleTable," and it has only o
 
 ## Step 2: Fill the Database
 
-In the above example (and in any DBgen model), the second step is to define the procedure to fill the database with data. Every step in the procedure that fills the database is called a "Generator" in DBgen.
+In the above example (and in any DBgen model), the second step is to define the procedure to fill the database with data. Every step in the procedure that fills the database is called an "ETLStep" in DBgen.
 
-In this example, the model has only one Generator called "simplest_possible." The best way to define Generators and add them to the DBgen model is to use with blocks, as shown above.
+In this example, the model has only one ETLStep called "simplest_possible." The best way to define ETLSteps and add them to the DBgen model is to use with blocks, as shown above.
 
-Generators are capable of extracting data from a variety of sources, transforming it using any arbitrary python function, and loading the results into the database. In this example, our simplest_possible generator does not have any extracting or transforming code. It simply loads a constant value into the column called "string_column."
+ETLSteps are capable of extracting data from a variety of sources, transforming it using any arbitrary python function, and loading the results into the database. In this example, our simplest_possible ETLStep does not have any extracting or transforming code. It simply loads a constant value into the column called "string_column."
 
 To load data into a table, we always write `[TableName].load(insert=True, ...)` then `[column_name]: [value_to_be_inserted],` as keyword arguments for each value that we want to insert.
 

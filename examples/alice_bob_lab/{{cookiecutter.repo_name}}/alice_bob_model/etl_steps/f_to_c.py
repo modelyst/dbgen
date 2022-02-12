@@ -1,25 +1,20 @@
-from scipy.constants import convert_temperature
+from alice_bob_model.constants import DEFAULT_ENV
+from alice_bob_model.schema import TemperatureMeasurement
 from sqlmodel import select
 
-from dbgen import Env, Generator, Import, Model, Query, transform
-
-from ..constants import DEFAULT_ENV
-from ..schema import TemperatureMeasurement
-
-outputs = ["temp_c"]
-env = DEFAULT_ENV + Env([Import("scipy.constants", "convert_temperature")])
+from dbgen import ETLStep, Model, Query, transform
 
 
-@transform(outputs=outputs, env=env)
+@transform(outputs=["temp_c"], env=DEFAULT_ENV)
 def f_to_c(temp_f: float) -> float:
-    temp_c = convert_temperature(temp_f, "F", "C")
+    temp_c = (temp_f - 32.0) * 5.0 / 9.0
 
     return temp_c
 
 
 def add_f_to_c(model: Model) -> None:
     with model:
-        with Generator(name="f_to_c"):
+        with ETLStep(name="f_to_c"):
             temperature_measurement_id, temp_f = Query(
                 select(TemperatureMeasurement.id, TemperatureMeasurement.temperature_F)
             ).results()

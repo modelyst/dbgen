@@ -19,7 +19,7 @@ from typing import List, Mapping, Optional
 from sqlalchemy.future import Engine
 from sqlmodel import Session, func, select
 
-from dbgen.core.metadata import GeneratorEntity, GeneratorRunEntity, RunEntity
+from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
 
 
 def get_runs(
@@ -29,12 +29,12 @@ def get_runs(
     accepted_statuses: List[str] = None,
     last: Optional[int] = 1,
 ) -> GenType[Mapping[str, Any], None, None]:
-    statement = select(GeneratorEntity.name, *GeneratorRunEntity.__table__.c).join_from(GeneratorRunEntity, GeneratorEntity).order_by(GeneratorRunEntity.run_id.desc(), GeneratorRunEntity.ordering)  # type: ignore
+    statement = select(ETLStepEntity.name, *ETLStepRunEntity.__table__.c).join_from(ETLStepRunEntity, ETLStepEntity).order_by(ETLStepRunEntity.run_id.desc(), ETLStepRunEntity.ordering)  # type: ignore
     if accepted_statuses:
-        statement = statement.where(GeneratorRunEntity.status.in_(accepted_statuses))  # type: ignore
+        statement = statement.where(ETLStepRunEntity.status.in_(accepted_statuses))  # type: ignore
     if not all_runs:
         statement = statement.where(
-            GeneratorRunEntity.run_id > select(func.max(RunEntity.id)).scalar_subquery() - last  # type: ignore
+            ETLStepRunEntity.run_id > select(func.max(RunEntity.id)).scalar_subquery() - last  # type: ignore
         )
     with Session(meta_engine) as session:
         result = session.exec(statement).mappings()

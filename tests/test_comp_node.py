@@ -15,10 +15,10 @@
 import pytest
 from pydantic import ValidationError
 
-from dbgen.core.args import Const
+from dbgen.core.args import Constant
 from dbgen.core.node.computational_node import ComputationalNode
 
-list_of_bad_kwargs = [{"inputs": Const(val="test")}, {"outputs": ["a", "a"]}]
+list_of_bad_kwargs = [{"inputs": Constant(val="test")}, {"outputs": ["a", "a"]}]
 
 
 @pytest.mark.parametrize("bad_kwargs", list_of_bad_kwargs)

@@ -1,3 +1,19 @@
+<!--
+   Copyright 2021 Modelyst LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ -->
+
 ## Populating Tables
 
 The three steps for populating tables are always: 1) extract, 2) transform, 3) load.
@@ -40,7 +56,7 @@ A `transform` is simply a function with an `@transform` decorator. In the decora
 
 ### Load
 
-Finally, we need to create a DBgen "Generator" and add it to our model. The Generator contains the extract, transform, and load steps.
+Finally, we need to create a DBgen "ETLStep" and add it to our model. The ETLStep contains the extract, transform, and load steps.
 
 ```python3
 {!../docs_src/tutorial/tutorial004.py!}

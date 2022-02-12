@@ -43,7 +43,7 @@ from pydasher import hasher
 from pydasher.import_module import import_string
 
 from dbgen.configuration import ValidationEnum, config
-from dbgen.core.args import Arg, Const
+from dbgen.core.args import Arg, Constant
 from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
@@ -118,7 +118,7 @@ class LoadEntity(Base):
             # if we still have sub-errors raise the errors to the user
             if sub_errors:
                 raise errors
-        base_fields = {'id', 'gen_id', 'created_at'}
+        base_fields = {'id', 'etl_step_id', 'created_at'}
         return {
             k: v
             for k, v in validated_data.items()
@@ -194,7 +194,7 @@ T = TypeVar('T')
 
 class Load(ComputationalNode[T]):
     load_entity: LoadEntity
-    primary_key: Optional[Union[Arg, Const]] = None
+    primary_key: Optional[Union[Arg, Constant]] = None
     _output: Dict[UUID, Iterable[Any]] = PrivateAttr(default_factory=dict)
     insert: bool = False
     validation: Optional[ValidationEnum] = None
@@ -221,7 +221,7 @@ class Load(ComputationalNode[T]):
 
     @validator("primary_key")
     def check_const_primary_key(cls, primary_key):
-        if isinstance(primary_key, Const):
+        if isinstance(primary_key, Constant):
             assert (
                 primary_key.val is None
             ), f"Currently don't allow const primary keys to be used unless None is the value: {primary_key}"
@@ -235,7 +235,7 @@ class Load(ComputationalNode[T]):
         pk = values.get("primary_key")
         if load_entity is None:
             raise ValueError("Missing load_entity")
-        pk_is_missing = pk is None or (isinstance(pk, Const) and pk.val is None)
+        pk_is_missing = pk is None or (isinstance(pk, Constant) and pk.val is None)
         if insert or pk_is_missing:
             missing_attrs = filter(lambda x: x not in inputs, load_entity.identifying_attributes)
             missing_fks = filter(lambda x: x not in inputs, load_entity.identifying_foreign_keys)
@@ -350,21 +350,21 @@ class Load(ComputationalNode[T]):
         )
         return {self.outputs[0]: primary_keys}
 
-    def load(self, cxn: connection, gen_id: UUID):
+    def load(self, cxn: connection, etl_step_id: UUID):
         """Run the Load statement for the given namespace rows.
 
         Args:
             namespace_rows (List[Dict[str, Any]]): A dictionary with the strings as hashes and the values as the local namespace dictionaries from PyBlocks, Queries, and Consts
         """
         self._logger.debug(f"Loading into {self.load_entity.name}")
-        self._load_data(cxn=cxn, gen_id=gen_id)
+        self._load_data(cxn=cxn, etl_step_id=etl_step_id)
         self._output = {}
 
     def _get_types(self):
         oids = list(map(lambda x: self.load_entity.attributes[x], sorted(self.inputs.keys())))
         return oids
 
-    def _load_data(self, cxn: PG3Conn, gen_id: UUID) -> None:
+    def _load_data(self, cxn: PG3Conn, etl_step_id: UUID) -> None:
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
         temp_table_name = self.load_entity.name + "_temp_load_table_" + self.hash
@@ -380,12 +380,12 @@ class Load(ComputationalNode[T]):
         ALTER TABLE {temp_table_name}
         ADD COLUMN auto_inc SERIAL NOT NULL;
         ALTER TABLE {temp_table_name}
-        ALTER COLUMN "gen_id" SET DEFAULT '{gen_id}';
+        ALTER COLUMN "etl_step_id" SET DEFAULT '{etl_step_id}';
         """.format(
             obj=self.load_entity.name,
             schema=self.load_entity.schema_,
             temp_table_name=temp_table_name,
-            gen_id=gen_id,
+            etl_step_id=etl_step_id,
         )
         with cxn.cursor() as cur:
             cur.execute(drop_temp_table)
@@ -407,7 +407,7 @@ class Load(ComputationalNode[T]):
             obj=self.load_entity.name,
             obj_pk_name=self.load_entity.primary_key_name,
             temp_table_name=temp_table_name,
-            all_column_names=cols + ["gen_id"],
+            all_column_names=cols + ["etl_step_id"],
             first=first,
             update=update,
             schema=self.load_entity.schema_,

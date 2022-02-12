@@ -37,12 +37,12 @@ class DBgenInternalError(DBgenException):
     """
 
 
-class DBgenGeneratorError(DBgenException):
+class DBgenETLStepError(DBgenException):
     """Custom class for catching errors that occur in code external to dbgen"""
 
 
 class DBgenSkipException(DBgenException):
-    """Custom class for errors raised when a generator is skipped"""
+    """Custom class for errors raised when a ETLStep is skipped"""
 
 
 class DBgenNotFoundException(DBgenException):
@@ -59,7 +59,7 @@ class DBgenLoadException(DBgenException):
     """Raise when there is loading problem"""
 
 
-class DBgenPyBlockError(DBgenException):
+class DBgenPythonTransformError(DBgenException):
     """Raise when there is loading problem"""
 
 

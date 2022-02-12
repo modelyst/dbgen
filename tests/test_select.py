@@ -69,16 +69,16 @@ def test_statement_dependencies(complex_statement):
 
 
 statements = [
-    (select(model.Sample), {"id", "created_at", "gen_id", "label", "type"}),
+    (select(model.Sample), {"id", "created_at", "etl_step_id", "label", "type"}),
     (
         select(aliased(model.Sample, name="test")),
-        {"id", "created_at", "gen_id", "label", "type"},
+        {"id", "created_at", "etl_step_id", "label", "type"},
     ),
-    (select(model.Collection), {"id", "created_at", "gen_id", "label", "type"}),
-    (select(model.Sample), {"id", "created_at", "gen_id", "label", "type"}),
+    (select(model.Collection), {"id", "created_at", "etl_step_id", "label", "type"}),
+    (select(model.Sample), {"id", "created_at", "etl_step_id", "label", "type"}),
     (
         select(model.Sample, model.Collection.id.label("collection_id")),
-        {"id", "created_at", "gen_id", "label", "type", "collection_id"},
+        {"id", "created_at", "etl_step_id", "label", "type", "collection_id"},
     ),
 ]
 

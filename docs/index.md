@@ -48,7 +48,7 @@
 :exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes.
 
 ---
-DBgen (Database Generator) is an open-source Python library for
+DBgen (Database ETLStep) is an open-source Python library for
 connecting raw data, scientific theories, and relational databases.
 The package was designed with a focus on the developer experience at the core.
 DBgen was initially developed by [Modelyst](https://www.modelyst.com/).

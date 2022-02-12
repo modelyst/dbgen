@@ -26,7 +26,7 @@ from sqlalchemy.orm import registry as sa_registry
 from dbgen.core.base import Base
 from dbgen.core.context import ModelContext
 from dbgen.core.entity import BaseEntity
-from dbgen.core.generator import Generator
+from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
 from dbgen.exceptions import DatabaseError
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
@@ -37,11 +37,11 @@ if TYPE_CHECKING:
 
 class Model(Base):
     name: str
-    generators: List[Generator] = Field(default_factory=list)
+    etl_steps: List[ETLStep] = Field(default_factory=list)
     registry: sa_registry = Field(default_factory=lambda: BaseEntity._sa_registry)
     meta_registry: sa_registry = Field(default_factory=lambda: meta_registry)
     _context: ModelContext = PrivateAttr(None)
-    _hashinclude_ = {"name", "generators"}
+    _hashinclude_ = {"name", "etl_steps"}
 
     class Config:
         """Pydantic Config"""
@@ -57,60 +57,60 @@ class Model(Base):
         self.validate(self)
         del self._context
 
-    @validator("generators")
-    def unique_generator_names(cls, value: List[Generator]) -> List[Generator]:
+    @validator("etl_steps")
+    def unique_etl_step_names(cls, value: List[ETLStep]) -> List[ETLStep]:
         name_count = Counter([x.name for x in value])
         dup_names = {name for name, count in name_count.items() if count > 1}
         if dup_names:
-            raise ValueError(f"Found duplicate generator names, all names must be unique: {dup_names}")
+            raise ValueError(f"Found duplicate etl_step names, all names must be unique: {dup_names}")
         return value
 
-    @validator("generators")
-    def sort_generators(cls, value: List[Generator]) -> List[Generator]:
+    @validator("etl_steps")
+    def sort_etl_steps(cls, value: List[ETLStep]) -> List[ETLStep]:
         return value
 
-    def gens(self) -> Dict[str, Generator]:
-        return {gen.name: gen for gen in self.generators}
+    def etl_steps_dict(self) -> Dict[str, ETLStep]:
+        return {etl_step.name: etl_step for etl_step in self.etl_steps}
 
-    def add_gen(self, generator: Generator):
-        if generator.name not in self.gens():
-            self.generators.append(generator)
+    def add_etl_step(self, etl_step: ETLStep):
+        if etl_step.name not in self.etl_steps_dict():
+            self.etl_steps.append(etl_step)
             return
         raise ValueError(
-            f"Generator named {generator.name} already in model please use a new name:\n{self.gens().keys()}"
+            f"ETLStep named {etl_step.name} already in model please use a new name:\n{self.etl_steps_dict().keys()}"
         )
 
     def validate_marker(self, marker: str) -> bool:
-        """Compare a marker to the models generators to see if it is valid."""
+        """Compare a marker to the models etl_steps to see if it is valid."""
         valid_marker = False
-        for gen in self.generators:
-            if marker == gen.name or marker in gen.tags:
+        for etl_step in self.etl_steps:
+            if marker == etl_step.name or marker in etl_step.tags:
                 valid_marker = True
         return valid_marker
 
-    def _generator_graph(self) -> "DiGraph":
+    def _etl_step_graph(self) -> "DiGraph":
         from networkx import DiGraph
 
         graph = DiGraph()
 
         # Add edges for every Arg in graph
         edges: List[Tuple[str, str]] = []
-        for source_name, source in self.gens().items():
-            for target_name, target in self.gens().items():
+        for source_name, source in self.etl_steps_dict().items():
+            for target_name, target in self.etl_steps_dict().items():
                 if source_name != target_name:
                     if source._get_dependency().test(target._get_dependency()):
                         edges.append((target_name, source_name))
 
-        for gen in self.gens().values():
-            graph.add_node(gen.name, id=gen.uuid, **gen.dict(include={'name', 'dependency'}))
+        for etl_step in self.etl_steps_dict().values():
+            graph.add_node(etl_step.name, id=etl_step.uuid, **etl_step.dict(include={'name', 'dependency'}))
         graph.add_edges_from(edges)
         return graph
 
-    def _sort_graph(self) -> List[Generator]:
-        graph = self._generator_graph()
-        gens = self.gens()
+    def _sort_graph(self) -> List[ETLStep]:
+        graph = self._etl_step_graph()
+        etl_steps = self.etl_steps_dict()
         sorted_node_ids = topsort_with_dict(graph)
-        sorted_nodes = [gens[key] for key in sorted_node_ids]
+        sorted_nodes = [etl_steps[key] for key in sorted_node_ids]
         return sorted_nodes
 
     def run(
@@ -200,7 +200,7 @@ class Model(Base):
             self._logger.info(f"Schema {schema!r} nuked.")
 
     def _get_model_row(self):
-        graph = self._generator_graph()
+        graph = self._etl_step_graph()
 
         def default(obj):
             if isinstance(obj, set):
@@ -215,6 +215,6 @@ class Model(Base):
         return ModelEntity(
             id=self.uuid,
             name=self.name,
-            generators=[x._get_gen_row() for x in self.generators],
+            etl_steps=[x._get_etl_step_row() for x in self.etl_steps],
             graph_json=graph_json,
         )

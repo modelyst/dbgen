@@ -18,11 +18,11 @@ import pytest
 import sqlalchemy
 from sqlmodel import Session, func, select
 
-from dbgen.core.args import Const
-from dbgen.core.generator import Generator
-from dbgen.core.metadata import GeneratorEntity, GeneratorRunEntity, RunEntity
+from dbgen.core.args import Constant
+from dbgen.core.etl_step import ETLStep
+from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
 from dbgen.core.node.query import BaseQuery
-from dbgen.core.node.transforms import PyBlock
+from dbgen.core.node.transforms import PythonTransform
 from tests.example.full_model import Parent
 from tests.example_functions import binary_lambda
 
@@ -66,21 +66,21 @@ query = BaseQuery(
     query="select 1 as label;",
     dependency={"tables_needed": {"test"}},
 )
-pb = PyBlock(inputs=[Const(val=1), Const(val=2)], function=binary_lambda)
-generators = [
-    Generator(name="test"),
-    Generator(name="test_gen", tags=["a", "b", "c"]),
-    Generator(
-        name="test_gen",
+pb = PythonTransform(inputs=[Constant(val=1), Constant(val=2)], function=binary_lambda)
+etl_steps = [
+    ETLStep(name="test"),
+    ETLStep(name="test_etl_step", tags=["a", "b", "c"]),
+    ETLStep(
+        name="test_etl_step",
         transforms=[pb],
     ),
-    Generator(
-        name="test_gen",
+    ETLStep(
+        name="test_etl_step",
         transforms=[pb],
         loads=[Parent.load(insert=True, label=pb["out"])],
     ),
-    Generator(
-        name="test_gen",
+    ETLStep(
+        name="test_etl_step",
         extract=query,
         transforms=[pb],
         loads=[Parent.load(insert=True, label=pb["out"])],
@@ -89,29 +89,29 @@ generators = [
 
 
 @pytest.mark.database
-@pytest.mark.parametrize("gen", generators)
-def test_gen_insertion(connection, recreate_meta, gen: Generator):
-    """Test that generators can be inserted into the database and deserialized upon querying."""
-    gen_row = gen._get_gen_row()
+@pytest.mark.parametrize("etl_step", etl_steps)
+def test_etl_step_insertion(connection, recreate_meta, etl_step: ETLStep):
+    """Test that etl_steps can be inserted into the database and deserialized upon querying."""
+    etl_step_row = etl_step._get_etl_step_row()
     with Session(connection) as sess:
-        sess.merge(gen_row)
-        gen_count = sess.exec(select(func.count(GeneratorEntity.id))).one_or_none()
-        assert gen_count == 1
-        gen_dict = sess.exec(select(GeneratorEntity.gen_json)).one_or_none()
-        query_gen = Generator.deserialize(gen_dict)
-        assert query_gen._id_dict() == gen._id_dict()
-        assert query_gen.hash == gen.hash
+        sess.merge(etl_step_row)
+        etl_step_count = sess.exec(select(func.count(ETLStepEntity.id))).one_or_none()
+        assert etl_step_count == 1
+        etl_step_dict = sess.exec(select(ETLStepEntity.etl_step_json)).one_or_none()
+        query_etl_step = ETLStep.deserialize(etl_step_dict)
+        assert query_etl_step._id_dict() == etl_step._id_dict()
+        assert query_etl_step.hash == etl_step.hash
 
 
 @pytest.mark.database
-def test_gen_run_insertion(connection, recreate_meta):
-    gen = generators[0]._get_gen_row()
+def test_etl_step_run_insertion(connection, recreate_meta):
+    etl_step = etl_steps[0]._get_etl_step_row()
     run = RunEntity()
     with Session(connection) as sess:
         sess.add(run)
-        sess.add(gen)
+        sess.add(etl_step)
         sess.commit()
         sess.refresh(run)
-        gen_run = GeneratorRunEntity(run_id=run.id, generator_id=gen.id)
-        sess.add(gen_run)
+        etl_step_run = ETLStepRunEntity(run_id=run.id, etl_step_id=etl_step.id)
+        sess.add(etl_step_run)
         sess.commit()

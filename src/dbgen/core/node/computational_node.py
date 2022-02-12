@@ -17,9 +17,9 @@ from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, TypeVar, 
 
 from pydantic import Field, validator
 
-from dbgen.core.args import Arg, ArgLike, Const
+from dbgen.core.args import Arg, ArgLike, Constant
 from dbgen.core.base import Base
-from dbgen.core.context import GeneratorContext
+from dbgen.core.context import ETLStepContext
 from dbgen.core.dependency import Dependency
 from dbgen.exceptions import DBgenMissingInfo
 
@@ -33,16 +33,16 @@ Output = TypeVar('Output')
 
 
 class ComputationalNode(Base, Generic[Output]):
-    inputs: Mapping[str, Union[Const, Arg]] = Field(default_factory=lambda: {})
+    inputs: Mapping[str, Union[Constant, Arg]] = Field(default_factory=lambda: {})
     outputs: List[str] = Field(default_factory=lambda: ["out"], min_items=1)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        gen_context = GeneratorContext.get()
-        if gen_context:
-            gen = gen_context['generator']
-            gen.add_node(self)
+        etl_step_context = ETLStepContext.get()
+        if etl_step_context:
+            etl_step = etl_step_context['etl_step']
+            etl_step.add_node(self)
 
     def _get_dependency(self) -> Dependency:
         return Dependency()
@@ -54,7 +54,7 @@ class ComputationalNode(Base, Generic[Output]):
         new_inputs = {}
         for arg_idx, arg_val in enumerate(inputs):
             if isinstance(arg_val, (str, int, bool, float)):
-                new_inputs[str(arg_idx)] = Const(val=arg_val)
+                new_inputs[str(arg_idx)] = Constant(val=arg_val)
             elif isinstance(arg_val, ArgLike):
                 new_inputs[str(arg_idx)] = arg_val
             else:
@@ -91,7 +91,7 @@ class ComputationalNode(Base, Generic[Output]):
             invalid_args = [getattr(arg, "arg_get", None) is None for arg in self.inputs]
             missing_args = filter(lambda x: invalid_args[x], range(len(invalid_args)))
             raise DBgenMissingInfo(
-                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a PyBlock Argument?"
+                f"Argument(s) {' ,'.join(map(str,missing_args))} to {self.name} don't have arg_get attribute:\n Did you forget to wrap a Const around a transform Argument?"
             )
         return input_variables
 

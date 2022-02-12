@@ -37,8 +37,8 @@ file_extractor_ans = [(3, r'[7-9]\.txt'), (1, '01.txt'), (10, None)]
 def test_file_extractor(expected_len, pattern, test_dir):
     extractor = FileExtractor(directory=test_dir, pattern=pattern)
     extractor.setup()
-    extract_gen = extractor.extract()
-    files = list(extract_gen)
+    extract_generator = extractor.extract()
+    files = list(extract_generator)
     assert len(files) == expected_len
 
 
@@ -47,6 +47,6 @@ def test_recursive_file_extractor(expected_len, pattern, test_dir):
     """Test the recursive flag on the file extractor."""
     extractor = FileExtractor(directory=test_dir, pattern=pattern, recursive=True)
     extractor.setup()
-    extract_gen = extractor.extract()
-    files = list(extract_gen)
+    extract_generator = extractor.extract()
+    files = list(extract_generator)
     assert len(files) == expected_len * 2

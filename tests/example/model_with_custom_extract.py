@@ -16,7 +16,7 @@ from typing import List
 
 from pydantic.fields import PrivateAttr
 
-from dbgen import Entity, Generator, Model
+from dbgen import Entity, ETLStep, Model
 from dbgen.core.node.extract import Extract
 
 dummy_file_system = {
@@ -51,5 +51,5 @@ class File(Entity, table=True):
 
 extract = CustomExtractor(directory='dir_2')
 load = File.load(insert=True, file_name=extract['file_name'])
-gen = Generator(name='load_files', extract=extract, loads=[load])
-model.add_gen(gen)
+etl_step = ETLStep(name='load_files', extract=extract, loads=[load])
+model.add_etl_step(etl_step)

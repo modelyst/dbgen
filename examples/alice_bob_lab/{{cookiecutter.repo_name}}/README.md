@@ -1,4 +1,4 @@
-# alice_bob_model
+# Alice and Bob Model
 
 
 

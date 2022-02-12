@@ -20,11 +20,11 @@ from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
-from dbgen import Env, Import
-from dbgen.core.args import Const
+from dbgen import Environment, Import
+from dbgen.core.args import Constant
 from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
-from dbgen.core.generator import Generator
+from dbgen.core.etl_step import ETLStep
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
@@ -71,46 +71,48 @@ def inputs_skipped():
 def make_model():
 
     new_extract = CustomExtractor(n=1000)
-    generator_1 = Generator(
+    etl_step_1 = ETLStep(
         name="add_parents",
         extract=new_extract,
         loads=[
-            Parent.load(insert=True, label=new_extract["out"], validation='strict', myColumn=Const({'a': 1}))
+            Parent.load(
+                insert=True, label=new_extract["out"], validation='strict', myColumn=Constant({'a': 1})
+            )
         ],
     )
-    generator_2 = Generator(
+    etl_step_2 = ETLStep(
         name="add_parents_v2",
         loads=[Parent.load(insert=True, label="parentier")],
     )
-    generator_4 = Generator(
+    etl_step_4 = ETLStep(
         name="add_parents_v3",
         loads=[Parent.load(insert=True, label="parent")],
     )
     query = Query(select(Parent.id, Parent.label))
 
-    @transform(env=Env([Import('typing', ['Tuple'])]))
+    @transform(env=Environment([Import('typing', ['Tuple'])]))
     def concise_func(label: str) -> Tuple[str]:
         return (f"{label}-test",)
 
     concise_pyblock = concise_func(query["label"])
     child_load = Child.load(insert=True, label=concise_pyblock.results(), parent_id=query["id"])
-    generator_3 = Generator(
+    etl_step_3 = ETLStep(
         name="add_child",
         extract=query,
         transforms=[concise_pyblock],
         loads=[child_load],
     )
-    generator_5 = Generator(name="failing_gen", transforms=[failing_func()])
-    generator_6 = Generator(name="skip_gen", transforms=[inputs_skipped()])
+    etl_step_5 = ETLStep(name="failing_etl_step", transforms=[failing_func()])
+    etl_step_6 = ETLStep(name="skip_etl_step", transforms=[inputs_skipped()])
     model = Model(
         name="test",
-        generators=[
-            generator_1,
-            generator_2,
-            generator_3,
-            generator_4,
-            generator_5,
-            generator_6,
+        etl_steps=[
+            etl_step_1,
+            etl_step_2,
+            etl_step_3,
+            etl_step_4,
+            etl_step_5,
+            etl_step_6,
         ],
         registry=my_registry,
     )

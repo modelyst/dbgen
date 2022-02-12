@@ -1,4 +1,4 @@
-from dbgen import Const, Entity, Generator, Model
+from dbgen import Constant, Entity, ETLStep, Model
 
 
 class SimpleTable(Entity, table=True, all_identifying=True):
@@ -8,7 +8,7 @@ class SimpleTable(Entity, table=True, all_identifying=True):
 def make_model() -> Model:
     model = Model(name='hello_world')
     with model:
-        with Generator(name="simplest_possible"):
-            SimpleTable.load(insert=True, string_column=Const('hello world'))
+        with ETLStep(name="simplest_possible"):
+            SimpleTable.load(insert=True, string_column=Constant('hello world'))
 
     return model

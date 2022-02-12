@@ -17,7 +17,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.orm import registry
 
-from dbgen import Const, Entity
+from dbgen import Constant, Entity
 from dbgen.exceptions import DBgenMissingInfo
 
 validate_registry = registry()
@@ -72,21 +72,23 @@ def test_required_data():
 @pytest.mark.parametrize('validation', ('strict', 'coerce'))
 def test_load_with_insert(validation):
     """Test that loads fail at runtime when a required value is not supplied."""
-    load = ValidateLoad.load(insert=True, str_field=Const('test'), int_field=Const(1), validation=validation)
+    load = ValidateLoad.load(
+        insert=True, str_field=Constant('test'), int_field=Constant(1), validation=validation
+    )
     out = load.run({})
     assert 'validateload_id' in out
     assert len(out['validateload_id']) == 1
 
     with pytest.raises(DBgenMissingInfo):
-        ValidateLoad.load(insert=True, str_field=Const('test'), validation=validation)
+        ValidateLoad.load(insert=True, str_field=Constant('test'), validation=validation)
     with pytest.raises(DBgenMissingInfo):
-        ValidateLoad.load(insert=True, int_field=Const(1), validation=validation)
+        ValidateLoad.load(insert=True, int_field=Constant(1), validation=validation)
 
 
 def test_load_without_insert():
-    load = ValidateLoad.load(str_field=Const('test'), int_field=Const(1))
+    load = ValidateLoad.load(str_field=Constant('test'), int_field=Constant(1))
     out = load.run({})
     assert 'validateload_id' in out
     assert len(out['validateload_id']) == 1
 
-    ValidateLoad.load(insert=False, int_field=Const(1), opt_field=Const(1.0))
+    ValidateLoad.load(insert=False, int_field=Constant(1), opt_field=Constant(1.0))

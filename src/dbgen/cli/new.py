@@ -32,12 +32,12 @@ new_app = typer.Typer(name='new')
 
 class Template(str, Enum):
     SIMPLE = 'simple'
-    TUTORIAL_1 = 'tutorial1'
+    ALICE_BOB_LAB = 'alice-bob-lab'
 
 
 complexity_map = {
-    Template.SIMPLE: ('https://github.com/modelyst/dbgen-model-template', 'simple'),
-    Template.TUTORIAL_1: ('https://github.com/modelyst/dbgen-model-template', 'tutorials/alice_bob_lab'),
+    Template.SIMPLE: ('https://github.com/modelyst/dbgen', 'examples/simple'),
+    Template.ALICE_BOB_LAB: ('https://github.com/modelyst/dbgen', 'examples/alice_bob_lab'),
 }
 
 

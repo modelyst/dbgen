@@ -20,7 +20,7 @@ from dbgen.exceptions import DBgenMissingInfo
 
 if TYPE_CHECKING:
     from dbgen.core.func import Func  # pragma: no cover
-    from dbgen.core.node.transforms import PyBlock  # pragma: no cover
+    from dbgen.core.node.transforms import PythonTransform  # pragma: no cover
 
     Func
 
@@ -33,10 +33,10 @@ class ArgLike(Base, Generic[T], metaclass=ABCMeta):
     def arg_get(self, dic: dict):
         raise NotImplementedError
 
-    def map(self, function: Callable[[Any], Any]) -> 'PyBlock':
-        from dbgen.core.node.transforms import PyBlock
+    def map(self, function: Callable[[Any], Any]) -> 'PythonTransform':
+        from dbgen.core.node.transforms import PythonTransform
 
-        return PyBlock(inputs=[self], function=function)
+        return PythonTransform(inputs=[self], function=function)
 
 
 class Arg(ArgLike[T]):
@@ -72,14 +72,14 @@ class Arg(ArgLike[T]):
                 raise DBgenMissingInfo(err % (self.name, list(namespace[self.key].keys())))
 
 
-class Const(ArgLike[T]):
+class Constant(ArgLike[T]):
     val: T
 
     def __init__(self, val: T):
         super().__init__(val=val)
 
     def __str__(self) -> str:
-        return f"Const<{self.val}>"
+        return f"Constant<{self.val}>"
 
     def arg_get(self, _: dict) -> T:
         return self.val

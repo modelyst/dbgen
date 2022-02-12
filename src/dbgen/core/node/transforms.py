@@ -18,9 +18,9 @@ from typing import Any, Callable, Dict, Mapping, Optional, TypeVar, Union
 from pydantic import Field, root_validator, validator
 
 from dbgen.configuration import config
-from dbgen.core.func import Env, Func, func_from_callable
+from dbgen.core.func import Environment, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
-from dbgen.exceptions import DBgenExternalError, DBgenPyBlockError, DBgenSkipException
+from dbgen.exceptions import DBgenExternalError, DBgenPythonTransformError, DBgenSkipException
 from dbgen.utils.log import capture_stdout
 
 Output = TypeVar('Output')
@@ -31,14 +31,14 @@ class Transform(ComputationalNode[Output]):
 
 
 # TODO add better error messaging when user passes in a non-arg to pyblock
-class PyBlock(Transform[Output]):
+class PythonTransform(Transform[Output]):
 
-    env: Optional[Env] = Field(default_factory=lambda: Env(imports=set()))
+    env: Optional[Environment] = Field(default_factory=lambda: Environment(imports=set()))
     function: Func[Output]
 
     @validator('function', pre=True)
     def convert_callable_to_func(cls, function: Union[Func[Output], Callable[..., Output]], values):
-        env = values.get('env', Env())
+        env = values.get('env', Environment())
         if isinstance(function, (Func, dict)):
             return function
         elif callable(function):
@@ -78,11 +78,11 @@ class PyBlock(Transform[Output]):
                 return {o: val for val, o in zip(output, self.outputs)}
             else:
                 if len(self.outputs) != 1:
-                    raise DBgenPyBlockError(
+                    raise DBgenPythonTransformError(
                         f"Function returned a non-tuple but outputs is greater length 1: {self.outputs}"
                     )
                 return {list(self.outputs)[0]: output}
-        except (DBgenSkipException, DBgenPyBlockError):
+        except (DBgenSkipException, DBgenPythonTransformError):
             raise
         except Exception:
             msg = f"Error encountered while applying function named {self.function.name!r}"

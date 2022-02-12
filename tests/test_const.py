@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from dbgen import Const, Entity
+from dbgen import Constant, Entity
 
 
 class Boring(Entity, table=True):
@@ -24,4 +24,4 @@ list_of_dicts = [{"key": i} for i in range(3)]
 
 
 def test_list_of_dicts_const():
-    Boring.load(insert=True, dict_attr=Const(list_of_dicts))
+    Boring.load(insert=True, dict_attr=Constant(list_of_dicts))

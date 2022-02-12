@@ -17,7 +17,7 @@ from typing import List
 
 import numpy as np
 
-from dbgen import Entity, Env, Extract, Generator, Import, Model
+from dbgen import Entity, Environment, ETLStep, Extract, Import, Model
 from dbgen.core.decorators import transform
 
 
@@ -49,7 +49,7 @@ class LocalCSVExtract(Extract):
         return len(self._file_paths)
 
 
-@transform(env=Env(Import('numpy', lib_alias='np')), outputs=['voc', 'jsc'])
+@transform(env=Environment(Import('numpy', lib_alias='np')), outputs=['voc', 'jsc'])
 def parse_jv_csv(file_path: str) -> tuple[float, float]:
     jv_arr = np.genfromtxt(file_path, delimiter=',', skip_header=1, dtype=float)
     nrows, *_ = np.shape(jv_arr)
@@ -68,7 +68,7 @@ def parse_jv_csv(file_path: str) -> tuple[float, float]:
 
 def make_model():
     with Model(name="example") as model:
-        with Generator('load_jv_curves'):
+        with ETLStep('load_jv_curves'):
             extract = LocalCSVExtract(data_dir=os.environ['DATA_DIR'])
             file_path = extract['file_path']
             voc, jsc = parse_jv_csv(file_path).results()
