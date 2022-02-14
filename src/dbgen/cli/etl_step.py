@@ -21,7 +21,7 @@ from uuid import UUID
 import typer
 from sqlmodel import Session, func, select
 
-from dbgen.configuration import config, get_engines, root_logger
+from dbgen.configuration import get_engines, root_logger
 from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
 from dbgen.core.run import RemoteETLStepRun, RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
@@ -52,7 +52,7 @@ def get_runnable_etl_steps(
 
     # If we don't have a metaengine grab one
     if not meta_engine:
-        _, meta_engine = get_engines(config)
+        _, meta_engine = get_engines()
 
     with Session(meta_engine) as session:
         result = session.exec(statement.distinct())
@@ -89,7 +89,7 @@ def run_etl_step(
     batch: Optional[int] = typer.Option(None, help="Batch size for all etl_steps"),
 ):
     # Retrieve the configured engines for
-    main_engine, meta_engine = get_engines(config)
+    main_engine, meta_engine = get_engines()
     run_config = RunConfig(
         retry=retry,
         start=start,
