@@ -121,6 +121,11 @@ repos:
     hooks:
       - id: rst-backticks
       - id: python-no-log-warn
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.2.0
+    hooks:
+      - id: pretty-format-toml
+        args: [--autofix]
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.26.0
     hooks:
