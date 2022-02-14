@@ -175,13 +175,20 @@ repos:
         entry: "pylint:disable|pylint:enable"
         pass_filenames: true
         files: \.py$
-      - id: Lint
+      - id: autoflake
+        name: Run autoflake
+        entry: poetry run ./scripts/ci/autoflake.sh
+        language: system
+        files: \.py$
+        pass_filenames: false
+        always_run: true
+      - id: lint
         name: Run Lint
         entry: poetry run ./scripts/ci/lint.sh
         language: system
-        exclude: ^tests/|^docs_src/
         files: \.py$
         pass_filenames: false
+        always_run: true
       - id: flynt
         name: Convert to f-strings with flynt
         entry: flynt
@@ -195,6 +202,8 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages:
+          - "push"
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
     hooks:
