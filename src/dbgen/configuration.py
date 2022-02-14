@@ -52,6 +52,7 @@ class DBgenConfiguration(BaseSettings):
     meta_schema: str = "dbgen_log"
     meta_password: Optional[SecretStr] = None
     model_str: str = 'model.main:make_model'
+    batch_size: int = 100
     temp_dir: Path = Path(tempfile.gettempdir())
     validation: ValidationEnum = ValidationEnum.COERCE
     pdb: bool = False
@@ -70,6 +71,12 @@ class DBgenConfiguration(BaseSettings):
         if temp_dir.is_dir():
             return temp_dir
         raise ValueError(f"temp_dir value {temp_dir} is not a directory")
+
+    @validator('batch_size')
+    def validate_batch_size(cls, batch_size) -> Path:
+        if batch_size > 1:
+            return batch_size
+        raise ValueError(f'batch_size must be a postive integer: {batch_size}')
 
     def display(self, show_defaults: bool = True, show_passwords: bool = False):
         params = [
