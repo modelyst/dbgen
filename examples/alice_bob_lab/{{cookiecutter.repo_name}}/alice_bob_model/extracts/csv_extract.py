@@ -11,5 +11,4 @@ class CSVExtract(Extract):
     def extract(self):
         with open(self.data_dir) as csv_file:
             reader = csv.reader(csv_file)
-            for row in reader:
-                yield {"row": row}
+            yield from reader

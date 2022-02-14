@@ -2,6 +2,7 @@ from dbgen import Constant, Entity, ETLStep, Model
 
 
 class Person(Entity, table=True, all_identifying=True):
+    __identifying__ = {"first_name"}
     first_name: str
 
 
