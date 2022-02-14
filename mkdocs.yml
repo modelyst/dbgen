@@ -76,11 +76,11 @@ nav:
   - Database Basics and Terminology: database_basics.md
   - DBgen Overview and Concepts: overview_and_concepts.md
   - Tutorial:
-    - Directory Structure: tutorial/directory_structure.md
-    - Defining the Schema: tutorial/schema.md
-    - CSV to Database: tutorial/io_etl_step_simple.md
-    - Custom Text File to Database: tutorial/io_etl_step_complex.md
-    - Refining Data in the Database: tutorial/etl.md
+    - Directory Structure: tutorial/01_directory_structure.md
+    - Defining the Schema: tutorial/02_defining_schema.md
+    - CSV to Database: tutorial/03_csv_to_db.md
+    - Custom Text File to Database: tutorial/04_handling_data_custom_formats.md
+    - Refining Data in the Database: tutorial/05_refining_data.md
   - Running and Debugging Models: running_and_debugging.md
   - Common Errors: common_errors.md
   - Technical Documentation: technical_documentation.md

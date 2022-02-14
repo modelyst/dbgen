@@ -23,7 +23,7 @@ that the names of the researchers are currently stored in a .csv file that has
 columns first_name, last_name, and age, which looks like this:
 
 ```
-{!../docs_src/tutorial/names.csv!}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/data/names.csv!}
 ```
 
 ### Extract
@@ -34,14 +34,15 @@ Next, we define an attribute named "outputs" which always contains a list of str
 
 Next, we can define any additional attributes that we want to supply when creating an instance of our Extract class later. In this case, the one attribute we will need is the location of the csv, which we have named `data_dir`.
 
-Finally, if any internal attributes (not supplied by the user at the time of creating an instance) are needed for our extract class to function, we define those as `PrivateAttr`'s as shown below.
+Finally, if any internal attributes (not supplied by the user at the time of creating an instance) were needed, we would define those below the user-supplied attributes, and they would need to begin with an `_` character.
 
-All that remains is to overwrite two methods: setup and extract. `setup` is always run before `extract`. In this case, all we do in the `setup` method is read the csv.
+All that remains is to overwrite the `extract` method. This method must be a generator that yields either:
 
-The `extract` method must be a generator that yields a dictionary where the keys are the names of the outputs. In this case, we have just one output named "row."
+1. a tuple the same length as the list of output names. If this syntax is used, DBgen will assume that the output names and the variables in the returned tuple are in the same order.
+2. a dictionary where the keys are the same as the output names specified earlier, and the values are the corresponding values.
 
 ```python3
-{!../docs_src/tutorial/tutorial002.py!}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
 ```
 
 ### Transform
@@ -50,14 +51,17 @@ Next, we will walk through transforms and loads.
 
 A `transform` is simply a function with an `@transform` decorator. In the decorator, we define the output names of the function and the python environment required to execute the function. We will walk through custom python environments in a later section of the tutorial.
 
+
 ```python3
-{!../docs_src/tutorial/tutorial003.py!}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:2,4,8-19] !}
 ```
+
+
 
 ### Load
 
 Finally, we need to create a DBgen "ETLStep" and add it to our model. The ETLStep contains the extract, transform, and load steps.
 
 ```python3
-{!../docs_src/tutorial/tutorial004.py!}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:1-] !}
 ```

@@ -26,8 +26,8 @@ def test_base_query(seed_db):
     ext = BaseQuery(query="Select 1 as test", outputs=["test"])
     engine = test_connection.get_engine()
     with engine.connect() as conn:
-        ext.set_extractor(connection=conn)
-        output = list(ext._extractor)
+        ext.set_connection(connection=conn)
+        output = list(ext.extract())
         assert len(output)
         assert all(map(lambda x: "test" in x, output))
         assert isinstance(ext["test"], Arg)
@@ -36,20 +36,20 @@ def test_base_query(seed_db):
 @pytest.mark.database
 def test_external_connection(seed_db):
     ext = ExternalQuery(query="Select 1 as test", outputs=["test"], connection=test_connection)
-    ext.set_extractor()
-    output = list(ext._extractor)
-    assert len(output)
-    assert all(map(lambda x: "test" in x, output))
+    with ext:
+        output = list(ext.extract())
+        assert len(output)
+        assert all(map(lambda x: "test" in x, output))
     ext = ExternalQuery(
         query="Select name from users order by id asc",
         outputs=["test"],
         connection=test_connection,
     )
-    ext.set_extractor()
-    output = list(ext._extractor)
-    assert len(output) == 100
-    assert all(map(lambda x: "name" in x, output))
-    assert output[0] == {"name": "user_0"}
+    with ext:
+        output = list(ext.extract())
+        assert len(output) == 100
+        assert all(map(lambda x: "name" in x, output))
+        assert output[0] == {"name": "user_0"}
 
 
 @pytest.mark.database
@@ -59,11 +59,12 @@ def test_external_connection_streaming(seed_db):
         outputs=["name"],
         connection=test_connection,
     )
-    ext.set_extractor(yield_per=10)
-    for row in ext._extractor:
-        assert "name" in row
-
-    ext.set_extractor(yield_per=10)
-    output = list(ext._extractor)
-    assert len(output) == 100
-    assert all(map(lambda x: "name" in x, output))
+    ext._yield_per = 10
+    with ext:
+        for row in ext.extract():
+            assert "name" in row
+    with ext:
+        ext._yield_per = 10
+        output = list(ext.extract())
+        assert len(output) == 100
+        assert all(map(lambda x: "name" in x, output))

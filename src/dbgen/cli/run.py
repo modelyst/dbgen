@@ -30,7 +30,7 @@ from dbgen.cli.options import config_option, model_string_option, version_option
 from dbgen.cli.queries import get_runs
 from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
 from dbgen.configuration import config, initialize, root_logger
-from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity
+from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity, Status
 from dbgen.core.run import RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
 
@@ -70,7 +70,12 @@ def status(
         highlight=True,
         border_style='magenta',
     )
-    status_map = {'failed': 'white on red', 'completed': 'green', 'excluded': 'grey'}
+    status_map = {
+        'failed': 'white on red',
+        'upstream_failed': 'black on yellow',
+        'completed': 'green',
+        'excluded': 'grey',
+    }
 
     def style(key, col):
         if key == 'status':
@@ -151,8 +156,7 @@ def run_model(
         batch_size=batch,
         batch_number=batch_number,
     )
-    if not bar:
-        add_stdout_logger(root_logger, stdout_level=run_config.log_level)
+    add_stdout_logger(root_logger, stdout_level=run_config.log_level)
     # Validate the run configuration parameters
     invalid_run_config_vals = run_config.get_invalid_markers(model)
     if invalid_run_config_vals:
@@ -187,6 +191,11 @@ def run_model(
             for etl_step_run in run.etl_step_runs
             if etl_step_run.status == 'failed'
         ]
+        excluded_etl_steps = [
+            etl_step_run.etl_step.name
+            for etl_step_run in run.etl_step_runs
+            if etl_step_run.status in (Status.excluded, Status.upstream_failed)
+        ]
         rows_inserted = sum([etl_step_run.rows_inserted for etl_step_run in run.etl_step_runs])
         rows_updated = sum([etl_step_run.rows_updated for etl_step_run in run.etl_step_runs])
 
@@ -194,14 +203,20 @@ def run_model(
         styles.delimiter(styles.typer.colors.RED)
         styles.bad_typer_print(f"Encountered {run.errors} during the run! The following etl_steps failed:")
         styles.bad_typer_print('\n'.join(map(repr, failed_etl_steps)))
-    if run.runtime:
+    if run.status == Status.completed and run.runtime:
         styles.delimiter(styles.typer.colors.GREEN)
         styles.good_typer_print(
-            f"Finished Running {len(model.etl_steps)} ETLStep(s) in {run.runtime.total_seconds():.3f}(s)."
+            f"Finished Running {len(model.etl_steps)} ETLStep(s) in {run.runtime.total_seconds():.3f}(s). {len(excluded_etl_steps)} Steps were Excluded."
         )
         styles.good_typer_print(
             f"The run attempted to insert {rows_inserted} and update {rows_updated} rows."
         )
+    else:
+        styles.delimiter(styles.typer.colors.RED)
+        styles.bad_typer_print(
+            f"Run failed! Only {len(run.etl_step_runs)} of {len(model.etl_steps)} ETLSteps run. {len(excluded_etl_steps)} Steps were Excluded."
+        )
+
     raise typer.Exit(code=0)
 
 
