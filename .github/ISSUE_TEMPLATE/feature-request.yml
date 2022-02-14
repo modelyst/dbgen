@@ -77,7 +77,6 @@ body:
     attributes:
       label: Wanted Code
       description: Show me an example of how you would want the code to look like.
-      placeholder: |
       render: python
     validations:
       required: true
