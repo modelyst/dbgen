@@ -132,7 +132,7 @@ class ETLStep(Base):
                     processed_hashes.append(input_hash)
                 else:
                     inputs_skipped += 1
-            except (Exception, KeyboardInterrupt, SystemExit, BdbQuit):
+            except (KeyboardInterrupt, SystemExit, BdbQuit):
                 raise
             except BaseException:
                 return None, None, None, inputs_skipped, traceback.format_exc()
