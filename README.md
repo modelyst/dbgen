@@ -17,11 +17,11 @@
 # DBgen
 
 <p align="center">
-  <a href="https://dbgen.modelyst.com"><img src="img/dbgen_logo.png" alt="DBgen"></a>
+  <a href="https://dbgen.modelyst.com"><img src="docs/img/dbgen_logo.png" alt="DBgen"></a>
 </p>
 
 <p align="center">
-   <a href="https://github.com/modelyst/dbgen/actions?query=workflow%3ATest" target="_blank">
+   <a href="https://github.com/modelyst/dbgen   /actions?query=workflow%3ATest" target="_blank">
       <img src="https://github.com/modelyst/dbgen/workflows/Test/badge.svg" alt="Test">
    </a>
    <a href="https://github.com/modelyst/dbgen/actions?query=workflow%3APublish" target="_blank">
@@ -30,13 +30,11 @@
    <a href="https://github.com/modelyst/dbgen/actions/workflows/publish_docs.yml" target="_blank">
       <img src="https://github.com/modelyst/dbgen/actions/workflows/publish_docs.yml/badge.svg">
    </a>
-</p>
-<p align="center">
    <a href="https://codecov.io/gh/modelyst/dbgen">
       <img src="https://codecov.io/gh/modelyst/dbgen/branch/master/graph/badge.svg?token=V4I8PPUIBU"/>
    </a>
-   <a href="/status">
-      <img src="img/interrogate.svg"/>
+   <a href="https://codecov.io/gh/modelyst/dbgen">
+      <img src="docs/img/interrogate.svg"/>
    </a>
    <a href="https://pypi.org/project/modelyst-dbgen" target="_blank">
       <img src="https://img.shields.io/pypi/v/modelyst-dbgen?color=%2334D058&label=pypi%20package" alt="Package version">
