@@ -14,7 +14,41 @@
    limitations under the License.
  -->
 
-## Prerequisites
+
+## Quick Start for Mac
+
+Install PostgreSQL and DBgen.
+
+```Console
+$ brew install postgres
+$ pip install modelyst-dbgen
+$ dbgen config =o .env
+```
+
+The last command created a file called `.env` with some default settings. Edit the username and database name in the `.env` file.
+
+```
+# DBgen Settings
+dbgen_main_dsn = postgresql://[username]@localhost:5432/[your_new_database_name]
+dbgen_main_password =
+```
+
+Create the new your new database.
+
+```Console
+$ psql -d postgres
+# create database [your_new_database_name];
+```
+
+Enter the following command to confirm that setup is complete.
+
+```Console
+$ dbgen connect --test
+```
+
+
+
+## Prerequisites Explained
 
 ### SQL
 
