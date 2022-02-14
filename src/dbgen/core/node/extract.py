@@ -14,7 +14,7 @@
 
 from typing import Any, Dict
 from typing import Generator as GenType
-from typing import Mapping, Optional, Sequence, TypeVar, Union
+from typing import Mapping, Optional, TypeVar, Union
 
 from pydantic import PrivateAttr
 
@@ -25,7 +25,7 @@ extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
 T = TypeVar('T')
 T1 = TypeVar('T1')
 
-
+# TODO remove **_ from setup and fix tests
 class Extract(ComputationalNode[T]):
     """
     Base Class for all extraction steps.
@@ -43,50 +43,52 @@ class Extract(ComputationalNode[T]):
         underscore_attrs_are_private = True
 
     # Overwrite these when writing custom extractor
-    def setup(self, **_) -> Optional[GenType[Any, None, None]]:
+    def setup(self) -> None:
         pass
 
     def extract(self: 'Extract[T]') -> GenType[T, None, None]:
         yield {}  # type: ignore
 
-    def teardown(self, **_):
+    def teardown(self) -> None:
         pass
 
-    def length(self, **_):
+    def length(self) -> Optional[int]:
         return None
 
     # Internal Do not Overwrite
 
     def run(self, _: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
-        try:
-            output = next(self._extractor)
-            if output is None:
-                return {}
-            elif isinstance(output, Mapping):
-                return dict(output)
-            elif isinstance(output, Sequence):
-                l1, l2 = len(output), len(self.outputs)
-                if l1 != l2:
-                    raise ValueError(f"Expected {l2} from extract {self}, but got {l1}")
-                return {name: val for name, val in zip(self.outputs, output)}
-            else:
-                if len(self.outputs) != 1:
-                    raise ValueError(
-                        f"{self} expected multiple outputs but output a {type(output)} which cannot have its length measured"
-                    )
-                return {list(self.outputs)[0]: output}
-        except StopIteration:
-            return None
+        row = next(self._extractor)
+        return self.process_row(row)
 
-    def set_extractor(self, *, connection=None, yield_per=None):
-        extractor = self.setup(connection=connection, yield_per=yield_per)
-        # Check if setup assigned the extractor already
-        if extractor is not None:
-            self._extractor = extractor
-        elif getattr(self, 'extract', None) and callable(self.extract):
-            self._extractor = self.extract()
+    def process_row(self, row):
+        if row is None:
+            return {}
+        elif isinstance(row, Mapping):
+            return dict(row)
+        elif isinstance(row, tuple):
+            l1, l2 = len(row), len(self.outputs)
+            if l1 != l2:
+                raise ValueError(
+                    f"Expected {l2} output from extract {self}, but got {l1} outputs.\n"
+                    f"If you intended to return a length {l1} tuple as the single output, please wrap the tuple in a singleton tuple\n"
+                    "like so 'yield (tuple_to_return,)'"
+                )
+            return {name: val for name, val in zip(self.outputs, row)}
         else:
-            raise NotImplementedError(f"No way of getting the extractor from extract {self}")
+            if len(self.outputs) != 1:
+                raise ValueError(
+                    f"{self} expected multiple outputs but output a {type(row)} which cannot have its length measured"
+                )
+            return {list(self.outputs)[0]: row}
+
+    def __enter__(self):
+        """Call setup when extract used in with block."""
+        self.setup()
+
+    def __exit__(self, *_):
+        """Call teardown when exiting extract with block regardless of error."""
+        self.teardown()
 
     def __str__(self):
         return f"{self.__class__.__qualname__}<outputs= {self.outputs}>"

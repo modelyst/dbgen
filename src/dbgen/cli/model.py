@@ -35,7 +35,7 @@ model_app = typer.Typer(name='model', no_args_is_help=True)
 
 @model_app.command('list')
 def list_models(config_file: Path = config_option, tags: List[str] = typer.Option(None, '-t')):
-
+    """List the models in the metadatabase."""
     # Notify of config file
     if config_file:
         _, meta_conn = initialize(config_file)
@@ -54,7 +54,6 @@ def list_models(config_file: Path = config_option, tags: List[str] = typer.Optio
     columns = ['id', 'name', 'created_at', 'last_run', 'tags']
     table = Table(
         *columns,
-        title='run',
         show_lines=True,
         highlight=True,
         border_style='magenta',
@@ -157,7 +156,7 @@ def validate(
     model = validate_model_str(model_str)
     styles.good_typer_print(f"Model(name={model.name!r}) was successfully validated")
     styles.good_typer_print(
-        f'Model contains {len(model.etl_steps)} etl_steps and {len(model.registry.metadata.tables)} two entities.'
+        f'Model contains {len(model.etl_steps)} ETLStep(s) and {len(model.registry.metadata.tables)} two entities.'
     )
     if state['verbose']:
-        styles.good_typer_print(f'Model contains {len(model.etl_steps)} etl_steps.')
+        styles.good_typer_print(f'Model contains {len(model.etl_steps)} ETLStep(s).')

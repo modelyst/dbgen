@@ -277,6 +277,83 @@ class Load(ComputationalNode[T]):
             tables_needed=tables_needed,
         )
 
+    def new_run(
+        self, row: Dict[str, Mapping[str, Any]], rows_to_load: Dict[str, Dict[UUID, Any]]
+    ) -> Dict[str, List[UUID]]:
+        not_list = lambda x: not isinstance(x, (list, tuple))
+        lists_allowed = lambda x: self.load_entity.attributes[x].endswith('[]')
+        arg_dict = {
+            key: [val] if not_list(val) or lists_allowed(key) else val
+            for key, val in sorted(self._get_inputs(row).items())
+        }
+        # Check for empty lists, as that will cause the row to be ignored
+        if any(map(lambda x: len(x) == 0, arg_dict.values())):
+            # self._logger.debug(f'Row {arg_dict} produced 0 rows for load {self}')
+            return {self.outputs[0]: []}
+        # Check for broadcastability
+        try:
+            is_broadcastable(*arg_dict.values())
+        except ValueError as exc:
+            raise ValueError(
+                f"While assembling rows for loading into {self} found two sequences in the inputs to the load with non-equal, >1 length\n"
+                "This can occur when two outputs from pyblocks/queries are unequal in length.\n"
+                "If so, please make the relevant cartesian product of the two lists before loading\n"
+            ) from exc
+        try:
+            broadcasted_values = [
+                {key: val for key, val in zip(arg_dict.keys(), row)} for row in broadcast(*arg_dict.values())
+            ]
+        except ValueError as exc:
+            raise ValueError(
+                f"Error occurred during the loading of row {(str(arg_dict)[:100])} into entity {self.load_entity.full_name}"
+            ) from exc
+
+        # Load
+        validation = self.validation or config.validation
+        if validation == ValidationEnum.STRICT:
+            validation_func = self.load_entity._strict_validate
+        elif validation == ValidationEnum.COERCE:
+            validation_func = self.load_entity._validate
+
+        try:
+            broadcasted_values = list(map(partial(validation_func, insert=self.insert), broadcasted_values))
+        except PydValidationError as exc:
+            raise ValidationError(
+                f"Error occurred during data validation while loading into {self.load_entity.full_name!r}:\n{exc}"
+            ) from exc
+        # If we have a user supplied Primary Key go get it and broadcast it
+        if self.primary_key is not None:
+            primary_arg_val = self.primary_key.arg_get(row)
+            # Validate the primary key type
+            if isinstance(primary_arg_val, UUID):
+                primary_keys: List[UUID] = [primary_arg_val]
+            elif isinstance(primary_arg_val, Sequence):
+                assert all(map(lambda x: isinstance(x, UUID), primary_arg_val))
+                primary_keys = list(primary_arg_val)
+            else:
+                ValueError(f"Unknown Primary Key Type: {primary_arg_val}")
+
+            if len(primary_keys) == 1:
+                primary_keys *= len(broadcasted_values)
+            elif len(primary_keys) != len(broadcasted_values):
+                raise ValueError(
+                    f"Cannot broadcast Primary Key to Max Length: {len(primary_keys)} {len(broadcasted_values)}"
+                )
+        else:
+            # If we don't have a primary key get it from the identifying info on the broadcasted
+            # Values
+            primary_keys = [self.load_entity._get_hash(row) for row in broadcasted_values]
+        sorted_keys = sorted(self.inputs.keys())
+        # Update rows to load dict in place
+        rows_to_load[self.hash].update(
+            {
+                primary_key: [value[key] for key in sorted_keys]
+                for primary_key, value in zip(primary_keys, broadcasted_values)
+            }
+        )
+
+        return {self.outputs[0]: primary_keys}
+
     def run(self, row: Dict[str, Mapping[str, Any]]) -> Dict[str, List[UUID]]:
         not_list = lambda x: not isinstance(x, (list, tuple))
         lists_allowed = lambda x: self.load_entity.attributes[x].endswith('[]')
@@ -357,14 +434,14 @@ class Load(ComputationalNode[T]):
             namespace_rows (List[Dict[str, Any]]): A dictionary with the strings as hashes and the values as the local namespace dictionaries from PyBlocks, Queries, and Consts
         """
         self._logger.debug(f"Loading into {self.load_entity.name}")
-        self._load_data(cxn=cxn, etl_step_id=etl_step_id)
+        self._load_data(data=self._output, connection=cxn, etl_step_id=etl_step_id)
         self._output = {}
 
     def _get_types(self):
         oids = list(map(lambda x: self.load_entity.attributes[x], sorted(self.inputs.keys())))
         return oids
 
-    def _load_data(self, cxn: PG3Conn, etl_step_id: UUID) -> None:
+    def _load_data(self, data, connection: PG3Conn, etl_step_id: UUID) -> None:
         # Temporary table to copy data into
         # Set name to be hash of input rows to ensure uniqueness for parallelization
         temp_table_name = self.load_entity.name + "_temp_load_table_" + self.hash
@@ -387,10 +464,10 @@ class Load(ComputationalNode[T]):
             temp_table_name=temp_table_name,
             etl_step_id=etl_step_id,
         )
-        with cxn.cursor() as cur:
+        with connection.cursor() as cur:
             cur.execute(drop_temp_table)
             cur.execute(create_temp_table)
-        cxn.commit()
+        connection.commit()
 
         cols = [self.load_entity.primary_key_name] + list(sorted(self.inputs.keys()))
         col_str = ','.join(map(lambda x: f"\"{x}\"", cols))
@@ -413,12 +490,12 @@ class Load(ComputationalNode[T]):
             schema=self.load_entity.schema_,
         )
         load_statement = template.render(**template_args)
-        with cxn.cursor() as cur:
+        with connection.cursor() as cur:
             self._logger.debug("load into temporary table")
             with cur.copy(f'COPY  {temp_table_name} ({col_str}) FROM STDIN') as copy:
                 oids = self._get_types()
                 copy.set_types(oids)
-                for pk_curr, row_curr in self._output.items():
+                for pk_curr, row_curr in data.items():
                     copy.write_row((pk_curr, *row_curr))
 
             # Try to insert everything from the temp table into the real table
@@ -455,5 +532,5 @@ class Load(ComputationalNode[T]):
                 self._logger.error(f"Fail count = {fk_fail_count}")
             self._logger.debug("Dropping temp table...")
             cur.execute(drop_temp_table)
-        cxn.commit()
+        connection.commit()
         self._logger.debug("loading finished")
