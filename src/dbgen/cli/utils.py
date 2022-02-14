@@ -17,11 +17,12 @@ import os
 import sys
 from pathlib import Path
 from types import FunctionType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Union
 
 import typer
 
 from dbgen.cli.styles import LOGO_STYLE, bad_typer_print
+from dbgen.configuration import update_config
 from dbgen.core.model import Model
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ ERROR_RUNNING_MODEL_FACT = "Import String is for a function produced an error or
 
 logger = logging.getLogger(__name__)
 
-state = {"confirm": True, 'verbose': True}
+state: Dict[str, Union[bool, Path, None]] = {"confirm": True, 'verbose': True, 'old_cwd': None}
 
 
 # Callback functions for parsing and validating args
@@ -161,3 +162,17 @@ def test_connection(conn: 'Connection', name: str = ''):
     if not conn.test():
         bad_typer_print(CONNECT_ERROR.format(name='meta', url=conn.url()))
         raise typer.Exit(code=2)
+
+
+def chdir_callback(directory: Path):
+    if directory:
+        state['old_cwd'] = directory.cwd()
+        os.chdir(directory)
+
+
+def config_callback(config_file: Path):
+    if config_file.exists():
+        update_config(config_file)
+    elif str(config_file.name) != '.env':
+        raise typer.BadParameter(f'Config file \'{config_file}\' does not exist')
+    return config_file

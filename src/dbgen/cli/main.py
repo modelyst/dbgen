@@ -24,9 +24,9 @@ import dbgen.cli.styles as styles
 from dbgen.cli.etl_step import etl_step_app
 from dbgen.cli.model import model_app
 from dbgen.cli.new import new_app
-from dbgen.cli.options import config_option
+from dbgen.cli.options import chdir_option, config_option
 from dbgen.cli.run import run_app
-from dbgen.configuration import get_connections, update_config
+from dbgen.configuration import config, get_connections
 from dbgen.utils.misc import which
 
 app = typer.Typer(no_args_is_help=True)
@@ -46,7 +46,7 @@ app.command("version")(lambda: styles.console.print(styles.LOGO_STYLE))
 
 @app.command(name="config")
 def get_config(
-    config_file: Optional[Path] = config_option,
+    config_file: Path = config_option,
     show_password: bool = False,
     show_defaults: bool = True,
     out_pth: Optional[Path] = typer.Option(
@@ -55,29 +55,17 @@ def get_config(
         '-o',
         help="Location to write parametrized config",
     ),
+    _chdir: Path = chdir_option,
 ):
     """
     Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
     """
-
-    typer.echo(styles.LOGO_STYLE)
-    # Initialize settings to get the connections
-
-    # Print config to stdout
-    styles.delimiter()
-    # Notify of config file
-    if config_file:
-        typer.echo(f"Config File found at location: {config_file.absolute()}")
-        config = update_config(config_file)
-    else:
-        typer.echo("No config file found using defaults.")
-
+    styles.theme_typer_print(styles.LOGO_STYLE)
     # If out_pth provided write the current config to the path provided and return
     if out_pth:
         with open(out_pth, "w") as f:
             f.write(config.display(True, True))
 
-    styles.delimiter()
     typer.echo(config.display(show_defaults, show_password))
 
 
@@ -100,10 +88,7 @@ def test_conn(
     """
     Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
     """
-
-    if config_file:
-        config = update_config(config_file)
-    main_conn, meta_conn = get_connections(config)
+    main_conn, meta_conn = get_connections()
 
     # If connect is chosen connect to the database selected using CLI sql
     if connect and not test:

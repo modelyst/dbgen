@@ -26,10 +26,10 @@ from sqlmodel import Session, select
 
 import dbgen.cli.styles as styles
 import dbgen.exceptions as exceptions
-from dbgen.cli.options import config_option, model_string_option, version_option
+from dbgen.cli.options import chdir_option, config_option, model_string_option, version_option
 from dbgen.cli.queries import get_runs
 from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
-from dbgen.configuration import config, initialize, root_logger
+from dbgen.configuration import config, get_connections, root_logger
 from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity, Status
 from dbgen.core.run import RunConfig
 from dbgen.utils.log import LogLevel, add_stdout_logger
@@ -50,7 +50,7 @@ def status(
     ),
 ):
     column_dict = {'error': Column('Error'), 'status': Column('Status', style='green')}
-    _, meta_conn = initialize()
+    _, meta_conn = get_connections()
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
     filtered_keys = {'etl_step_id', 'created_at'}
@@ -129,12 +129,13 @@ def run_model(
         callback=confirm_nuke,
     ),
     version: bool = version_option,
+    _chdir: Path = chdir_option,
 ):
     """Run a model."""
     if ctx.invoked_subcommand is not None:
         return
     # Start connection from config
-    main_conn, meta_conn = initialize(config_file)
+    main_conn, meta_conn = get_connections()
     # Use config model_str if none is provided
     if model_str is None:
         model_str = config.model_str
@@ -171,9 +172,11 @@ def run_model(
         test_connection(conn, name)
     # Grab engine from each connection
     main_engine, meta_engine = main_conn.get_engine(), meta_conn.get_engine()
-    # Pass all the arguments to the model run command
+    # If we turn on pdb mode we need to turn off the progress bar
     if pdb:
         config.pdb = pdb
+        run_config.progress_bar = not pdb
+    # Pass all the arguments to the model run command
     try:
         out_run = model.run(
             main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed, remote=remote
@@ -224,8 +227,7 @@ def run_model(
 def run_initialize(model_id: UUID, config_file: Path = config_option):
     """Initialize a run."""
     # Notify of config file
-    if config_file:
-        _, meta_conn = initialize(config_file)
+    _, meta_conn = get_connections()
     test_connection(meta_conn)
     meta_engine = meta_conn.get_engine()
     typer.echo(config.display())

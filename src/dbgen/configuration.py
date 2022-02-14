@@ -102,13 +102,6 @@ config = DBgenConfiguration()
 root_logger = setup_logger()
 
 
-def initialize(config_file: 'Path' = None) -> Tuple['Connection', 'Connection']:
-    global config
-    if config_file:
-        config = update_config(config_file)
-    return get_connections(config)
-
-
 def update_config(config_file: 'Path') -> DBgenConfiguration:
     global config
     input_config = DBgenConfiguration(_env_file=config_file)
@@ -117,7 +110,7 @@ def update_config(config_file: 'Path') -> DBgenConfiguration:
     return config
 
 
-def get_connections(config: DBgenConfiguration) -> Tuple['Connection', 'Connection']:
+def get_connections() -> Tuple['Connection', 'Connection']:
     main_conn = Connection.from_uri(config.main_dsn, config.main_schema, password=config.main_password)
     meta_dsn = config.meta_dsn or config.main_dsn
     meta_password = config.meta_password or config.main_password
@@ -125,6 +118,6 @@ def get_connections(config: DBgenConfiguration) -> Tuple['Connection', 'Connecti
     return (main_conn, meta_conn)
 
 
-def get_engines(config: DBgenConfiguration) -> Tuple['Engine', 'Engine']:
-    (main_conn, meta_conn) = get_connections(config)
+def get_engines() -> Tuple['Engine', 'Engine']:
+    (main_conn, meta_conn) = get_connections()
     return (main_conn.get_engine(), meta_conn.get_engine())
