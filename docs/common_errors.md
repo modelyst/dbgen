@@ -177,3 +177,36 @@ EntityName.load(
     refined_value=refined_value
 )
 ```
+
+## Installation Errors
+
+### dbgen executable can not be found
+#### Symptom
+<div class="termy">
+```Console
+$ dbgen version
+command not found: dbgen
+```
+</div>
+#### Possible Cause
+This error occurs when the dbgen executable cannot be found in the $PATH variable of your shell. This is commonly caused by two main issues:
+
+1. You have not correctly sourced the virtual environment in which dbgen was installed.
+
+Solution: activate the virtual environment
+
+2. DBgen has not been installed through pip or poetry
+
+Solution: Install dbgen through the pip or poetry methods shown in the <a href="/installation">installation</a> section
+### Missing module error
+#### Symptom
+<div class="termy">
+```Console
+$ dbgen version
+ModuleNotFoundError: No module named 'rich'
+```
+</div>
+#### Possible Cause
+This error occurs when a dependency of dbgen has not been installed. This can occur if the executable was installed to an incorrect python environment. This occurs when the pip executable from one python installation is used to install dbgen. You can be sure this is the issue if the command `python -m dbgen version` does not cause issues, as this forces the use of the specific python installation first in your $PATH.
+
+Uninstalling dbgen with the command `pip uninstall modelyst-dbgen` and then reinstalling it in the correct location with `python -m pip install modelyst-dbgen` will usually solve this issue. Just make sure to activate the virtual environment prior to running the installation command.

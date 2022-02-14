@@ -58,14 +58,14 @@ The database does not need to be running on the same machine as DBgen, and many 
 
 ### Python
 
-DBgen requires python version 3.7.1 or newer. Instructions for installing python are available <a href="https://www.python.org/downloads/">here</a>.
+DBgen requires python version 3.8.1 or newer. Instructions for installing python are available <a href="https://www.python.org/downloads/">here</a>.
 
 ### Required Python Packages
 
 DBgen requires the python packages listed in <a href="https://github.com/modelyst/dbgen/blob/master/requirements.txt">requirements.txt</a> to be installed. This can be done easily by downloading the requirements.txt file and using pip to install them.
 
 ```Console
-$ pip install -r requirements.txt
+$ python -m pip install -r requirements.txt
 ```
 
 ## Installing DBgen
@@ -76,12 +76,12 @@ The easiest way to install dbgen is using pip. The name of the package on [pypi.
 
 <div class="termy">
 ```Console
-$ pip install modelyst-dbgen
+$ python -m pip install modelyst-dbgen
 ---> 100%
 Successfully installed dbgen
 ```
 </div>
-
+Note that you can use the pip executable to install dbgen with the command `pip install modelyst-dbgen`, however, it is critical that the pip executable is pointing to the correct python or else dbgen can be installed to another python's site-packages. As it is common to isolate dbgen installations within their own virtual environments, the command `which pip` and `which python` should output paths within the same bin folder. If they don't then you can use the command shown above to force the use of the pip module within the selected python environment.
 ### Installing with Git
 
 The easiest way to install dbgen is using pip. The name of the package on [pypi.com](https://pypi.org/project/modelyst-dbgen/) is `modelyst-dbgen`.

@@ -15,12 +15,12 @@ backports.zoneinfo==0.2.1 ; python_version < "3.9" and python_version >= "3.6" \
     --hash=sha256:1b13e654a55cd45672cb54ed12148cd33628f672548f373963b0bff67b217328 \
     --hash=sha256:4a0f800587060bf8880f954dbef70de6c11bbe59c673c3d818921f042f9954a6 \
     --hash=sha256:fadbfe37f74051d024037f223b8e001611eac868b5c5b06144ef4d8b799862f2
-boto3==1.20.54 ; python_version >= "3.6" \
-    --hash=sha256:1a272a1dd36414b1626a47bb580425203be0b5a34caa117f38a5e18adf21f918 \
-    --hash=sha256:8129ad42cc0120d1c63daa18512d6f0b1439e385b2b6e0fe987f116bdf795546
-botocore==1.23.54 ; python_version >= "3.6" \
-    --hash=sha256:06ae8076c4dcf3d72bec4d37e5f2dce4a92a18a8cdaa3bfaa6e3b7b5e30a8d7e \
-    --hash=sha256:4bb9ba16cccee5f5a2602049bc3e2db6865346b2550667f3013bdf33b0a01ceb
+boto3==1.21.0 ; python_version >= "3.6" \
+    --hash=sha256:25a76b7b530a124d9e526c62ff2b7da5782315195badb9a6273714898d689820 \
+    --hash=sha256:cc40566dec3f48611a82ace07b29489848e9bd35a51e3e992d1902a3c037e9fc
+botocore==1.24.0 ; python_version >= "3.6" \
+    --hash=sha256:2bf4463513bd89817aa5d7341ed81c7c76d906e6c70672c8762d64ecf3275771 \
+    --hash=sha256:47723cef6112f451630bf2446cfd6be2782cc1d6b1b92acb12ff00797588c5f3
 click==8.0.3 ; python_version >= "3.6" \
     --hash=sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3 \
     --hash=sha256:410e932b050f5eed773c4cda94de75971c89cdb3155a72a0831139a79e5ecb5b
