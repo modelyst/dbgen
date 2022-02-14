@@ -66,6 +66,10 @@ example, in this example, the same person may make many temperature
 measurements. Let's define a table to capture temperature measurements, which
 order they were captured in, and who recorded them.
 
-```python3
+The foreign key can be named anything, but it is very common to name the foreign key using the following pattern `TABLENAME_id` where `TABLENAME` is the name of the table the foreign key is referencing. The column type of a foreign key is the same as id on the referenced table, which is an `Optional[UUID]`. This type can be directly imported from `dbgen` as shown below. Finally, the value for the foreign key column can be automatically generated using the `Entity.foreign_key()` method.
+
+```python3 hl_lines="1 9"
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:2-3] !}
+...
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:14-] !}
 ```

@@ -82,7 +82,7 @@ This is the file that specifies the empty database schema. In other words, this 
 Part of the `schema.py` used in this tutorial is shown below.
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:17-14] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:1-13] !}
 ```
 
 ## extracts

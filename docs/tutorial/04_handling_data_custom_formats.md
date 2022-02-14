@@ -71,23 +71,23 @@ Next, we need to write a custom function that parses the filename and file conte
 Next, in order to insert these values into the database, we need to define a dbgen ETLStep. The standard pattern is to define a function that accepts the model and adds the new ETLStep to the model. By using `with model`, all ETLSteps defined in that with block will automatically be added to the model. Similarly, by using `with ETLStep(...)`, all extracts, transforms, and loads instantiated in that with block will automatically be added to the new ETLStep. Lines similar to the ones highlighted below are used almost every time a new ETLStep is defined.
 
 ```python3  hl_lines="2-3"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:33-] !}
 ```
 
 Next, we need to instantiate the custom extract we defined above. By calling `.results()` on the instance of our custom extract class, a tuple of the outputs is returned.
 
 ```python3 hl_lines="4"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:33-] !}
 ```
 
 After that, we want to pass the results from this extract to our custom transform (the parser defined above). Similarly, by calling `.results()` on the transform, a tuple of the outputs is returned.
 
 ```python3 hl_lines="5"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:33-] !}
 ```
 
 Finally, we call `.load(...)` on the table that we would like to insert data into, and we pass the values output by the transform as keyword arguments to the `.load` method. An important point is that any call to `.load` returns the ID of the row specified in the `.load(...)` statement. We do not always need to use this information, but we do need it to populate foreign keys. Simply put, foreign keys are always populated by calling the `.load` method on the table that you would like to create a foreign key to, as shown in the last line below.
 
 ```python3 hl_lines="6-11"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:31-] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:33-] !}
 ```
