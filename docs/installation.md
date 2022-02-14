@@ -22,7 +22,7 @@ Install PostgreSQL and DBgen.
 ```Console
 $ brew install postgres
 $ pip install modelyst-dbgen
-$ dbgen config =o .env
+$ dbgen config -o .env
 ```
 
 The last command created a file called `.env` with some default settings. Edit the username and database name in the `.env` file.
@@ -95,7 +95,7 @@ The easiest way to install dbgen is using pip. The name of the package on [pypi.
 The fastest way to get started is to navigate to the root directory for your project and run the command:
 
 ```Console
-$ dbgen config > .env
+$ dbgen config -o .env
 ```
 
 This will create a file named `.env`, which is where you can customize your own DBgen default settings. The only two crucial settings for getting started are the `dbgen_main_dsn` and the `dbgen_main_password`. These are needed for DBgen to connect to a database.

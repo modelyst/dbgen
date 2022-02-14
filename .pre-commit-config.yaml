@@ -196,14 +196,6 @@ repos:
         language_version: python3
         additional_dependencies: ["flynt"]
         files: \.py$
-      - id: pytest
-        name: Run pytest
-        entry: pytest
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages:
-          - "push"
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
     hooks:
