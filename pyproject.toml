@@ -26,7 +26,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/modelyst/dbgen"
-version = "0.5.19"
+version = "0.6.0"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.1"
