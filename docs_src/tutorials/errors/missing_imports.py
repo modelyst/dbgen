@@ -21,10 +21,10 @@ class StringExtract(Extract):
             yield {"a_string": a_string}
 
 
-### Env does not include the "re" package! This is the source of the error!
+# Env does not include the "re" package! This is the source of the error!
 env = Environment([Import("typing", "Tuple")])
 
-### The correct Env line is shown below
+# The correct Env line is shown below
 # env = Env([Import("typing", "Tuple"), Import("re")])
 
 

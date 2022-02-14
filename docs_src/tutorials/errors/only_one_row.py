@@ -4,7 +4,7 @@ from dbgen import Entity, ETLStep, Extract, Model
 
 
 class Number(Entity, table=True):
-    ### __identifying__ is not set! This is the problem.
+    # __identifying__ is not set! This is the problem.
     i: int
 
 
