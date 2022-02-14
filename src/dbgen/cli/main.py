@@ -30,7 +30,7 @@ from dbgen.configuration import get_connections, update_config
 from dbgen.utils.misc import which
 
 app = typer.Typer(no_args_is_help=True)
-app.add_typer(etl_step_app, name='etl_step')
+app.add_typer(etl_step_app, name='etl-step')
 app.add_typer(run_app, name='run')
 app.add_typer(model_app, name='model')
 app.add_typer(new_app, name='new')

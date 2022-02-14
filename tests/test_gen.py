@@ -53,7 +53,7 @@ def test_basic_graph_sort(basic_etl_step: ETLStep):
     """Ensure a simple Query->transform->Load is sorted correctly."""
     graph = basic_etl_step._computational_graph()
     assert len(graph) == 3
-    sorted_nodes = basic_etl_step._sort_graph()
+    sorted_nodes = basic_etl_step._sort_nodes()
     query, transform, load = sorted_nodes
     assert isinstance(query, BaseQuery)
     assert isinstance(transform, PythonTransform)
@@ -62,7 +62,7 @@ def test_basic_graph_sort(basic_etl_step: ETLStep):
 
 def test_basic_graph_in_place(basic_etl_step: ETLStep):
     """Ensure that changes to the output of ._sort_graph() are in place and affect the ETLStep as well."""
-    query, transform, load = basic_etl_step._sort_graph()
+    query, transform, load = basic_etl_step._sort_nodes()
     assert isinstance(load, Load)
     load.run({transform.hash: {"newnames": ("1", "2")}})
     assert load._output == basic_etl_step._sorted_loads()[0]._output
@@ -130,14 +130,15 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
     connection.commit()
     statement = select(User.id, User.label)
     query = BaseQuery.from_select_statement(statement)
-    assert query.length(connection=connection) == num_users
+    query.set_connection(connection, None)
+    assert query.length() == num_users
     pyblock = PythonTransform(function=transform_func, inputs=[query["label"]])
     u_load = User.load(id=query["id"], new_label=pyblock["out"])
     run = RunEntity()
     sess.add(run)
     sess.commit()
     sess.refresh(run)
-    etl_step = ETLStep(
+    ETLStep(
         name="test",
         extract=query,
         transforms=[pyblock],
@@ -145,4 +146,4 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
         batch_size=10000,
     )
     connection.commit()
-    etl_step.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
+    # etl_step.run(sql_engine, sql_engine, run_id=run.id, ordering=0)

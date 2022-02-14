@@ -40,6 +40,7 @@ class Status(str, Enum):
     failed = "failed"
     completed = "completed"
     testing = "testing"
+    upstream_failed = "upstream_failed"
 
 
 class Root(BaseEntity):

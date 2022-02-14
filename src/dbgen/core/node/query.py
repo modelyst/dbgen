@@ -18,7 +18,6 @@ from typing import Optional, TypeVar, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
-from sqlmodel.engine.result import Result
 from sqlmodel.sql.expression import Select, SelectOfScalar
 
 from dbgen.core.dependency import Dependency
@@ -28,7 +27,6 @@ from dbgen.utils.sql import Connection
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection as SAConnection  # pragma: no cover
-    from sqlmodel import Session  # pragma: no cover
 
 
 SCHEMA_DEFAULT = "public"
@@ -40,6 +38,8 @@ class BaseQuery(Extract[T]):
     query: str
     params: Dict[str, Any] = Field(default_factory=dict)
     dependency: Dependency = Field(default_factory=Dependency)
+    _connection: 'SAConnection'
+    _yield_per: Optional[int] = None
 
     def _get_dependency(self) -> Dependency:
         return self.dependency
@@ -71,28 +71,27 @@ class BaseQuery(Extract[T]):
         )
         return str(compiled_query)
 
-    def length(self, *, connection: 'SAConnection' = None, **_) -> int:
-        assert connection
+    def set_connection(self, connection: 'SAConnection', yield_per: Optional[int] = None):
+        self._connection = connection
+        self._yield_per = yield_per
+
+    def length(self) -> int:
         count_statement = f"select count(1) from ({self.query}) as X;"
-        rows: int = connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
+        rows: int = self._connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
         return rows
 
-    def setup(
+    def extract(
         self,
-        connection: 'SAConnection' = None,
-        yield_per: Optional[int] = None,
-        **kwargs,
-    ) -> GenType[Result[T], None, None]:
-        assert connection, f"Need to pass in connection when setting the extractor"
-        if yield_per:
-            result = connection.execution_options(stream_results=True).execute(
+    ) -> GenType[T, None, None]:
+        if self._yield_per:
+            result = self._connection.execution_options(stream_results=True).execute(
                 text(self.query), **self.params
             )
-            while chunk := result.fetchmany(yield_per):
+            while chunk := result.fetchmany(self._yield_per):
                 for row in chunk:
                     yield dict(row)  # type: ignore
         else:
-            result = connection.execute(text(self.query), **self.params)
+            result = self._connection.execute(text(self.query), **self.params)
             yield from result.mappings()  # type: ignore
 
 
@@ -110,20 +109,12 @@ class ExternalQuery(BaseQuery[T]):
             connection=connection,
         )
 
-    def setup(
-        self,
-        connection: Union['SAConnection', 'Session'] = None,
-        yield_per: Optional[int] = None,
-        **kwargs,
-    ) -> GenType[Result[T], None, None]:
+    def setup(self):
         engine = self.connection.get_engine()
-        with engine.connect() as conn:
-            if yield_per:
-                result = conn.execute(text(self.query), **self.params)
-                yield from result.yield_per(yield_per).mappings()  # type: ignore
-            else:
-                result = conn.execute(text(self.query), **self.params)
-                yield from result.mappings()  # type: ignore
+        self._connection = engine.connect()
+
+    def teardown(self):
+        self._connection.close()
 
 
 @overload

@@ -36,27 +36,17 @@ The `data_dir` is a string that specifies the name of the folder in which our te
 
 As always, we need to define the output names. In this case, since we need information from both the filename and the file contents, we will have two outputs.
 
-Finally, we want to be able to read in the list of filenames in the `data_dir` in the `setup` method and then use that list in the `extract` method, so we will need a private attribute to store that list of filenames.
-
-## Defining the setup method
-
-Next, we need to overwrite the `setup` method. In this case, all we'll do is use `os.listdir` to get a list of the filenames in the folder that contains our text files.
-
-```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/measurement_extract.py [ln:1-30] !}
-```
-
 ## Defining the extract method
 
-Finally, we need to define the `extract` method. The extract method must always be a generator that yields dictionaries where the keys are the output names and the values are the corresponding output values. In this case, we would like to output two strings: the file name and the file contents.
+Finally, we need to overwrite the `extract` method. As always, the extract method must be a generator. In this case, we would like to output two strings: the file name and the file contents.
 
-We loop over the filenames stored in our private attribute, and simply read the file and return a dictionary containing the file name and file contents.
+We get a list of the filenames in the `data_dir` then loop over the filenames and simply read the file and yield the name of the file and the contents of the file.
 
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/measurement_extract.py !}
 ```
 
-Parsing these strings will happen in the transform step.
+These strings will be parsed in the transform step. In general, if there is something that can be done in either the extract step or the transform step, it is better to do it in the transform step because the exception handling for transforms is more advanced. Extracts should remain as simple as possible.
 
 
 # Defining the corresponding transform

@@ -13,8 +13,11 @@
 #   limitations under the License.
 
 import re
+import traceback
+from bdb import BdbQuit
 from functools import reduce
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from uuid import UUID
 
 from pydantic import Field, PrivateAttr
 from pydantic.class_validators import validator
@@ -30,7 +33,7 @@ from dbgen.core.node.extract import Extract
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
 from dbgen.core.node.transforms import Transform
-from dbgen.exceptions import DBgenMissingInfo
+from dbgen.exceptions import DBgenMissingInfo, DBgenSkipException
 from dbgen.utils.graphs import topsort_with_dict
 
 if TYPE_CHECKING:
@@ -65,6 +68,8 @@ class ETLStep(Base):
         etl_step_context = ETLStepContext.get()
         if not etl_step_context:
             self.validate_nodes()
+            self._sort_graph()
+
         model_context = ModelContext.get()
         if model_context:
             model = model_context['model']
@@ -111,10 +116,59 @@ class ETLStep(Base):
     def __exit__(self, *args):
         self._context.__exit__(*args)
         self.validate_nodes()
+        self._sort_graph()
         del self._context
 
-    def _computational_graph(self) -> "DiGraph":
-        if self._graph is None:
+    def transform_batch(self, batch: List[Tuple[UUID, Dict[str, Dict[str, Any]]]]):
+        """Transform a batch of extracted namespaces."""
+        # initialize the master dict for the rows that will need to be loaded after
+        rows_to_load: Dict[str, Dict[UUID, dict]] = {node.hash: {} for node in self.loads}
+        processed_hashes = []
+        inputs_skipped = 0
+        for input_hash, row in batch:
+            try:
+                _, skipped = self._transform(row, rows_to_load)
+                if not skipped:
+                    processed_hashes.append(input_hash)
+                else:
+                    inputs_skipped += 1
+            except (Exception, KeyboardInterrupt, SystemExit, BdbQuit):
+                raise
+            except BaseException:
+                return None, None, None, inputs_skipped, traceback.format_exc()
+        return processed_hashes, rows_to_load, len(batch), inputs_skipped, None
+
+    def _transform(self, namespace: dict, rows_to_load: Dict[str, Dict[UUID, dict]]):
+        skipped = False
+        try:
+            output = namespace.copy()
+            # Run the Transforms
+            for node in self.transforms:
+                output[node.hash] = node.run(output)
+            # Run the loads
+            for load in self.loads:
+                output[load.hash] = load.new_run(output, rows_to_load)
+        except DBgenSkipException as exc:
+            self._logger.debug(f'Skipped row: {exc.msg}')
+            skipped = True
+        return output, skipped
+
+    def _sort_graph(self):
+        """Sorts the self.transforms and self.loads to be in correct DAG order."""
+        nodes = self._sort_nodes(force_rebuild=True)
+        transforms, loads = [], []
+        for node in nodes:
+            if isinstance(node, Transform):
+                transforms.append(node)
+            elif isinstance(node, Load):
+                loads.append(node)
+            elif not isinstance(node, Extract):
+                raise TypeError(f"Unknown node type found during sorting! {type(node)}")
+        self.transforms = transforms
+        self.loads = loads
+
+    def _computational_graph(self, force_rebuild: bool = True) -> "DiGraph":
+        if self._graph is None or force_rebuild:
             from networkx import DiGraph
 
             nodes: Dict[str, "ComputationalNode"] = {self.extract.hash: self.extract}
@@ -129,7 +183,7 @@ class ETLStep(Base):
                         if arg.key not in nodes:
                             raise DBgenMissingInfo(
                                 f"Argument {key} of {node} refers to an object with a hash key {arg.key} asking for name \"{getattr(arg,'name','<No Name>')}\" that does not exist in the namespace.\n"
-                                "Did you make sure to include all transforms and Queries in the func kwarg of ETLStep()?"
+                                "Did you make sure to include all PyBlocks and Queries in the func kwarg of Generator()?"
                             )
                         edges.append((arg.key, node_id))
 
@@ -140,8 +194,8 @@ class ETLStep(Base):
             self._graph = graph
         return self._graph
 
-    def _sort_graph(self) -> List["ComputationalNode"]:
-        graph = self._computational_graph()
+    def _sort_nodes(self, force_rebuild: bool = False) -> List["ComputationalNode"]:
+        graph = self._computational_graph(force_rebuild=force_rebuild)
         sorted_node_ids = topsort_with_dict(graph)
         sorted_nodes = [
             graph.nodes[key]["data"]
@@ -151,12 +205,12 @@ class ETLStep(Base):
         return [self.extract, *sorted_nodes]
 
     def _sorted_loads(self) -> List[Load]:
-        sorted_nodes = self._sort_graph()
+        sorted_nodes = self._sort_nodes()
         return [node for node in sorted_nodes if isinstance(node, Load)]
 
     def _get_dependency(self) -> Dependency:
         dep_list = [self.additional_dependencies] if self.additional_dependencies else []
-        dep_list.extend([node._get_dependency() for node in self._sort_graph()])
+        dep_list.extend([node._get_dependency() for node in self._sort_nodes()])
         self.dependency = reduce(lambda p, n: p.merge(n), dep_list, Dependency())
         return self.dependency
 
@@ -187,13 +241,7 @@ class ETLStep(Base):
     ):
         from dbgen.core.run import ETLStepRun
 
-        return ETLStepRun(etl_step=self).execute(
-            main_engine,
-            meta_engine,
-            run_id,
-            run_config,
-            ordering,
-        )
+        return ETLStepRun(etl_step=self).execute(main_engine, meta_engine, run_id, run_config, ordering)
 
     def add_node(self, node: 'ComputationalNode') -> None:
         if isinstance(node, Extract):

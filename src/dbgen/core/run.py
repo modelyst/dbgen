@@ -17,7 +17,8 @@ from bdb import BdbQuit
 from datetime import datetime, timedelta
 from math import ceil
 from time import time
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from traceback import format_exc
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 from uuid import UUID
 
 from psycopg import connect as pg3_connect
@@ -25,10 +26,11 @@ from pydantic.fields import Field, PrivateAttr
 from pydasher import hasher
 from sqlalchemy.future import Engine
 from sqlmodel import Session, select
-from tqdm import tqdm
 
 import dbgen.exceptions as exceptions
+from dbgen.configuration import config
 from dbgen.core.base import Base, encoders
+from dbgen.core.dashboard import BarNames, Dashboard
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import (
     ETLStepEntity,
@@ -41,15 +43,10 @@ from dbgen.core.metadata import (
 )
 from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
-from dbgen.core.node.query import BaseQuery
-from dbgen.exceptions import (
-    DBgenExternalError,
-    DBgenSkipException,
-    RepeatException,
-    SerializationError,
-    ValidationError,
-)
-from dbgen.utils.log import LogLevel
+from dbgen.core.node.query import BaseQuery, ExternalQuery
+from dbgen.exceptions import SerializationError
+from dbgen.utils.log import LogLevel, console
+from dbgen.utils.typing import NAMESPACE_TYPE
 
 
 class RunConfig(Base):
@@ -58,11 +55,13 @@ class RunConfig(Base):
     retry: bool = False
     include: Set[str] = Field(default_factory=set)
     exclude: Set[str] = Field(default_factory=set)
+    upstream_fail_exclude: Set[str] = Field(default_factory=set)
     start: Optional[str]
     until: Optional[str]
     batch_size: Optional[int]
     progress_bar: bool = True
     skip_row_count: bool = False
+    fail_downstream: bool = True
     skip_on_error: bool = False
     batch_number: int = 10
     log_level: LogLevel = LogLevel.INFO
@@ -129,6 +128,14 @@ class BaseETLStepRun(Base):
 
     _old_repeats: Set[UUID] = PrivateAttr(default_factory=set)
     _new_repeats: Set[UUID] = PrivateAttr(default_factory=set)
+    _run_config: RunConfig = RunConfig()
+    _etl_step: ETLStep
+    _etl_step_run: ETLStepRunEntity
+
+    class Config:
+        """Pydantic COnfig"""
+
+        underscore_attrs_are_private = True
 
     def get_etl_step(self, meta_engine: Engine, *args, **kwargs) -> ETLStep:
         raise NotImplementedError
@@ -140,178 +147,178 @@ class BaseETLStepRun(Base):
         run_id: Optional[int],
         run_config: Optional[RunConfig],
         ordering: Optional[int],
+        dashboard: Optional[Dashboard] = None,
     ):
-
         # Set default values for run_config if none provided
-        if run_config is None:
-            run_config = RunConfig()
+        if run_config:
+            self._run_config = run_config
 
-        etl_step = self.get_etl_step(meta_engine=meta_engine)
+        self._etl_step = self.get_etl_step(meta_engine=meta_engine)
         # Initialize the etl_step_row in the meta database
         meta_session = Session(meta_engine)
-
-        etl_step_run = self._initialize_etl_step_run(
-            etl_step=etl_step, session=meta_session, run_id=run_id, ordering=ordering
+        self._etl_step_run = self._initialize_etl_step_run(
+            etl_step=self._etl_step, session=meta_session, run_id=run_id, ordering=ordering
         )
         # Check if our run config excludes our etl_step
-        if not run_config.should_etl_step_run(etl_step):
-            self._logger.info(f'Excluding etl_step {etl_step.name!r}')
-            etl_step_run.status = Status.excluded
+        if not self._run_config.should_etl_step_run(self._etl_step):
+            self._logger.info(f'Excluding etl_step {self._etl_step.name!r}')
+            self._etl_step_run.status = Status.excluded
+            meta_session.commit()
+            return
+        elif self._etl_step.name in self._run_config.upstream_fail_exclude:
+            self._logger.info(f'Excluding etl_step {self._etl_step.name!r} due to upstream failure')
+            self._etl_step_run.status = Status.upstream_failed
             meta_session.commit()
             return
         # Start the ETLStep
-        self._logger.info(f'Running ETLStep {etl_step.name!r}...')
-        etl_step_run.status = Status.running
+        self._logger.info(f'Running ETLStep {self._etl_step.name!r}...')
+        self._etl_step_run.status = Status.running
         meta_session.commit()
         start = time()
-        # Set the extractor
-        self._logger.debug('Initializing extractor')
-        extractor_connection = main_engine.connect()
-        extract = etl_step.extract
-        if isinstance(extract, BaseQuery):
-            extract.set_extractor(connection=extractor_connection, yield_per=etl_step.batch_size)
-        else:
-            extract.set_extractor()
-        self._logger.debug('Fetching extractor length')
-        if not run_config.skip_row_count:
-            try:
-                row_count = extract.length(connection=extractor_connection)
-            except TypeError:
-                self._logger.error(
-                    f'Extract {extract}\'s length method does not accept the required kwargs, please add **_ kwarg to suppress this error.'
-                )
-                row_count = None
-        else:
-            row_count = None
-
-        etl_step_run.inputs_extracted = row_count
-        meta_session.commit()
-
         self._logger.debug('Fetching repeats')
         # Query the repeats table for input_hashes that match this etl_step's hash
         self._old_repeats = set(
-            meta_session.exec(select(Repeats.input_hash).where(Repeats.etl_step_id == etl_step.uuid)).all()
+            meta_session.exec(
+                select(Repeats.input_hash).where(Repeats.etl_step_id == self._etl_step.uuid)
+            ).all()
         )
-        # The batch_size is set either on the run_config or the etl_step
-        batch_size = run_config.batch_size or etl_step.batch_size
-        if batch_size is None and row_count:
-            batch_size = ceil(row_count / run_config.batch_number)
-        assert batch_size is None or batch_size > 0, f"Invalid batch size batch_size must be >0: {batch_size}"
-        # Open raw connections for fast loading
-        main_raw_connection = pg3_connect(str(main_engine.url))
-        meta_raw_connection = meta_engine.raw_connection()
-        batch_done = lambda x: (x and x % batch_size == 0) if batch_size is not None else False
-        # Start while loop to iterate through the nodes
-        self._logger.info('Looping through extracted rows...')
-        progress_bar = tqdm(
-            total=row_count,
-            position=1,
-            leave=False,
-            unit=" Rows",
-            disable=not run_config.progress_bar,
-        )
-        batch_num = 1
-        total_batches = f" of {str(ceil(row_count / batch_size))}" if row_count and batch_size else ''
-        batch_message = "Batch {}{}: {:10}"
-        progress_bar.set_description(batch_message.format(batch_num, total_batches, 'Transforming'))
+        # Setup the extractor
+        self._logger.debug('Initializing extractor')
+        extractor_connection = main_engine.connect()
+        extract = self._etl_step.extract
         try:
-            while True:
-                row: Dict[str, Mapping[str, Any]] = {}
-                try:
-                    for node in etl_step._sort_graph():
-                        output = node.run(row)
-                        # Extract outputs need to be fed to our repeat checker and need to be checked for stop iterations
-                        if isinstance(node, Extract):
-                            if output is None or batch_done(etl_step_run.inputs_processed):
-                                load_msg = batch_message.format(batch_num, total_batches, 'Loading')
-                                progress_bar.set_description(load_msg)
-                                self._logger.debug(load_msg)
-                                self._load_repeats(meta_raw_connection, etl_step)
-                                rows_inserted, rows_updated = self._load(main_raw_connection, etl_step)
-                                etl_step_run.rows_inserted += rows_inserted
-                                etl_step_run.rows_updated += rows_updated
-                                meta_session.commit()
-                                self._logger.debug('done loading batch.')
-                                self._logger.debug(f'inserted {rows_inserted} rows.')
-                                self._logger.debug(f'updated {rows_updated} rows.')
-                                # Increment batch and move to T-step
-                                batch_num += 1
-                                transform_msg = batch_message.format(batch_num, total_batches, 'Transforming')
-                                progress_bar.set_description(transform_msg)
-                                self._logger.debug(transform_msg)
-                            # if we are out of rows break out of while loop
-                            if output is None:
-                                raise StopIteration
-                            etl_step_run.inputs_processed += 1
-                            is_repeat, input_hash = self._check_repeat(output, etl_step.uuid)
-                            if not run_config.retry and is_repeat:
-                                raise RepeatException()
-                        row[node.hash] = output  # type: ignore
-                    if not is_repeat:
-                        self._new_repeats.add(input_hash)
-                        etl_step_run.unique_inputs += 1
-                    progress_bar.update()
-                # Stop iteration is used to catch the empty extractor
-                except StopIteration:
-                    break
-                # A repeated input from the extract will also cause a row to be skipped
-                except RepeatException:
-                    progress_bar.update()
-                    continue
-                # Any node can raise a skip exception to skip the input before loading
-                except DBgenSkipException as exc:
-                    self._logger.debug(f"Skipped Row: {exc.msg}")
-                    etl_step_run.inputs_skipped += 1
-                    progress_bar.update()
-                # External errors are raised whenever a node fails due to internal logic
-                except (DBgenExternalError, ValidationError) as e:
-                    msg = f"Error when running etl_step {etl_step.name}"
-                    self._logger.error(msg)
-                    self._logger.error(e)
-                    if run_config.skip_on_error:
-                        etl_step_run.inputs_skipped += 1
-                        progress_bar.update()
-                        continue
-                    # self._logger.error(f"\n{e}")
-                    etl_step_run.status = Status.failed
-                    etl_step_run.error = str(e)
-                    run = meta_session.get(RunEntity, run_id)
-                    assert run
-                    run.errors = run.errors + 1 if run.errors else 1
-                    meta_session.commit()
-                    meta_session.close()
-                    return 2
-                except (
-                    Exception,
-                    KeyboardInterrupt,
-                    SystemExit,
-                    BdbQuit,
-                ) as e:
-                    etl_step_run.status = Status.failed
-                    etl_step_run.error = (
-                        f"Uncaught Error encountered during running of etl_step {etl_step.name}: {e!r}"
+            with extract:
+                # Specifically handle Query extracts by passing in the connection to the database to key methods
+                if isinstance(extract, BaseQuery) and not isinstance(extract, ExternalQuery):
+                    extract.set_connection(
+                        connection=extractor_connection, yield_per=self._etl_step.batch_size
                     )
-                    update_run_by_id(run_id, Status.failed, meta_session)
-                    raise
-                # finally:
-                #     progress_bar.update()
-        # Close all connections
-        finally:
-            etl_step_run.runtime = round(time() - start, 3)
-            meta_session.commit()
-            main_raw_connection.close()
-            meta_raw_connection.close()
-            extractor_connection.close()
 
-        etl_step_run.status = Status.completed
-        etl_step_run.runtime = round(time() - start, 3)
-        self._logger.info(
-            f"Finished running etl_step {etl_step.name}({etl_step.uuid}) in {etl_step_run.runtime}(s)."
-        )
-        self._logger.info(f"Loaded approximately {etl_step_run.rows_inserted} rows")
-        meta_session.commit()
-        meta_session.close()
-        return 0
+                self._logger.debug('Fetching extractor length')
+                row_count = extract.length() if not self._run_config.skip_row_count else None
+                # Commit the row count to the metadatabase
+                self._etl_step_run.inputs_extracted = row_count
+                meta_session.commit()
+                # The batch_size is set either on the run_config or the etl_step
+                batch_size = self._run_config.batch_size or self._etl_step.batch_size
+                if batch_size is None and row_count:
+                    batch_size = ceil(row_count / self._run_config.batch_number)
+                elif batch_size is None:
+                    batch_size = config.batch_size
+                # Check for invalid batch sizess
+                if batch_size is not None and batch_size < 0:
+                    raise ValueError(f"Invalid batch size batch_size must be >0: {batch_size}")
+
+                # Open raw connections for fast loading
+                main_raw_connection = pg3_connect(str(main_engine.url))
+                meta_raw_connection = meta_engine.raw_connection()
+                # Start while loop to iterate through the nodes
+                self._logger.debug('Looping through extracted rows...')
+                if dashboard is not None:
+                    dashboard.add_etl_progress_bars(total=row_count)
+                for batch_ind, batch in enumerate(self.batchify(extract, batch_size, dashboard)):
+                    (
+                        _,
+                        rows_to_load,
+                        rows_processed,
+                        inputs_skipped,
+                        exc,
+                    ) = self._etl_step.transform_batch(batch)
+                    # Check if transforms or loads raised an error
+                    if exc:
+                        msg = f"Error when running etl_step {self._etl_step.name}"
+                        self._logger.error(msg)
+                        self._etl_step_run.status = Status.failed
+                        self._etl_step_run.error = exc
+                        run = meta_session.get(RunEntity, run_id)
+                        assert run
+                        run.errors = run.errors + 1 if run.errors else 1
+                        meta_session.commit()
+                        meta_session.close()
+                        return 1
+                    if dashboard is not None:
+                        dashboard.advance_bar(BarNames.TRANSFORMED, advance=len(batch))
+                    rows_inserted, rows_updated = self._load_data(
+                        rows_to_load, connection=main_raw_connection
+                    )
+                    if dashboard is not None:
+                        dashboard.advance_bar(BarNames.LOADED, advance=rows_processed)
+                    self._load_repeats(meta_raw_connection)
+                    self._logger.debug(
+                        f'Done loading batch {batch_ind}. Inserted {rows_inserted} and updated {rows_updated} rows.'
+                    )
+
+                    # Commit changes to db
+                    self._etl_step_run.rows_inserted += rows_inserted
+                    self._etl_step_run.rows_updated += rows_updated
+                    self._etl_step_run.inputs_skipped += inputs_skipped
+                    meta_session.commit()
+
+            # Finish the run and commit to DB
+            self._etl_step_run.status = Status.completed
+            self._etl_step_run.runtime = round(time() - start, 3)
+            self._logger.info(
+                f"Finished running etl_step {self._etl_step.name} in {self._etl_step_run.runtime}(s)."
+            )
+            self._logger.info(f"Loaded approximately {self._etl_step_run.rows_inserted} rows")
+            meta_session.commit()
+            meta_session.close()
+            return 0
+        except (Exception, KeyboardInterrupt, SystemExit, BdbQuit) as exc:
+            # Need to catch User Cancels and cancel the whole run
+            update_run_by_id(run_id, Status.failed, meta_session)
+            if isinstance(exc, (KeyboardInterrupt, BdbQuit)):
+                self._logger.info('Shutting down due to keyboardInterrupt')
+            else:
+                msg = f"Uncaught exception while running etl_step {self._etl_step.name}"
+                self._logger.error(msg)
+            self._etl_step_run.status = Status.failed
+            self._etl_step_run.error = format_exc(limit=1)
+            run = meta_session.get(RunEntity, run_id)
+            assert run
+            run.errors = run.errors + 1 if run.errors else 1
+            meta_session.commit()
+            meta_session.close()
+            raise
+
+    def batchify(
+        self, extract: Extract, batch_size: int, dashboard: Optional[Dashboard]
+    ) -> Generator[List[Tuple[UUID, NAMESPACE_TYPE]], None, None]:
+        # initialize the batch and counts
+        batch: List[Tuple[UUID, NAMESPACE_TYPE]] = []
+        self._etl_step_run.inputs_extracted = 0
+        self._etl_step_run.unique_inputs = 0
+        # Loop the the rows in the extract function
+        for row in extract.extract():
+            # Check the hash of the inputs against the metadatabase
+            processed_row = extract.process_row(row)
+            is_repeat, input_hash = self._check_repeat(processed_row, self._etl_step.uuid)
+
+            # If we are running with --retry redo repeats
+            if self._run_config.retry or not is_repeat:
+                # Store the hash for newly seen rows for later loading
+                self._etl_step_run.inputs_extracted += 1
+                if not is_repeat:
+                    self._etl_step_run.unique_inputs += 1
+                    self._new_repeats.add(input_hash)
+                batch.append((input_hash, {extract.hash: processed_row}))
+            elif dashboard is not None:
+                dashboard.advance_bar(BarNames.EXTRACTED, advance=1)
+
+            # If batch size is reached advance bar and yield
+            if len(batch) == batch_size:
+                if dashboard is not None:
+                    dashboard.advance_bar(BarNames.EXTRACTED, advance=len(batch))
+                yield batch
+                batch = []
+
+        # Load the remaining rows
+        if batch:
+            if dashboard is not None:
+                dashboard.advance_bar(BarNames.EXTRACTED, advance=len(batch))
+            yield batch
+        if dashboard is not None:
+            dashboard.set_total(total=self._etl_step_run.inputs_extracted)
 
     def _initialize_etl_step_run(
         self,
@@ -344,19 +351,21 @@ class BaseETLStepRun(Base):
         session.refresh(etl_step_run)
         return etl_step_run
 
-    def _load(self, connection, etl_step: ETLStep) -> Tuple[int, int]:
+    def _load_data(self, rows_to_load: Dict[str, Dict[UUID, Any]], connection) -> Tuple[int, int]:
         rows_inserted = 0
         rows_updated = 0
-        for load in etl_step._sorted_loads():
+        for load in self._etl_step._sorted_loads():
+            self._logger.debug(f'Loading into {load}')
+            rows = rows_to_load[load.hash]
             if load.insert:
-                rows_inserted += len(load._output)
+                rows_inserted += len(rows)
             else:
-                rows_updated += len(load._output)
-            load.load(connection, etl_step_id=self.uuid)
+                rows_updated += len(rows)
+            load._load_data(data=rows, connection=connection, etl_step_id=self._etl_step.uuid)
         return (rows_inserted, rows_updated)
 
-    def _load_repeats(self, connection, etl_step: ETLStep) -> None:
-        rows = ((etl_step.uuid, input_hash) for input_hash in self._new_repeats)
+    def _load_repeats(self, connection) -> None:
+        rows = ((self._etl_step.uuid, input_hash) for input_hash in self._new_repeats)
         Repeats._quick_load(connection, rows, column_names=["etl_step_id", "input_hash"])
         self._old_repeats = self._old_repeats.union(self._new_repeats)
         self._new_repeats = set()
@@ -453,21 +462,32 @@ class ModelRun(Base):
             self._logger.debug(
                 f"Only running etl_steps: {etl_step_names[start_idx:until_idx]} due to start/until"
             )
-        with tqdm(
-            total=len(sorted_etl_steps),
-            position=0,
-            disable=not run_config.progress_bar,
-            unit=' ETLStep',
-        ) as tq:
+        with Dashboard(console=console, enable=run_config.progress_bar).show(
+            total=len(sorted_etl_steps)
+        ) as dashboard:
             for i, etl_step in enumerate(sorted_etl_steps):
-                tq.set_description(etl_step.name)
+                dashboard.set_etl_name(etl_step.name, i)
                 etl_step_run = self.get_etl_step_run(etl_step)
-                etl_step_run.execute(main_engine, meta_engine, run_id, run_config, ordering=i)
-                tq.update()
+                code = etl_step_run.execute(
+                    main_engine, meta_engine, run_id, run_config, ordering=i, dashboard=dashboard
+                )
+                # If we fail run exclude downstream generators from running
+                if code == 1 and run_config.fail_downstream:
+                    for target in sorted_etl_steps[i + 1 :]:
+                        if target._get_dependency().test(etl_step._get_dependency()):
+                            self._logger.info(
+                                f'Excluding ETLStep {target.name!r} due to failed upstream dependency {etl_step.name!r}'
+                            )
+                            run_config.upstream_fail_exclude.add(target.name)
+                elif code == 2:
+                    break
+                dashboard.advance_bar(BarNames.OVERALL)
+            dashboard.finish()
 
         # Complete run
+        run_status = Status.completed if code != 2 else Status.failed
         with Session(meta_engine) as session:
-            update_run_by_id(run_id, Status.completed, session)
+            update_run_by_id(run_id, run_status, session)
             run = session.get(RunEntity, run_id)
             assert run
             run.runtime = timedelta(seconds=time() - start)
