@@ -21,6 +21,7 @@ from typing import Optional
 import typer
 
 import dbgen.cli.styles as styles
+from dbgen import __version__
 from dbgen.cli.etl_step import etl_step_app
 from dbgen.cli.model import model_app
 from dbgen.cli.new import new_app
@@ -30,25 +31,30 @@ from dbgen.configuration import config, get_connections
 from dbgen.utils.misc import which
 
 app = typer.Typer(no_args_is_help=True)
-app.add_typer(etl_step_app, name='etl-step')
-app.add_typer(run_app, name='run')
-app.add_typer(model_app, name='model')
-app.add_typer(new_app, name='new')
+app.add_typer(
+    etl_step_app, name='etl-step', help="Commands related to running and monitoring single ETLSteps."
+)
+app.add_typer(run_app, name='run', help="Run DBgen models and monitor their status.")
+app.add_typer(model_app, name='model', help="Validate, serialize and export DBgen models.")
+app.add_typer(new_app, name='new', help="Create new DBgen models from templates.")
+
+app.command("version", help="Print the version of dbgen")(lambda: styles.console.print(styles.LOGO_STYLE))
 
 
 @app.command()
-def print_logo():
-    styles.console.print(styles.LOGO_STYLE)
-
-
-app.command("version")(lambda: styles.console.print(styles.LOGO_STYLE))
+def version(short: bool = typer.Option(False, '-s', '--short', help='Only output the semantic version.')):
+    """Print the dbgen version."""
+    if short:
+        styles.console.print(__version__)
+    else:
+        styles.console.print(styles.LOGO_STYLE)
 
 
 @app.command(name="config")
 def get_config(
     config_file: Path = config_option,
     show_password: bool = False,
-    show_defaults: bool = True,
+    show_defaults: bool = False,
     out_pth: Optional[Path] = typer.Option(
         None,
         '--out',

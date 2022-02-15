@@ -53,7 +53,7 @@ def new(
         from dbgen import __version__
 
         bad_typer_print(
-            f"cookiecutter extra not installed, please install with command:\npip install 'modelyst-dbgen[cookiecutter]'=={__version__}"
+            f"cookiecutter extra not installed, please install with command:\npython -m pip install 'modelyst-dbgen\\[cookiecutter]'=={__version__}"
         )
         raise typer.Exit(code=2)
     template_url, directory = complexity_map.get(template, template)

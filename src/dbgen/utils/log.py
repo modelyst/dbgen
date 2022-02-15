@@ -11,19 +11,22 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 import contextlib
 import logging
 from enum import Enum
 from io import StringIO
-from logging import Formatter
+from logging import Formatter, Logger
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Tuple
 
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.traceback import install
 
 install()
-console = Console()
+
+logging_console = Console()
 
 
 class LogLevel(str, Enum):
@@ -33,9 +36,8 @@ class LogLevel(str, Enum):
     ERROR = 'ERROR'
     CRITICAL = 'CRITICAL'
 
-
-def get_log_level(log_level: LogLevel):
-    return getattr(logging, log_level)
+    def get_log_level(self):
+        return getattr(logging, self)
 
 
 def capture_stdout(func):
@@ -52,16 +54,26 @@ def capture_stdout(func):
     return wrapped
 
 
-def setup_logger(level: LogLevel = LogLevel.DEBUG, log_to_stdout=True):
+def setup_logger(level: LogLevel = LogLevel.DEBUG, log_to_stdout=True) -> Tuple[Logger, RichHandler]:
     custom_logger = logging.getLogger("dbgen")
     custom_logger.propagate = True
-    custom_logger.setLevel(get_log_level(level))
-    return custom_logger
+    custom_logger.setLevel(level.get_log_level())
+    rich_handler = add_stdout_logger(custom_logger, LogLevel.WARNING)
+    return custom_logger, rich_handler
 
 
-def add_stdout_logger(logger, stdout_level: LogLevel = LogLevel.DEBUG):
-    level_val = get_log_level(stdout_level)
-    rich_handler = RichHandler(level=level_val, markup=True, console=console)
+def add_stdout_logger(logger, stdout_level: LogLevel = LogLevel.DEBUG) -> RichHandler:
+    rich_handler = RichHandler(level=stdout_level.get_log_level(), markup=True, console=logging_console)
     log_format = r"[magenta]\[%(name)s][/magenta] - %(message)s"
     rich_handler.setFormatter(Formatter(log_format))
     logger.addHandler(rich_handler)
+    return rich_handler
+
+
+def add_file_handler(logger: Logger, level: LogLevel = LogLevel.DEBUG, file_name: Path = None):
+    file_handler = RotatingFileHandler(str(file_name))
+    log_format = "[%(asctime)s] - %(name)s - %(levelname)s - %(message)s"
+    file_handler.setFormatter(Formatter(log_format))
+    file_handler.setLevel(level.get_log_level())
+    logger.addHandler(file_handler)
+    return file_handler

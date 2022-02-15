@@ -45,7 +45,7 @@ from dbgen.core.model import Model
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import BaseQuery, ExternalQuery
 from dbgen.exceptions import SerializationError
-from dbgen.utils.log import LogLevel, console
+from dbgen.utils.log import LogLevel, logging_console
 from dbgen.utils.typing import NAMESPACE_TYPE
 
 
@@ -462,7 +462,7 @@ class ModelRun(Base):
             self._logger.debug(
                 f"Only running etl_steps: {etl_step_names[start_idx:until_idx]} due to start/until"
             )
-        with Dashboard(console=console, enable=run_config.progress_bar).show(
+        with Dashboard(console=logging_console, enable=run_config.progress_bar).show(
             total=len(sorted_etl_steps)
         ) as dashboard:
             for i, etl_step in enumerate(sorted_etl_steps):

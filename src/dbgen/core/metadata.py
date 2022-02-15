@@ -16,7 +16,6 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-import sqlalchemy.types as sa_types
 from sqlalchemy import Column, func
 from sqlalchemy.orm import registry
 from sqlalchemy.sql.expression import text
@@ -82,7 +81,7 @@ class ETLStepEntity(Root, registry=meta_registry, table=True):
 class RunEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "run"
     id: Optional[int] = Field(None, sa_column_kwargs={"autoincrement": True, "primary_key": True})
-    status: Optional[Status] = Field(None, sa_column=Column('status', sa_types.Enum(Status)))
+    status: Optional[Status]
     nuke: Optional[bool]
     only: Optional[str]
     exclude: Optional[str]

@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
 from contextlib import contextmanager
 from enum import Enum
 from functools import partial
@@ -20,7 +19,6 @@ from typing import Callable, Dict
 
 from rich.console import Console
 from rich.live import Live
-from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.progress import (
     BarColumn,
@@ -31,11 +29,6 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 from rich.table import Table
-
-logger = logging.getLogger(__name__)
-console = Console()
-logger.addHandler(RichHandler(console=console))
-logger.setLevel(logging.INFO)
 
 
 class BarNames(str, Enum):

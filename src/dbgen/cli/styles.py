@@ -37,7 +37,7 @@ VERSION = f"""VERSION: {__version__}"""
 
 
 def delimiter(color: str = THEME_COLOR):
-    typer.echo(typer.style("---------------------------------------------", fg=color, bold=True))
+    console.rule(style=color)
 
 
 LOGO_STYLE = Panel.fit(

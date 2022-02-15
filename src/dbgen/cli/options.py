@@ -22,6 +22,7 @@ version_option = Option(None, "--version", callback=version_callback, is_eager=T
 config_option = Option(
     '.env', "--config", "-c", callback=config_callback, help="Configuration file.", envvar='DBGEN_CONFIG'
 )
+log_file_option = Option(None, "--log-file", help="File to write logs to")
 verbose_option = lambda v=True: Option(
     v, "--verbose", "-v", callback=set_verbosity, help="Increases the verbosity of printed messages"
 )

@@ -21,10 +21,10 @@ from uuid import UUID
 import typer
 from sqlmodel import Session, func, select
 
-from dbgen.configuration import get_engines, root_logger
+from dbgen.configuration import get_engines, stdout_handler
 from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
 from dbgen.core.run import RemoteETLStepRun, RunConfig
-from dbgen.utils.log import LogLevel, add_stdout_logger
+from dbgen.utils.log import LogLevel
 
 if TYPE_CHECKING:
     from sqlalchemy.future import Engine  # pragma: no cover
@@ -100,7 +100,7 @@ def run_etl_step(
         batch_size=batch,
         log_level=level,
     )
-    add_stdout_logger(root_logger, stdout_level=level)
+    stdout_handler.setLevel(level.get_log_level())
     # Validate that the etl_step id provided is in the ETLStepEntity Table for remote running
     etl_steps = {
         etl_step_id: etl_step_name

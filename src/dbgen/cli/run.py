@@ -26,13 +26,19 @@ from sqlmodel import Session, select
 
 import dbgen.cli.styles as styles
 import dbgen.exceptions as exceptions
-from dbgen.cli.options import chdir_option, config_option, model_string_option, version_option
+from dbgen.cli.options import (
+    chdir_option,
+    config_option,
+    log_file_option,
+    model_string_option,
+    version_option,
+)
 from dbgen.cli.queries import get_runs
 from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
-from dbgen.configuration import config, get_connections, root_logger
+from dbgen.configuration import config, get_connections, root_logger, stdout_handler
 from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity, Status
 from dbgen.core.run import RunConfig
-from dbgen.utils.log import LogLevel, add_stdout_logger
+from dbgen.utils.log import LogLevel, add_file_handler
 
 run_app = typer.Typer(name='run')
 logger = getLogger(__name__)
@@ -48,7 +54,9 @@ def status(
     statuses: List[str] = typer.Option(
         [], '-s', '--status', help='Filter out only statuses that match input val'
     ),
+    _config_file: Path = config_option,
 ):
+    """Print a table summarizing DBgen Model runs."""
     column_dict = {'error': Column('Error'), 'status': Column('Status', style='green')}
     _, meta_conn = get_connections()
     test_connection(meta_conn)
@@ -103,6 +111,11 @@ def run_model(
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
     start: Optional[str] = typer.Option(None, help="ETLStep to start run at"),
     until: Optional[str] = typer.Option(None, help="ETLStep to finish run at."),
+    nuke: bool = typer.Option(
+        None,
+        help="Delete the entire db and meta schema.",
+        callback=confirm_nuke,
+    ),
     level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteETLStep Runner'),
     bar: bool = typer.Option(True, help="Show progress bar"),
     skip_row_count: bool = typer.Option(False, help="Show progress bar"),
@@ -110,8 +123,12 @@ def run_model(
     batch: Optional[int] = typer.Option(None, help="Batch size for all etl_steps in run."),
     batch_number: int = typer.Option(10, help="Default number of batches per etl_step."),
     pdb: bool = typer.Option(False, '--pdb', help="Drop into pdb on breakpoints"),
-    config_file: Path = config_option,
+    log_file: Path = log_file_option,
+    log_file_level: LogLevel = typer.Option(
+        None, help="Log Level to write to the --log-file if set. (Defaults to --level if not set)"
+    ),
     remote: bool = typer.Option(True, help='Use the RemoteETLStep Runner'),
+    config_file: Path = config_option,
     no_conf: bool = typer.Option(
         False,
         "--no-confirm",
@@ -122,11 +139,6 @@ def run_model(
     rerun_failed: bool = typer.Option(
         False,
         help="Only rerun the etl_steps that failed or were excluded in the previous run.",
-    ),
-    nuke: bool = typer.Option(
-        None,
-        help="Delete the entire db and meta schema.",
-        callback=confirm_nuke,
     ),
     version: bool = version_option,
     _chdir: Path = chdir_option,
@@ -144,6 +156,7 @@ def run_model(
     styles.delimiter(styles.typer.colors.GREEN)
     styles.good_typer_print(f"Running model {model.name}...")
     styles.delimiter(styles.typer.colors.GREEN)
+    # Initialize the run Configuration
     run_config = RunConfig(
         retry=retry,
         start=start,
@@ -157,7 +170,13 @@ def run_model(
         batch_size=batch,
         batch_number=batch_number,
     )
-    add_stdout_logger(root_logger, stdout_level=run_config.log_level)
+    # Set the stdout logger to the --level value
+    stdout_handler.setLevel(run_config.log_level.get_log_level())
+    # If --log-file is add a file handler to the logger
+    if log_file:
+        # Default to --level if --log-file-level is not set
+        log_file_level = log_file_level or run_config.log_level
+        add_file_handler(root_logger, log_file_level, log_file)
     # Validate the run configuration parameters
     invalid_run_config_vals = run_config.get_invalid_markers(model)
     if invalid_run_config_vals:
