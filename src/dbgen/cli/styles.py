@@ -47,7 +47,7 @@ LOGO_STYLE = Panel.fit(
 
 
 # Easy printers
-typer_print = lambda color: lambda msg: console.print(msg, style=color)
+typer_print = lambda color=None: lambda msg: console.print(msg, style=color)
 good_typer_print = typer_print('green')
 bad_typer_print = typer_print('red')
 theme_typer_print = typer_print('theme')

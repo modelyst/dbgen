@@ -117,9 +117,11 @@ class EntityMetaclass(SQLModelMetaclass, BaseMeta):
             new_attrs[value] = starting.union(inherit_field(bases, value))
 
         if kwargs.get('all_identifying', False):
-            assert (
-                "__identifying__" not in attrs
-            ), f"Error with Entity {name}. Can't supply both all_identifying kwarg and __identifying__ attr"
+            if "__identifying__" in attrs:
+                raise ValueError(
+                    f"Error with Entity {name!r}. Can't supply both 'all_identifying' kwarg and '__identifying__' attribute to an Entity. "
+                    "Please remove one of them."
+                )
             new_attrs['__identifying__'] = new_attrs['__identifying__'].union(
                 {key for key in attrs.get('__annotations__', {})}
             )

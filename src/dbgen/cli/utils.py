@@ -20,8 +20,9 @@ from types import FunctionType
 from typing import TYPE_CHECKING, Dict, Union
 
 import typer
+from rich.traceback import Traceback
 
-from dbgen.cli.styles import LOGO_STYLE, bad_typer_print
+from dbgen.cli.styles import LOGO_STYLE, bad_typer_print, typer_print
 from dbgen.configuration import update_config
 from dbgen.core.model import Model
 
@@ -153,6 +154,10 @@ def validate_model_str(model_str: str) -> Model:
         if isinstance(exc, AttributeError):
             raise basic_error(ERROR_ATTR, [module, package, str(exc)]) from exc
         raise basic_error(ERROR_PACKAGE, [module, package, str(exc)]) from exc
+    except Exception:
+        bad_typer_print(f"Error loading model at location '{module}.{package}'...")
+        typer_print()(Traceback())
+        raise typer.Exit(code=1)
 
 
 CONNECT_ERROR = "Cannot connect to database({name!r}) with connection string {url}. You can test your connection with dbgen connect --test"

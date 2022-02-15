@@ -154,7 +154,7 @@ def run_model(
     # validate the model_str
     model = validate_model_str(model_str)
     styles.delimiter(styles.typer.colors.GREEN)
-    styles.good_typer_print(f"Running model {model.name}...")
+    styles.good_typer_print(f"Running model [theme]{model.name!r}[/theme]...")
     styles.delimiter(styles.typer.colors.GREEN)
     # Initialize the run Configuration
     run_config = RunConfig(

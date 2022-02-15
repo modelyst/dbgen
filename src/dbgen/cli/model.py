@@ -33,7 +33,7 @@ from dbgen.cli.options import (
     verbose_option,
 )
 from dbgen.cli.utils import state, test_connection, validate_model_str
-from dbgen.configuration import get_connections, update_config
+from dbgen.configuration import config, get_connections
 from dbgen.core.metadata import ModelEntity
 
 model_app = typer.Typer(name='model', no_args_is_help=True)
@@ -154,10 +154,8 @@ def validate(
 ):
     """Quick utility method for quickly validating a model will compile without any need for database connections."""
     # Start connection from config
-    config = update_config(config_file)
     # Use config model_str if none is provided
-    if model_str is None:
-        model_str = config.model_str
+    model_str = model_str or config.model_str
     model = validate_model_str(model_str)
     styles.good_typer_print(f"Model(name={model.name!r}) was successfully validated")
     styles.good_typer_print(
