@@ -21,7 +21,10 @@ Install PostgreSQL and DBgen.
 
 ```Console
 $ brew install postgres
-$ pip install modelyst-dbgen
+$ brew services start postgres
+$ python -m venv .venv
+$ source .venv/bin/activate
+$ python -m pip install modelyst-dbgen
 $ dbgen config -o .env
 ```
 

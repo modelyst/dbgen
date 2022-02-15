@@ -120,11 +120,12 @@ curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poet
 poetry install
 poetry shell
 # Test dbgen
-dbgen serialize dbgen.example.main:make_model
+dbgen verson
+dbgen model validate --model tests.example.full_model:make_model
 ```
 ### Via Pip
 ```Bash
-pip install modelyst-dbgen
+python -m pip install modelyst-dbgen
 ```
 
 ### API documentation
