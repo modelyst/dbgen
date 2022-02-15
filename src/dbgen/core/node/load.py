@@ -144,7 +144,7 @@ class LoadEntity(Base):
                     ErrorWrapper(
                         TypeError(
                             "Strict validation found an error:\n"
-                            f"{key!r} on Enitity {self.name!r} has column type of {type_str!r} which expects a python type of {expected_type!r}, but provided value was type {type(val)}"
+                            f"{key!r} on Entity {self.name!r} has column type of {type_str!r} which expects a python type of {expected_type!r}, but provided value was type {type(val)}"
                         ),
                         loc=key,
                     )

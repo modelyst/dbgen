@@ -1,4 +1,4 @@
-"""Enities within the Database"""
+"""Entities within the Database"""
 from dbgen import Entity
 
 

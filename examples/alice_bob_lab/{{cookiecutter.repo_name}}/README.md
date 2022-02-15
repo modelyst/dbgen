@@ -18,4 +18,4 @@ The two most important variables are DBGEN_MAIN_DSN and DBGEN_MAIN_PASSWORD. If 
 
 The password to the database is usually set using an environmental variable to avoid storing passwords in plain text. Some local installations of postgresql do not require passwords for users. If this is the case, you may leave this env variable null.
 
-To test the connection, please run the command `dbgen connect --test`. If succesfully configured, a green success message should  be printed to the screen.
+To test the connection, please run the command `dbgen connect --test`. If successfully configured, a green success message should  be printed to the screen.

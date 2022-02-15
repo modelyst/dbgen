@@ -134,7 +134,7 @@ You will get an error like this if the number of the number of variables returne
 
 You will also see this error if you do not set a value for `outputs` at all in your `@transform` definition, and your function returns multiple outputs. If you do not specify any output names, then DBgen assumes that the transform has only one output and gives it the name `"out"`.
 
-In either case, the solution to this problem is to define a list of output names in `@transfom(outputs=[...])` that is the same length as the number of outputs that your function returns.
+In either case, the solution to this problem is to define a list of output names in `@transform(outputs=[...])` that is the same length as the number of outputs that your function returns.
 
 ### Missing Identifying Information
 

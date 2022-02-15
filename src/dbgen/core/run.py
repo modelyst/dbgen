@@ -104,7 +104,7 @@ def update_run_by_id(run_id, status: Status, session: Session):
 
 
 class RunInitializer(Base):
-    """Intializes a run by syncing the database and getting the run_id."""
+    """Initializes a run by syncing the database and getting the run_id."""
 
     def execute(self, engine: Engine, run_config: RunConfig) -> int:
         # Use some metadatabase connection to initialize initialize the run
@@ -124,7 +124,7 @@ class RunInitializer(Base):
 
 
 class BaseETLStepRun(Base):
-    """A lightwieght wrapper for the ETLStep that grabs a specific ETLStep from metadatabase and runs it."""
+    """A lightweight wrapper for the ETLStep that grabs a specific ETLStep from metadatabase and runs it."""
 
     _old_repeats: Set[UUID] = PrivateAttr(default_factory=set)
     _new_repeats: Set[UUID] = PrivateAttr(default_factory=set)

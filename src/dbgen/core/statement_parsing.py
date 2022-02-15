@@ -131,7 +131,7 @@ def get_from_dependency(from_statement: Union[_ORMJoin, ColumnElement, ClauseLis
 def get_statement_dependency(
     select_stmt: _Select,
 ) -> Tuple[Set, Set, Set]:
-    """Parses a sqlalchemy select statment to get its dependencies.
+    """Parses a sqlalchemy select statement to get its dependencies.
 
     Parses the select, where, order_by, and group by clause for all properties, tables, and foreign keys
     required to run the query.
@@ -140,7 +140,7 @@ def get_statement_dependency(
         select_stmt (_Select): A SQL alchemy select statement
 
     Returns:
-        Tuple[Set[str],Set[str],Set[str]]: 3 sets of the column, table, and fk depencies
+        Tuple[Set[str],Set[str],Set[str]]: 3 sets of the column, table, and fk dependencies
     """
     # Parse the select clause
     select_cols, select_tabs, select_fks = get_select_dependency(select_stmt)
@@ -214,7 +214,7 @@ def _parse_column(column: Any) -> Tuple[str, Optional[str]]:
                 raise QueryParsingError(f"Unknown column name: {column}")
         elif isinstance(column, (Function, BinaryExpression)):
             raise QueryParsingError(
-                "SQLAlchemy Functions need to be labeld due to the imprecise naming of function columns in sqlalchemy.\n"
+                "SQLAlchemy Functions need to be labelled due to the imprecise naming of function columns in sqlalchemy.\n"
                 f"Try something like \"{getattr(column,'name','COLUMN_NAME')}(YOUR_COLUMN).label('my_column_name')\""
             )
     except QueryParsingError:

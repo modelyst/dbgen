@@ -27,7 +27,7 @@ from tests.strategies import pyblock_strat
 @given(pyblock_strat)
 def test_pyblock_strat(instance: PythonTransform):
     assert isinstance(instance, PythonTransform)
-    assert instance.function.nOut
+    assert instance.function.number_of_outputs
 
 
 def test_const():

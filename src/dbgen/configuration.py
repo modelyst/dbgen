@@ -76,7 +76,7 @@ class DBgenConfiguration(BaseSettings):
     def validate_batch_size(cls, batch_size) -> Path:
         if batch_size > 1:
             return batch_size
-        raise ValueError(f'batch_size must be a postive integer: {batch_size}')
+        raise ValueError(f'batch_size must be a positive integer: {batch_size}')
 
     def display(self, show_defaults: bool = False, show_passwords: bool = False):
         params = []

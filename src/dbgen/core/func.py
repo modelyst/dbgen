@@ -110,8 +110,8 @@ class Import(Base):
             alias = f"as {self.lib_alias}" if self.lib_alias else ""
             return f"import {self.lib} {alias}"
         else:
-            als = [f"{k} as {v}" for k, v in self.aliased_imports.items()]
-            terms = list(self.unaliased_imports) + als
+            aliased_imports = [f"{k} as {v}" for k, v in self.aliased_imports.items()]
+            terms = list(self.unaliased_imports) + aliased_imports
             return f"from {self.lib} import {', '.join(terms)}"
 
     def __lt__(self, other: Any) -> bool:
@@ -232,7 +232,7 @@ class Func(Base, Generic[FuncOut]):
         return list(self.sig.parameters)
 
     @property
-    def nIn(self) -> int:
+    def number_of_inputs(self) -> int:
         return len(self.argnames)
 
     @property
@@ -248,7 +248,7 @@ class Func(Base, Generic[FuncOut]):
         return self.sig.return_annotation
 
     @property
-    def nOut(self) -> int:
+    def number_of_outputs(self) -> int:
         return 1
 
     # @property
@@ -260,15 +260,6 @@ class Func(Base, Generic[FuncOut]):
     @property
     def path(self) -> Path:
         return config.temp_dir / f"{self.hash}.py"
-
-    # @property
-    # def outTypes(self) -> List["DataType"]:
-    #     ot = DataType.get_datatype(self.output)
-    #     if len(ot) == 1:
-    #         return [ot]
-    #     else:
-    #         assert isinstance(ot, Tuple)
-    #         return ot.args
 
     def file(self) -> str:
         lam = "f = " if self.is_lam else ""
