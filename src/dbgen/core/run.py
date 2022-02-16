@@ -61,7 +61,8 @@ class RunConfig(Base):
     batch_size: Optional[int]
     progress_bar: bool = True
     skip_row_count: bool = False
-    fail_downstream: bool = True
+    fail_downstream: bool = False
+    fast_fail: bool = False
     skip_on_error: bool = False
     batch_number: int = 10
     log_level: LogLevel = LogLevel.INFO
@@ -223,7 +224,7 @@ class BaseETLStepRun(Base):
                         rows_processed,
                         inputs_skipped,
                         exc,
-                    ) = self._etl_step.transform_batch(batch)
+                    ) = self._etl_step.transform_batch(batch, self._run_config)
                     # Check if transforms or loads raised an error
                     if exc:
                         msg = f"Error when running etl_step {self._etl_step.name}"
@@ -472,9 +473,15 @@ class ModelRun(Base):
                     main_engine, meta_engine, run_id, run_config, ordering=i, dashboard=dashboard
                 )
                 # If we fail run exclude downstream generators from running
-                if code == 1 and run_config.fail_downstream:
+                if code == 1 and (run_config.fail_downstream or run_config.fast_fail):
+                    if run_config.fast_fail:
+                        self._logger.info(
+                            f'Excluding all downstream ETLSteps due to the failure of {etl_step.name!r}'
+                        )
                     for target in sorted_etl_steps[i + 1 :]:
-                        if target._get_dependency().test(etl_step._get_dependency()):
+                        if run_config.fast_fail:
+                            run_config.upstream_fail_exclude.add(target.name)
+                        elif target._get_dependency().test(etl_step._get_dependency()):
                             self._logger.info(
                                 f'Excluding ETLStep {target.name!r} due to failed upstream dependency {etl_step.name!r}'
                             )

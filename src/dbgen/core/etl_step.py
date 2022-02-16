@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+import logging
 import re
 import traceback
 from bdb import BdbQuit
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
     from networkx import DiGraph  # pragma: no cover
 
     from dbgen.core.node.computational_node import ComputationalNode  # pragma: no cover
+    from dbgen.core.run import RunConfig  # pragma: no cover
 
 list_field = Field(default_factory=lambda: [])
 
@@ -119,7 +121,7 @@ class ETLStep(Base):
         self._sort_graph()
         del self._context
 
-    def transform_batch(self, batch: List[Tuple[UUID, Dict[str, Dict[str, Any]]]]):
+    def transform_batch(self, batch: List[Tuple[UUID, Dict[str, Dict[str, Any]]]], run_config: 'RunConfig'):
         """Transform a batch of extracted namespaces."""
         # initialize the master dict for the rows that will need to be loaded after
         rows_to_load: Dict[str, Dict[UUID, dict]] = {node.hash: {} for node in self.loads}
@@ -135,6 +137,11 @@ class ETLStep(Base):
             except (KeyboardInterrupt, SystemExit, BdbQuit):
                 raise
             except BaseException:
+                if run_config.skip_on_error:
+                    inputs_skipped += 1
+                    if self._logger.isEnabledFor(logging.DEBUG):
+                        self._logger.debug(f'Skipped row due to error')
+                    continue
                 return None, None, None, inputs_skipped, traceback.format_exc()
         return processed_hashes, rows_to_load, len(batch), inputs_skipped, None
 

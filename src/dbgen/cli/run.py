@@ -91,7 +91,17 @@ def status(
         elif key == 'memory_usage':
             return f"{col:3.1f} MB" if col else ''
         elif key == 'runtime':
-            return f"{col} (s)" if col else 'N/A'
+            if not col:
+                return 'N/A'
+            hours = int(col / 3600)
+            minutes = int((col % 3600) / 60)
+            seconds = col % 3600 % 60
+            output = ''
+            output += f"[blue]{hours:01.0f}[/blue]:"
+            output += f"[magenta]{minutes:02.0f}[/magenta]:"
+            output += f"[white]{seconds:1.3f}[/white]"
+
+            return output
         return str(col)
 
     for row in get_runs(run_id, meta_engine, all_runs, statuses, last):
@@ -120,6 +130,12 @@ def run_model(
     bar: bool = typer.Option(True, help="Show progress bar"),
     skip_row_count: bool = typer.Option(False, help="Show progress bar"),
     skip_on_error: bool = typer.Option(False, help="Skip a row in etl_step on error"),
+    fast_fail: bool = typer.Option(
+        False, '--fast-fail', help="Exclude all downstream ETLSteps once one has failed."
+    ),
+    fail_downstream: bool = typer.Option(
+        False, '--fail-downstream', help="Exclude all dependent ETLSteps once an ETLStep fails"
+    ),
     batch: Optional[int] = typer.Option(None, help="Batch size for all etl_steps in run."),
     batch_number: int = typer.Option(10, help="Default number of batches per etl_step."),
     pdb: bool = typer.Option(False, '--pdb', help="Drop into pdb on breakpoints"),
@@ -166,6 +182,8 @@ def run_model(
         progress_bar=bar,
         log_level=level,
         skip_row_count=skip_row_count,
+        fast_fail=fast_fail,
+        fail_downstream=fail_downstream,
         skip_on_error=skip_on_error,
         batch_size=batch,
         batch_number=batch_number,
@@ -204,6 +222,9 @@ def run_model(
         raise typer.BadParameter(
             f"A etl_step in your model could not be deserialized. Did you use a custom extractor?"
         ) from exc
+    except exceptions.DBgenException as exc:
+        logger.exception(exc)
+        raise typer.Exit(code=1)
 
     # Once run is done talk to the meta database to report to the user how the run went
     with Session(meta_engine) as session:
