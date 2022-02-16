@@ -29,7 +29,6 @@ from sqlmodel import Session, select
 
 import dbgen.exceptions as exceptions
 from dbgen.configuration import config
-from dbgen.core.async_run import RemoteAsyncETLStepRun
 from dbgen.core.base import Base, encoders
 from dbgen.core.dashboard import BarNames, Dashboard
 from dbgen.core.etl_step import ETLStep
@@ -507,8 +506,3 @@ class ModelRun(Base):
 class RemoteModelRun(ModelRun):
     def get_etl_step_run(self, etl_step):
         return RemoteETLStepRun(etl_step_id=etl_step.uuid)
-
-
-class RemoteAsyncModelRun(ModelRun):
-    def get_etl_step_run(self, etl_step):
-        return RemoteAsyncETLStepRun(etl_step_id=etl_step.uuid)
