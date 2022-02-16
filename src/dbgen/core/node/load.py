@@ -35,6 +35,7 @@ from uuid import UUID
 import psycopg2
 from psycopg import Connection as PG3Conn
 from psycopg2._psycopg import connection
+from psycopg.errors import UndefinedColumn
 from pydantic import Field, PrivateAttr
 from pydantic import ValidationError as PydValidationError
 from pydantic import root_validator, validate_model, validator
@@ -48,11 +49,16 @@ from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.core.type_registry import column_registry
-from dbgen.exceptions import ValidationError
+from dbgen.exceptions import DatabaseError, ValidationError
 from dbgen.utils.lists import broadcast, is_broadcastable
 
 if TYPE_CHECKING:
     from dbgen.core.entity import BaseEntity  # pragma: no cover
+
+
+# Error messages
+MISSING_COLUMN_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This commonly occurs when a column is added to an entity without being effectively synced with the database. An easy fix is to rerun the model with --nuke, if this is not possible you can manually add the column. If this column "
+MISSING_ID_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This can occur when the entities in the model comes out of sync with the database. Since {column} is an identifying column of {name!r} the id hashes for the rows in the table will change when adding this column therefore you must rebuild the database with --nuke."
 
 
 def hash_tuple(tuple_to_hash: Tuple[Any, ...]) -> UUID:
@@ -492,12 +498,28 @@ class Load(ComputationalNode[T]):
         load_statement = template.render(**template_args)
         with connection.cursor() as cur:
             self._logger.debug("load into temporary table")
-            with cur.copy(f'COPY  {temp_table_name} ({col_str}) FROM STDIN') as copy:
-                oids = self._get_types()
-                copy.set_types(oids)
-                for pk_curr, row_curr in data.items():
-                    copy.write_row((pk_curr, *row_curr))
+            try:
+                with cur.copy(f'COPY  {temp_table_name} ({col_str}) FROM STDIN') as copy:
+                    oids = self._get_types()
+                    copy.set_types(oids)
+                    for pk_curr, row_curr in data.items():
+                        copy.write_row((pk_curr, *row_curr))
+            except UndefinedColumn as exc:
+                # Try to match the column name to give helpful error messages
+                match = re.match('column \"(\\w+)\"', str(exc))
+                if match:
+                    (column,) = match.groups()
+                    column_str = f'the column {column!r}'
+                else:
+                    column_str = 'a column'
 
+                if column in self.load_entity.identifiers:
+                    raise DatabaseError(
+                        MISSING_ID_ERROR.format(name=self.load_entity.name, column=column_str)
+                    )
+                raise DatabaseError(
+                    MISSING_COLUMN_ERROR.format(name=self.load_entity.name, column=column_str)
+                ) from exc
             # Try to insert everything from the temp table into the real table
             # If a foreign_key violation is hit, we delete those rows in the
             # temp table and move on
