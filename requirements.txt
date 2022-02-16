@@ -177,9 +177,9 @@ markupsafe==2.0.1 ; python_version >= "3.6" and python_full_version < "3.0.0" or
     --hash=sha256:10f82115e21dc0dfec9ab5c0223652f7197feb168c940f3ef61563fc2d6beb74 \
     --hash=sha256:693ce3f9e70a6cf7d2fb9e6c9d8b204b6b39897a2c4a1aa65728d5ac97dcc1d8 \
     --hash=sha256:594c67807fb16238b30c44bdf74f36c02cdf22d1c8cda91ef8a0ed8dabf5620a
-modelyst-sqlmodel==0.0.7 ; python_full_version >= "3.6.1" and python_full_version < "4.0.0" \
-    --hash=sha256:342d0b6aaf1ab68d86a5d5789b694f069adc56ff4073b319e70490d56d8b2480 \
-    --hash=sha256:af79e91f0d39f9a5a93ec33282947393cab13c0e27df18915075f7c196081448
+modelyst-sqlmodel==0.0.8 ; python_full_version >= "3.6.1" and python_full_version < "4.0.0" \
+    --hash=sha256:3b587841dd457bc654955a117ac17d9b220b46c5bf79d5ff6239efcf1f14123c \
+    --hash=sha256:c7ad76adebd75689b2fd35cc3690e4c9b0372dcdbf2cfb97ccc7cb21e8f7f8bc
 networkx==2.6.3 ; python_version >= "3.7" \
     --hash=sha256:80b6b89c77d1dfb64a4c7854981b60aeea6360ac02c6d4e4913319e0a313abef \
     --hash=sha256:c0946ed31d71f1b732b5aaa6da5a0388a345019af232ce2f49c766e2d6795c51

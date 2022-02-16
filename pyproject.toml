@@ -36,7 +36,7 @@ Jinja2 = "^3.0.1"
 SQLAlchemy = "^1.4.25"
 boto3 = {version = "^1.21.0", optional = true}
 cookiecutter = {version = "^1.7.3"}
-modelyst-sqlmodel = "^0.0.7"
+modelyst-sqlmodel = "^0.0.8"
 networkx = "^2.6.3"
 psutil = "^5.9.0"
 psycopg = "^3.0.1"

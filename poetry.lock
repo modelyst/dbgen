@@ -4,7 +4,7 @@ boto3 = ["boto3"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "bdf113f0d9f7022c328c40fde71807069a15e1c637c83b2af856007805044e8c"
+content-hash = "6eb70931cd93436e46b13c3224644870071b4fcca62ab227db04bd4c6cf43649"
 
 [metadata.files]
 arrow = [
@@ -398,8 +398,8 @@ mkdocstrings = [
     {file = "mkdocstrings-0.16.2.tar.gz", hash = "sha256:3d8a86c283dfa21818d5b9579aa4e750eea6b5c127b43ad8b00cebbfb7f9634e"},
 ]
 modelyst-sqlmodel = [
-    {file = "modelyst-sqlmodel-0.0.7.tar.gz", hash = "sha256:342d0b6aaf1ab68d86a5d5789b694f069adc56ff4073b319e70490d56d8b2480"},
-    {file = "modelyst_sqlmodel-0.0.7-py3-none-any.whl", hash = "sha256:af79e91f0d39f9a5a93ec33282947393cab13c0e27df18915075f7c196081448"},
+    {file = "modelyst-sqlmodel-0.0.8.tar.gz", hash = "sha256:3b587841dd457bc654955a117ac17d9b220b46c5bf79d5ff6239efcf1f14123c"},
+    {file = "modelyst_sqlmodel-0.0.8-py3-none-any.whl", hash = "sha256:c7ad76adebd75689b2fd35cc3690e4c9b0372dcdbf2cfb97ccc7cb21e8f7f8bc"},
 ]
 mypy = [
     {file = "mypy-0.920-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:41f3575b20714171c832d8f6c7aaaa0d499c9a2d1b8adaaf837b4c9065c38540"},
@@ -1483,7 +1483,7 @@ pytkdocs = ">=0.2.0,<0.13.0"
 
 [[package]]
 name = "modelyst-sqlmodel"
-version = "0.0.7"
+version = "0.0.8"
 description = "SQLModel, SQL databases in Python, designed for simplicity, compatibility, and robustness."
 category = "main"
 optional = false
