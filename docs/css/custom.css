@@ -9,6 +9,10 @@
   --md-primary-fg-color--dark: #285977;
 }
 
+/* Increase center width for docs page */
+.md-grid {
+  max-width: 75rem
+}
 a.external-link::after {
   /* \00A0 is a non-breaking space
         to make the mark be on the same line as the link

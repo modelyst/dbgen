@@ -21,7 +21,7 @@ This page walks through the simplest possible DBgen model. We'll start by showin
 Create a file called `hello_world.py` that contains this code:
 
 ```python3
-{!../docs_src/tutorials/getting_started/tutorial.py!}
+{!../docs_src/hello_world/hello_world.py!}
 ```
 
 Then, to run the model (and therefore build the database and populate it), run from the command line:
