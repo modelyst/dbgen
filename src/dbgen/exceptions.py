@@ -93,3 +93,23 @@ class DatabaseError(DBgenException):
 
 class ValidationError(DBgenException):
     """Error raised when data fails validation"""
+
+
+class AsyncRunError(DBgenException):
+    """Error raised during async run"""
+
+
+class ExtractorError(AsyncRunError):
+    """Error raised by the async extractor routine"""
+
+
+class TransformerError(AsyncRunError):
+    """Error raised by the async extractor routine"""
+
+
+class ResultsError(AsyncRunError):
+    """Error raised by the async extractor routine"""
+
+
+class LoaderError(AsyncRunError):
+    """Error raised by the async extractor routine"""

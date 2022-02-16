@@ -18,6 +18,7 @@ from typing import Optional, TypeVar, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
 from sqlmodel.sql.expression import Select, SelectOfScalar
 
 from dbgen.core.dependency import Dependency
@@ -26,12 +27,15 @@ from dbgen.core.statement_parsing import _get_select_keys, get_statement_depende
 from dbgen.utils.sql import Connection
 
 if TYPE_CHECKING:
+    from psycopg import AsyncConnection  # pragma: no cover
     from sqlalchemy.engine import Connection as SAConnection  # pragma: no cover
 
 
 SCHEMA_DEFAULT = "public"
 
 T = TypeVar('T')
+
+postgresql_dialect = postgresql.dialect()  # type: ignore
 
 
 class BaseQuery(Extract[T]):
@@ -79,6 +83,24 @@ class BaseQuery(Extract[T]):
         count_statement = f"select count(1) from ({self.query}) as X;"
         rows: int = self._connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
         return rows
+
+    async def _async_length(self, *, connection: 'AsyncConnection' = None, **_) -> Optional[int]:
+        assert connection
+        result = await connection.execute(
+            self.count_statement,
+            self.params,
+        )
+        out = await result.fetchone()
+        (count,) = out if out else (None,)
+        return count
+
+    @property
+    def compiled_query(self):
+        return str(text(self.query).compile(dialect=postgresql_dialect))
+
+    @property
+    def count_statement(self):
+        return str(text(f'select count(1) from ({self.query}) as X').compile(dialect=postgresql_dialect))
 
     def extract(
         self,

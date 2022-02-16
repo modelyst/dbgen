@@ -144,6 +144,7 @@ def run_model(
         None, help="Log Level to write to the --log-file if set. (Defaults to --level if not set)"
     ),
     remote: bool = typer.Option(True, help='Use the RemoteETLStep Runner'),
+    run_async: bool = typer.Option(False, '--async', help='Use the RemoteGenerator Runner'),
     config_file: Path = config_option,
     no_conf: bool = typer.Option(
         False,
@@ -216,7 +217,13 @@ def run_model(
     # Pass all the arguments to the model run command
     try:
         out_run = model.run(
-            main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed, remote=remote
+            main_engine,
+            meta_engine,
+            run_config,
+            nuke=nuke,
+            rerun_failed=rerun_failed,
+            remote=remote,
+            run_async=run_async,
         )
     except exceptions.SerializationError as exc:
         raise typer.BadParameter(

@@ -140,7 +140,6 @@ def validate_model_str(model_str: str) -> Model:
                     ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__, "#" * 24 + "\n", str(exc_str)]
                 ) from exc
             if isinstance(model, Model):
-                sys.path.remove(cwd)
                 return model
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
 

@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
+import asyncio
 import re
 from functools import partial
 from itertools import chain
@@ -53,6 +53,8 @@ from dbgen.exceptions import DatabaseError, ValidationError
 from dbgen.utils.lists import broadcast, is_broadcastable
 
 if TYPE_CHECKING:
+    from psycopg_pool import AsyncConnectionPool  # pragma: no cover
+
     from dbgen.core.entity import BaseEntity  # pragma: no cover
 
 
@@ -556,3 +558,87 @@ class Load(ComputationalNode[T]):
             cur.execute(drop_temp_table)
         connection.commit()
         self._logger.debug("loading finished")
+
+    async def _async_load(self, data, conn_pool: 'AsyncConnectionPool', etl_step_id: str) -> int:
+        task = asyncio.current_task()
+        temp_table_name = f"{self.load_entity.name}_temp_load_table_{self.hash}_{hash(task)}"
+        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
+        from dbgen.templates import jinja_env
+
+        if self.insert:
+            template = jinja_env.get_template("insert.sql.jinja")
+        else:
+            template = jinja_env.get_template("update.sql.jinja")
+
+        cols = [self.load_entity.primary_key_name] + list(sorted(self.inputs.keys()))
+        col_str = ','.join(map(lambda x: f"\"{x}\"", cols))
+
+        first = False
+        update = True
+        template_args = dict(
+            obj=self.load_entity.name,
+            obj_pk_name=self.load_entity.primary_key_name,
+            temp_table_name=temp_table_name,
+            all_column_names=cols + ["etl_step_id"],
+            first=first,
+            update=update,
+            schema=self.load_entity.schema_,
+        )
+        load_statement = template.render(**template_args)
+        async with conn_pool.connection() as connection:
+            async with connection.cursor() as cursor:
+                await cursor.execute(drop_temp_table)
+                await cursor.execute(
+                    f"""CREATE TEMPORARY TABLE {temp_table_name} AS
+                TABLE {self.load_entity.full_name}
+                WITH NO DATA;
+                ALTER TABLE {temp_table_name}
+                ADD COLUMN auto_inc SERIAL NOT NULL;
+                ALTER TABLE {temp_table_name}
+                ALTER COLUMN "etl_step_id" SET DEFAULT '{etl_step_id}'"""
+                )
+            await connection.commit()
+            async with connection.cursor() as cursor:
+                # Load data into temp table
+                async with cursor.copy(f'COPY {temp_table_name} ({col_str}) FROM STDIN') as copy:
+                    oids = self._get_types()
+                    copy.set_types(oids)
+                    for pk_curr, row_curr in data.items():
+                        await copy.write_row((pk_curr, *row_curr))
+
+                # Try to insert everything from the temp table into the real table
+                # If a foreign_key violation is hit, we delete those rows in the
+                # temp table and move on
+                fk_fail_count = 0
+                self._logger.debug("transfer from temp table to main table")
+                while True:
+                    if fk_fail_count == 10:
+                        raise ValueError("User Canceled due to large number of FK violations")
+                    # check for ForeignKeyViolation error
+                    try:
+                        await cursor.execute(load_statement)
+                        break
+                    except (psycopg2.errors.SyntaxError, psycopg2.errors.UndefinedColumn):
+                        print(load_statement)
+                        raise
+                    except psycopg2.errors.ForeignKeyViolation as exc:
+                        pattern = r'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
+                        fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
+                        delete_statement = f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
+                        await cursor.execute(delete_statement)
+                        self._logger.error(
+                            "---\n"
+                            f"ForeignKeyViolation #({fk_fail_count+1}): tried to insert {fk_pk} into"
+                            f" FK column {fk_name} of {self.load_entity.name}."
+                            f"\nBut no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
+                        )
+                        self._logger.error(f"Moving on without inserting any rows with this {fk_pk}")
+                        self._logger.error(exc)
+                        fk_fail_count += 1
+                        continue
+                if fk_fail_count:
+                    self._logger.error(f"Fail count = {fk_fail_count}")
+                self._logger.debug("Dropping temp table...")
+                await cursor.execute(drop_temp_table)
+            await connection.commit()
+        return len(data)

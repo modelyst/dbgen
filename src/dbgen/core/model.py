@@ -121,10 +121,15 @@ class Model(Base):
         nuke: bool = False,
         rerun_failed: bool = False,
         remote: bool = True,
+        run_async: bool = True,
     ) -> RunEntity:
+        from dbgen.core.async_run import AsyncModelRun, RemoteAsyncModelRun
         from dbgen.core.run import ModelRun, RemoteModelRun
 
-        Runner = RemoteModelRun if remote else ModelRun
+        if run_async:
+            Runner = RemoteAsyncModelRun if remote else AsyncModelRun
+        else:
+            Runner = RemoteModelRun if remote else ModelRun  # type: ignore
         return Runner(model=self).execute(
             main_engine=main_engine,
             meta_engine=meta_engine,
