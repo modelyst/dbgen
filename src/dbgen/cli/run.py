@@ -82,13 +82,15 @@ def status(
         'failed': 'white on red',
         'upstream_failed': 'black on yellow',
         'completed': 'green',
-        'excluded': 'grey',
+        'excluded': 'blue',
     }
 
     def style(key, col):
         if key == 'status':
             return Text(str(col), style=status_map.get(col))
         elif key == 'memory_usage':
+            if col and col > 1024:
+                return f"{(col/1024):3.1f} GB"
             return f"{col:3.1f} MB" if col else ''
         elif key == 'runtime':
             if not col:

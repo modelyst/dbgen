@@ -339,7 +339,7 @@ class BaseETLStepRun(Base):
         etl_step_row = etl_step._get_etl_step_row()
         session.merge(etl_step_row)
         session.commit()
-        query = etl_step.extract.query if isinstance(etl_step.extract, BaseQuery) else ''
+        query = etl_step.extract.render_query() if isinstance(etl_step.extract, BaseQuery) else ''
         etl_step_run = ETLStepRunEntity(
             run_id=run_id,
             etl_step_id=etl_step_row.id,

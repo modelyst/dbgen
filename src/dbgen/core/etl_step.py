@@ -34,7 +34,7 @@ from dbgen.core.node.extract import Extract
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
 from dbgen.core.node.transforms import Transform
-from dbgen.exceptions import DBgenMissingInfo, DBgenSkipException
+from dbgen.exceptions import DBgenMissingInfo, DBgenSkipException, ValidationError
 from dbgen.utils.graphs import topsort_with_dict
 
 if TYPE_CHECKING:
@@ -158,6 +158,9 @@ class ETLStep(Base):
         except DBgenSkipException as exc:
             self._logger.debug(f'Skipped row: {exc.msg}')
             skipped = True
+        except ValidationError as exc:
+            self._logger.error(exc)
+            raise
         return output, skipped
 
     def _sort_graph(self):
@@ -233,7 +236,7 @@ class ETLStep(Base):
             name=self.name,
             description=self.description,
             tags=",".join(self.tags),
-            query=self.extract.query if isinstance(self.extract, BaseQuery) else None,
+            query=self.extract.render_query() if isinstance(self.extract, BaseQuery) else None,
             etl_step_json=self.serialize(),
             **dep_kwargs,
         )

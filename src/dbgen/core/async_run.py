@@ -209,44 +209,45 @@ class AsyncRun(Base):
         """Take a query and param and stream the outputs to the queue."""
         logger = self._logger.getChild('extractor')
         unique_inputs, inputs_extracted, inputs_processed = 0, 0, 0
-        if not isinstance(extract, BaseQuery):
-            for i, row in enumerate(extract.extract()):
-                bar(advance=1)
-                is_repeat, input_hash = self._check_repeat(row, etl_step_id)
-                # increment unique inputs and extracted inputs
-                inputs_extracted += 1
-                unique_inputs += 1 if not is_repeat else 0
-                if not is_repeat or retry:
-                    await queue.put((input_hash, {extract.hash: extract.process_row(row)}))
-                    inputs_processed += 1
-                else:
-                    continue
-                if i % batch_size == 0:
-                    await asyncio.sleep(0.05)
-            await queue.put((None, None))
-            for task in progress.tasks:
-                progress.update(task.id, total=i)
-                progress.start_task(task.id)
-        else:
-            async with await AsyncConnection.connect(async_dsn) as conn:
-                async with conn.cursor(row_factory=dict_row) as cursor:
-                    result = await cursor.execute(extract.compiled_query, extract.params)
-                    i = 0
-                    async for row in result:
-                        is_repeat, input_hash = self._check_repeat(row, etl_step_id)
-                        # increment unique inputs and extracted inputs
-                        inputs_extracted += 1
-                        unique_inputs += 1 if not is_repeat else 0
-                        if not is_repeat or retry:
-                            await queue.put((input_hash, {extract.hash: extract.process_row(row)}))
-                        else:
-                            continue
-                        bar(advance=1)
-                        if i % batch_size == 0:
-                            await asyncio.sleep(0.05)
-                        i += 1
+        with extract:
+            if not isinstance(extract, BaseQuery):
+                for i, row in enumerate(extract.extract()):
+                    bar(advance=1)
+                    is_repeat, input_hash = self._check_repeat(row, etl_step_id)
+                    # increment unique inputs and extracted inputs
+                    inputs_extracted += 1
+                    unique_inputs += 1 if not is_repeat else 0
+                    if not is_repeat or retry:
+                        await queue.put((input_hash, {extract.hash: extract.process_row(row)}))
+                        inputs_processed += 1
+                    else:
+                        continue
+                    if i % batch_size == 0:
+                        await asyncio.sleep(0.05)
+                await queue.put((None, None))
+                for task in progress.tasks:
+                    progress.update(task.id, total=i)
+                    progress.start_task(task.id)
+            else:
+                async with await AsyncConnection.connect(async_dsn) as conn:
+                    async with conn.cursor(row_factory=dict_row) as cursor:
+                        result = await cursor.execute(extract.compiled_query, extract.params)
+                        i = 0
+                        async for row in result:
+                            is_repeat, input_hash = self._check_repeat(row, etl_step_id)
+                            # increment unique inputs and extracted inputs
+                            inputs_extracted += 1
+                            unique_inputs += 1 if not is_repeat else 0
+                            if not is_repeat or retry:
+                                await queue.put((input_hash, {extract.hash: extract.process_row(row)}))
+                            else:
+                                continue
+                            bar(advance=1)
+                            if i % batch_size == 0:
+                                await asyncio.sleep(0.05)
+                            i += 1
 
-                    await queue.put((None, None))
+                        await queue.put((None, None))
         logger.debug('Extraction Finished')
         return inputs_extracted, unique_inputs, inputs_processed
 
@@ -387,7 +388,7 @@ class AsyncRun(Base):
                 number_of_rows += update
                 processed_hashes = processed_hashes.union(new_processed_hashes)
                 await self.merge_rows(rows_to_load, record)
-                if load_queue.empty() or number_of_batches > 30:
+                if load_queue.empty() or number_of_batches > 60:
                     logger.debug('queue is empty moving on')
                     break
             if rows_to_load:
@@ -525,7 +526,7 @@ class BaseAsyncETLStepRun(AsyncRun):
         etl_step_row = etl_step._get_etl_step_row()
         session.merge(etl_step_row)
         session.commit()
-        query = etl_step.extract.query if isinstance(etl_step.extract, BaseQuery) else ''
+        query = etl_step.extract.render_query() if isinstance(etl_step.extract, BaseQuery) else ''
         etl_step_run = ETLStepRunEntity(
             run_id=run_id,
             etl_step_id=etl_step_row.id,
