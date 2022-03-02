@@ -81,7 +81,8 @@ dbgen = "dbgen.__main__:main"
 [tool.pytest.ini_options]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-  "database: marks a test that requires a database (deselt with '-m \"not database\"",
+  "database: marks a test that requires a database (deselect with '-m \"not database\")",
+  "bad: marks a test that is currently failing (deselect with '-m \"not bad\")",
 ]
 testpaths = [
   "tests",

@@ -51,7 +51,7 @@ def test_basic_etl_step_graph():
 
 
 @pytest.mark.database
-def test_model_sync(sql_engine, debug_logger):
+def test_model_sync(sql_engine):
     sa_registry = registry()
 
     class Dummy(Entity, table=True, registry=sa_registry):
@@ -76,7 +76,3 @@ def test_model_sync(sql_engine, debug_logger):
         assert result is None
 
     model.nuke(sql_engine, sa_registry.metadata, schemas=["other_schema"])
-
-
-if __name__ == "__main__":
-    test_basic_etl_step_graph()

@@ -12,14 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-import logging
 import os
-import sys
 
 import pytest
 from psycopg import connect as pg3_connect
-from sqlalchemy import MetaData
-from sqlmodel import Session, create_engine, text
+from sqlmodel import create_engine, text
 
 from dbgen.configuration import config
 from dbgen.core.entity import BaseEntity
@@ -28,6 +25,7 @@ from dbgen.core.metadata import meta_registry
 
 @pytest.fixture()
 def clear_registry():
+    """Clears the BaseEntity default registry to avoid table name collisions during testing."""
     # Clear the tables in the metadata for the default base model
     BaseEntity.metadata.clear()
     # Clear the Models associated with the registry, to avoid warnings
@@ -47,22 +45,16 @@ def sql_engine():
 @pytest.fixture(scope="function")
 def connection(sql_engine):
     """sql_engine connection"""
-    metadata = MetaData()
-    metadata.reflect(sql_engine)
-    metadata.drop_all(sql_engine)
     connection = sql_engine.connect()
     yield connection
     connection.close()
 
 
 @pytest.fixture(scope="function")
-def session(connection):
-    transaction = connection.begin()
-    session = Session(bind=connection, autocommit=False, autoflush=True)
-    yield session
-    transaction.rollback()
-    transaction.close()
-    session.close()
+def raw_pg3_connection(sql_engine):
+    connection = pg3_connect(str(sql_engine.url))
+    yield connection
+    connection.close()
 
 
 @pytest.fixture(scope="function")
@@ -74,48 +66,6 @@ def seed_db(connection):
     yield
     connection.execute(text("drop table users;"))
     connection.commit()
-
-
-@pytest.fixture(scope="function")
-def make_db(connection):
-    pass
-
-    metadata = MetaData()
-    metadata.reflect(connection)
-    metadata.drop_all(connection)
-    BaseEntity.metadata.create_all(connection)
-    connection.commit()
-    yield
-    BaseEntity.metadata.drop_all(connection)
-    connection.commit()
-
-
-@pytest.fixture(scope="function")
-def raw_connection(make_db, sql_engine):
-    raw = sql_engine.raw_connection()
-    yield raw
-    raw.close()
-
-
-@pytest.fixture(scope="function")
-def raw_pg3_connection(make_db, sql_engine):
-    connection = pg3_connect(str(sql_engine.url))
-    yield connection
-    connection.close()
-
-
-@pytest.fixture
-def debug_logger():
-    custom_logger = logging.getLogger("dbgen")
-    custom_logger.propagate = True
-    custom_logger.setLevel(logging.DEBUG)
-
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s Test"
-    formatter = logging.Formatter(log_format)
-    console_handler = logging.StreamHandler(stream=sys.stdout)
-    console_handler.setFormatter(formatter)
-    custom_logger.addHandler(console_handler)
-    return custom_logger
 
 
 @pytest.fixture(scope='function')

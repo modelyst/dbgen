@@ -42,6 +42,7 @@ def test_connection_instantation(test_dsn: PostgresDsn):
     assert connection.dict(by_alias=True).get("schema") == "public"
     assert connection.host == "address"
     assert connection.database == "test_db"
+    assert connection.password is not None
     assert connection.password.get_secret_value() == "password"
     assert connection.port == 9999
 

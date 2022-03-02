@@ -51,8 +51,7 @@ def simple_load():
 
 
 @pytest.mark.database
-def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw_pg3_connection):
-
+def test_build_io_obj(clear_registry, simple_load, sql_engine, raw_pg3_connection):
     reload(entities)
     Child = entities.Child
     Parent = entities.Parent
@@ -67,8 +66,7 @@ def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw
         type=Constant("child_type"),
         parent_id=parent_load,
     )
-    Child.metadata.create_all(connection)
-    connection.commit()
+    Child.metadata.create_all(sql_engine)
     n_rows = 1000
     namespace_rows = [{"pyblock": {"label": [i for i in range(n_rows)]}}]
     for row in namespace_rows:
@@ -77,14 +75,14 @@ def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw
     parent_load.load(raw_pg3_connection, etl_step_id=parent_load.hash)
     child_load.load(raw_pg3_connection, etl_step_id=parent_load.hash)
     # Query the Parent/child table and ensure number of rows is correct
-    with Session(connection) as session:
+    with Session(sql_engine) as session:
         out = session.execute(select(func.count(Parent.id))).scalar()
         assert out == n_rows
         out = session.execute(select(func.count(Child.id))).scalar()
         assert out == 1
         out = session.execute(select(func.count(Child.parent_id))).scalar()
         assert out == 1
-    Child.metadata.drop_all(connection)
+    Child.metadata.drop_all(sql_engine)
 
 
 # def test_basic_load(raw_connection, session):
