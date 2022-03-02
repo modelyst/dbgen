@@ -22,9 +22,12 @@ Let's walk through the code for populating the person table with data. Let's say
 that the names of the researchers are currently stored in a .csv file that has
 columns first_name, last_name, and age, which looks like this:
 
+<details>
+<summary>Excerpt from: alice_bob_model/data/names.csv</summary>
 ```
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/data/names.csv!}
 ```
+</details>
 
 ### Extract
 
@@ -41,9 +44,12 @@ All that remains is to overwrite the `extract` method. This method must be a gen
 1. a tuple the same length as the list of output names. If this syntax is used, DBgen will assume that the output names and the variables in the returned tuple are in the same order.
 2. a dictionary where the keys are the same as the output names specified earlier, and the values are the corresponding values.
 
+<details>
+<summary>Excerpt from: alice_bob_model/extracts/csv_extract.py</summary>
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
 ```
+</details>
 
 ### Transform
 
@@ -51,10 +57,12 @@ Next, we will walk through transforms and loads.
 
 A `transform` is simply a function with an `@transform` decorator. In the decorator, we define the output names of the function and the python environment required to execute the function. We will walk through custom python environments in a later section of the tutorial.
 
-
+<details>
+<summary>Excerpt from: alice_bob_model/etl_steps/read_csv.py</summary>
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:2,4,8-19] !}
 ```
+</details>
 
 
 
@@ -62,6 +70,17 @@ A `transform` is simply a function with an `@transform` decorator. In the decora
 
 Finally, we need to create a DBgen "ETLStep" and add it to our model. The ETLStep contains the extract, transform, and load steps.
 
+<details>
+<summary>Excerpt from: alice_bob_model/etl_steps/read_csv.py</summary>
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:1-] !}
 ```
+</details>
+
+### Running the Model
+
+Now that the model has one complete ETL step, we can run the model, which creates and populates the database. The command `dbgen run` is used to run models. Since this is the first time we are running the model, we need to add the `--nuke` flag.
+
+```dbgen run --nuke```
+
+To see information about the attempted run of the model, enter the command `dbgen run status`. In this case, we should see that 10 rows have been inserted.

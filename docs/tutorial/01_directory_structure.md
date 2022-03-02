@@ -56,10 +56,15 @@ The overall goal of this entire repository is to create a DBgen model, which spe
 
 The contents of `main.py` are shown below.
 
+<details>
+<summary>Excerpt from: alice_bob_model/main.py</summary>
+
 
 ```python3 hl_lines="6-9"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/main.py [ln:1-14] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/main.py!}
 ```
+
+</details>
 
 ## constants.py
 
@@ -71,9 +76,13 @@ This is a place to store any constants that are specific to the DBgen model defi
 
 The contents of `constants.py` used in this tutorial are shown below.
 
+<details>
+<summary>Excerpt from: alice_bob_model/constants.py</summary>
+
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/constants.py [ln:1-14] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/constants.py!}
 ```
+</details>
 
 ## schema.py
 
@@ -81,9 +90,14 @@ This is the file that specifies the empty database schema. In other words, this 
 
 Part of the `schema.py` used in this tutorial is shown below.
 
+<details>
+<summary>Excerpt from: alice_bob_model/schema.py</summary>
+
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:1-13] !}
 ```
+
+</details>
 
 ## extracts
 
@@ -91,9 +105,13 @@ Part of the `schema.py` used in this tutorial is shown below.
 
 Below, we show an example of an `extract` that reads a csv stored in the local file system and returns its contents one row at a time. We'll walk through this in more detail later in the tutorial.
 
+<details>
+<summary>Excerpt from: alice_bob_model/extracts/csv_extract.py</summary>
+
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
 ```
+</details>
 
 ## transforms
 
@@ -103,9 +121,13 @@ However, if the function is specific to a particular ETLStep and will not be reu
 
 An example of a `transform` is shown below.
 
+<details>
+<summary>Excerpt from: alice_bob_model/etl_steps/read_csv.py</summary>
+
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:10-16] !}
 ```
+</details>
 
 ## etl_steps
 
@@ -117,9 +139,13 @@ The purpose of ETLSteps is essentially to define where data will come from, whic
 
 Whenever we write a new ETLStep, we write a function that accepts the model as an input and adds that ETLStep to the model. An example is shown below.
 
+<details>
+<summary>Excerpt from: alice_bob_model/etl_steps/read_csv.py</summary>
+
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:18-] !}
 ```
+</details>
 
 ## etl_steps.\__init__.py
 
@@ -127,6 +153,10 @@ This is where we tell `main.py` to add the ETLSteps to the model. You can see th
 
 When we finish writing a new ETLStep, the last thing to is to add it to `etl_steps.__init__.py` so that `main.py` picks it up. The pattern is simple: for each ETLStep, import the function that adds that ETLStep to the model, and call that function in `add_etl_steps()` as shown below.
 
+<details>
+<summary>Excerpt from: alice_bob_model/etl_steps/__init__.py</summary>
+
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/__init__.py [ln:1-] !}
 ```
+</details>
