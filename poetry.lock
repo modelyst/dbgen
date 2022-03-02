@@ -4,7 +4,7 @@ boto3 = ["boto3"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "6eb70931cd93436e46b13c3224644870071b4fcca62ab227db04bd4c6cf43649"
+content-hash = "7a8dd1a61bb5b12de4d24ede4cab062b11d77c003fc878df6bc611a683aaa3aa"
 
 [metadata.files]
 arrow = [

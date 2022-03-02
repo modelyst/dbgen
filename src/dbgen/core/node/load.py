@@ -11,15 +11,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-import asyncio
-import re
 from functools import partial
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
-    Iterable,
     List,
     Mapping,
     Optional,
@@ -32,10 +29,6 @@ from typing import (
 )
 from uuid import UUID
 
-import psycopg2
-from psycopg import Connection as PG3Conn
-from psycopg2._psycopg import connection
-from psycopg.errors import UndefinedColumn
 from pydantic import Field, PrivateAttr
 from pydantic import ValidationError as PydValidationError
 from pydantic import root_validator, validate_model, validator
@@ -49,18 +42,14 @@ from dbgen.core.base import Base
 from dbgen.core.dependency import Dependency
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.core.type_registry import column_registry
-from dbgen.exceptions import DatabaseError, ValidationError
+from dbgen.exceptions import ValidationError
 from dbgen.utils.lists import broadcast, is_broadcastable
+from dbgen.utils.postgresql_load import async_load_data, load_data
 
 if TYPE_CHECKING:
-    from psycopg_pool import AsyncConnectionPool  # pragma: no cover
+    from psycopg import AsyncConnection, Connection  # pragma: no cover
 
     from dbgen.core.entity import BaseEntity  # pragma: no cover
-
-
-# Error messages
-MISSING_COLUMN_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This commonly occurs when a column is added to an entity without being effectively synced with the database. An easy fix is to rerun the model with --nuke, if this is not possible you can manually add the column. If this column "
-MISSING_ID_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This can occur when the entities in the model comes out of sync with the database. Since {column} is an identifying column of {name!r} the id hashes for the rows in the table will change when adding this column therefore you must rebuild the database with --nuke."
 
 
 def hash_tuple(tuple_to_hash: Tuple[Any, ...]) -> UUID:
@@ -195,15 +184,13 @@ class LoadEntity(Base):
         return self.identifying_foreign_keys.union(self.identifying_attributes)
 
 
-NUM_QUERY_TRIES = 10
-
 T = TypeVar('T')
 
 
 class Load(ComputationalNode[T]):
     load_entity: LoadEntity
     primary_key: Optional[Union[Arg, Constant]] = None
-    _output: Dict[UUID, Iterable[Any]] = PrivateAttr(default_factory=dict)
+    _output: Dict[UUID, Sequence[Any]] = PrivateAttr(default_factory=dict)
     insert: bool = False
     validation: Optional[ValidationEnum] = None
     outputs: List[str] = Field(default_factory=list)
@@ -362,283 +349,30 @@ class Load(ComputationalNode[T]):
 
         return {self.outputs[0]: primary_keys}
 
-    def run(self, row: Dict[str, Mapping[str, Any]]) -> Dict[str, List[UUID]]:
-        not_list = lambda x: not isinstance(x, (list, tuple))
-        lists_allowed = lambda x: self.load_entity.attributes[x].endswith('[]')
-        arg_dict = {
-            key: [val] if not_list(val) or lists_allowed(key) else val
-            for key, val in sorted(self._get_inputs(row).items())
-        }
-        # Check for empty lists, as that will cause the row to be ignored
-        if any(map(lambda x: len(x) == 0, arg_dict.values())):
-            self._logger.debug(f'Row {arg_dict} produced 0 rows for load {self}')
-            return {self.outputs[0]: []}
-        # Check for broadcastability
-        try:
-            is_broadcastable(*arg_dict.values())
-        except ValueError as exc:
-            raise ValueError(
-                f"While assembling rows for loading into {self} found two sequences in the inputs to the load with non-equal, >1 length\n"
-                "This can occur when two outputs from pyblocks/queries are unequal in length.\n"
-                "If so, please make the relevant cartesian product of the two lists before loading\n"
-            ) from exc
-        try:
-            broadcasted_values = [
-                {key: val for key, val in zip(arg_dict.keys(), row)} for row in broadcast(*arg_dict.values())
-            ]
-        except ValueError as exc:
-            raise ValueError(
-                f"Error occurred during the loading of row {(str(arg_dict)[:100])} into entity {self.load_entity.full_name}"
-            ) from exc
-
-        # Load
-        validation = self.validation or config.validation
-        if validation == ValidationEnum.STRICT:
-            validation_func = self.load_entity._strict_validate
-        elif validation == ValidationEnum.COERCE:
-            validation_func = self.load_entity._validate
-
-        try:
-            broadcasted_values = list(map(partial(validation_func, insert=self.insert), broadcasted_values))
-        except PydValidationError as exc:
-            raise ValidationError(
-                f"Error occurred during data validation while loading into {self.load_entity.full_name!r}:\n{exc}"
-            ) from exc
-        # If we have a user supplied Primary Key go get it and broadcast it
-        if self.primary_key is not None:
-            primary_arg_val = self.primary_key.arg_get(row)
-            # Validate the primary key type
-            if isinstance(primary_arg_val, UUID):
-                primary_keys = [primary_arg_val]
-            elif isinstance(primary_arg_val, Sequence):
-                assert all(map(lambda x: isinstance(x, UUID), primary_arg_val))
-                primary_keys = list(primary_arg_val)
-            else:
-                ValueError(f"Unknown Primary Key Type: {primary_arg_val}")
-
-            if len(primary_keys) == 1:
-                primary_keys *= len(broadcasted_values)
-            elif len(primary_keys) != len(broadcasted_values):
-                raise ValueError(
-                    f"Cannot broadcast Primary Key to Max Length: {len(primary_keys)} {len(broadcasted_values)}"
-                )
-        else:
-            # If we don't have a primary key get it from the identifying info on the broadcasted
-            # Values
-            primary_keys = [self.load_entity._get_hash(row) for row in broadcasted_values]
-        sorted_keys = sorted(self.inputs.keys())
-        self._output.update(
-            {
-                primary_key: [value[key] for key in sorted_keys]
-                for primary_key, value in zip(primary_keys, broadcasted_values)
-            }
-        )
-        return {self.outputs[0]: primary_keys}
-
-    def load(self, cxn: connection, etl_step_id: UUID):
+    def _load_data(self, data: Mapping[UUID, tuple], connection: 'Connection', etl_step_id: UUID):
         """Run the Load statement for the given namespace rows.
 
         Args:
             namespace_rows (List[Dict[str, Any]]): A dictionary with the strings as hashes and the values as the local namespace dictionaries from PyBlocks, Queries, and Consts
         """
         self._logger.debug(f"Loading into {self.load_entity.name}")
-        self._load_data(data=self._output, connection=cxn, etl_step_id=etl_step_id)
-        self._output = {}
-
-    def _get_types(self):
-        oids = list(map(lambda x: self.load_entity.attributes[x], sorted(self.inputs.keys())))
-        return oids
-
-    def _load_data(self, data, connection: PG3Conn, etl_step_id: UUID) -> None:
-        # Temporary table to copy data into
-        # Set name to be hash of input rows to ensure uniqueness for parallelization
-        temp_table_name = self.load_entity.name + "_temp_load_table_" + self.hash
-
-        # Need to create a temp table to copy data into
-        # Add an auto_inc column so that data can be ordered by its insert location
-
-        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
-        create_temp_table = """
-        CREATE TEMPORARY TABLE {temp_table_name} AS
-        TABLE {schema}.{obj}
-        WITH NO DATA;
-        ALTER TABLE {temp_table_name}
-        ADD COLUMN auto_inc SERIAL NOT NULL;
-        ALTER TABLE {temp_table_name}
-        ALTER COLUMN "etl_step_id" SET DEFAULT '{etl_step_id}';
-        """.format(
-            obj=self.load_entity.name,
-            schema=self.load_entity.schema_,
-            temp_table_name=temp_table_name,
-            etl_step_id=etl_step_id,
+        load_data(
+            data,
+            connection,
+            self.load_entity,
+            self.inputs.keys(),
+            self.insert,
+            self.load_entity.hash,
+            etl_step_id,
         )
-        with connection.cursor() as cur:
-            cur.execute(drop_temp_table)
-            cur.execute(create_temp_table)
-        connection.commit()
 
-        cols = [self.load_entity.primary_key_name] + list(sorted(self.inputs.keys()))
-        col_str = ','.join(map(lambda x: f"\"{x}\"", cols))
-        from dbgen.templates import jinja_env
-
-        if self.insert:
-            template = jinja_env.get_template("insert.sql.jinja")
-        else:
-            template = jinja_env.get_template("update.sql.jinja")
-
-        first = False
-        update = True
-        template_args = dict(
-            obj=self.load_entity.name,
-            obj_pk_name=self.load_entity.primary_key_name,
-            temp_table_name=temp_table_name,
-            all_column_names=cols + ["etl_step_id"],
-            first=first,
-            update=update,
-            schema=self.load_entity.schema_,
+    async def _async_load(self, data, connection: 'AsyncConnection', etl_step_id: UUID) -> int:
+        return await async_load_data(
+            data,
+            connection,
+            self.load_entity,
+            self.inputs.keys(),
+            self.insert,
+            self.load_entity.hash,
+            etl_step_id,
         )
-        load_statement = template.render(**template_args)
-        with connection.cursor() as cur:
-            self._logger.debug("load into temporary table")
-            try:
-                with cur.copy(f'COPY  {temp_table_name} ({col_str}) FROM STDIN') as copy:
-                    oids = self._get_types()
-                    copy.set_types(oids)
-                    for pk_curr, row_curr in data.items():
-                        copy.write_row((pk_curr, *row_curr))
-            except UndefinedColumn as exc:
-                # Try to match the column name to give helpful error messages
-                match = re.match('column \"(\\w+)\"', str(exc))
-                if match:
-                    (column,) = match.groups()
-                    column_str = f'the column {column!r}'
-                else:
-                    column_str = 'a column'
-
-                if column in self.load_entity.identifiers:
-                    raise DatabaseError(
-                        MISSING_ID_ERROR.format(name=self.load_entity.name, column=column_str)
-                    )
-                raise DatabaseError(
-                    MISSING_COLUMN_ERROR.format(name=self.load_entity.name, column=column_str)
-                ) from exc
-            # Try to insert everything from the temp table into the real table
-            # If a foreign_key violation is hit, we delete those rows in the
-            # temp table and move on
-            fk_fail_count = 0
-            self._logger.debug("transfer from temp table to main table")
-            while True:
-                if fk_fail_count == 10:
-                    raise ValueError("User Canceled due to large number of FK violations")
-                # check for ForeignKeyViolation error
-                try:
-                    cur.execute(load_statement)
-                    break
-                except (psycopg2.errors.SyntaxError, psycopg2.errors.UndefinedColumn):
-                    print(load_statement)
-                    raise
-                except psycopg2.errors.ForeignKeyViolation as exc:
-                    pattern = r'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
-                    fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
-                    delete_statement = f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
-                    cur.execute(delete_statement)
-                    self._logger.error(
-                        "---\n"
-                        f"ForeignKeyViolation #({fk_fail_count+1}): tried to insert {fk_pk} into"
-                        f" FK column {fk_name} of {self.load_entity.name}."
-                        f"\nBut no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
-                    )
-                    self._logger.error(f"Moving on without inserting any rows with this {fk_pk}")
-                    self._logger.error(exc)
-                    fk_fail_count += 1
-                    continue
-            if fk_fail_count:
-                self._logger.error(f"Fail count = {fk_fail_count}")
-            self._logger.debug("Dropping temp table...")
-            cur.execute(drop_temp_table)
-        connection.commit()
-        self._logger.debug("loading finished")
-
-    async def _async_load(self, data, conn_pool: 'AsyncConnectionPool', etl_step_id: str) -> int:
-        task = asyncio.current_task()
-        temp_table_name = f"{self.load_entity.name}_temp_load_table_{self.hash}_{hash(task)}"
-        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
-        from dbgen.templates import jinja_env
-
-        if self.insert:
-            template = jinja_env.get_template("insert.sql.jinja")
-        else:
-            template = jinja_env.get_template("update.sql.jinja")
-
-        cols = [self.load_entity.primary_key_name] + list(sorted(self.inputs.keys()))
-        col_str = ','.join(map(lambda x: f"\"{x}\"", cols))
-
-        first = False
-        update = True
-        template_args = dict(
-            obj=self.load_entity.name,
-            obj_pk_name=self.load_entity.primary_key_name,
-            temp_table_name=temp_table_name,
-            all_column_names=cols + ["etl_step_id"],
-            first=first,
-            update=update,
-            schema=self.load_entity.schema_,
-        )
-        load_statement = template.render(**template_args)
-        async with conn_pool.connection() as connection:
-            async with connection.cursor() as cursor:
-                await cursor.execute(drop_temp_table)
-                await cursor.execute(
-                    f"""CREATE TEMPORARY TABLE {temp_table_name} AS
-                TABLE {self.load_entity.full_name}
-                WITH NO DATA;
-                ALTER TABLE {temp_table_name}
-                ADD COLUMN auto_inc SERIAL NOT NULL;
-                ALTER TABLE {temp_table_name}
-                ALTER COLUMN "etl_step_id" SET DEFAULT '{etl_step_id}'"""
-                )
-            await connection.commit()
-            async with connection.cursor() as cursor:
-                # Load data into temp table
-                async with cursor.copy(f'COPY {temp_table_name} ({col_str}) FROM STDIN') as copy:
-                    oids = self._get_types()
-                    copy.set_types(oids)
-                    for pk_curr, row_curr in data.items():
-                        await copy.write_row((pk_curr, *row_curr))
-
-                # Try to insert everything from the temp table into the real table
-                # If a foreign_key violation is hit, we delete those rows in the
-                # temp table and move on
-                fk_fail_count = 0
-                self._logger.debug("transfer from temp table to main table")
-                while True:
-                    if fk_fail_count == 10:
-                        raise ValueError("User Canceled due to large number of FK violations")
-                    # check for ForeignKeyViolation error
-                    try:
-                        await cursor.execute(load_statement)
-                        break
-                    except (psycopg2.errors.SyntaxError, psycopg2.errors.UndefinedColumn):
-                        print(load_statement)
-                        raise
-                    except psycopg2.errors.ForeignKeyViolation as exc:
-                        pattern = r'Key \((\w+)\)=\(([\-\d]+)\) is not present in table "(\w+)"'
-                        fk_name, fk_pk, fk_obj = re.findall(pattern, exc.pgerror)[0]
-                        delete_statement = f"delete from {temp_table_name} where {fk_name} = {fk_pk}"
-                        await cursor.execute(delete_statement)
-                        self._logger.error(
-                            "---\n"
-                            f"ForeignKeyViolation #({fk_fail_count+1}): tried to insert {fk_pk} into"
-                            f" FK column {fk_name} of {self.load_entity.name}."
-                            f"\nBut no row exists with {fk_obj}_id = {fk_pk} in {fk_obj}."
-                        )
-                        self._logger.error(f"Moving on without inserting any rows with this {fk_pk}")
-                        self._logger.error(exc)
-                        fk_fail_count += 1
-                        continue
-                if fk_fail_count:
-                    self._logger.error(f"Fail count = {fk_fail_count}")
-                self._logger.debug("Dropping temp table...")
-                await cursor.execute(drop_temp_table)
-            await connection.commit()
-        return len(data)

@@ -32,7 +32,6 @@ repository = "https://github.com/modelyst/dbgen"
 version = "0.6.1"
 
 [tool.poetry.dependencies]
-Jinja2 = "^3.0.1"
 SQLAlchemy = "^1.4.25"
 boto3 = {version = "^1.21.0", optional = true}
 cookiecutter = {version = "^1.7.3"}

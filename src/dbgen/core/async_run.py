@@ -392,14 +392,15 @@ class AsyncRun(Base):
                     logger.debug('queue is empty moving on')
                     break
             if rows_to_load:
-                for load in etl_step.loads:
-                    rows = rows_to_load[load.hash]
-                    logger.debug(f'Loading into {load}')
-                    rows_modified = await load._async_load(rows, conn_pool, etl_step.hash)
-                    if load.insert:
-                        rows_inserted += rows_modified
-                    else:
-                        rows_updated += rows_modified
+                async with conn_pool.connection() as connection:
+                    for load in etl_step.loads:
+                        rows = rows_to_load[load.hash]
+                        logger.debug(f'Loading into {load}')
+                        rows_modified = await load._async_load(rows, connection, etl_step.uuid)
+                        if load.insert:
+                            rows_inserted += rows_modified
+                        else:
+                            rows_updated += rows_modified
             bar(advance=number_of_rows)
             await repeat_queue.put(processed_hashes)
             if record is None:
@@ -433,9 +434,9 @@ class AsyncRun(Base):
     async def _load_repeats(
         self, conn_pool: AsyncConnectionPool, repeats: Set[UUID], etl_step_id: UUID
     ) -> None:
-        rows = ((etl_step_id, input_hash) for input_hash in repeats - self._old_repeats)
+        rows = {input_hash: (etl_step_id,) for input_hash in repeats - self._old_repeats}
         async with conn_pool.connection() as connection:
-            await Repeats._async_quick_load(connection, rows, column_names=["etl_step_id", "input_hash"])
+            await Repeats._async_quick_load(connection, rows, column_names=["etl_step_id"])
         self._old_repeats = self._old_repeats.union(repeats)
 
     async def set_length(self, extract: Extract, progress: Progress, async_dsn: str):

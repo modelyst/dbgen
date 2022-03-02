@@ -15,15 +15,14 @@
 import logging
 from datetime import datetime
 from functools import partial
-from io import StringIO
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
     Dict,
-    Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -50,6 +49,7 @@ from dbgen.core.base import Base, BaseMeta
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.core.type_registry import column_registry
 from dbgen.exceptions import DBgenMissingInfo, InvalidArgument
+from dbgen.utils.postgresql_load import async_load_data, load_data
 
 if TYPE_CHECKING:
     from psycopg import AsyncConnection
@@ -332,111 +332,18 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
         )
 
     @classmethod
-    def _quick_load(cls, connection, rows: Iterable[Iterable[Any]], column_names: List[str]) -> None:
+    def _quick_load(cls, connection, rows: Mapping[UUID, Sequence[Any]], column_names: List[str]) -> None:
         """Bulk load many rows into entity"""
-        from dbgen.templates import jinja_env
-
-        # Assemble rows into stringio for copy_from statement
-        io_obj = StringIO()
-        for row in rows:
-            io_obj.write("\t".join(map(str, row)) + "\n")
-        io_obj.seek(0)
-
-        # Temporary table to copy data into
-        # Set name to be hash of input rows to ensure uniqueness for parallelization
-        temp_table_name = f"{cls.__tablename__}_temp_load_table"
-
         load_entity = cls._get_load_entity()
-        # Need to create a temp table to copy data into
-        # Add an auto_inc column so that data can be ordered by its insert location
-        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
-        create_temp_table = """
-        CREATE TEMPORARY TABLE {temp_table_name} AS
-        TABLE {schema}.{obj}
-        WITH NO DATA;
-        ALTER TABLE {temp_table_name}
-        ADD COLUMN auto_inc SERIAL NOT NULL;
-        """.format(
-            obj=load_entity.name,
-            schema=load_entity.schema_,
-            temp_table_name=temp_table_name,
-        )
+        load_data(rows, connection, load_entity, column_names, insert=True)
 
-        insert_template = jinja_env.get_template("insert.sql.jinja")
-        template_args = dict(
-            obj=load_entity.name,
-            obj_pk_name=load_entity.primary_key_name,
-            temp_table_name=temp_table_name,
-            all_column_names=column_names,
-            schema=load_entity.schema_,
-            first=False,
-            update=True,
-        )
-        insert_statement = insert_template.render(**template_args)
-        with connection.cursor() as curs:
-            curs.execute(drop_temp_table)
-        connection.commit()
-        with connection.cursor() as curs:
-            curs.execute(create_temp_table)
-            curs.copy_from(io_obj, temp_table_name, null="None", columns=column_names)
-            curs.execute(insert_statement)
-        connection.commit()
-        with connection.cursor() as curs:
-            curs.execute(drop_temp_table)
-        connection.commit()
-
-    # TODO Refactor async and non async quickload
     @classmethod
     async def _async_quick_load(
-        cls, connection: 'AsyncConnection', rows: Iterable[Sequence[Any]], column_names: List[str]
+        cls, connection: 'AsyncConnection', rows: Mapping[UUID, Sequence[Any]], column_names: List[str]
     ) -> None:
         """Bulk load many rows into entity"""
-        from dbgen.templates import jinja_env
-
-        # Temporary table to copy data into
-        # Set name to be hash of input rows to ensure uniqueness for parallelization
-        temp_table_name = f"{cls.__tablename__}_temp_load_table"
-
         load_entity = cls._get_load_entity()
-        # Need to create a temp table to copy data into
-        # Add an auto_inc column so that data can be ordered by its insert location
-        drop_temp_table = f"DROP TABLE IF EXISTS {temp_table_name};"
-        create_temp_table = """
-        CREATE TEMPORARY TABLE {temp_table_name} AS
-        TABLE {schema}.{obj}
-        WITH NO DATA;
-        ALTER TABLE {temp_table_name}
-        ADD COLUMN auto_inc SERIAL NOT NULL;
-        """.format(
-            obj=load_entity.name,
-            schema=load_entity.schema_,
-            temp_table_name=temp_table_name,
-        )
-        insert_template = jinja_env.get_template("insert.sql.jinja")
-        template_args = dict(
-            obj=load_entity.name,
-            obj_pk_name=load_entity.primary_key_name,
-            temp_table_name=temp_table_name,
-            all_column_names=column_names,
-            schema=load_entity.schema_,
-            first=False,
-            update=True,
-        )
-        insert_statement = insert_template.render(**template_args)
-        col_str = ','.join(map(lambda x: f"\"{x}\"", column_names))
-        async with connection.cursor() as cursor:
-            await cursor.execute(drop_temp_table)
-            await cursor.execute(create_temp_table)
-        await connection.commit()
-        async with connection.cursor() as cursor:
-            # Load data into temp table
-            async with cursor.copy(f'COPY {temp_table_name} ({col_str}) FROM STDIN') as copy:
-                for row_curr in rows:
-                    await copy.write_row(row_curr)
-            await cursor.execute(insert_statement)
-            await cursor.execute(drop_temp_table)
-
-        await connection.commit()
+        await async_load_data(rows, connection, load_entity, column_names, insert=True)
 
     @classmethod
     def clear_registry(cls):

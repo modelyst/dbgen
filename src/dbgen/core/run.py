@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from math import ceil
 from time import time
 from traceback import format_exc
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Tuple
 from uuid import UUID
 
 from psycopg import connect as pg3_connect
@@ -47,6 +47,9 @@ from dbgen.core.node.query import BaseQuery, ExternalQuery
 from dbgen.exceptions import SerializationError
 from dbgen.utils.log import LogLevel, logging_console
 from dbgen.utils.typing import NAMESPACE_TYPE
+
+if TYPE_CHECKING:
+    from psycopg import Connection as PG3Connection
 
 
 class RunConfig(Base):
@@ -212,7 +215,7 @@ class BaseETLStepRun(Base):
 
                 # Open raw connections for fast loading
                 main_raw_connection = pg3_connect(str(main_engine.url))
-                meta_raw_connection = meta_engine.raw_connection()
+                meta_raw_connection = pg3_connect(str(meta_engine.url))
                 # Start while loop to iterate through the nodes
                 self._logger.debug('Looping through extracted rows...')
                 if dashboard is not None:
@@ -365,9 +368,9 @@ class BaseETLStepRun(Base):
             load._load_data(data=rows, connection=connection, etl_step_id=self._etl_step.uuid)
         return (rows_inserted, rows_updated)
 
-    def _load_repeats(self, connection) -> None:
-        rows = ((self._etl_step.uuid, input_hash) for input_hash in self._new_repeats)
-        Repeats._quick_load(connection, rows, column_names=["etl_step_id", "input_hash"])
+    def _load_repeats(self, connection: 'PG3Connection') -> None:
+        rows = {input_hash: (self._etl_step.uuid,) for input_hash in self._new_repeats}
+        Repeats._quick_load(connection, rows, column_names=["etl_step_id"])
         self._old_repeats = self._old_repeats.union(self._new_repeats)
         self._new_repeats = set()
 
