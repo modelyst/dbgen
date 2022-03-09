@@ -93,3 +93,7 @@ class DatabaseError(DBgenException):
 
 class ValidationError(DBgenException):
     """Error raised when data fails validation"""
+
+
+class ModelRunError(DBgenException):
+    """Error raised when a model is run."""
