@@ -37,7 +37,7 @@ fk_field = lambda x: Field(default=None, foreign_key=x)
 ID_TYPE = UUID
 
 
-reserved_words = {'hex', 'uuid', 'hash'}
+reserved_words = {'hex', 'uuid', 'hash', 'id'}
 
 
 @st.composite
