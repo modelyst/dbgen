@@ -28,7 +28,7 @@ from dbgen.core.context import ModelContext
 from dbgen.core.entity import BaseEntity
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
-from dbgen.exceptions import DatabaseError
+from dbgen.exceptions import DatabaseError, ModelRunError
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
@@ -123,6 +123,12 @@ class Model(Base):
         remote: bool = True,
     ) -> RunEntity:
         from dbgen.core.run import ModelRun, RemoteModelRun
+
+        # Check for empty model
+        if not self.etl_steps:
+            raise ModelRunError(
+                f'Model {self.name} has no ETLSteps to run. Did you make sure to instantiate your ETLSteps within the model\'s context?'
+            )
 
         Runner = RemoteModelRun if remote else ModelRun
         return Runner(model=self).execute(
