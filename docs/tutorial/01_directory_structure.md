@@ -29,7 +29,7 @@ $ dbgen new --template alice-bob-lab
 ```
 </div>
 
-This will prompt you to download the relevant files to a local directory with the directory structure shown below. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen/tree/master/examples">DBgen Repo</a>.
+This will prompt you to download the relevant files to a local directory with the directory structure shown below. The last prompt asks whether you want to download the finished tutorial or only the skeleton of it so that you can complete it yourself. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen/tree/master/examples">DBgen Repo</a>.
 
 
 ```
