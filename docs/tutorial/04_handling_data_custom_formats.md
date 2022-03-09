@@ -14,6 +14,26 @@
    limitations under the License.
  -->
 
+## Full Files
+
+The code snippets in this section are taken from `extracts/measurement_extract.py` and `etl_steps/parse_measurements.py`. The full files are shown below:
+
+<details>
+<summary>alice_bob_model/extracts/measurement_extract.py</summary>
+
+```python3
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/measurement_extract.py [ln:1-] !}
+```
+</details>
+
+<details>
+<summary>alice_bob_model/etl_steps/parse_measurements.py</summary>
+
+```python3
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:1-] !}
+```
+</details>
+
 # Handling Data with Custom Formats
 
 Oftentimes, scientific data is stored in custom file formats, and we need to be able to ingest this into the database. In this example, we assume there is a folder of temperature measurements on the local file system. The file names are of the format `FirstName_LastName_MeasurementNumber.txt`, and each file contains text similar to the following:
@@ -21,6 +41,7 @@ Oftentimes, scientific data is stored in custom file formats, and we need to be 
 ```
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/data/measurements/Alice_Smith_0.txt!}
 ```
+
 
 # Writing the Custom Extract
 
@@ -61,7 +82,6 @@ We want our function to return four items: the researchers first name and last n
 
 Next, we need to write a custom function that parses the filename and file contents to extract the information that we are interested in.
 
-
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:1-32] !}
 ```
@@ -91,3 +111,12 @@ Finally, we call `.load(...)` on the table that we would like to insert data int
 ```python3 hl_lines="6-11"
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/parse_measurements.py [ln:33-] !}
 ```
+
+
+### Running the Model
+
+We can run the model again to see the effects of our new ETL step. To run the model, enter the command:
+
+```dbgen run```
+
+To see information about the attempted run of the model, enter the command `dbgen run status`. In this case, we should see that 30 rows have been inserted.

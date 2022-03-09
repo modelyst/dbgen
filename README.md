@@ -48,9 +48,10 @@
 
 ---
 
-:exclamation:  Please note that this project is actively under major rewrites and installations are subject to breaking changes.
+:exclamation: Please note that this project is actively under major rewrites and installations are subject to breaking changes.
 
 ---
+
 DBgen (Database Generator) is an open-source Python library for
 connecting raw data, scientific theories, and relational databases.
 The package was designed with a focus on the developer experience at the core.
@@ -82,12 +83,15 @@ DBGen is a tool that helps populate a single postgresql database using a transpa
 ### Alternative tools
 
 Orchestrators: Many tools exist to orchestrate python workflows. However, these tools often often are too general to help the average scientist wrangle their data or are so specific to storing a given workflow type they lack the flexibility needed to address the specifics of a scientist's data problems. Many other tools also come packaged with powerful
+
 #### General Orchestration Tools
+
 1. [Airflow](https://airflow.apache.org/)
 2. [Prefect](https://www.prefect.io/)
 3. [Luigi](https://github.com/spotify/luigi)
 
 #### Computational Science Workflow Tools
+
 1. [Fireworks](https://materialsproject.github.io/fireworks/)
 2. [AiiDA](http://www.aiida.net/)
 3. [Atomate](https://atomate.org/)
@@ -110,6 +114,7 @@ Orchestrators: Many tools exist to orchestrate python workflows. However, these 
 ### Via Github
 
 Currently, the only method of installing DBgen is through Github. This is best done by using the [poetry](https://python-poetry.org/) package manager. To do this, first clone the repo to a local directory. Then use the command `poetry install` in the directory to install the required dependencies. You will need at least python 3.7 to install the package.
+
 ```Bash
 # Get DBgen
 git clone https://github.com/modelyst/dbgen
@@ -123,7 +128,9 @@ poetry shell
 dbgen verson
 dbgen model validate --model tests.example.full_model:make_model
 ```
+
 ### Via Pip
+
 ```Bash
 python -m pip install modelyst-dbgen
 ```
@@ -141,3 +148,7 @@ page](https://github.com/modelyst/dbgen/issues).
 ## License
 
 DBgen is released under the [Apache 2.0 License](license/).
+
+## Acknowledgments
+
+This work was funded in part by Toyota Research Institute, Inc.

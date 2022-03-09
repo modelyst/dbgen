@@ -21,6 +21,18 @@ In this tutorial, we walk through a series of lessons that demonstrate the usage
 
 In this tutorial, Alice and Bob run a lab in which researchers make temperature measurements. First, we'll add the researchers' names into the database from a CSV. Next, we'll show how to use custom parsers to import temperature data stored in a directory of text files. Finally, we'll show a very simple analysis of the data: converting the temperature from F to C.
 
+## Full Files
+
+The code snippets in this section are taken from `schema.py`. The full file is shown below:
+
+<details>
+<summary>alice_bob_model/schema.py</summary>
+
+```python3
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:1-] !}
+```
+</details>
+
 ## Entities
 
 Using DBgen, entities are defined by subclassing dbgen.core.entity.Entity with
@@ -44,9 +56,8 @@ with `Optional[]`, where `Optional` is imported from python's `typing` built-in
 library.
 
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:14-28] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:1,6-12] !}
 ```
-
 
 ### Identifying Attributes
 Finally, you'll notice that we have set an attribute called `__identifying__`.

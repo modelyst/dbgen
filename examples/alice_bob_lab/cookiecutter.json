@@ -1,4 +1,5 @@
 {
   "repo_name": "alice-bob-model",
-  "database_dsn": "postgresql://postgres:@localhost:5432/dbgen"
+  "database_dsn": "postgresql://postgres:@localhost:5432/dbgen",
+  "clean": ["false", "true"]
 }

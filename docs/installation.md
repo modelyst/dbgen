@@ -28,13 +28,15 @@ $ python -m pip install modelyst-dbgen
 $ dbgen config -o .env
 ```
 
-The last command created a file called `.env` with some default settings. Edit the username and database name in the `.env` file.
+The last command creates a file called `.env` with some default settings. Edit the username and database name in the `.env` file.
 
 ```
 # DBgen Settings
 dbgen_main_dsn = postgresql://[username]@localhost:5432/[your_new_database_name]
 dbgen_main_password =
 ```
+
+By default, your `[username]` is the same as your Mac username, which can be found by entering the command `whoami`.
 
 Create the new your new database.
 
