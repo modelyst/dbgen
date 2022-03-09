@@ -14,6 +14,7 @@
    limitations under the License.
  -->
 
+
 # Directory Structure
 
 Previously, in the "Getting Started" section, we showed than a valid DBgen pipeline can be written in 9 lines of code; however, in most real cases, a significantly more complex data pipeline is required.
@@ -28,7 +29,7 @@ $ dbgen new --template alice-bob-lab
 ```
 </div>
 
-This will prompt you to download the relevant files to a local directory with the directory structure shown below. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen/tree/master/examples">DBgen Repo</a>.
+This will prompt you to download the relevant files to a local directory with the directory structure shown below. The last prompt asks whether you want to download the finished tutorial or only the skeleton of it so that you can complete it yourself. You can find all the model templates at the <a href="https://github.com/modelyst/dbgen/tree/master/examples">DBgen Repo</a>.
 
 
 ```
@@ -58,7 +59,7 @@ The contents of `main.py` are shown below.
 
 
 ```python3 hl_lines="6-9"
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/main.py [ln:1-14] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/main.py!}
 ```
 
 ## constants.py
@@ -71,8 +72,9 @@ This is a place to store any constants that are specific to the DBgen model defi
 
 The contents of `constants.py` used in this tutorial are shown below.
 
+
 ```python3
-{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/constants.py [ln:1-14] !}
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/constants.py!}
 ```
 
 ## schema.py
@@ -81,15 +83,20 @@ This is the file that specifies the empty database schema. In other words, this 
 
 Part of the `schema.py` used in this tutorial is shown below.
 
+
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/schema.py [ln:1-13] !}
 ```
+
 
 ## extracts
 
 `Extracts` are relatively small pieces of code that define how to read data from a custom data source. We write that code here, then import it when we are writing ETLSteps later.
 
 Below, we show an example of an `extract` that reads a csv stored in the local file system and returns its contents one row at a time. We'll walk through this in more detail later in the tutorial.
+
+The code below is from `extracts/csv_extract.py`.
+
 
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/extracts/csv_extract.py [ln:1-] !}
@@ -101,7 +108,8 @@ In the transforms module, we write functions that parse or analyze incoming data
 
 However, if the function is specific to a particular ETLStep and will not be reused, it is common to define that transform in the same file as the ETLStep (in the `etl_steps` module) instead of in the transforms module.
 
-An example of a `transform` is shown below.
+An example of a `transform` is shown below. The code below is an excerpt from `etl_steps/read_csv.py`.
+
 
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:10-16] !}
@@ -115,7 +123,8 @@ The extract step may be a custom extract that we defined earlier, or it may be a
 
 The purpose of ETLSteps is essentially to define where data will come from, which function will analyze it, and where it will go.
 
-Whenever we write a new ETLStep, we write a function that accepts the model as an input and adds that ETLStep to the model. An example is shown below.
+Whenever we write a new ETLStep, we write a function that accepts the model as an input and adds that ETLStep to the model. Example code is shown below (an excerpt from `etl_steps/read_csv.py`)
+
 
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/read_csv.py [ln:18-] !}
@@ -125,7 +134,8 @@ Whenever we write a new ETLStep, we write a function that accepts the model as a
 
 This is where we tell `main.py` to add the ETLSteps to the model. You can see that in `main.py`, we import a function called `add_etl_steps` from the `etl_steps.__init__.py` file. Then, `add_etl_steps` is the only function called within `make_model()`.
 
-When we finish writing a new ETLStep, the last thing to is to add it to `etl_steps.__init__.py` so that `main.py` picks it up. The pattern is simple: for each ETLStep, import the function that adds that ETLStep to the model, and call that function in `add_etl_steps()` as shown below.
+When we finish writing a new ETLStep, the last thing to is to add it to `etl_steps.__init__.py` so that `main.py` picks it up. The pattern is simple: for each ETLStep, import the function that adds that ETLStep to the model, and call that function in `add_etl_steps()` as shown below (from `etl_steps/__init__.py`).
+
 
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/__init__.py [ln:1-] !}

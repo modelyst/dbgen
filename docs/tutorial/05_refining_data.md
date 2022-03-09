@@ -14,6 +14,18 @@
    limitations under the License.
  -->
 
+## Full Files
+
+The code snippets in this section are taken from `etl_steps/f_to_c.py`. The full file is shown below:
+
+<details>
+<summary>alice_bob_model/etl_steps/f_to_c.py</summary>
+
+```python3
+{!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/f_to_c.py [ln:1-] !}
+```
+</details>
+
 # Refining Data in the Database
 
 When working with scientific data, it is very common to pass data through a series of data analysis steps. The nature of these analysis steps are highly domain-specific. To avoid any domain-specific jargon, in this tutorial, we walk through a very simple data analysis method: converting Fahrenheit to Celsius.
@@ -113,3 +125,11 @@ And, as always, when `.load()` is called, we must supply either:
 ```python3
 {!../examples/alice_bob_lab/{{cookiecutter.repo_name}}/alice_bob_model/etl_steps/f_to_c.py [ln:1-] !}
 ```
+
+### Running the Model
+
+We can run the model again to see the effects of our new ETL step. To run the model, enter the command:
+
+```dbgen run```
+
+To see information about the attempted run of the model, enter the command `dbgen run status`. In this case, we should see that 30 rows have been updated.

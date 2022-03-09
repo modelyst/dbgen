@@ -1,7 +1,9 @@
 from dbgen import Constant, Entity, ETLStep, Model
 
 
-class SimpleTable(Entity, table=True, all_identifying=True):
+class SimpleTable(Entity, table=True):
+    __identifying__ = {"string_column"}
+    __tablename__ = "simple_table"
     string_column: str
 
 
