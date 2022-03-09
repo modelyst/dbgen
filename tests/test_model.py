@@ -21,6 +21,7 @@ from dbgen.core.dependency import Dependency
 from dbgen.core.entity import Entity
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.model import Model
+from dbgen.exceptions import ModelRunError
 
 
 def test_etl_step_validation():
@@ -76,3 +77,10 @@ def test_model_sync(sql_engine):
         assert result is None
 
     model.nuke(sql_engine, sa_registry.metadata, schemas=["other_schema"])
+
+
+def test_empty_model(sql_engine):
+    """Test the error produced when an empty model is run."""
+    model = Model(name='test')
+    with pytest.raises(ModelRunError, match='Model test has no ETLSteps'):
+        model.run(sql_engine, sql_engine)

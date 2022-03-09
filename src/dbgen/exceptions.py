@@ -113,3 +113,7 @@ class ResultsError(AsyncRunError):
 
 class LoaderError(AsyncRunError):
     """Error raised by the async extractor routine"""
+
+
+class ModelRunError(DBgenException):
+    """Error raised when a model is run."""
