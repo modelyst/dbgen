@@ -106,6 +106,7 @@ class ETLStepRunEntity(Root, registry=meta_registry, table=True):
     inputs_processed: int = 0
     rows_inserted: int = 0
     rows_updated: int = 0
+    memory_usage: Optional[float]
     query: Optional[str]
     error: Optional[str]
     run: RunEntity = Relationship(back_populates='etl_step_runs')

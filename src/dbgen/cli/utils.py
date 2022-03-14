@@ -140,7 +140,6 @@ def validate_model_str(model_str: str) -> Model:
                     ERROR_RUNNING_MODEL_FACT, [model_str, type(model).__name__, "#" * 24 + "\n", str(exc_str)]
                 ) from exc
             if isinstance(model, Model):
-                sys.path.remove(cwd)
                 return model
             raise basic_error(ERROR_NOT_MODEL_FUNCTION, [model_str, type(model).__name__])
 
@@ -152,6 +151,7 @@ def validate_model_str(model_str: str) -> Model:
         if "No module" in str(exc):
             raise basic_error(ERROR_MODULE, [module, package, str(exc)]) from exc
         if isinstance(exc, AttributeError):
+            typer_print()(Traceback())
             raise basic_error(ERROR_ATTR, [module, package, str(exc)]) from exc
         raise basic_error(ERROR_PACKAGE, [module, package, str(exc)]) from exc
     except Exception:

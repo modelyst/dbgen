@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 """Parsing utilities for extracting dependencies from SQL Alchemy select statements."""
+from logging import getLogger
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 from sqlalchemy.orm.util import _ORMJoin
@@ -33,6 +34,7 @@ from dbgen.exceptions import QueryParsingError
 from dbgen.utils.lists import flatten
 
 # TODO Allow for arrow expressions
+logger = getLogger('dbgen.statement_parsing')
 
 
 def expand_clause_list(clause_statement):
@@ -154,7 +156,7 @@ def get_statement_dependency(
     # compile the from statements
     from_statements = select_stmt.get_final_froms()  # type: ignore
     if len(from_statements) > 1:
-        print("Warning: 2 from statements detected possible crossjoin used")
+        logger.debug("Warning: 2 from statements detected possible crossjoin used")
     # Add the order_by clause if set
     if select_stmt._order_by_clause is not None:  # type: ignore
         from_statements.append(select_stmt._order_by_clause)  # type: ignore

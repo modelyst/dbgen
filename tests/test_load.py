@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from collections import defaultdict
 from importlib import reload
 
 import pytest
@@ -23,8 +24,10 @@ from sqlmodel import Session, select
 import tests.example.entities as entities
 from dbgen.core.args import Arg, Constant
 from dbgen.core.dependency import Dependency
+from dbgen.core.entity import Entity
 from dbgen.core.node.load import Load, LoadEntity
 from dbgen.utils.lists import broadcast
+from dbgen.utils.postgresql_load import get_statements
 from tests.strategies import (
     basic_insert_load_strat,
     basic_load_strat,
@@ -51,8 +54,7 @@ def simple_load():
 
 
 @pytest.mark.database
-def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw_pg3_connection):
-
+def test_build_io_obj(clear_registry, simple_load, sql_engine, raw_pg3_connection):
     reload(entities)
     Child = entities.Child
     Parent = entities.Parent
@@ -67,24 +69,24 @@ def test_build_io_obj(clear_registry, debug_logger, simple_load, connection, raw
         type=Constant("child_type"),
         parent_id=parent_load,
     )
-    Child.metadata.create_all(connection)
-    connection.commit()
+    Child.metadata.create_all(sql_engine)
     n_rows = 1000
     namespace_rows = [{"pyblock": {"label": [i for i in range(n_rows)]}}]
+    rows_to_load = defaultdict(dict)
     for row in namespace_rows:
         for load in (parent_load, child_load):
-            row[load.hash] = load.run(row)
-    parent_load.load(raw_pg3_connection, etl_step_id=parent_load.hash)
-    child_load.load(raw_pg3_connection, etl_step_id=parent_load.hash)
+            row[load.hash] = load.new_run(row, rows_to_load)
+    parent_load._load_data(rows_to_load[parent_load.hash], raw_pg3_connection, etl_step_id=parent_load.hash)
+    child_load._load_data(rows_to_load[child_load.hash], raw_pg3_connection, etl_step_id=parent_load.hash)
     # Query the Parent/child table and ensure number of rows is correct
-    with Session(connection) as session:
+    with Session(sql_engine) as session:
         out = session.execute(select(func.count(Parent.id))).scalar()
         assert out == n_rows
         out = session.execute(select(func.count(Child.id))).scalar()
         assert out == 1
         out = session.execute(select(func.count(Child.parent_id))).scalar()
         assert out == 1
-    Child.metadata.drop_all(connection)
+    Child.metadata.drop_all(sql_engine)
 
 
 # def test_basic_load(raw_connection, session):
@@ -229,3 +231,24 @@ def test_load_dependency_no_insert(simple_load):
     assert {f"{full_name}.{col}" for col in ("non_id",)} == dep.columns_yielded
     assert {f"{full_name}.{col}" for col in ("type", "label")} == dep.columns_needed
     assert {full_name} == dep.tables_needed
+
+
+@pytest.mark.parametrize('insert', [True, False])
+def test_load_data(insert: bool, clear_registry):
+    class TestLoadData(Entity, table=True):
+        __identifying__ = {'label'}
+        label: str
+
+    load = TestLoadData.load(insert=insert, label=Constant('test'))
+    create_statement, drop_statement, copy_statement, load_statement = get_statements(
+        load.load_entity.name,
+        load.load_entity.full_name,
+        load.load_entity.primary_key_name,
+        load.insert,
+        load.inputs.keys(),
+        temp_table_suffix=load.load_entity.hash,
+    )
+    assert isinstance(create_statement, str)
+    assert isinstance(drop_statement, str)
+    assert isinstance(copy_statement, str)
+    assert isinstance(load_statement, str)

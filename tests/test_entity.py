@@ -22,7 +22,7 @@ from pydantic import ValidationError
 from pydasher import hasher
 from sqlalchemy import text
 from sqlalchemy.orm.decl_api import registry
-from sqlmodel import Field, select
+from sqlmodel import Field, Session, select
 
 from dbgen.core.args import Constant
 from dbgen.core.entity import BaseEntity, Entity, EntityMetaclass, create_entity
@@ -208,7 +208,7 @@ def test_entity_hypo(entity_class: EntityMetaclass):
 @given(example_entity(fks={"parent_id": "parent.id"}))
 def test_entity_fks_hypo(entity_class: EntityMetaclass):
     instance: BaseEntity = fill_required_fields(entity_class)
-    assert len(instance.__fields__) >= 3
+    assert len(instance.__fields__) >= 3, instance.__fields__
     assert instance.__fulltablename__ in instance.metadata.tables
     load_entity = instance._get_load_entity()
     assert load_entity.name == instance.__tablename__
@@ -418,7 +418,7 @@ def test_registry_and_schema_interaction(connection, clear_registry):
 
 
 @pytest.mark.database
-def test_create_entity(connection, session, clear_registry):
+def test_create_entity(connection, clear_registry):
     registry_1 = registry()
     Dummy = create_entity(
         "Dummy",
@@ -438,26 +438,28 @@ def test_create_entity(connection, session, clear_registry):
     }
     registry_1.metadata.create_all(connection)
     connection.commit()
-    session.add(dummy)
-    session.commit()
-    session.refresh(dummy)
+    with Session(connection) as session:
+        session.add(dummy)
+        session.commit()
+        session.refresh(dummy)
+        queried_dummy = session.exec(select(Dummy).where(Dummy.id == dummy.id)).first()
+        assert queried_dummy.name == dummy.name
+        assert queried_dummy.id == dummy.id
+        assert queried_dummy.hash == dummy.hash
+        session.delete(dummy)
+        queried_dummy = session.exec(select(Dummy).where(Dummy.id == dummy.id)).first()
+        assert not queried_dummy
 
-    queried_dummy = session.exec(select(Dummy).where(Dummy.id == dummy.id)).first()
-    assert queried_dummy.name == dummy.name
-    assert queried_dummy.id == dummy.id
-    assert queried_dummy.hash == dummy.hash
-    session.delete(dummy)
-    session.commit()
-    queried_dummy = session.exec(select(Dummy).where(Dummy.id == dummy.id)).first()
-    assert not queried_dummy
-
-    DummyChild = create_entity("DummyChild", {"child_name": str}, base=Dummy, identifying={"child_name"})
-    DummyChild(
-        name="test",
-        child_name=1,
-    )
-    assert "child_name" in DummyChild._hashinclude_
-    assert "name" in DummyChild._hashinclude_
+        DummyChild = create_entity("DummyChild", {"child_name": str}, base=Dummy, identifying={"child_name"})
+        DummyChild(
+            name="test",
+            child_name=1,
+        )
+        assert "child_name" in DummyChild._hashinclude_
+        assert "name" in DummyChild._hashinclude_
+        session.rollback()
+    registry_1.metadata.drop_all(connection)
+    connection.commit()
 
 
 @pytest.mark.parametrize(

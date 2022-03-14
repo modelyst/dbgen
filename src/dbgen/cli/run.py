@@ -37,7 +37,7 @@ from dbgen.cli.queries import get_runs
 from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
 from dbgen.configuration import config, get_connections, root_logger, stdout_handler
 from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity, Status
-from dbgen.core.run import RunConfig
+from dbgen.core.run.utilities import RunConfig
 from dbgen.utils.log import LogLevel, add_file_handler
 
 run_app = typer.Typer(name='run')
@@ -82,13 +82,15 @@ def status(
         'failed': 'white on red',
         'upstream_failed': 'black on yellow',
         'completed': 'green',
-        'excluded': 'grey',
+        'excluded': 'blue',
     }
 
     def style(key, col):
         if key == 'status':
             return Text(str(col), style=status_map.get(col))
         elif key == 'memory_usage':
+            if col and col > 1024:
+                return f"{(col/1024):3.1f} GB"
             return f"{col:3.1f} MB" if col else ''
         elif key == 'runtime':
             if not col:
@@ -144,6 +146,7 @@ def run_model(
         None, help="Log Level to write to the --log-file if set. (Defaults to --level if not set)"
     ),
     remote: bool = typer.Option(True, help='Use the RemoteETLStep Runner'),
+    run_async: bool = typer.Option(False, '--async', help='Use the RemoteGenerator Runner'),
     config_file: Path = config_option,
     no_conf: bool = typer.Option(
         False,
@@ -216,7 +219,13 @@ def run_model(
     # Pass all the arguments to the model run command
     try:
         out_run = model.run(
-            main_engine, meta_engine, run_config, nuke=nuke, rerun_failed=rerun_failed, remote=remote
+            main_engine,
+            meta_engine,
+            run_config,
+            nuke=nuke,
+            rerun_failed=rerun_failed,
+            remote=remote,
+            run_async=run_async,
         )
     except exceptions.SerializationError as exc:
         raise typer.BadParameter(

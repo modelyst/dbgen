@@ -52,7 +52,7 @@ def test_basic_etl_step_graph():
 
 
 @pytest.mark.database
-def test_model_sync(sql_engine, debug_logger):
+def test_model_sync(sql_engine):
     sa_registry = registry()
 
     class Dummy(Entity, table=True, registry=sa_registry):

@@ -95,7 +95,7 @@ def test_sorted_loads():
 
 
 @pytest.mark.skip
-def test_no_extractor(sql_engine: Engine, raw_connection):
+def test_no_extractor(sql_engine: Engine):
     """Shuffle around the loads and make sure sorted_loads still works."""
     entities.Parent.metadata.create_all(sql_engine)
     pyblock = PythonTransform(function=transform_func, inputs=[Constant("test")], outputs=["newnames"])
@@ -111,34 +111,35 @@ def test_no_extractor(sql_engine: Engine, raw_connection):
 
 
 @pytest.mark.database
-def test_dumb_extractor(connection, sql_engine, recreate_meta):
-    class User(Entity, table=True):
+def test_dumb_extractor(connection, sql_engine, clear_registry, recreate_meta):
+    class TestUser(Entity, table=True):
         __identifying__ = {"label"}
         label: Optional[str]
         new_label: Optional[str] = None
 
-    User.metadata.create_all(connection)
+    TestUser.__table__.drop(connection, checkfirst=True)
+    TestUser.metadata.create_all(connection)
     num_users = 100
-    sess = Session(connection)
-    users = [User(label=f"user_{i}") for i in range(num_users)]
-    user_le = User._get_load_entity()
-    for user in users:
-        user.id = user_le._get_hash(user.dict())
-        sess.add(user)
-    count = sess.exec(select(func.count(User.id))).one()
-    assert count == num_users
-    connection.commit()
-    statement = select(User.id, User.label)
+    with Session(connection) as sess:
+        users = [TestUser(label=f"user_{i}") for i in range(num_users)]
+        user_le = TestUser._get_load_entity()
+        for user in users:
+            user.id = user_le._get_hash(user.dict())
+            sess.add(user)
+        count = sess.exec(select(func.count(TestUser.id))).one()
+        assert count == num_users
+        connection.commit()
+    statement = select(TestUser.id, TestUser.label)
     query = BaseQuery.from_select_statement(statement)
     query.set_connection(connection, None)
     assert query.length() == num_users
     pyblock = PythonTransform(function=transform_func, inputs=[query["label"]])
-    u_load = User.load(id=query["id"], new_label=pyblock["out"])
+    u_load = TestUser.load(id=query["id"], new_label=pyblock["out"])
     run = RunEntity()
     sess.add(run)
     sess.commit()
     sess.refresh(run)
-    ETLStep(
+    etl_step = ETLStep(
         name="test",
         extract=query,
         transforms=[pyblock],
@@ -146,4 +147,10 @@ def test_dumb_extractor(connection, sql_engine, recreate_meta):
         batch_size=10000,
     )
     connection.commit()
-    # etl_step.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
+    etl_step.run(sql_engine, sql_engine, run_id=run.id, ordering=0)
+    # Assert the run was succesful by counting the number of users where new_label is '{label}-child'
+    with Session(sql_engine) as sess:
+        current_count = sess.exec(
+            select(func.count(TestUser.id)).where(TestUser.label + '-child' == TestUser.new_label)
+        ).one()
+        assert current_count == num_users

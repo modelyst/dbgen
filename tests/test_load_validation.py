@@ -75,7 +75,7 @@ def test_load_with_insert(validation):
     load = ValidateLoad.load(
         insert=True, str_field=Constant('test'), int_field=Constant(1), validation=validation
     )
-    out = load.run({})
+    out = load.new_run({}, {load.hash: {}})
     assert 'validateload_id' in out
     assert len(out['validateload_id']) == 1
 
@@ -87,7 +87,7 @@ def test_load_with_insert(validation):
 
 def test_load_without_insert():
     load = ValidateLoad.load(str_field=Constant('test'), int_field=Constant(1))
-    out = load.run({})
+    out = load.new_run({}, {load.hash: {}})
     assert 'validateload_id' in out
     assert len(out['validateload_id']) == 1
 
