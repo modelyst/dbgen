@@ -190,6 +190,9 @@ psutil==5.9.0 ; (python_version >= "2.6" and python_full_version < "3.0.0") or (
     --hash=sha256:4e2fb92e3aeae3ec3b7b66c528981fd327fb93fd906a77215200404444ec1845 \
     --hash=sha256:7d190ee2eaef7831163f254dc58f6d2e2a22e27382b936aab51c835fc080c3d3 \
     --hash=sha256:869842dbd66bb80c3217158e629d6fceaecc3a3166d3d1faee515b05dd26ca25
+psycopg-pool==3.1.1 ; python_version >= "3.7" \
+    --hash=sha256:bc579078dc8209f1ce280228460f96770756f24babb5d8ab2418800e9082a973 \
+    --hash=sha256:397beaa082f17255e6267850a00700aec4427fa214b4c55d2d49c7c154508ed5
 psycopg2-binary==2.9.3 ; python_version >= "3.6" \
     --hash=sha256:761df5313dc15da1502b21453642d7599d26be88bff659382f8f9747c7ebea4e \
     --hash=sha256:539b28661b71da7c0e428692438efbcd048ca21ea81af618d845e06ebfd29478 \

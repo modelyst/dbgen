@@ -4,7 +4,7 @@ boto3 = ["boto3"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "7a8dd1a61bb5b12de4d24ede4cab062b11d77c003fc878df6bc611a683aaa3aa"
+content-hash = "7e2989c9ede1312b9c6f4fb37be2656e27be5c3707f71d9caa7b35a1f7c3fa8a"
 
 [metadata.files]
 arrow = [
@@ -471,6 +471,10 @@ psutil = [
 psycopg = [
     {file = "psycopg-3.0.10-py3-none-any.whl", hash = "sha256:8cf07019035f4933c522ccdae1954f458743a98a43aa3a731937869fe3857eaa"},
     {file = "psycopg-3.0.10.tar.gz", hash = "sha256:9c2ba4b3253af8cd1a31ba365cd8bfae7818cc917e409930abc5571ba66c12d8"},
+]
+psycopg-pool = [
+    {file = "psycopg-pool-3.1.1.tar.gz", hash = "sha256:bc579078dc8209f1ce280228460f96770756f24babb5d8ab2418800e9082a973"},
+    {file = "psycopg_pool-3.1.1-py3-none-any.whl", hash = "sha256:397beaa082f17255e6267850a00700aec4427fa214b4c55d2d49c7c154508ed5"},
 ]
 psycopg2-binary = [
     {file = "psycopg2-binary-2.9.3.tar.gz", hash = "sha256:761df5313dc15da1502b21453642d7599d26be88bff659382f8f9747c7ebea4e"},
@@ -1619,6 +1623,7 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 "backports.zoneinfo" = {version = ">=0.2.0", markers = "python_version < \"3.9\""}
+psycopg-pool = {version = "*", optional = true, markers = "extra == \"pool\""}
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
 [package.extras]
@@ -1628,6 +1633,14 @@ dev = ["black (>=21.12b0)", "dnspython (>=2.1)", "flake8 (>=4.0)", "mypy (>=0.92
 docs = ["Sphinx (>=4.2)", "furo (==2021.11.23)", "sphinx-autobuild (>=2021.3.14)", "sphinx-autodoc-typehints (>=1.12)", "dnspython (>=2.1)", "shapely (>=1.7)"]
 pool = ["psycopg-pool"]
 test = ["mypy (>=0.920,!=0.930,!=0.931)", "pproxy (>=2.7)", "pytest (>=6.2.5)", "pytest-asyncio (>=0.16,<0.17)", "pytest-cov (>=3.0)", "pytest-randomly (>=3.10)"]
+
+[[package]]
+name = "psycopg-pool"
+version = "3.1.1"
+description = "Connection Pool for Psycopg"
+category = "main"
+optional = false
+python-versions = ">=3.7"
 
 [[package]]
 name = "psycopg2-binary"
