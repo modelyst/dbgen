@@ -206,7 +206,7 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
     async def extractor(
         self,
         extract: Extract,
-        queue: asyncio.Queue[Tuple[Optional[UUID], Optional[NAMESPACE_TYPE]]],
+        queue: 'asyncio.Queue[Tuple[Optional[UUID], Optional[NAMESPACE_TYPE]]]',
         async_dsn: str,
         batch_size,
         dashboard: Optional[Dashboard],
@@ -301,7 +301,7 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
 
     async def transformer_results(
         self,
-        transformed_queue: asyncio.Queue[asyncio.Future[TRANSFORM_RETURN_TYPE]],
+        transformed_queue: 'asyncio.Queue[asyncio.Future[TRANSFORM_RETURN_TYPE]]',
         load_queue: asyncio.Queue,
         dashboard: Optional[Dashboard],
         timeout: float = 0.05,
@@ -376,8 +376,8 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
     async def loader(
         self,
         etl_step: ETLStep,
-        load_queue: asyncio.Queue[Tuple[List[UUID], dict, int]],
-        repeat_queue: asyncio.Queue[Set[UUID]],
+        load_queue: 'asyncio.Queue[Tuple[List[UUID], dict, int]]',
+        repeat_queue: 'asyncio.Queue[Set[UUID]]',
         conn_pool: AsyncConnectionPool,
         dashboard: Optional[Dashboard],
     ):
@@ -421,7 +421,7 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
         return rows_inserted, rows_updated
 
     async def repeat_loader(
-        self, repeat_queue: asyncio.Queue[Set[UUID]], conn_pool: AsyncConnectionPool, etl_step_id: UUID
+        self, repeat_queue: 'asyncio.Queue[Set[UUID]]', conn_pool: AsyncConnectionPool, etl_step_id: UUID
     ):
         """Load hash of repeated rows into meta-database"""
         logger = self._logger.getChild('repeat_checker')
