@@ -143,3 +143,48 @@ $ dbgen connect --test
 ```
 
 You should see green text indicating that the connection was successful.
+
+## Docker Configuration
+
+The containerization software docker can be an easy way to quickly setup and teardown a test postgres database. A postgres database and user can be created with a single command.
+
+```Bash
+docker run \
+ -d --rm \
+ -e POSTGRES_DB=dbgen \
+ -e POSTGRES_PASSWORD=dbgen-password \
+ -e POSTGRES_USER=dbgen \
+ -p 9999:5432 \
+ --name dbgen-db \
+ postgres:14.1
+```
+!!! info
+    Note that the `--rm` CLI argument removes the container once it is stopped and the `-d` argument runs the container in the background. The command `docker stop dbgen-db` will stop and remove the container once you are finished.
+
+This will temporarily create a postgres database at with a user named `dbgen` and a password `dbgen-password` at the address `localhost:9999`. The connection to this database can be tested with `psql` (if it is installed) by connecting with the following command:
+
+<div class="termy">
+```Console
+$ PGPASSWORD='dbgen-password' psql -p 9999 -Udbgen -hlocalhost
+psql (14.1 (Ubuntu 14.2-1.pgdg20.04+1), server 14.1 (Debian 14.1-1.pgdg110+1))
+Type "help" for help.
+
+dbgen=#
+```
+</div>
+
+This docker container can be set as the main connection for dbgen by setting the `DBGEN_MAIN_DSN` (either as an environmental variable or in the `.env` file).
+
+<div class="termy">
+```Console
+$ export DBGEN_MAIN_DSN=postgresql://dbgen:dbgen-password@localhost:9999/dbgen
+$ dbgen connect --test
+─────────────────────────────────────────────────────────────────────
+Checking Main DB...
+Connection to Main DB at postgresql://dbgen:******@localhost:9999/dbgen?options=--search_path%3dpublic all good!
+─────────────────────────────────────────────────────────────────────
+Checking Meta DB...
+Connection to Meta DB at postgresql://dbgen:******@localhost:9999/dbgen?options=--search_path%3dtest all good!
+─────────────────────────────────────────────────────────────────────
+```
+</div>

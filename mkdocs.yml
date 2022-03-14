@@ -41,6 +41,7 @@ theme:
 repo_name: modelyst/dbgen
 repo_url: https://github.com/modelyst/dbgen
 markdown_extensions:
+  - admonition
   - toc:
       permalink: true
   - mdx_include:
