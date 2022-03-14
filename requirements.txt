@@ -247,9 +247,9 @@ psycopg2-binary==2.9.3 ; python_version >= "3.6" \
     --hash=sha256:99485cab9ba0fa9b84f1f9e1fef106f44a46ef6afdeec8885e0b88d0772b49e8 \
     --hash=sha256:46f0e0a6b5fa5851bbd9ab1bc805eef362d3a230fbdfbc209f4a236d0a7a990d \
     --hash=sha256:accfe7e982411da3178ec690baaceaad3c278652998b2c45828aaac66cd8285f
-psycopg==3.0.9 ; python_version >= "3.6" \
-    --hash=sha256:801ea3fa3ea7f562506dce6f0121d652b2525073294c7c08ce1d4250f6614405 \
-    --hash=sha256:9f72c6bdccfdab405c654ea2e9ed2293a3e9f993f66a37621f796732ce8e1855
+psycopg==3.0.10 ; python_version >= "3.6" \
+    --hash=sha256:8cf07019035f4933c522ccdae1954f458743a98a43aa3a731937869fe3857eaa \
+    --hash=sha256:9c2ba4b3253af8cd1a31ba365cd8bfae7818cc917e409930abc5571ba66c12d8
 pydantic==1.9.0 ; python_full_version >= "3.6.1" \
     --hash=sha256:cb23bcc093697cdea2708baae4f9ba0e972960a835af22560f6ae4e7e47d33f5 \
     --hash=sha256:1d5278bd9f0eee04a44c712982343103bba63507480bfd2fc2790fa70cd64cf4 \

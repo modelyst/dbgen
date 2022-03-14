@@ -13,6 +13,7 @@
 #   limitations under the License.
 
 from collections import Counter
+from json import loads
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
 from uuid import UUID
 
@@ -32,7 +33,7 @@ from dbgen.exceptions import DatabaseError, ModelRunError
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
-    from dbgen.core.run import RunConfig  # pragma: no cover
+    from dbgen.core.run.utilities import RunConfig  # pragma: no cover
 
 
 class Model(Base):
@@ -102,7 +103,7 @@ class Model(Base):
                         edges.append((target_name, source_name))
 
         for etl_step in self.etl_steps_dict().values():
-            graph.add_node(etl_step.name, id=etl_step.uuid, **etl_step.dict(include={'name', 'dependency'}))
+            graph.add_node(etl_step.name, id=etl_step.hash, **etl_step.dict(include={'name', 'dependency'}))
         graph.add_edges_from(edges)
         return graph
 
@@ -123,8 +124,7 @@ class Model(Base):
         remote: bool = True,
         run_async: bool = True,
     ) -> RunEntity:
-        from dbgen.core.async_run import AsyncModelRun, RemoteAsyncModelRun
-        from dbgen.core.run import ModelRun, RemoteModelRun
+        from dbgen.core.run.model_run import ModelRun
 
         # Check for empty model
         if not self.etl_steps:
@@ -132,15 +132,13 @@ class Model(Base):
                 f'Model {self.name} has no ETLSteps to run. Did you make sure to instantiate your ETLSteps within the model\'s context?'
             )
 
-        if run_async:
-            Runner = RemoteAsyncModelRun if remote else AsyncModelRun
-        else:
-            Runner = RemoteModelRun if remote else ModelRun  # type: ignore
-        return Runner(model=self).execute(
+        return ModelRun(model=self).execute(
             main_engine=main_engine,
             meta_engine=meta_engine,
             run_config=run_config,
             nuke=nuke,
+            run_async=run_async,
+            remote=remote,
             rerun_failed=rerun_failed,
         )
 
@@ -218,14 +216,14 @@ class Model(Base):
                 return list(obj)
             elif isinstance(obj, UUID):
                 return str(obj)
-            raise TypeError(f"Unknown type: {type(obj)}")
+            return obj
 
         metadata = {'name': self.name, 'id': self.uuid}
-        graph_json = serialize_graph(graph, lambda x: x, metadata=metadata)
+        graph_json = serialize_graph(graph, default, metadata=metadata)
         # Assemble stringified dependency fields as we can't store sets in postgres easily
         return ModelEntity(
             id=self.uuid,
             name=self.name,
             etl_steps=[x._get_etl_step_row() for x in self.etl_steps],
-            graph_json=graph_json,
+            graph_json=loads(graph_json),
         )

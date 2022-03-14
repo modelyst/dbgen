@@ -15,7 +15,7 @@
 from contextlib import contextmanager
 from enum import Enum
 from functools import partial
-from typing import Callable, Dict
+from typing import Callable, Dict, Tuple
 
 from rich.console import Console
 from rich.live import Live
@@ -106,12 +106,21 @@ class Dashboard:
             if bar != BarNames.OVERALL:
                 self.advance_bar(bar, advance=0, total=total, start=True)
 
-    def add_etl_progress_bars(self, total: int = None):
+    def add_etl_progress_bars(self, total: int = None, run_async: bool = False):
         if not self.enable:
             return
         progress = self.etl_step_progress
         self.live.update(self.make_table(progress))
-        for text in (BarNames.EXTRACTED, BarNames.TRANSFORMED, BarNames.LOADED):
+        if run_async:
+            bar_names: Tuple[BarNames, ...] = (
+                BarNames.EXTRACTED,
+                BarNames.LAUNCHED,
+                BarNames.TRANSFORMED,
+                BarNames.LOADED,
+            )
+        else:
+            bar_names = (BarNames.EXTRACTED, BarNames.TRANSFORMED, BarNames.LOADED)
+        for text in bar_names:
             bar = progress.add_task(
                 text,
                 start=total is not None,

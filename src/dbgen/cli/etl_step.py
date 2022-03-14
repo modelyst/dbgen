@@ -23,7 +23,8 @@ from sqlmodel import Session, func, select
 
 from dbgen.configuration import get_engines, stdout_handler
 from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
-from dbgen.core.run import RemoteETLStepRun, RunConfig
+from dbgen.core.run.etl_step_run import RemoteETLStepRun
+from dbgen.core.run.utilities import RunConfig
 from dbgen.utils.log import LogLevel
 
 if TYPE_CHECKING:

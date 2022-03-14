@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from networkx import DiGraph  # pragma: no cover
 
     from dbgen.core.node.computational_node import ComputationalNode  # pragma: no cover
-    from dbgen.core.run import RunConfig  # pragma: no cover
+    from dbgen.core.run.utilities import RunConfig  # pragma: no cover
 
 list_field = Field(default_factory=lambda: [])
 
@@ -249,7 +249,7 @@ class ETLStep(Base):
         ordering: int = None,
         run_config=None,
     ):
-        from dbgen.core.run import ETLStepRun
+        from dbgen.core.run.etl_step_run import ETLStepRun
 
         return ETLStepRun(etl_step=self).execute(main_engine, meta_engine, run_id, run_config, ordering)
 

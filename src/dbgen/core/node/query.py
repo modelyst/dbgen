@@ -80,8 +80,7 @@ class BaseQuery(Extract[T]):
         self._yield_per = yield_per
 
     def length(self) -> int:
-        count_statement = f"select count(1) from ({self.query}) as X;"
-        rows: int = self._connection.execute(text(count_statement), **self.params).scalar()  # type: ignore
+        rows: int = self._connection.execute(text(self.count_statement)).scalar()  # type: ignore
         return rows
 
     async def _async_length(self, *, connection: 'AsyncConnection' = None, **_) -> Optional[int]:
@@ -100,20 +99,22 @@ class BaseQuery(Extract[T]):
 
     @property
     def count_statement(self):
-        return str(text(f'select count(1) from ({self.query}) as X').compile(dialect=postgresql_dialect))
+        return str(
+            text(f'select count(1) from ({self.render_query()}) as X').compile(dialect=postgresql_dialect)
+        )
 
     def extract(
         self,
     ) -> GenType[T, None, None]:
         if self._yield_per:
             result = self._connection.execution_options(stream_results=True).execute(
-                text(self.query), **self.params
+                text(self.query).bindparams(**self.params)
             )
             while chunk := result.fetchmany(self._yield_per):
                 for row in chunk:
                     yield dict(row)  # type: ignore
         else:
-            result = self._connection.execute(text(self.query), **self.params)
+            result = self._connection.execute(text(self.query).bindparams(**self.params))
             yield from result.mappings()  # type: ignore
 
 

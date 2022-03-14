@@ -37,7 +37,7 @@ from dbgen.cli.queries import get_runs
 from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
 from dbgen.configuration import config, get_connections, root_logger, stdout_handler
 from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity, Status
-from dbgen.core.run import RunConfig
+from dbgen.core.run.utilities import RunConfig
 from dbgen.utils.log import LogLevel, add_file_handler
 
 run_app = typer.Typer(name='run')

@@ -52,7 +52,7 @@ def serialize_graph(
     graph,
     node_serializer: Callable[[Any], SerializedNode],
     metadata: Dict[str, Union[str, float, int, None]] = None,
-) -> Dict[str, Any]:
+) -> str:
     metadata = metadata or {}
     output: SerializedGraph = SerializedGraph(nodes={}, edges=[], metadata=metadata)
     for key, data in graph.nodes.items():
@@ -63,7 +63,7 @@ def serialize_graph(
             target, str
         ), f"Edge keys not strings! {type(source)} {type(target)}"
         output.edges.append((source, target))
-    return output.dict()
+    return output.json()
 
 
 # def topological_sort(G, key=None):
