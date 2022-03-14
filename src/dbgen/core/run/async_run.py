@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 
 # Useful types
 TRANSFORM_RETURN_TYPE = Union[
-    Tuple[None, None, None, int, str], Tuple[list, dict[str, Dict[UUID, dict]], int, int, None]
+    Tuple[None, None, None, int, str], Tuple[list, Dict[str, Dict[UUID, dict]], int, int, None]
 ]
 
 # TODO Add data to the Async Run object to minimize data passing around1
