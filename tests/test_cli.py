@@ -16,7 +16,6 @@ from itertools import product
 
 import pytest
 from pydantic.tools import parse_obj_as
-from sqlalchemy.future import Engine
 from sqlmodel import Session, select
 from typer.testing import CliRunner
 
@@ -68,35 +67,32 @@ def test_config_does_not_exist(tmpdir, sql_engine, reset_config_dsn):
     assert results.exit_code == 0
 
 
-def test_connect(tmpdir, sql_engine: Engine):
-    """Test basic use of the dbgen connect command."""
-    config = tmpdir.mkdir("sub").join("config.env")
-    config.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
-    results = runner.invoke(app, ['connect', '--test', '-c', config])
-    assert results.exit_code == 0
+# def test_connect(tmpdir, sql_engine: Engine):
+#     """Test basic use of the dbgen connect command."""
+#     config = tmpdir.mkdir("sub").join("config.env")
+#     config.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
+#     results = runner.invoke(app, ['connect', '--test', '-c', config])
+#     assert results.exit_code == 0
 
 
-def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config_dsn):
-    """Test basic use of the dbgen connect command."""
-    config_file = tmpdir.mkdir("sub").join("config_file.env")
-    bad_url = 'postgresql://non_existent:not_password@localhost/dbgen'
-    bad_config_contents = f'# DBgen Config\ndbgen_main_dsn = {bad_url}'
-    config_file.write(bad_config_contents)
-    results = runner.invoke(app, ['connect', '-c', config_file])
-    print(results.stdout)
-    assert results.exit_code == 2
+# def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config_dsn):
+#     """Test basic use of the dbgen connect command."""
+#     config_file = tmpdir.mkdir("sub").join("config_file.env")
+#     bad_url = 'postgresql://non_existent:not_password@localhost/dbgen'
+#     bad_config_contents = f'# DBgen Config\ndbgen_main_dsn = {bad_url}'
+#     config_file.write(bad_config_contents)
+#     results = runner.invoke(app, ['connect', '-c', config_file])
+#     assert results.exit_code == 2
 
-    config_file = tmpdir.join("sub").join("config_file_1.env")
-    config_file.write(bad_config_contents)
-    results = runner.invoke(app, ['connect', '-c', config_file, '--test'])
-    print(results.stdout)
-    assert 'Cannot connect to' in results.stdout
-    assert results.exit_code == 2
+#     config_file = tmpdir.join("sub").join("config_file_1.env")
+#     config_file.write(bad_config_contents)
+#     results = runner.invoke(app, ['connect', '-c', config_file, '--test'])
+#     assert 'Cannot connect to' in results.stdout
+#     assert results.exit_code == 2
 
-    config_file.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
-    results = runner.invoke(app, ['connect', '-c', config_file])
-    print(results.stdout)
-    assert results.exit_code == 0
+#     config_file.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
+#     results = runner.invoke(app, ['connect', '-c', config_file])
+#     assert results.exit_code == 0
 
 
 def test_run(tmpdir, sql_engine, reset_config_dsn):
