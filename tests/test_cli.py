@@ -64,12 +64,7 @@ def test_config_does_not_exist(tmpdir, sql_engine, reset_config_dsn):
     original_dsn = config.main_dsn
     config_file.write('# Nothing')
     results = runner.invoke(app, ['config', '-c', config_file])
-    assert original_dsn in results.stdout
-    assert results.exit_code == 0
-    # Set real dsn
-    config_file.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}\n')
-    results = runner.invoke(app, ['config', '-c', config_file])
-    assert str(sql_engine.url) in results.stdout
+    assert str(original_dsn) in results.stdout
     assert results.exit_code == 0
 
 
@@ -88,16 +83,19 @@ def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config_dsn):
     bad_config_contents = f'# DBgen Config\ndbgen_main_dsn = {bad_url}'
     config_file.write(bad_config_contents)
     results = runner.invoke(app, ['connect', '-c', config_file])
+    print(results.stdout)
     assert results.exit_code == 2
 
     config_file = tmpdir.join("sub").join("config_file_1.env")
     config_file.write(bad_config_contents)
     results = runner.invoke(app, ['connect', '-c', config_file, '--test'])
+    print(results.stdout)
     assert 'Cannot connect to' in results.stdout
     assert results.exit_code == 2
 
     config_file.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
     results = runner.invoke(app, ['connect', '-c', config_file])
+    print(results.stdout)
     assert results.exit_code == 0
 
 

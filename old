@@ -1,0 +1,10 @@
+# DBgen Settings
+dbgen_main_dsn = postgresql://mstatt:northforest@localhost:5432/dbgen
+dbgen_main_schema = public
+dbgen_main_password =
+dbgen_meta_schema = test
+dbgen_model_str = model.main:make_model
+dbgen_batch_size = 100
+dbgen_temp_dir = /tmp
+dbgen_validation = coerce
+dbgen_pdb = False
