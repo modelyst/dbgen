@@ -15,13 +15,14 @@
 from itertools import product
 
 import pytest
+from pydantic.tools import parse_obj_as
 from sqlalchemy.future import Engine
 from sqlmodel import Session, select
 from typer.testing import CliRunner
 
 from dbgen import __version__
 from dbgen.cli.main import app
-from dbgen.configuration import DBgenConfiguration, config
+from dbgen.configuration import DBgenConfiguration, PostgresqlDsn, config
 from tests.example.full_model import Child
 
 runner = CliRunner()
@@ -50,8 +51,9 @@ def test_config(tmpdir, show_passwords: bool, show_defaults: bool):
     assert new_config.read() == DBgenConfiguration().display(True, True)
 
 
-def test_config_does_not_exist(tmpdir, reset_config):
+def test_config_does_not_exist(tmpdir, reset_config_dsn):
     """Test basic use of the dbgen config command."""
+    config.main_dsn = parse_obj_as(PostgresqlDsn, "postgresql://postgres@localhost:5432/dbgen")
     config_file = tmpdir.mkdir("sub").join("config.env")
     results = runner.invoke(app, ['config', '-c', config_file])
     assert results.exit_code == 2
@@ -63,6 +65,7 @@ def test_config_does_not_exist(tmpdir, reset_config):
     assert results.exit_code == 0
     config_file.write('# DBgen Settings\ndbgen_main_dsn = postgresql://test:test@localhost:5432/dbgen\n')
     results = runner.invoke(app, ['config', '-c', str(config_file)])
+    print(results.stdout)
     assert 'postgresql://test:test@localhost:5432/dbgen' in results.stdout
     assert results.exit_code == 0
 
@@ -75,10 +78,12 @@ def test_connect(tmpdir, sql_engine: Engine):
     assert results.exit_code == 0
 
 
-def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config):
+def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config_dsn):
     """Test basic use of the dbgen connect command."""
     config_file = tmpdir.mkdir("sub").join("config_file.env")
-    bad_config_contents = '# DBgen Config\ndbgen_main_dsn = postgresql://postgres:bad@localhost/dbgen'
+    bad_config_contents = (
+        '# DBgen Config\ndbgen_main_dsn = postgresql://non_existent:not_password@localhost/dbgen'
+    )
     config_file.write(bad_config_contents)
     results = runner.invoke(app, ['connect', '-c', config_file])
     assert results.exit_code == 2
@@ -94,7 +99,7 @@ def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config):
     assert results.exit_code == 0
 
 
-def test_run(tmpdir, sql_engine, reset_config):
+def test_run(tmpdir, sql_engine, reset_config_dsn):
     """Test basic use of the dbgen run command."""
     config_file = tmpdir.mkdir("sub").join("good.env")
     config_file.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
@@ -109,7 +114,7 @@ def test_run(tmpdir, sql_engine, reset_config):
         assert len(children) == 1002
 
 
-def test_run_status(tmpdir, sql_engine, reset_config):
+def test_run_status(tmpdir, sql_engine, reset_config_dsn):
     """Test basic use of the dbgen run command."""
     config_file = tmpdir.mkdir("sub").join("good.env")
     config_file.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')

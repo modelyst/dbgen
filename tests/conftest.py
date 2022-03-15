@@ -18,7 +18,7 @@ import pytest
 from psycopg import connect as pg3_connect
 from sqlmodel import create_engine, text
 
-from dbgen.configuration import DBgenConfiguration, config
+from dbgen.configuration import config
 from dbgen.core.entity import BaseEntity
 from dbgen.core.metadata import meta_registry
 
@@ -82,9 +82,8 @@ def recreate_meta(connection):
 
 
 @pytest.fixture(scope='function')
-def reset_config():
+def reset_config_dsn():
     global config
-    old_config = config.copy()
-    config.update(DBgenConfiguration(), set_defaults=True)
+    old_dsn = config.main_dsn
     yield
-    config.update(old_config)
+    config.main_dsn = old_dsn
