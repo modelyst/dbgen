@@ -66,5 +66,6 @@ jobs:
         env:
           # The hostname used to communicate with the PostgreSQL service container
           DBGEN_MAIN_DSN: postgresql://postgres:postgres@localhost:5432/dbgen
+          TEST_DSN: postgresql://postgres:postgres@localhost:5432/dbgen
       - name: Upload coverage
         uses: codecov/codecov-action@v1
