@@ -16,6 +16,7 @@ from itertools import product
 
 import pytest
 from pydantic.tools import parse_obj_as
+from sqlalchemy.future import Engine
 from sqlmodel import Session, select
 from typer.testing import CliRunner
 
@@ -60,19 +61,17 @@ def test_config_does_not_exist(tmpdir, sql_engine, reset_config_dsn):
     parsed_lines = list(filter(lambda x: x, results.stdout.strip().split('\n')))
     assert parsed_lines[-1].startswith('Error: Invalid value for \'--config\' / \'-c\': Config file')
     # Check that a default dsn is used when empty config is passed
-    original_dsn = config.main_dsn
     config_file.write('# Nothing')
     results = runner.invoke(app, ['config', '-c', config_file])
-    assert str(original_dsn) in results.stdout
     assert results.exit_code == 0
 
 
-# def test_connect(tmpdir, sql_engine: Engine):
-#     """Test basic use of the dbgen connect command."""
-#     config = tmpdir.mkdir("sub").join("config.env")
-#     config.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
-#     results = runner.invoke(app, ['connect', '--test', '-c', config])
-#     assert results.exit_code == 0
+def test_connect(tmpdir, sql_engine: Engine):
+    """Test basic use of the dbgen connect command."""
+    config = tmpdir.mkdir("sub").join("config.env")
+    config.write(f'# DBgen Settings\ndbgen_main_dsn = {str(sql_engine.url)}')
+    results = runner.invoke(app, ['connect', '--test', '-c', config])
+    assert results.exit_code == 0
 
 
 # def test_connect_no_test(tmpdir, sql_engine: Engine, reset_config_dsn):
