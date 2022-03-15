@@ -19,4 +19,5 @@ autoflake \
     --ignore-init-module-imports \
     --exclude src/dbgen/types.py \
     -r \
-    src/dbgen
+    src/dbgen \
+    tests

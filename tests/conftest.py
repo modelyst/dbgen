@@ -18,9 +18,14 @@ import pytest
 from psycopg import connect as pg3_connect
 from sqlmodel import create_engine, text
 
-from dbgen.configuration import config
+from dbgen.configuration import DBgenConfiguration, config
 from dbgen.core.entity import BaseEntity
 from dbgen.core.metadata import meta_registry
+
+
+@pytest.fixture(autouse=True)
+def set_testing():
+    config.testing = True
 
 
 @pytest.fixture()
@@ -74,3 +79,12 @@ def recreate_meta(connection):
     meta_registry.metadata.drop_all(connection)
     meta_registry.metadata.create_all(connection)
     yield
+
+
+@pytest.fixture(scope='function')
+def reset_config():
+    global config
+    old_config = config.copy()
+    config.update(DBgenConfiguration(), set_defaults=True)
+    yield
+    config.update(old_config)

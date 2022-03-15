@@ -42,6 +42,9 @@ class ValidationEnum(str, Enum):
     OFF = 'off'
 
 
+hidden_options = ('pdb', 'testing')
+
+
 class DBgenConfiguration(BaseSettings):
     """Settings for the pg4j, especially database connections."""
 
@@ -56,6 +59,7 @@ class DBgenConfiguration(BaseSettings):
     temp_dir: Path = Path(tempfile.gettempdir())
     validation: ValidationEnum = ValidationEnum.COERCE
     pdb: bool = False
+    testing: bool = False
 
     class Config:
         """Pydantic configuration"""
@@ -81,7 +85,7 @@ class DBgenConfiguration(BaseSettings):
     def display(self, show_defaults: bool = False, show_passwords: bool = False):
         params = []
         for key, val in self.dict().items():
-            if val is not None:
+            if val is not None and key not in hidden_options:
                 str_val = f'{val.get_secret_value()}' if show_passwords and "password" in key else val
                 if show_defaults or key in self.__fields_set__:
                     params.append(f"dbgen_{key} = {str_val}")
@@ -91,6 +95,11 @@ class DBgenConfiguration(BaseSettings):
         params_str = "\n".join(params)
         output = f"""# DBgen Settings\n{params_str}"""
         return dedent(output)
+
+    def update(self, new_config: 'DBgenConfiguration', set_defaults: bool = False):
+        for field in self.__fields__:
+            if field in new_config.__fields_set__ or set_defaults:
+                setattr(self, field, getattr(new_config, field))
 
     def __str__(self):
         return self.display()
@@ -113,8 +122,7 @@ def update_config(config_file: 'Path') -> DBgenConfiguration:
             " To set this variable, please use the DBGEN_CONFIG environmental variable rather than the -c/--config CLI argument."
             f" For example, set `DBGEN_CONFIG={str(config_file)!r}` before running dbgen."
         )
-    new_config_kwargs = {**config.dict(), **input_config.dict()}
-    config = DBgenConfiguration.parse_obj(new_config_kwargs)
+    config.update(input_config)
     return config
 
 

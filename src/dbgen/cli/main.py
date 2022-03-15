@@ -11,10 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-import contextlib
 import subprocess
 from enum import Enum
-from io import StringIO
 from pathlib import Path
 from typing import Optional
 
@@ -115,9 +113,10 @@ def test_conn(
                 )
                 raise typer.Exit(2)
             # If we have valid executible run the command with the dsn provided
-            subprocess.check_call(
-                [exes[0], conn.url(False, True)],
-            )
+            if not config.testing:
+                subprocess.check_call(
+                    [exes[0], conn.url(False, True)],
+                )
         except subprocess.CalledProcessError as exc:
             styles.bad_typer_print("Error connecting!")
             styles.bad_typer_print(exc)
@@ -125,21 +124,16 @@ def test_conn(
         raise typer.Exit()
 
     styles.delimiter()
+    failed = False
     for conn, label in zip((main_conn, meta_conn), ("Main", "Meta")):
         styles.good_typer_print(f"Checking {label} DB...")
-        new_stdout = StringIO()
-        with contextlib.redirect_stdout(new_stdout):
-            check = conn.test()
-        test_output = "\n".join(new_stdout.getvalue().strip().split("\n")[1:])
+        check = conn.test()
         if check:
             styles.good_typer_print(
                 f"Connection to {label} DB at {conn.url(not show_password,True)} all good!"
             )
-            if test_output:
-                styles.good_typer_print(test_output)
         else:
             styles.bad_typer_print(f"Cannot connect to {label} DB at {conn.url(not show_password,True)}!")
-            if test_output:
-                styles.bad_typer_print("Error Message:")
-                styles.bad_typer_print("\n".join(["\t" + line for line in test_output.split("\n")]))
+            failed = True
         styles.delimiter()
+    raise typer.Exit(code=2 if failed else 0)
