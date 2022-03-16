@@ -18,12 +18,24 @@ from io import StringIO
 from logging import Formatter, Logger
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from textwrap import dedent
 from typing import Tuple
 
-from rich.console import Console
-from rich.logging import RichHandler
-from rich.traceback import install
-
+# Add error message as this is first module imported by dbgen
+try:
+    from rich.console import Console
+    from rich.logging import RichHandler
+    from rich.traceback import install
+except ModuleNotFoundError:
+    print(
+        dedent(
+            """
+    ERROR: It appears that rich, a required dbgen python dependency, is not installed. This is commonly caused by DBgen not being installed correctly. \n\
+    Please reference https://dbgen.modelyst.com/pages/common_errors/#missing-module-error for more details. The full error can be seen below.
+    """
+        )
+    )
+    raise
 install()
 
 logging_console = Console()
