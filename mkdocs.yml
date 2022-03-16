@@ -72,20 +72,20 @@ plugins:
               - "^__init__$" # but always include __init__ modules and methods
 nav:
   - Introduction: index.md
-  - Installation: installation.md
-  - Getting Started: getting_started.md
-  - Database Basics and Terminology: database_basics.md
-  - DBgen Overview and Concepts: overview_and_concepts.md
+  - Installation: pages/installation.md
+  - Getting Started: pages/getting_started.md
+  - Database Basics and Terminology: pages/database_basics.md
+  - DBgen Overview and Concepts: pages/overview_and_concepts.md
   - Tutorial:
-    - Directory Structure: tutorial/01_directory_structure.md
-    - Defining the Schema: tutorial/02_defining_schema.md
-    - CSV to Database: tutorial/03_csv_to_db.md
-    - Custom Text File to Database: tutorial/04_handling_data_custom_formats.md
-    - Refining Data in the Database: tutorial/05_refining_data.md
-  - Running and Debugging Models: running_and_debugging.md
-  - Common Errors: common_errors.md
-  - Technical Documentation: technical_documentation.md
-  - License: license.md
+    - Directory Structure: pages/tutorial/01_directory_structure.md
+    - Defining the Schema: pages/tutorial/02_defining_schema.md
+    - CSV to Database: pages/tutorial/03_csv_to_db.md
+    - Custom Text File to Database: pages/tutorial/04_handling_data_custom_formats.md
+    - Refining Data in the Database: pages/tutorial/05_refining_data.md
+  - Running and Debugging Models: pages/running_and_debugging.md
+  - Common Errors: pages/common_errors.md
+  # - Technical Documentation: technical_documentation.md
+  - License: pages/license.md
 extra_css:
   - css/termynal.css
   - css/custom.css
