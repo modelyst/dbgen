@@ -38,6 +38,7 @@ cookiecutter = {version = "^1.7.3"}
 modelyst-sqlmodel = "^0.0.8"
 networkx = "^2.6.3"
 psutil = "^5.9.0"
+psycopg = {version = "^3.0.10", extras = ["pool"]}
 psycopg2-binary = "^2.9.1"
 pydantic = {version = "^1.8.2", extras = ["dotenv"]}
 pydasher = "^0.0.13"
@@ -45,7 +46,6 @@ python = ">=3.8,<4.0"
 rich = "^11.1.0"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
-psycopg = {version = "^3.0.10", extras = ["pool"]}
 
 [tool.poetry.dev-dependencies]
 Faker = "^12.3.3"
