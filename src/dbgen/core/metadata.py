@@ -82,7 +82,7 @@ class RunEntity(Root, registry=meta_registry, table=True):
     __tablename__ = "run"
     id: Optional[int] = Field(None, sa_column_kwargs={"autoincrement": True, "primary_key": True})
     status: Optional[Status]
-    nuke: Optional[bool]
+    build: Optional[bool]
     only: Optional[str]
     exclude: Optional[str]
     start: Optional[str]

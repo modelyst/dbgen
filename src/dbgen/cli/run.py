@@ -34,7 +34,7 @@ from dbgen.cli.options import (
     version_option,
 )
 from dbgen.cli.queries import get_runs
-from dbgen.cli.utils import confirm_nuke, set_confirm, test_connection, validate_model_str
+from dbgen.cli.utils import confirm_build, set_confirm, test_connection, validate_model_str
 from dbgen.configuration import config, get_connections, root_logger, stdout_handler
 from dbgen.core.metadata import ETLStepRunEntity, ModelEntity, RunEntity, Status
 from dbgen.core.run.utilities import RunConfig
@@ -123,10 +123,10 @@ def run_model(
     retry: bool = typer.Option(False, help="Ignore repeat checking"),
     start: Optional[str] = typer.Option(None, help="ETLStep to start run at"),
     until: Optional[str] = typer.Option(None, help="ETLStep to finish run at."),
-    nuke: bool = typer.Option(
+    build: bool = typer.Option(
         None,
-        help="Delete the entire db and meta schema.",
-        callback=confirm_nuke,
+        help="Delete the entire db and meta schema and rebuild from scratch.",
+        callback=confirm_build,
     ),
     level: LogLevel = typer.Option(LogLevel.INFO, help='Use the RemoteETLStep Runner'),
     bar: bool = typer.Option(True, help="Show progress bar"),
@@ -222,7 +222,7 @@ def run_model(
             main_engine,
             meta_engine,
             run_config,
-            nuke=nuke,
+            build=build,
             rerun_failed=rerun_failed,
             remote=remote,
             run_async=run_async,

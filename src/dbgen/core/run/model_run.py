@@ -58,7 +58,7 @@ class ModelRun(Base):
         main_engine: Engine,
         meta_engine: Engine,
         run_config: RunConfig = None,
-        nuke: bool = False,
+        build: bool = False,
         run_async: bool = False,
         remote: bool = False,
         rerun_failed: bool = False,
@@ -67,7 +67,7 @@ class ModelRun(Base):
         if run_config is None:
             run_config = RunConfig()
         # Sync the Database statew with the model state
-        self.model.sync(main_engine, meta_engine, nuke=nuke)
+        self.model.sync(main_engine, meta_engine, build=build)
 
         # If doing last failed run query for ETLSteps to run and add to include
         if rerun_failed:

@@ -42,7 +42,7 @@ services:
       - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
       - DBGEN__CORE__DB_SCHEMA=public
       - DBGEN__LOGGING__LOG_TO_STDOUT=true
-    command: python -m dbgen run dbgen.example.main:model --no-bar -y --nuke
+    command: python -m dbgen run dbgen.example.main:model --no-bar -y --build
     labels:
       - dockerfile=${DBGEN_DOCKER_FILE}
   grafana:

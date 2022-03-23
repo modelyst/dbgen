@@ -58,5 +58,5 @@ services:
       - run
       - dbgen.example.main:make_model
       - --no-bar
-      - --nuke
+      - --build
       - -y

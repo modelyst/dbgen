@@ -101,8 +101,8 @@ In the `load` line, we specify which outputs from previous extracts and transfor
 
 ### Running the Model
 
-Now that the model has one complete ETL step, we can run the model, which creates and populates the database. The command `dbgen run` is used to run models. Since this is the first time we are running the model, we need to add the `--nuke` flag.
+Now that the model has one complete ETL step, we can run the model, which creates and populates the database. The command `dbgen run` is used to run models. Since this is the first time we are running the model, we need to add the `--build` flag.
 
-```dbgen run --nuke```
+```dbgen run --build```
 
 To see information about the attempted run of the model, enter the command `dbgen run status`. In this case, we should see that 10 rows have been inserted.

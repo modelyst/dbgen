@@ -119,7 +119,7 @@ class Model(Base):
         main_engine: Engine,
         meta_engine: Engine,
         run_config: "RunConfig" = None,
-        nuke: bool = False,
+        build: bool = False,
         rerun_failed: bool = False,
         remote: bool = True,
         run_async: bool = True,
@@ -136,13 +136,13 @@ class Model(Base):
             main_engine=main_engine,
             meta_engine=meta_engine,
             run_config=run_config,
-            nuke=nuke,
+            build=build,
             run_async=run_async,
             remote=remote,
             rerun_failed=rerun_failed,
         )
 
-    def sync(self, main_engine: Engine, meta_engine: Engine, nuke: bool = False) -> None:
+    def sync(self, main_engine: Engine, meta_engine: Engine, build: bool = False) -> None:
         """Syncs the state of the models registry with the database."""
         # Inspect the schemas and make sure they all exist
         for engine, metadata in (
@@ -154,8 +154,8 @@ class Model(Base):
             current_schemas = inspector.get_schema_names()
 
             # Nuking drops all tables in the schemas of the model
-            if nuke:
-                self.nuke(engine, metadata=metadata, schemas=expected_schemas)
+            if build:
+                self.build(engine, metadata=metadata, schemas=expected_schemas)
 
             missing_schema = {x for x in expected_schemas if x not in current_schemas}
             for schema in missing_schema:
@@ -169,19 +169,19 @@ class Model(Base):
         # Create meta schema
         self.meta_registry.metadata.create_all(meta_engine)
 
-    def nuke(
+    def build(
         self,
         engine: Engine,
         metadata: MetaData,
         schemas: Optional[Iterable[Optional[str]]] = None,
-        nuke_all: bool = False,
+        build_all: bool = False,
     ) -> None:
         # Validate and set the schema
         schemas = schemas or []
         if not schemas:
             # Nuke all grabs all schemas in the database
             # Otherwise we use None and the default schema in the engine will be dropped
-            if nuke_all:
+            if build_all:
                 schemas = inspect(engine).get_schema_names()
             else:
                 schemas = [None]
@@ -206,7 +206,7 @@ class Model(Base):
                 #     f"Nuking has failed! Dependent objects exist that SQL alchemy cannot successfully drop from the schema {schema!r}.\n"
                 #     f"This often occurs when Views exist in the schema. Please drop these views manually by running 'DROP SCHEMA {schema} CASCADE'"
                 # )
-            self._logger.info(f"Schema {schema!r} nuked.")
+            self._logger.info(f"Schema {schema!r} rebuilt.")
 
     def _get_model_row(self):
         graph = self._etl_step_graph()

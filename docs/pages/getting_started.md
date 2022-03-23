@@ -27,7 +27,7 @@ Create a file called `hello_world.py` that contains this code:
 Then, to run the model (and therefore build the database and populate it), run from the command line:
 
 ```bash
-$ dbgen run --model hello_world:make_model --nuke
+$ dbgen run --model hello_world:make_model --build
 ```
 
 To see the result, you can run the following command to connect to the database...

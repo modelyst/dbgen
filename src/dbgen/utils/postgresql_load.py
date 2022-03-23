@@ -29,8 +29,8 @@ if TYPE_CHECKING:
     from dbgen.core.node.load import LoadEntity
 
 # Error messages
-MISSING_COLUMN_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This commonly occurs when a column is added to an entity without being effectively synced with the database. An easy fix is to rerun the model with --nuke, if this is not possible you can manually add the column. If this column "
-MISSING_ID_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This can occur when the entities in the model comes out of sync with the database. Since {column} is an identifying column of {name!r} the id hashes for the rows in the table will change when adding this column therefore you must rebuild the database with --nuke."
+MISSING_COLUMN_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This commonly occurs when a column is added to an entity without being effectively synced with the database. An easy fix is to rerun the model with --build, if this is not possible you can manually add the column. If this column "
+MISSING_ID_ERROR = "An ETLStep is trying to load into the entity {name!r}, however {column} does not exist. This can occur when the entities in the model comes out of sync with the database. Since {column} is an identifying column of {name!r} the id hashes for the rows in the table will change when adding this column therefore you must rebuild the database with --build."
 
 # SQL Statements for the get_statements function
 CREATE_TABLE_STATEMENT = """

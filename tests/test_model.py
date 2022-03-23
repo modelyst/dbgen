@@ -62,7 +62,7 @@ def test_model_sync(sql_engine):
         __schema__ = "other_schema"
 
     model = Model(name="test_model", registry=sa_registry)
-    model.nuke(sql_engine, sa_registry.metadata, nuke_all=True)
+    model.build(sql_engine, sa_registry.metadata, build_all=True)
 
     for stmt in (select(Dummy.id), select(DummyOtherSchema.id)):
         with sql_engine.connect() as conn:
@@ -76,7 +76,7 @@ def test_model_sync(sql_engine):
         result = conn.execute(select(DummyOtherSchema.id)).one_or_none()
         assert result is None
 
-    model.nuke(sql_engine, sa_registry.metadata, schemas=["other_schema"])
+    model.build(sql_engine, sa_registry.metadata, schemas=["other_schema"])
 
 
 def test_empty_model(sql_engine):

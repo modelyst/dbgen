@@ -40,7 +40,7 @@ $ dbgen run --model [module_name]:[function_name]
 
 ...where the `[module_name]` and `[function_name]` refer to the location in the code where the function that returns the dbgen model is stored.
 
-### The --nuke flag
+### The --build flag
 
 When this flag is set, the existing database is torn down completely before the model is run. This needs to be done if you have made a change to the schema since the last time you ran the model.
 
