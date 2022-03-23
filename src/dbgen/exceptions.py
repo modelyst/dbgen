@@ -117,3 +117,7 @@ class LoaderError(AsyncRunError):
 
 class ModelRunError(DBgenException):
     """Error raised when a model is run."""
+
+
+class MissingImportError(DBgenException):
+    """Error raised an import is missing."""
