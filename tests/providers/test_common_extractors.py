@@ -20,7 +20,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from dbgen.providers.common.extract import CSVExtractor, FileExtractor, YamlExtractor
+from dbgen.providers.common.extract import CSVExtractor, FileExtractor, FileNameExtractor, YamlExtractor
 
 # Test data
 rows = [
@@ -102,6 +102,7 @@ def test_csv_with_header(tmpdir: Path, example_csv_with_header: StringIO):
     extract = CSVExtractor(path=test_file, has_header=True, outputs=columns)
     with extract:
         assert extract._reader
+        assert extract.length() == 3
         for row, extracted_row in zip(rows, extract.extract()):
             assert row == extracted_row
 
@@ -112,6 +113,7 @@ def test_csv_without_header(tmpdir: Path, example_csv: StringIO):
     extract = CSVExtractor(path=test_file, has_header=False, outputs=columns)
     with extract:
         assert extract._reader
+        assert extract.length() == 3
         for row, extracted_row in zip(rows, extract.extract()):
             assert row == extracted_row
 
@@ -135,6 +137,17 @@ def test_file_extractor(tmpdir: Path):
         assert extract.length() == 3
         for file_name, contents in extract.extract():
             assert Path(file_name).name.split('.')[0] == contents
+
+
+def test_file_name_extractor(tmpdir: Path):
+    for i in range(3):
+        test_file = tmpdir / f'{i}.txt'
+        test_file.write_text(f'{i}', encoding='utf-8')
+    extract = FileNameExtractor(directory=tmpdir, pattern=r'.*\.txt')
+    with extract:
+        assert extract.length() == 3
+        file_names = [x.name.split('.')[0] for x in sorted(extract.extract())]
+        assert file_names == list(map(str, file_names))
 
 
 def test_file_extractor_no_files(tmpdir: Path):

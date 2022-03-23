@@ -95,7 +95,11 @@ class CSVExtractor(Extract[Dict[str, str]]):
         self._file.close()
 
     def length(self):
-        return len(csv.DictReader)
+        count = sum(1 for _ in self._reader)
+        self._file.seek(0)
+        fieldnames = None if self.has_header else self.outputs
+        self._reader = csv.DictReader(self._file, fieldnames=fieldnames)
+        return count
 
     def extract(self) -> Generator[Dict[str, str], None, None]:
         yield from self._reader
