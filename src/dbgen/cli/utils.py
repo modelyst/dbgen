@@ -45,15 +45,15 @@ state: Dict[str, Union[bool, Path, None]] = {"confirm": True, 'verbose': True, '
 
 
 # Callback functions for parsing and validating args
-def confirm_nuke(value: bool):
+def confirm_build(value: bool):
     """
-    Confirm that user wants to nuke database
+    Confirm that user wants to rebuild database
 
     Args:
-        value (bool): nuke_value
+        value (bool): rebuild_value
     """
     if value and state["confirm"]:
-        confirm = input("Are you sure you want to nuke the database? (Y/n) ")
+        confirm = input("Are you sure you want to rebuild the database? (Y/n) ")
         if confirm.lower() != "y":
             exit(1)
     return value

@@ -70,7 +70,7 @@ def test_model(simple_model: Model):
 
 @pytest.mark.parametrize('run_async', (False, True), ids=['sync', 'async'])
 def test_full_model_run(simple_model: Model, sql_engine: Engine, run_async: bool):
-    run = simple_model.run(sql_engine, sql_engine, nuke=True, run_async=run_async)
+    run = simple_model.run(sql_engine, sql_engine, build=True, run_async=run_async)
     assert run.status == 'completed'
     with Session(sql_engine) as session:
         parent, child = session.exec(select(Father, Son).join(Son).where(Son.first_name == 'Bart')).one()
