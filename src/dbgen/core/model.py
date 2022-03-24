@@ -153,7 +153,7 @@ class Model(Base):
             expected_schemas = {x.schema for x in metadata.tables.values() if x.schema}
             current_schemas = inspector.get_schema_names()
 
-            # Nuking drops all tables in the schemas of the model
+            # Rebuilding drops all tables in the schemas of the model
             if build:
                 self.build(engine, metadata=metadata, schemas=expected_schemas)
 
@@ -191,10 +191,12 @@ class Model(Base):
         try:
             metadata.drop_all(engine)
         except sqlalchemy.exc.InternalError as exc:
-            raise DatabaseError("Error occurred during nuking. Please drop the schema manually...") from exc
+            raise DatabaseError(
+                "Error occurred during rebuilding. Please drop the schema manually..."
+            ) from exc
         # Iterate through the schemas this metadata describes and drop all the tables within them
         for schema in schemas:
-            self._logger.info(f"Nuking the schema={schema!r}...")
+            self._logger.info(f"Rebuilding the schema={schema!r}...")
             metadata = MetaData()
             metadata.reflect(engine, schema=schema)
             try:
@@ -203,7 +205,7 @@ class Model(Base):
                 with engine.begin() as conn:
                     conn.execute(text(f'DROP SCHEMA {schema} CASCADE'))
                 # raise ValueError(
-                #     f"Nuking has failed! Dependent objects exist that SQL alchemy cannot successfully drop from the schema {schema!r}.\n"
+                #     f"Rebuilding has failed! Dependent objects exist that SQL alchemy cannot successfully drop from the schema {schema!r}.\n"
                 #     f"This often occurs when Views exist in the schema. Please drop these views manually by running 'DROP SCHEMA {schema} CASCADE'"
                 # )
             self._logger.info(f"Schema {schema!r} rebuilt.")
