@@ -1,5 +1,5 @@
 from dbgen import Constant, ETLStep, Model
-from dbgen.core.node.common_extractors import FileExtractor
+from dbgen.providers.common.extract import FileExtractor
 
 from ..constants import DATA_PATH
 from ..schema import MyTable
