@@ -47,6 +47,7 @@ rich = "^11.1.0"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
 types-PyYAML = "^6.0.5"
+Jinja2 = "3.0.3"
 
 [tool.poetry.dev-dependencies]
 Faker = "^12.3.3"
