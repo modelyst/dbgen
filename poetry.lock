@@ -4,7 +4,7 @@ boto3 = ["boto3"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "acbce96aa4a176494d29b5b47aa2de55e474d339d42408143751a535d7f186c1"
+content-hash = "a6e0950a06e55498a0ac01277415501efc70c61930e5abb724203d4b707396eb"
 
 [metadata.files]
 arrow = [
@@ -2069,7 +2069,7 @@ python-versions = "*"
 name = "pyyaml"
 version = "6.0"
 description = "YAML parser and emitter for Python"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
