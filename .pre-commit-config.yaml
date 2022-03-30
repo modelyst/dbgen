@@ -27,20 +27,10 @@ repos:
         stages: [commit-msg]
         args: []
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.9
+    rev: v1.1.13
     hooks:
       - id: forbid-tabs
         exclude: ^docs/Makefile$|^clients/gen/go.sh|\.gitmodules$
-      - id: insert-license
-        name: Add license for all JINJA template files
-        files: ^src/.*\.jinja$
-        exclude: ^\.github/.*$
-        args:
-          - --comment-style
-          - "{#||#}"
-          - --license-filepath
-          - license-templates/LICENSE.txt
-          - --fuzzy-match-generates-todo
       - id: insert-license
         name: Add license for all shell files
         exclude: ^\.github/.*$|docs_src/
@@ -83,13 +73,13 @@ repos:
           - license-templates/LICENSE.txt
           - --fuzzy-match-generates-todo
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.3.0
     hooks:
       - id: black
         args: [--config=./pyproject.toml]
         exclude: ^examples/simple
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v4.1.0
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
@@ -105,29 +95,30 @@ repos:
         args:
           - --remove
   - repo: https://github.com/python-poetry/poetry
-    rev: 31657e7e5c47da758c14645035e59eb7813ac2f8
+    rev: 1.2.0b1
     hooks:
       - id: poetry-check
       - id: poetry-lock
       - id: poetry-export
         args: ["-f", "requirements.txt", "-o", "requirements.txt"]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.10.0
+    rev: v2.31.1
     hooks:
       - id: pyupgrade
         args: ["--py36-plus"]
   - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: rst-backticks
       - id: python-no-log-warn
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.2.0
+    rev: v2.3.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix]
+        exclude: ^poetry.lock$
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.26.0
+    rev: v1.26.3
     hooks:
       - id: yamllint
         name: Check yaml files with yamllint
@@ -135,7 +126,7 @@ repos:
         types: [yaml]
         exclude: ^\.github
   - repo: https://github.com/timothycrosley/isort
-    rev: 5.7.0
+    rev: 5.10.1
     hooks:
       - id: isort
         args: ["-m", "3"]
@@ -144,7 +135,7 @@ repos:
         # To keep consistent with the global isort skip config defined in setup.cfg
         exclude: ^build/.*$|^.tox/.*$|^venv/.*|docker/
   - repo: https://github.com/pycqa/pydocstyle
-    rev: 5.1.1
+    rev: 6.1.1
     hooks:
       - id: pydocstyle
         name: Run pydocstyle
@@ -202,7 +193,7 @@ repos:
         additional_dependencies: ["flynt"]
         files: \.py$
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+    rev: 3.9.2
     hooks:
       - id: flake8
         args: ["--config", "setup.cfg", "src/dbgen"]
