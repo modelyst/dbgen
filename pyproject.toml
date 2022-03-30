@@ -46,8 +46,8 @@ python = ">=3.8,<4.0"
 rich = "^11.1.0"
 typer = "^0.4.0"
 typing-extensions = ">=3.10.0.1"
-PyYAML = "^6.0"
 types-PyYAML = "^6.0.5"
+PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 Faker = "^12.3.3"
@@ -73,6 +73,7 @@ pytest-benchmark = "^3.4.1"
 pytest-cov = "^2.12.1"
 pytest-sugar = "^0.9.4"
 moto = "^3.1.1"
+Jinja2 = "3.0.3"
 
 [tool.poetry.extras]
 boto3 = ["boto3"]
