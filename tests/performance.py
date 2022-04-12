@@ -109,7 +109,7 @@ if __name__ == "__main__":
     n_rows = int(sys.argv[1])
     output = defaultdict(list)
     max_int = 6
-    vals = list(map(lambda x: int(10 ** x), range(max_int)))
+    vals = list(map(lambda x: int(10**x), range(max_int)))
     for n_rows in vals:
         print("#" * 64)
         for func in (copy_insert, execute_many, session_add, session_add_no_car_gen):
