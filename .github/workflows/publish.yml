@@ -28,7 +28,7 @@ jobs:
         run: python -m poetry config virtualenvs.create false
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: python -m poetry install
+        run: python -m poetry install -E boto3
       - name: Publish
         env:
           PYPI_TOKEN: ${{ secrets.DBGEN_PYPI }}
