@@ -277,8 +277,9 @@ class Load(ComputationalNode[T]):
     ) -> Dict[str, List[UUID]]:
         not_list = lambda x: not isinstance(x, (list, tuple))
         lists_allowed = lambda x: self.load_entity.attributes[x].endswith('[]')
+        is_list_of_lists = lambda x: isinstance(x, list) and x and isinstance(x[0], list)
         arg_dict = {
-            key: [val] if not_list(val) or lists_allowed(key) else val
+            key: [val] if (not_list(val) or (lists_allowed(key) and not is_list_of_lists)) else val
             for key, val in sorted(self._get_inputs(row).items())
         }
         # Check for empty lists, as that will cause the row to be ignored
