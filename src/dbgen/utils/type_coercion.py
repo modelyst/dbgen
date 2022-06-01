@@ -16,6 +16,7 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from json import dumps
+from pathlib import PosixPath
 from typing import Any
 from uuid import UUID
 
@@ -65,5 +66,14 @@ class DictDumper(Dumper):
         return JsonbDumper(dict).dump(Jsonb(thing))
 
 
+# Create a dumper for dict types
+class PathDumper(Dumper):
+    oid = adapters.types.get_oid('path')
+
+    def dump(self, thing):
+        return str(thing).encode(encoding='utf-8')
+
+
 # Set the adapters for dicts and json
 adapters.register_dumper(dict, DictDumper)
+adapters.register_dumper(PosixPath, PathDumper)
