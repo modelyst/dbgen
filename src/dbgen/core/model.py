@@ -55,8 +55,8 @@ class Model(Base):
 
     def __exit__(self, *args):
         self._context.__exit__(*args)
-        self.validate(self)
         del self._context
+        self.validate(self)
 
     @validator("etl_steps")
     def unique_etl_step_names(cls, value: List[ETLStep]) -> List[ETLStep]:

@@ -69,6 +69,7 @@ class Base(HashMixIn, BaseModel, metaclass=BaseMeta):
         """Pydantic Config"""
 
         json_encoders = encoders
+        copy_on_model_validation = False
 
     @classmethod
     def canonical_name(cls) -> str:
