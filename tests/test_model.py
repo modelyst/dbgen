@@ -14,7 +14,7 @@
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import exc, select
+from sqlalchemy import exc, select, text
 from sqlalchemy.orm import registry
 
 from dbgen.core.dependency import Dependency
@@ -68,7 +68,8 @@ def test_model_sync(sql_engine):
         with sql_engine.connect() as conn:
             with pytest.raises(exc.ProgrammingError):
                 conn.execute(stmt).one_or_none()
-
+    with sql_engine.connect() as connection:
+        connection.execute(text('create schema if not exists other_schema'))
     model.sync(sql_engine, sql_engine, build=True)
     with sql_engine.connect() as conn:
         result = conn.execute(select(Dummy.id)).one_or_none()
@@ -77,6 +78,8 @@ def test_model_sync(sql_engine):
         assert result is None
 
     model.drop_metadata(sql_engine, sa_registry.metadata)
+    with sql_engine.connect() as connection:
+        connection.execute(text('drop schema other_schema'))
 
 
 def test_empty_model(sql_engine):
