@@ -19,8 +19,7 @@ from uuid import UUID
 from sqlalchemy import Column, func
 from sqlalchemy.orm import registry
 from sqlalchemy.sql.expression import text
-from sqlmodel import Field, select
-from sqlmodel.main import Relationship
+from sqlmodel import Field, Relationship, select
 from sqlmodel.sql.sqltypes import GUID, AutoString
 
 from dbgen.configuration import config

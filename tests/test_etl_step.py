@@ -133,6 +133,7 @@ def test_dumb_extractor(connection, sql_engine, clear_registry, recreate_meta):
     query = BaseQuery.from_select_statement(statement)
     query.set_connection(connection, None)
     assert query.length() == num_users
+    del query._connection
     pyblock = PythonTransform(function=transform_func, inputs=[query["label"]])
     u_load = TestUser.load(id=query["id"], new_label=pyblock["out"])
     run = RunEntity()

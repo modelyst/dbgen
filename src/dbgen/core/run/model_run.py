@@ -42,6 +42,11 @@ if TYPE_CHECKING:
 class ModelRun(Base):
     model: Model
 
+    class Config:
+        """Pydantic config"""
+
+        copy_on_model_validation = False
+
     def get_etl_step_run(self, etl_step: ETLStep, run_async: bool, remote: bool) -> BaseETLStepRun:
         if run_async:
             if remote:
@@ -100,7 +105,6 @@ class ModelRun(Base):
             )
             # Modify include to only include the etl_step_names that pass the test
             run_config.include = run_config.include.union(etl_step_names[start_idx:until_idx])
-            print(f"Only running etl_steps: {etl_step_names[start_idx:until_idx]} due to start/until")
             self._logger.debug(
                 f"Only running etl_steps: {etl_step_names[start_idx:until_idx]} due to start/until"
             )
