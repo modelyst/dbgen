@@ -16,6 +16,7 @@
 # Add those folders to the context so that they are available in the CI container
 !scripts/in_container
 !scripts/docker
+!scripts/build.sh
 
 # Add provider packages to the context
 !provider_packages
