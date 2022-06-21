@@ -11,7 +11,7 @@ ARG RUNTIME_APT_DEPS="\
     libpq-dev"
 
 ENV RUNTIME_APT_DEPS=${RUNTIME_APT_DEPS} \
-    POETRY_VERSION==1.1.11
+    POETRY_VERSION==1.2.0b2
 
 ARG ADDITIONAL_RUNTIME_APT_DEPS=""
 ENV ADDITIONAL_RUNTIME_APT_DEPS=${ADDITIONAL_RUNTIME_APT_DEPS}
@@ -57,7 +57,7 @@ ENV EXTRAS ${EXTRAS}
 # Need to touch these files or poetry complains!
 RUN mkdir -p ${DBGEN_HOME}/src/dbgen && touch ${DBGEN_HOME}/src/dbgen/__init__.py && touch ${DBGEN_HOME}/README.md
 RUN poetry config virtualenvs.in-project true \
-    && poetry install --no-dev
+    && poetry install --without dev -E boto3
 ENV PYTHONPATH=${DBGEN_HOME}:${PYTHONPATH}
 
 FROM python:${PYTHON_VERSION}-slim as final
