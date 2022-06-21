@@ -69,6 +69,7 @@ def test_build_io_obj(clear_registry, simple_load, sql_engine, raw_pg3_connectio
         type=Constant("child_type"),
         parent_id=parent_load,
     )
+    Child.metadata.drop_all(sql_engine)
     Child.metadata.create_all(sql_engine)
     n_rows = 1000
     namespace_rows = [{"pyblock": {"label": [i for i in range(n_rows)]}}]

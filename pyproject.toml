@@ -33,15 +33,14 @@ version = "0.6.1"
 
 [tool.poetry.dependencies]
 PyYAML = "^6.0"
-SQLAlchemy = "^1.4.25"
 boto3 = {version = "^1.21.0", optional = true}
 cookiecutter = {version = "^1.7.3"}
-modelyst-sqlmodel = "^0.0.8"
+modelyst-sqlmodel = "^0.0.9"
 networkx = "^2.6.3"
 psutil = "^5.9.0"
 psycopg = {version = "^3.0.10", extras = ["pool"]}
 psycopg2-binary = "^2.9.1"
-pydantic = {version = "^1.8.2", extras = ["dotenv"]}
+pydantic = "1.9.1"
 pydasher = "^0.0.13"
 python = ">=3.8,<4.0"
 rich = "^11.1.0"

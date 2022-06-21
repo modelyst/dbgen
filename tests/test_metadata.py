@@ -16,11 +16,12 @@ from typing import cast
 
 import pytest
 import sqlalchemy
-from sqlmodel import Session, func, select
+from sqlmodel import Session, func, select, text
 
 from dbgen.core.args import Constant
 from dbgen.core.etl_step import ETLStep
-from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity
+from dbgen.core.metadata import ETLStepEntity, ETLStepRunEntity, RunEntity, meta_registry
+from dbgen.core.model import Model
 from dbgen.core.node.query import BaseQuery
 from dbgen.core.node.transforms import PythonTransform
 from tests.example.full_model import Parent
@@ -115,3 +116,36 @@ def test_etl_step_run_insertion(connection, recreate_meta):
         etl_step_run = ETLStepRunEntity(run_id=run.id, etl_step_id=etl_step.id)
         sess.add(etl_step_run)
         sess.commit()
+
+
+def test_current_run_created(connection, recreate_meta):
+    connection.commit()
+    drop_metadata = Model(name='test').drop_metadata
+    check_current_run_exists = lambda: connection.execute(text('select * from dbgen_log.current_run;'))
+    check_current_run_exists()
+    drop_metadata(connection, meta_registry.metadata)
+    with pytest.raises(sqlalchemy.exc.ProgrammingError):
+        check_current_run_exists()
+    connection.rollback()
+    meta_registry.metadata.drop_all(connection)
+    with pytest.raises(sqlalchemy.exc.ProgrammingError):
+        check_current_run_exists()
+    connection.rollback()
+    meta_registry.metadata.create_all(connection)
+    check_current_run_exists()
+    connection.commit()
+    Model(name='test').meta_registry.metadata.drop_all(connection)
+    with pytest.raises(sqlalchemy.exc.ProgrammingError):
+        check_current_run_exists()
+
+
+def test_sync(sql_engine):
+    meta_registry.metadata.drop_all(sql_engine)
+    check_current_run_exists = lambda conn: conn.execute(text('select * from dbgen_log.current_run;'))
+    with sql_engine.connect() as connection:
+        with pytest.raises(sqlalchemy.exc.ProgrammingError):
+            check_current_run_exists(connection)
+
+    Model(name='test').sync(sql_engine, sql_engine, build=True)
+    with sql_engine.connect() as connection:
+        check_current_run_exists(connection)

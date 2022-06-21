@@ -14,7 +14,7 @@
 
 from collections import Counter
 from json import loads
-from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 from uuid import UUID
 
 import sqlalchemy
@@ -29,7 +29,7 @@ from dbgen.core.context import ModelContext
 from dbgen.core.entity import BaseEntity
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
-from dbgen.exceptions import DatabaseError, ModelRunError
+from dbgen.exceptions import ModelRunError
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
@@ -142,73 +142,47 @@ class Model(Base):
             rerun_failed=rerun_failed,
         )
 
-    def sync(self, main_engine: Engine, meta_engine: Engine, build: bool = False) -> None:
-        """Syncs the state of the models registry with the database."""
-        # Inspect the schemas and make sure they all exist
-        for engine, metadata in (
-            (main_engine, self.registry.metadata),
-            (meta_engine, self.meta_registry.metadata),
-        ):
-            inspector = inspect(engine)
-            expected_schemas = {x.schema for x in metadata.tables.values() if x.schema}
-            current_schemas = inspector.get_schema_names()
-
-            # Rebuilding drops all tables in the schemas of the model
-            if build:
-                self.build(engine, metadata=metadata, schemas=expected_schemas)
-
-            missing_schema = {x for x in expected_schemas if x not in current_schemas}
-            for schema in missing_schema:
-                self._logger.debug(f"Missing schema {schema}, creating now")
-                with engine.begin() as conn:
-                    conn.execute(text(f"CREATE SCHEMA {schema}"))
-
-        # Create all tables
-        self.registry.metadata.create_all(main_engine)
-
-        # Create meta schema
-        self.meta_registry.metadata.create_all(meta_engine)
-
-    def build(
+    def sync(
         self,
-        engine: Engine,
-        metadata: MetaData,
-        schemas: Optional[Iterable[Optional[str]]] = None,
-        build_all: bool = False,
+        main_engine: Engine,
+        meta_engine: Engine,
+        build: bool = False,
+        meta_only: bool = False,
+        create: bool = True,
     ) -> None:
-        # Validate and set the schema
-        schemas = schemas or []
-        if not schemas:
-            # Nuke all grabs all schemas in the database
-            # Otherwise we use None and the default schema in the engine will be dropped
-            if build_all:
-                schemas = inspect(engine).get_schema_names()
-            else:
-                schemas = [None]
+        """Syncs the state of the models registry with the database."""
+        if not build and not create:
+            raise ValueError("Not building and not creating, sync is doing nothing...")
+        if not meta_only:
+            if build:
+                self.drop_metadata(main_engine, self.registry.metadata)
+            if create:
+                self.create_metadata(main_engine, self.registry.metadata)
+        if build:
+            self.drop_metadata(meta_engine, self.meta_registry.metadata)
+        if create:
+            self.create_metadata(meta_engine, self.meta_registry.metadata)
 
-        assert isinstance(schemas, Iterable), f"schemas must be iterable: {schemas}"
-        # Drop the expected tables
+    def drop_metadata(self, engine: Engine, metadata: MetaData):
         try:
             metadata.drop_all(engine)
         except sqlalchemy.exc.InternalError as exc:
-            raise DatabaseError(
-                "Error occurred during rebuilding. Please drop the schema manually..."
-            ) from exc
-        # Iterate through the schemas this metadata describes and drop all the tables within them
-        for schema in schemas:
-            self._logger.info(f"Rebuilding the schema={schema!r}...")
-            metadata = MetaData()
-            metadata.reflect(engine, schema=schema)
-            try:
-                metadata.drop_all(engine)
-            except sqlalchemy.exc.InternalError:
-                with engine.begin() as conn:
-                    conn.execute(text(f'DROP SCHEMA {schema} CASCADE'))
-                # raise ValueError(
-                #     f"Rebuilding has failed! Dependent objects exist that SQL alchemy cannot successfully drop from the schema {schema!r}.\n"
-                #     f"This often occurs when Views exist in the schema. Please drop these views manually by running 'DROP SCHEMA {schema} CASCADE'"
-                # )
-            self._logger.info(f"Schema {schema!r} rebuilt.")
+            raise ValueError("Error occurred during rebuilding. Please drop the schema manually...") from exc
+
+    def create_metadata(self, engine: Engine, metadata: MetaData):
+        inspector = inspect(engine)
+        expected_schemas = {x.schema for x in self.meta_registry.metadata.tables.values() if x.schema}
+        current_schemas = inspector.get_schema_names()
+        missing_schema = {x for x in expected_schemas if x not in current_schemas}
+        for schema in missing_schema:
+            self._logger.debug(f"Missing schema {schema}, creating now")
+            with engine.begin() as conn:
+                conn.execute(text(f"CREATE SCHEMA {schema}"))
+        # Create meta schema
+        try:
+            metadata.create_all(engine)
+        except sqlalchemy.exc.InternalError as exc:
+            raise ValueError("Error occurred during database creation") from exc
 
     def _get_model_row(self):
         graph = self._etl_step_graph()
