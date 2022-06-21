@@ -171,7 +171,7 @@ class Model(Base):
 
     def create_metadata(self, engine: Engine, metadata: MetaData):
         inspector = inspect(engine)
-        expected_schemas = {x.schema for x in self.meta_registry.metadata.tables.values() if x.schema}
+        expected_schemas = {x.schema for x in metadata.tables.values() if x.schema}
         current_schemas = inspector.get_schema_names()
         missing_schema = {x for x in expected_schemas if x not in current_schemas}
         for schema in missing_schema:
