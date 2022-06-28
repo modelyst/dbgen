@@ -128,6 +128,8 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
 
         await conn_pool.check()
         loop = asyncio.get_running_loop()
+        # Remove the stored functions on the etl_step for pickling
+        etl_step.remove_stored_func()
         # Initialize the queues and type them
         transform_queue: asyncio.Queue[Tuple[Optional[UUID], Optional[NAMESPACE_TYPE]]] = asyncio.Queue()
         tform_results: asyncio.Queue[asyncio.Future[TRANSFORM_RETURN_TYPE]] = asyncio.Queue()

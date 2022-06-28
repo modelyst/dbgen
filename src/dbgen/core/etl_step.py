@@ -33,7 +33,7 @@ from dbgen.core.metadata import ETLStepEntity
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.load import Load
 from dbgen.core.node.query import BaseQuery
-from dbgen.core.node.transforms import Transform
+from dbgen.core.node.transforms import PythonTransform, Transform
 from dbgen.exceptions import DBgenMissingInfo, DBgenSkipException, ValidationError
 from dbgen.utils.graphs import topsort_with_dict
 
@@ -144,6 +144,12 @@ class ETLStep(Base):
                     continue
                 return None, None, None, inputs_skipped, traceback.format_exc()
         return processed_hashes, rows_to_load, len(batch), inputs_skipped, None
+
+    def remove_stored_func(self):
+        """Removes all stored functions on this ETLStep's PythonTransforms to allow for pickling."""
+        for node in self.transforms:
+            if isinstance(node, PythonTransform):
+                node.function.set_func(None)
 
     def _transform(self, namespace: dict, rows_to_load: Dict[str, Dict[UUID, dict]]):
         skipped = False

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #   Copyright 2021 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +12,10 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-# Write Git version
-python ./scripts/ci/pre_commit/pre_commit_write_gitversion.py
-VERSION=$(python -c "from dbgen import __version__; print(__version__)")
-for PYTHON_VERSION in '3.9'
-do
-echo $PYTHON_VERSION
-docker build . -t dbgen:$VERSION-py$PYTHON_VERSION -t dbgen:latest -f ./docker/dbgen/Dockerfile --build-arg PYTHON_VERSION=$PYTHON_VERSION
-done
-exit 0
+
+docker-compose -f docker/tests/full-model-compose.yml  up postgres -d
+docker-compose -f docker/tests/full-model-compose.yml  run  --rm dbgen-example run --no-bar
+docker-compose -f docker/tests/full-model-compose.yml  run  --rm dbgen-example run --no-bar --retry
+docker-compose -f docker/tests/full-model-compose.yml  run  --rm dbgen-example run --no-bar --build --async -y
+docker-compose -f docker/tests/full-model-compose.yml  run  --rm dbgen-example run --no-bar --retry --async
+docker-compose -f docker/tests/full-model-compose.yml  down

@@ -19,6 +19,10 @@ def basic_function(arg_1: int, arg_2: str, arg_3: float) -> str:
     return f"{arg_1}->{arg_2}->{arg_3}"
 
 
+def no_arg_func() -> int:
+    return 1
+
+
 basic_lambda = lambda arg_1, arg_2, arg_3: f"{arg_1}->{arg_2}->{arg_3}"
 
 
@@ -46,3 +50,21 @@ def test_func_from_callable():
     func = func_from_callable(basic_function)
     assert func.name == "basic_function"
     assert func == Func.parse_obj(func.dict())
+
+
+def test_func_contains_original_function():
+    """Assert that standard func will store original function at runtime."""
+    func = func_from_callable(no_arg_func)
+    assert func._func == no_arg_func
+
+
+def test_func_points_to_temp_function():
+    func = func_from_callable(no_arg_func)
+    func.store_func(force=True)
+    assert func._func != no_arg_func
+
+
+def test_func_path_name():
+    func = func_from_callable(no_arg_func)
+    func.store_func(force=True)
+    assert func._func != no_arg_func

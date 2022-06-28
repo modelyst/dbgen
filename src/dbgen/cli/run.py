@@ -145,7 +145,7 @@ def run_model(
     log_file_level: LogLevel = typer.Option(
         None, help="Log Level to write to the --log-file if set. (Defaults to --level if not set)"
     ),
-    remote: bool = typer.Option(True, help='Use the RemoteETLStep Runner'),
+    remote: bool = typer.Option(False, help='Use the RemoteETLStep Runner'),
     run_async: bool = typer.Option(False, '--async', help='Use the RemoteGenerator Runner'),
     config_file: Path = config_option,
     no_conf: bool = typer.Option(
@@ -248,8 +248,8 @@ def run_model(
             for etl_step_run in run.etl_step_runs
             if etl_step_run.status in (Status.excluded, Status.upstream_failed)
         ]
-        rows_inserted = sum([etl_step_run.rows_inserted for etl_step_run in run.etl_step_runs])
-        rows_updated = sum([etl_step_run.rows_updated for etl_step_run in run.etl_step_runs])
+        rows_inserted = sum(etl_step_run.rows_inserted for etl_step_run in run.etl_step_runs)
+        rows_updated = sum(etl_step_run.rows_updated for etl_step_run in run.etl_step_runs)
 
     if run.errors:
         styles.delimiter(styles.typer.colors.RED)
@@ -268,6 +268,7 @@ def run_model(
         styles.bad_typer_print(
             f"Run failed! Only {len(run.etl_step_runs)} of {len(model.etl_steps)} ETLSteps run. {len(excluded_etl_steps)} Steps were Excluded."
         )
+        raise typer.Exit(code=1)
 
     raise typer.Exit(code=0)
 

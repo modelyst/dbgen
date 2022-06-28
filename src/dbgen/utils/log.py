@@ -66,11 +66,14 @@ def capture_stdout(func):
     return wrapped
 
 
-def setup_logger(level: LogLevel = LogLevel.DEBUG, log_to_stdout=True) -> Tuple[Logger, RichHandler]:
+def setup_logger(
+    level: LogLevel = LogLevel.DEBUG, std_out_level: LogLevel = LogLevel.INFO
+) -> Tuple[Logger, RichHandler]:
+    std_out_level = std_out_level or level
     custom_logger = logging.getLogger("dbgen")
     custom_logger.propagate = True
     custom_logger.setLevel(level.get_log_level())
-    rich_handler = add_stdout_logger(custom_logger, LogLevel.WARNING)
+    rich_handler = add_stdout_logger(custom_logger, std_out_level)
     return custom_logger, rich_handler
 
 

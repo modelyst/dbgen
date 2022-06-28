@@ -192,7 +192,20 @@ class Func(Base, Generic[FuncOut]):
     """
 
     src: str
+    name: str
     env: Environment
+    _func: Optional[Callable]
+
+    class Config:
+        """Pydantic Config"""
+
+        underscore_attrs_are_private = True
+
+    def __init__(self, *, function: Optional[Callable] = None, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = function.__name__ if function else 'no_name'
+        super().__init__(**kwargs)
+        self._func = function
 
     def __str__(self) -> str:
         n = self.src.count("\n")
@@ -200,7 +213,7 @@ class Func(Base, Generic[FuncOut]):
         return "<Func (%d line%s)>" % (n, s)
 
     def __call__(self, *args, **kwargs) -> FuncOut:
-        if hasattr(self, "_func") and self.path.exists():
+        if self._func is not None and self.path.exists():
             return self._func(*args)
         else:
             f = self._from_src()
@@ -210,10 +223,6 @@ class Func(Base, Generic[FuncOut]):
         return self.name
 
     # Properties #
-
-    @property
-    def name(self) -> str:
-        return self._from_src().__name__
 
     @property
     def is_lam(self) -> bool:
@@ -259,7 +268,7 @@ class Func(Base, Generic[FuncOut]):
 
     @property
     def path(self) -> Path:
-        return config.temp_dir / f"{self.hash}.py"
+        return config.temp_dir / f"{self.name}_{self.hash}.py"
 
     def file(self) -> str:
         lam = "f = " if self.is_lam else ""
@@ -276,16 +285,24 @@ class Func(Base, Generic[FuncOut]):
             with open(self.path, "w") as t:
                 t.write(self.file())
 
-        f = self.path_to_func(str(self.path))
+        if force or self._func is None:
+            self._func = self.path_to_func(str(self.path))
 
-        return f
+        return self._func
 
-    # Public methods #
+    # # Public methods #
     def store_func(self, force: bool = False) -> None:
         """Load func from source code and store as attribute (better performance
         but object is no longer serializable / comparable for equality )
         """
         self._func = self._from_src(force)
+
+    def set_func(self, value: Optional[Callable]) -> None:
+        """Set the value of Func._func.
+
+        Useful for removing the function object from the Func object for pickling
+        """
+        self._func = value
 
     @staticmethod
     def path_to_func(pth: str) -> Callable:
@@ -453,7 +470,10 @@ def func_from_callable(func_: Callable[..., Output], env: Optional[Environment] 
         env = Environment()
     if isinstance(func_, Func):
         # assert not getattr(env,'imports',False)
-        return Func(src=func_.src, env=env)
+        func: Func[Output] = Func(src=func_.src, function=function, env=env)
+        return func
     else:
         assert callable(func_), f"tried to instantiate Func, but not callable {type(func_)}"
-        return Func(src=get_callable_source_code(func_), env=env)
+
+        func = Func(src=get_callable_source_code(func_), function=func_, env=env)
+        return func

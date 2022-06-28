@@ -34,3 +34,18 @@ def test_logger(caplog):
         line_1, line_2 = lines
         assert "dbgen.dummy.Dummy(1)" in line_1
         assert "dbgen.dummy.Dummy(2)" in line_2
+
+
+def test_log_to_stdout(capfd):
+    """Test that the logs are sent to stdout with level INFO by default"""
+    message = 'test message'
+    test_logger = logging.getLogger('dbgen.test')
+    for method in (test_logger.info, test_logger.warning, test_logger.error):
+        method(message)
+        out, err = capfd.readouterr()
+        assert message in out
+        assert err == ''
+    test_logger.debug(message)
+    out, err = capfd.readouterr()
+    assert out == ''
+    assert err == ''

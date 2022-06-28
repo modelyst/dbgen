@@ -39,6 +39,9 @@
    <a href="https://pypi.org/project/modelyst-dbgen" target="_blank">
       <img src="https://img.shields.io/pypi/v/modelyst-dbgen?color=%2334D058&label=pypi%20package" alt="Package version">
    </a>
+   <a href="https://github.com/modelyst/dbgen/actions/workflows/docker-publish.yml" target="_blank">
+      <img src="https://github.com/modelyst/dbgen/actions/workflows/docker-publish.yml/badge.svg">
+   </a>
 </p>
 ---
 

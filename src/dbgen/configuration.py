@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from pydantic import BaseSettings, PostgresDsn, SecretStr, validator
 from pydantic.tools import parse_obj_as
 
-from dbgen.utils.log import setup_logger
+from dbgen.utils.log import LogLevel, setup_logger
 from dbgen.utils.sql import Connection
 
 if TYPE_CHECKING:
@@ -60,6 +60,7 @@ class DBgenConfiguration(BaseSettings):
     validation: ValidationEnum = ValidationEnum.COERCE
     pdb: bool = False
     testing: bool = False
+    log_level: LogLevel = LogLevel.INFO
 
     class Config:
         """Pydantic configuration"""
@@ -109,7 +110,7 @@ class DBgenConfiguration(BaseSettings):
 
 
 config = DBgenConfiguration()
-root_logger, stdout_handler = setup_logger()
+root_logger, stdout_handler = setup_logger(config.log_level, config.log_level)
 
 
 def update_config(config_file: 'Path') -> DBgenConfiguration:
@@ -134,6 +135,6 @@ def get_connections() -> Tuple['Connection', 'Connection']:
     return (main_conn, meta_conn)
 
 
-def get_engines() -> Tuple['Engine', 'Engine']:
+def get_engines(echo: bool = False) -> Tuple['Engine', 'Engine']:
     (main_conn, meta_conn) = get_connections()
-    return (main_conn.get_engine(), meta_conn.get_engine())
+    return (main_conn.get_engine(echo), meta_conn.get_engine(echo))
