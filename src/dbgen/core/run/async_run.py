@@ -125,13 +125,14 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
         # Initialize multiprocessing start method
         conn_pool = AsyncConnectionPool(main_dsn, name='test', min_size=4)
         meta_conn_pool = AsyncConnectionPool(meta_dsn, name='test', min_size=4)
-
         await conn_pool.check()
         loop = asyncio.get_running_loop()
         # Remove the stored functions on the etl_step for pickling
         etl_step.remove_stored_func()
         # Initialize the queues and type them
-        transform_queue: asyncio.Queue[Tuple[Optional[UUID], Optional[NAMESPACE_TYPE]]] = asyncio.Queue()
+        transform_queue: asyncio.Queue[Tuple[Optional[UUID], Optional[NAMESPACE_TYPE]]] = asyncio.Queue(
+            batch_size * 50
+        )
         tform_results: asyncio.Queue[asyncio.Future[TRANSFORM_RETURN_TYPE]] = asyncio.Queue()
         load_queue: asyncio.Queue[Tuple[List[UUID], ROWS_TO_LOAD_TYPE, int]] = asyncio.Queue()
         repeats_queue: asyncio.Queue[Set[UUID]] = asyncio.Queue()

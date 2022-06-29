@@ -33,7 +33,7 @@ from dbgen.cli.options import (
     verbose_option,
 )
 from dbgen.cli.utils import state, test_connection, validate_model_str
-from dbgen.configuration import config, get_connections
+from dbgen.configuration import config, get_connections, get_engines
 from dbgen.core.metadata import ModelEntity
 
 model_app = typer.Typer(name='model', no_args_is_help=True)
@@ -163,3 +163,23 @@ def validate(
     )
     if state['verbose']:
         styles.good_typer_print(f'Model contains {len(model.etl_steps)} ETLStep(s).')
+
+
+@model_app.command('sync')
+def sync(
+    model_str: str = model_string_option,
+    meta_only: bool = typer.Option(False, help="Only create the meta-database"),
+    delete: bool = typer.Option(False, help="Rebuild the database"),
+    create: bool = typer.Option(True, help="Create the metadata."),
+    echo: bool = typer.Option(True, help="Echo the SQL statements."),
+    config_file: Path = config_option,
+    _verbose: bool = verbose_option(),
+    _chdir: Path = chdir_option,
+):
+    """Quick utility method for quickly validating a model will compile without any need for database connections."""
+    # Start connection from config
+    main_engine, meta_engine = get_engines()
+    # Use config model_str if none is provided
+    model_str = model_str or config.model_str
+    model = validate_model_str(model_str)
+    model.sync(main_engine, meta_engine, build=delete, create=create, meta_only=meta_only)

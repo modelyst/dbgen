@@ -76,11 +76,12 @@ class Connection(Base):
             f"{self.scheme}://{self.user}:{password}@{self.host}:{self.port}/{self.database}{schema_suffix}"
         )
 
-    def get_engine(self):
+    def get_engine(self, echo: bool = False):
         return create_engine(
             url=self.url(mask_password=False),
             connect_args={"options": f"-csearch_path={self.schema_}"},
             json_serializer=json_dumps,
+            echo=echo,
         )
 
     def test(self):

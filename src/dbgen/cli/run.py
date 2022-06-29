@@ -147,6 +147,7 @@ def run_model(
     ),
     remote: bool = typer.Option(False, help='Use the RemoteETLStep Runner'),
     run_async: bool = typer.Option(False, '--async', help='Use the RemoteGenerator Runner'),
+    sql: bool = typer.Option(False, '--sql', help='Use the RemoteGenerator Runner'),
     config_file: Path = config_option,
     no_conf: bool = typer.Option(
         False,
@@ -211,7 +212,7 @@ def run_model(
         logger.debug(f'testing {name} connection...')
         test_connection(conn, name)
     # Grab engine from each connection
-    main_engine, meta_engine = main_conn.get_engine(), meta_conn.get_engine()
+    main_engine, meta_engine = main_conn.get_engine(sql), meta_conn.get_engine(sql)
     # If we turn on pdb mode we need to turn off the progress bar
     if pdb:
         config.pdb = pdb

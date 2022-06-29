@@ -20,6 +20,8 @@ import typer
 
 import dbgen.cli.styles as styles
 from dbgen import __version__
+
+# from dbgen.cli.deploy import deploy_app
 from dbgen.cli.etl_step import etl_step_app
 from dbgen.cli.model import model_app
 from dbgen.cli.new import new_app
@@ -30,13 +32,35 @@ from dbgen.utils.misc import which
 
 app = typer.Typer(no_args_is_help=True)
 app.add_typer(
-    etl_step_app, name='etl-step', help="Commands related to running and monitoring single ETLSteps."
+    etl_step_app,
+    name='etl-step',
+    help="Commands related to running and monitoring single ETLSteps.",
+    no_args_is_help=True,
 )
-app.add_typer(run_app, name='run', help="Run DBgen models and monitor their status.")
-app.add_typer(model_app, name='model', help="Validate, serialize and export DBgen models.")
-app.add_typer(new_app, name='new', help="Create new DBgen models from templates.")
-
-app.command("version", help="Print the version of dbgen")(lambda: styles.console.print(styles.LOGO_STYLE))
+app.add_typer(
+    run_app,
+    name='run',
+    help="Run DBgen models and monitor their status.",
+    no_args_is_help=True,
+)
+app.add_typer(
+    model_app,
+    name='model',
+    help="Validate, serialize and export DBgen models.",
+    no_args_is_help=True,
+)
+app.add_typer(
+    new_app,
+    name='new',
+    help="Create new DBgen models from templates.",
+    no_args_is_help=True,
+)
+# app.add_typer(
+#     deploy_app,
+#     name='deploy',
+#     help="Create DBgen model docker images.",
+#     no_args_is_help=True,
+# )
 
 
 @app.command()
@@ -64,7 +88,6 @@ def get_config(
     """
     Prints out the configuration of dbgen given an optional config_file or using the envvar DBGEN_CONFIG
     """
-    styles.theme_typer_print(styles.LOGO_STYLE)
     # If out_pth provided write the current config to the path provided and return
     if out_pth:
         with open(out_pth, "w") as f:

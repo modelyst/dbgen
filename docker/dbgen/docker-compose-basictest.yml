@@ -15,17 +15,10 @@
 ---
 version: "3.8"
 x-common: &common
-  build:
-    dockerfile: ./docker/dbgen/Dockerfile.${INSTALLATION:-pip}
-    context: ../../
-    args:
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      PYTHON_VERSION: ${PYTHON_VERSION:-3.8}
-      DBGEN_VERSION: ${DBGEN_VERSION:-0.5.2}
-  image: dbgen:${DBGEN_VERSION}-py${PYTHON_VERSION}-${INSTALLATION:-pip}
+  image: dbgen:${DBGEN_VERSION}-py${PYTHON_VERSION}
 services:
   postgres:
-    image: postgres:12
+    image: postgres:14
     ports:
       - "4000:5432"
     expose:
@@ -39,24 +32,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  dbgen-pytest:
-    <<: *common
-    command:
-      - pytest
   dbgen-example:
     <<: *common
     depends_on:
-      - dbgen-pytest
       - postgres
+    volumes:
+      - ../../tests/:/home/dbgen-user/tests
     environment:
-      - DBGEN__CORE__DB_CONN_STR=postgresql://dbgen:dbgen@postgres:5432/dbgen
-      - DBGEN__CORE__DB_SCHEMA=public
-      - DBGEN__LOGGING__LOG_TO_STDOUT=true
+      - dbgen_main_dsn=postgresql://dbgen:dbgen@postgres:5432/dbgen
+      - dbgen_model_str=tests.example.full_model:make_model
     labels:
-      - dockerfile=${DBGEN_VERSION}-py${PYTHON_VERSION}-${INSTALLATION:-pip}
+      - dockerfile=${DBGEN_VERSION}-py${PYTHON_VERSION}
     command:
       - run
-      - dbgen.example.main:make_model
       - --no-bar
-      - --build
-      - -y
