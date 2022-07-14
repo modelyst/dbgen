@@ -18,6 +18,7 @@ import os
 import re
 from importlib.util import module_from_spec, spec_from_file_location
 from inspect import (
+    Parameter,
     getdoc,
     getmembers,
     getsourcefile,
@@ -243,6 +244,10 @@ class Func(Base, Generic[FuncOut]):
     @property
     def number_of_inputs(self) -> int:
         return len(self.argnames)
+
+    @property
+    def var_positional_keyword(self):
+        return any(p.kind == Parameter.VAR_POSITIONAL for p in self.sig.parameters.values())
 
     @property
     def number_of_required_inputs(self) -> int:

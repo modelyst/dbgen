@@ -38,6 +38,7 @@ from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import BaseQuery
 from dbgen.core.run.utilities import BaseETLStepExecutor
 from dbgen.exceptions import DBgenExternalError, TransformerError
+from dbgen.utils.log import setup_logger
 from dbgen.utils.typing import NAMESPACE_TYPE, ROWS_TO_LOAD_TYPE
 
 if TYPE_CHECKING:
@@ -142,12 +143,18 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
             dashboard.add_etl_progress_bars(run_async=True)
         try:
             context = multiprocessing.get_context("spawn")
-            with ProcessPoolExecutor(cpu_count(), mp_context=context) as executor:
+            with ProcessPoolExecutor(
+                cpu_count(),
+                mp_context=context,
+                initializer=setup_logger,  # type: ignore
+                initargs=(self.run_config.log_level, self.run_config.log_level),
+            ) as executor:
                 mem_usage = asyncio.create_task(self.memory_usage(executor))
                 routines = (
                     self.extractor(
                         etl_step.extract,
                         transform_queue,
+                        load_queue,
                         main_dsn,
                         batch_size=batch_size,
                         dashboard=dashboard,
@@ -209,6 +216,7 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
         self,
         extract: Extract,
         queue: 'asyncio.Queue[Tuple[Optional[UUID], Optional[NAMESPACE_TYPE]]]',
+        load_queue: 'asyncio.Queue',
         async_dsn: str,
         batch_size,
         dashboard: Optional[Dashboard],
@@ -244,6 +252,13 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
                         result = await cursor.execute(extract.compiled_query, extract.params)
                         i = 0
                         async for row in result:
+                            logged = False
+                            while (queue.qsize() / batch_size) < (load_queue.qsize() - 100):
+                                if not logged:
+                                    self._logger.info('Waiting for loader to catch up')
+                                    logged = True
+                                await asyncio.sleep(1)
+
                             is_repeat, input_hash = self._check_repeat(row, etl_step_id)
                             # increment unique inputs and extracted inputs
                             inputs_extracted += 1
