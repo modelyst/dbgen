@@ -28,7 +28,7 @@ jobs:
           draft: false
           prerelease: ${{steps.check-prerelease.outputs.match}}
   publish:
-    needs: "build"
+    needs: "release"
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
