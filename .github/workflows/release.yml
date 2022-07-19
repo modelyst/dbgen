@@ -17,7 +17,7 @@ jobs:
           if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]$ ]]; then
               echo ::set-output name=match::false
           fi
-      - name: Create Alpha Release
+      - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
