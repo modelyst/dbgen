@@ -21,7 +21,7 @@ from dbgen.core.args import Arg, ArgLike, Constant
 from dbgen.core.base import Base
 from dbgen.core.context import ETLStepContext
 from dbgen.core.dependency import Dependency
-from dbgen.exceptions import DBgenMissingInfo
+from dbgen.exceptions import DBgenMissingInfo, NodeUsedAsInput
 
 BasicType = TypeVar('BasicType', int, float, str, bytes, Path)
 T1 = TypeVar('T1')
@@ -34,7 +34,7 @@ Output = TypeVar('Output')
 
 class ComputationalNode(Base, Generic[Output]):
     inputs: Mapping[str, Union[Constant, Arg]] = Field(default_factory=lambda: {})
-    outputs: List[str] = Field(default_factory=lambda: ["out"], min_items=1)
+    outputs: List[str] = Field(default_factory=lambda: ["out"])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -49,6 +49,8 @@ class ComputationalNode(Base, Generic[Output]):
 
     @validator("inputs", pre=True)
     def convert_list_to_dict(cls, inputs):
+        from dbgen.core.decorators import FunctionNode
+
         if isinstance(inputs, dict):
             return inputs
         new_inputs = {}
@@ -57,6 +59,10 @@ class ComputationalNode(Base, Generic[Output]):
                 new_inputs[str(arg_idx)] = Constant(val=arg_val)
             elif isinstance(arg_val, ArgLike):
                 new_inputs[str(arg_idx)] = arg_val
+            elif isinstance(arg_val, (ComputationalNode, FunctionNode)):
+                raise NodeUsedAsInput(
+                    f"A {type(arg_val).__name__!r} is being used as an input rather than its output. Make sure to call .results() method on Node to feed the outputs to this node."
+                )
             else:
                 raise TypeError(f"Bad input type provided: {type(arg_val)} {arg_val}")
         return new_inputs
@@ -70,6 +76,8 @@ class ComputationalNode(Base, Generic[Output]):
         elif isinstance(outputs, (list, tuple)):
             if len(set(outputs)) != len(outputs):
                 raise ValueError(["No duplicate output names allowed"])
+            if len(outputs) == 0:
+                raise ValueError('Need at least one output')
         return outputs
 
     @property

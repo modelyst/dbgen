@@ -53,14 +53,15 @@ class PythonTransform(Transform[Output]):
         func = values.get("function")
         num_req_args = values.get("function").number_of_required_inputs
         num_max_args = values.get("function").number_of_inputs
-        number_of_inputs = len(inputs)
-        assert (
-            number_of_inputs >= num_req_args
-        ), f"Too few arguments supplied to Func. Number of Inputs: {number_of_inputs}, Number of Args: {num_req_args}\n{values}"
-        if not func.var_positional_keyword:
+        if inputs:
+            number_of_inputs = len(inputs)
             assert (
-                number_of_inputs <= num_max_args
-            ), f"Too many arguments supplied to Func. Number of Inputs: {number_of_inputs}, Max Number of Args: {num_max_args}\n"
+                number_of_inputs >= num_req_args
+            ), f"Too few arguments supplied to Func. Number of Inputs: {number_of_inputs}, Number of Args: {num_req_args}\n{values}"
+            if not func.var_positional_keyword:
+                assert (
+                    number_of_inputs <= num_max_args
+                ), f"Too many arguments supplied to Func. Number of Inputs: {number_of_inputs}, Max Number of Args: {num_max_args}\n"
         return values
 
     def run(self, namespace_dict: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:

@@ -71,6 +71,10 @@ class InvalidArgument(DBgenException):
     """Raise when there is missing info in a class/function initialization"""
 
 
+class NodeUsedAsInput(InvalidArgument):
+    """Raise when a PythonTransform is used as input to ComputationalNode"""
+
+
 class DBgenTypeError(DBgenException):
     """Raise when a value cannot be cast the correct type"""
 

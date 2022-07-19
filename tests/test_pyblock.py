@@ -17,9 +17,10 @@ from hypothesis import given
 from pydantic import ValidationError
 
 from dbgen.core.args import Arg, Constant
+from dbgen.core.decorators import transform
 from dbgen.core.func import Environment, Func, func_from_callable
 from dbgen.core.node.transforms import PythonTransform
-from dbgen.exceptions import DBgenMissingInfo, DBgenPythonTransformError
+from dbgen.exceptions import DBgenMissingInfo, DBgenPythonTransformError, InvalidArgument, NodeUsedAsInput
 from tests.example_functions import nonary, ternary
 from tests.strategies import pyblock_strat
 
@@ -114,3 +115,19 @@ def test_pyblock_failure_at_runtime():
         PythonTransform(function=nonary, inputs=[Constant(1)], outputs=["1", "2"])
 
     PythonTransform(function=ternary, inputs=[Constant(1), Constant(2)], outputs=["1", "2"])
+
+
+def test_python_transform_input():
+    @transform
+    def first_func():
+        return 1
+
+    @transform
+    def second_func(x: int):
+        return x + 1
+
+    x = first_func()
+    with pytest.raises(NodeUsedAsInput):
+        second_func(x)
+    with pytest.raises(InvalidArgument):
+        second_func({})

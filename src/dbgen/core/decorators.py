@@ -15,12 +15,14 @@ import inspect
 from functools import partial
 from typing import Callable, Generic, List, Optional, Tuple, TypeVar, Union, overload
 
+from pydantic import ValidationError
 from pydantic.typing import get_args, get_origin
 from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
 from dbgen.core.func import Environment
 from dbgen.core.node.transforms import PythonTransform
+from dbgen.exceptions import InvalidArgument
 
 In = ParamSpec('In')
 Out = TypeVar('Out')
@@ -45,7 +47,12 @@ class FunctionNode(Generic[In, Out]):
         self.env = env
         self.inputs = inputs or []
         self.outputs = outputs or ['out']
-        self.pyblock = self.to_pyblock()
+        try:
+            self.pyblock = self.to_pyblock()
+        except ValidationError as exc:
+            raise InvalidArgument(
+                f'Error occurred during the validation of the transform {function.__name__!r}'
+            ) from exc
         self._arglist = tuple(iter(map(self.pyblock.__getitem__, self.pyblock.outputs)))
 
     def __call__(self: 'FunctionNode[In,Out]', *args: In.args, **kwargs: In.kwargs) -> Out:
