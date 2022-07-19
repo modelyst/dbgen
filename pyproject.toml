@@ -39,7 +39,6 @@ cookiecutter = "2.1.1"
 modelyst-sqlmodel = "^0.0.9"
 networkx = "^2.6.3"
 psutil = "^5.9.0"
-psycopg = {version = "^3.0.10", extras = ["pool"]}
 psycopg2-binary = "^2.9.1"
 pydantic = "1.9.1"
 pydasher = "^0.0.13"
@@ -48,6 +47,8 @@ rich = "^11.1.0"
 typer = "^0.6.1"
 types-PyYAML = "^6.0.5"
 typing-extensions = ">=3.10.0.1"
+psycopg-binary = {version = "^3.0.15", extras = ["pool"]}
+psycopg = {version = "^3.0.15", extras = ["pool"]}
 
 [tool.poetry.extras]
 boto3 = ["boto3"]
