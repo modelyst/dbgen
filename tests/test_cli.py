@@ -58,7 +58,6 @@ def test_config_does_not_exist(tmpdir, sql_engine, reset_config_dsn):
     config_file = tmpdir.mkdir("sub").join("config.env")
     results = runner.invoke(app, ['config', '-c', config_file])
     assert results.exit_code == 2
-    assert 'Invalid value for \'--config\'' in results.stdout
     # Check that a default dsn is used when empty config is passed
     config_file.write('# Nothing')
     results = runner.invoke(app, ['config', '-c', config_file])
