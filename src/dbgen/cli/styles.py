@@ -13,8 +13,10 @@
 #   limitations under the License.
 
 """Utilities for printing things to screen for CLI."""
+from typing import Callable, Union
+
 import typer
-from rich.console import Console, Group
+from rich.console import Console, Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 from rich.theme import Theme
@@ -47,7 +49,13 @@ LOGO_STYLE = Panel.fit(
 
 
 # Easy printers
-typer_print = lambda color=None: lambda msg: console.print(msg, style=color)
+typer_print: Callable[
+    [str],
+    Callable[
+        [Union[str, RenderableType]],
+        None,
+    ],
+] = lambda color: lambda msg: console.print(msg, style=color)
 good_typer_print = typer_print('green')
 bad_typer_print = typer_print('red')
 theme_typer_print = typer_print('theme')

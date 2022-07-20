@@ -150,14 +150,14 @@ def validate_model_str(model_str: str) -> Model:
         if f"No module named {module!r}" in str(exc):
             raise basic_error(ERROR_MODULE, [module, package, str(exc)]) from exc
         if isinstance(exc, AttributeError):
-            typer_print()(Traceback())
+            typer_print('red')(Traceback())
             raise basic_error(ERROR_ATTR, [module, package, str(exc)]) from exc
         bad_typer_print(f"Error loading model at location '{module}.{package}'...")
-        typer_print()(Traceback())
+        typer_print('red')(Traceback())
         raise typer.Exit(code=1)
     except Exception:
         bad_typer_print(f"Error loading model at location '{module}.{package}'...")
-        typer_print()(Traceback())
+        typer_print('red')(Traceback())
         raise typer.Exit(code=1)
 
 

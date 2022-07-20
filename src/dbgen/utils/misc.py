@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 import os
+from typing import Optional
 
 reserved_words = {
     "and",
@@ -47,8 +48,8 @@ reserved_words = {
 }
 
 
-def which(program):
-    def is_exe(fpath):
+def which(program: str) -> Optional[str]:
+    def is_exe(fpath: str) -> bool:
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
     fpath, _ = os.path.split(program)
@@ -56,7 +57,7 @@ def which(program):
         if is_exe(program):
             return program
     else:
-        for path in os.environ["PATH"].split(os.pathsep):
+        for path in os.environ.get("PATH", '').split(os.pathsep):
             exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return exe_file

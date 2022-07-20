@@ -113,13 +113,14 @@ def test_conn(
                 )
                 raise typer.Exit(2)
             # If we have valid executible run the command with the dsn provided
-            if not config.testing:
+            command = exes[0]
+            if command is not None and not config.testing:
                 subprocess.check_call(
-                    [exes[0], conn.url(False, True)],
+                    [command, conn.url(False, True)],
                 )
         except subprocess.CalledProcessError as exc:
             styles.bad_typer_print("Error connecting!")
-            styles.bad_typer_print(exc)
+            styles.bad_typer_print(str(exc))
         # Quit once finished
         raise typer.Exit()
 
