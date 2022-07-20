@@ -13,7 +13,7 @@ tag_format = "v$version"
 version = "v1.0.0a3"
 version_files = [
   "pyproject.toml:version",
-  "src/app/__init__.py",
+  "src/dbgen/__init__.py",
 ]
 
 [tool.poetry]
