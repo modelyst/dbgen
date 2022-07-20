@@ -211,6 +211,13 @@ class BaseEntity(Base, SQLModel, metaclass=EntityMetaclass):
 
         force_validation = True
 
+    def __init_subclass__(
+        cls,
+        table: bool = False,
+        registry: Optional[registry] = None,
+    ) -> None:
+        return super().__init_subclass__()
+
     @classmethod
     def _columns(cls) -> ImmutableColumnCollection:
         if isinstance(cls.__fulltablename__, str):

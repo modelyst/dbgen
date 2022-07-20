@@ -2,6 +2,7 @@
 
 ### Fix
 
+- **cli**: add type checks to dbgen connect
 - fix pre-release checkign in the release workflow
 
 ## v1.0.0a3 (2022-07-19)
