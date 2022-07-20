@@ -11,11 +11,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Check Prelease
-        id: check-prerelease
+      - name: Check If Release
+        id: check-release
         run: |
-          if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]$ ]]; then
+          if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo ::set-output name=match::false
+          else
+              echo ::set-output name=match::true
           fi
       - name: Create Release
         id: create_release
@@ -26,7 +28,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
-          prerelease: ${{steps.check-prerelease.outputs.match}}
+          prerelease: ${{steps.check-release.outputs.match}}
   publish:
     needs: "release"
     runs-on: ubuntu-20.04
