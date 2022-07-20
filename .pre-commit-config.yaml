@@ -20,12 +20,6 @@ repos:
     hooks:
       - id: identity
       - id: check-hooks-apply
-  - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: "v1.2.0"
-    hooks:
-      - id: conventional-pre-commit
-        stages: [commit-msg]
-        args: []
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.1.13
     hooks:
@@ -199,3 +193,8 @@ repos:
         args: ["--config", "setup.cfg", "src/dbgen"]
         files: \.py$
         exclude: ^docs_src/|^examples/simple
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v2.28.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]

@@ -7,6 +7,15 @@ line-length = 110
 skip-string-normalization = true
 target-version = ['py36', 'py37', 'py38']
 
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version = "v1.0.0a3"
+version_files = [
+  "pyproject.toml:version",
+  "src/app/__init__.py",
+]
+
 [tool.poetry]
 authors = ["Michael Statt <michael.statt@modelyst.io>", "Kristopher Brown <kris.brown@modelyst.io"]
 classifiers = [
@@ -58,6 +67,7 @@ Faker = "^12.3.3"
 Jinja2 = "3.0.3"
 autoflake = "^1.4"
 black = "22.3.0"
+commitizen = "^2.28.0"
 flake8 = "^3.9.2"
 hypothesis = "^6.21.3"
 interrogate = "^1.5.0"
