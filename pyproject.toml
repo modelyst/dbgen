@@ -10,7 +10,7 @@ target-version = ['py36', 'py37', 'py38']
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "v$version"
-version = "v1.0.0a3"
+version = "1.0.0a3"
 version_files = [
   "pyproject.toml:version",
   "src/dbgen/__init__.py",

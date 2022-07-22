@@ -17,6 +17,7 @@ from bdb import BdbQuit
 from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple
 from uuid import UUID
 
+from pydantic import PrivateAttr
 from pydasher import hasher
 
 from dbgen._enum import RunStatus
@@ -33,7 +34,7 @@ class TestRunResults(Base):
 
 
 class ETLStepTestRunner(Base):
-    _etl_step: ETLStep
+    _etl_step: ETLStep = PrivateAttr(None)
 
     def test(
         self,
