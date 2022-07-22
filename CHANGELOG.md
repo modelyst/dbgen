@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Feat
+
+- added model settings, etl tester and extractor api
+
 ### Fix
 
 - **entity**: add init subclass to entity to remove type errors on table, and registry kwargs

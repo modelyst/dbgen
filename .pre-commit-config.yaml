@@ -198,10 +198,3 @@ repos:
     hooks:
       - id: commitizen
         stages: [commit-msg]
-      - id: commitizen
-        name: Create Changelog
-        stages:
-          - "commit"
-        entry: "cz changelog"
-        args: []
-        pass_filenames: false
