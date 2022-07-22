@@ -2,6 +2,7 @@
 
 ### Fix
 
+- **entity**: add init subclass to entity to remove type errors on table, and registry kwargs
 - **cli**: add type checks to dbgen connect
 - fix pre-release checkign in the release workflow
 

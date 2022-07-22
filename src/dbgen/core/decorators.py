@@ -21,6 +21,8 @@ from typing_extensions import ParamSpec
 
 from dbgen.core.args import Arg
 from dbgen.core.func import Environment
+from dbgen.core.node.computational_node import ComputationalNode
+from dbgen.core.node.extract import PythonExtract
 from dbgen.core.node.transforms import PythonTransform
 from dbgen.exceptions import InvalidArgument
 
@@ -42,26 +44,21 @@ class FunctionNode(Generic[In, Out]):
         function: Callable[In, Out] = None,
         env: Optional[Environment] = None,
         outputs=None,
+        node: Optional[ComputationalNode] = None,
     ):
         self.function = function
         self.env = env
         self.inputs = inputs or []
         self.outputs = outputs or ['out']
-        try:
-            self.pyblock = self.to_pyblock()
-        except ValidationError as exc:
-            raise InvalidArgument(
-                f'Error occurred during the validation of the transform {function.__name__!r}'
-            ) from exc
-        self._arglist = tuple(iter(map(self.pyblock.__getitem__, self.pyblock.outputs)))
+        self.node = node
+        self._arglist = tuple(iter(map(node.__getitem__, self.node.outputs)))
 
     def __call__(self: 'FunctionNode[In,Out]', *args: In.args, **kwargs: In.kwargs) -> Out:
         return self.function(*args, **kwargs)
 
-    def __getitem__(self: 'FunctionNode[In,Out]', key: Union[str, int]):
+    def __getitem__(self: 'FunctionNode[In,Out]', key: Union[str, int]) -> Arg:
         if isinstance(key, str):
-            return self.pyblock[key]
-
+            return self.node[key]
         return self._arglist[key]
 
     @overload
@@ -89,8 +86,46 @@ class FunctionNode(Generic[In, Out]):
     def results(self):
         return self._arglist[0] if len(self._arglist) == 1 else self._arglist
 
-    def to_pyblock(self):
-        return PythonTransform(function=self.function, env=self.env, inputs=self.inputs, outputs=self.outputs)
+
+class TransformNode(FunctionNode[In, Out]):
+    """Temporary wrapper API for pyblocks."""
+
+    def __init__(
+        self,
+        *inputs,
+        function: Callable[In, Out] = None,
+        env: Optional[Environment] = None,
+        outputs=None,
+    ):
+        outputs = outputs or ['out']
+        try:
+            node = PythonTransform(function=function, env=env, inputs=inputs, outputs=outputs)
+        except ValidationError as exc:
+            raise InvalidArgument(
+                f'Error occurred during the validation of the transform {function.__name__!r}'
+            ) from exc
+        super().__init__(*inputs, function=function, env=env, outputs=outputs, node=node)
+
+
+class ExtractNode(FunctionNode[In, Out]):
+    """Temporary wrapper API for pyblocks."""
+
+    def __init__(
+        self,
+        *inputs,
+        function: Callable[In, Out] = None,
+        env: Optional[Environment] = None,
+        outputs=None,
+    ):
+        outputs = outputs or ['out']
+
+        try:
+            node = PythonExtract(function=function, env=env, inputs=inputs, outputs=outputs)
+        except ValidationError as exc:
+            raise InvalidArgument(
+                f'Error occurred during the validation of the transform {function.__name__!r}'
+            ) from exc
+        super().__init__(*inputs, function=function, env=env, outputs=outputs, node=node)
 
 
 @overload
@@ -120,7 +155,7 @@ def transform(function=None, *, env: Optional[Environment] = None, outputs: List
                     bad_args = list(filter(lambda x: not isinstance(x, type), args))
                     if not bad_args:
                         outputs = [str(i) for i, _ in enumerate(args)]
-        func = partial(FunctionNode, function=function, env=env, outputs=outputs)
+        func = partial(TransformNode, function=function, env=env, outputs=outputs)
 
         def set_inputs(*inputs: List[Arg]) -> FunctionNode[In, Out]:
             return func(*inputs)
@@ -128,3 +163,40 @@ def transform(function=None, *, env: Optional[Environment] = None, outputs: List
         return set_inputs
     else:
         return partial(transform, env=env, outputs=outputs)
+
+
+@overload
+def extract(function: Callable[In, Out]) -> Callable[In, FunctionNode[In, Out]]:
+    ...  # pragma: no cover
+
+
+@overload
+def extract(
+    *, env: Environment = None, outputs: List[str] = None
+) -> Callable[[Callable[In, Out]], Callable[In, FunctionNode[In, Out]]]:
+    ...  # pragma: no cover
+
+
+def extract(function=None, *, env: Optional[Environment] = None, outputs: List[str] = None):
+
+    if function:
+        if not outputs:
+
+            # TODO add dict outputs or list of dict outputs!
+            sig = inspect.signature(function)
+            if outputs is None and sig.return_annotation:
+                annotation = sig.return_annotation
+                origin = get_origin(annotation)
+                if origin is not None and origin is not Union and issubclass(origin, (list, tuple)):
+                    args = get_args(annotation)
+                    bad_args = list(filter(lambda x: not isinstance(x, type), args))
+                    if not bad_args:
+                        outputs = [str(i) for i, _ in enumerate(args)]
+        func = partial(ExtractNode, function=function, env=env, outputs=outputs)
+
+        def set_inputs(*inputs: List[Arg]) -> ExtractNode[In, Out]:
+            return func(*inputs)
+
+        return set_inputs
+    else:
+        return partial(extract, env=env, outputs=outputs)

@@ -14,7 +14,7 @@
 
 from collections import Counter
 from json import loads
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, Generic, List, Tuple, TypeVar
 from uuid import UUID
 
 import sqlalchemy
@@ -29,18 +29,22 @@ from dbgen.core.context import ModelContext
 from dbgen.core.entity import BaseEntity
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import ModelEntity, RunEntity, meta_registry
+from dbgen.core.model_settings import BaseModelSettings
 from dbgen.exceptions import ModelRunError
 from dbgen.utils.graphs import serialize_graph, topsort_with_dict
 
 if TYPE_CHECKING:
     from dbgen.core.run.utilities import RunConfig  # pragma: no cover
 
+SettingType = TypeVar('SettingType', bound=BaseModelSettings)
 
-class Model(Base):
+
+class Model(Base, Generic[SettingType]):
     name: str
     etl_steps: List[ETLStep] = Field(default_factory=list)
     registry: sa_registry = Field(default_factory=lambda: BaseEntity._sa_registry)
     meta_registry: sa_registry = Field(default_factory=lambda: meta_registry)
+    settings: SettingType = Field(default_factory=lambda: BaseModelSettings())
     _context: ModelContext = PrivateAttr(None)
     _hashinclude_ = {"name", "etl_steps"}
 

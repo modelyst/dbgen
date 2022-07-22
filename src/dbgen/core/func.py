@@ -215,10 +215,10 @@ class Func(Base, Generic[FuncOut]):
 
     def __call__(self, *args, **kwargs) -> FuncOut:
         if self._func is not None and self.path.exists():
-            return self._func(*args)
+            return self._func(*args, **kwargs)
         else:
             f = self._from_src()
-            return f(*args)
+            return f(*args, **kwargs)
 
     def __repr__(self) -> str:
         return self.name

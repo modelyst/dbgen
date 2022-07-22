@@ -32,6 +32,7 @@ from dbgen.core.entity import BaseEntity, Entity
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.func import Environment, Import
 from dbgen.core.model import Model
+from dbgen.core.model_settings import BaseModelSettings
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
 from dbgen.core.node.transforms import PythonTransform

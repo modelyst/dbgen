@@ -27,7 +27,7 @@ from sqlalchemy.future import Engine
 from dbgen.core.args import Arg
 from dbgen.core.base import Base
 from dbgen.core.context import ETLStepContext, ModelContext
-from dbgen.core.decorators import FunctionNode
+from dbgen.core.decorators import ExtractNode, FunctionNode, TransformNode
 from dbgen.core.dependency import Dependency
 from dbgen.core.metadata import ETLStepEntity
 from dbgen.core.node.extract import Extract
@@ -85,9 +85,13 @@ class ETLStep(Base):
             )
         return name
 
+    @validator('extract', pre=True)
+    def convert_extract_node(cls, extract):
+        return extract.node if isinstance(extract, ExtractNode) else extract
+
     @validator('transforms', pre=True)
-    def convert_functional_node(cls, transforms):
-        return [val.pyblock if isinstance(val, FunctionNode) else val for val in transforms]
+    def convert_transform_node(cls, transforms):
+        return [val.node if isinstance(val, TransformNode) else val for val in transforms]
 
     def validate_nodes(self):
         nodes = self.loads + self.transforms + [self.extract]
@@ -129,7 +133,7 @@ class ETLStep(Base):
         inputs_skipped = 0
         for input_hash, row in batch:
             try:
-                _, skipped = self._transform(row, rows_to_load)
+                _, skipped = self._transform(row, rows_to_load, run_config)
                 if not skipped:
                     processed_hashes.append(input_hash)
                 else:
@@ -151,13 +155,13 @@ class ETLStep(Base):
             if isinstance(node, PythonTransform):
                 node.function.set_func(None)
 
-    def _transform(self, namespace: dict, rows_to_load: Dict[str, Dict[UUID, dict]]):
+    def _transform(self, namespace: dict, rows_to_load: Dict[str, Dict[UUID, dict]], run_config: 'RunConfig'):
         skipped = False
         try:
             output = namespace.copy()
             # Run the Transforms
             for node in self.transforms:
-                output[node.hash] = node.run(output)
+                output[node.hash] = node.run(output, run_config)
             # Run the loads
             for load in self.loads:
                 output[load.hash] = load.new_run(output, rows_to_load)

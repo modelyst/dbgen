@@ -14,7 +14,7 @@
 
 from typing import TYPE_CHECKING, Any, Dict
 from typing import Generator as GenType
-from typing import Optional, TypeVar, Union, overload
+from typing import Optional, Type, TypeVar, Union, overload
 
 from pydantic import Field
 from sqlalchemy import text
@@ -161,5 +161,5 @@ def Query(select_statement: Select[T], connection: None = None) -> BaseQuery[T]:
 
 
 def Query(select_statement, connection: Optional[Connection] = None) -> Union[BaseQuery, ExternalQuery]:
-    cls = BaseQuery if connection is None else ExternalQuery
+    cls: Union[Type[BaseQuery], Type[ExternalQuery]] = BaseQuery if connection is None else ExternalQuery
     return cls.from_select_statement(select_statement, connection=connection)

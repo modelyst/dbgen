@@ -12,16 +12,21 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Callable, Dict
+from typing import Generator
 from typing import Generator as GenType
 from typing import Mapping, Optional, TypeVar, Union
 
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr, root_validator, validator
 
+from dbgen.core.func import Environment, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
 
+if TYPE_CHECKING:
+    from dbgen.core.run.utilities import RunConfig
 extractor_type = GenType[Dict[str, Mapping[str, Any]], None, None]
 
+Output = TypeVar('Output')
 T = TypeVar('T')
 T1 = TypeVar('T1')
 
@@ -36,6 +41,7 @@ class Extract(ComputationalNode[T]):
     """
 
     _extractor: GenType[Union[Dict[str, Any], T], None, None] = PrivateAttr(None)
+    _run_config: 'RunConfig' = PrivateAttr(None)
 
     class Config:
         """Pydantic Config"""
@@ -57,7 +63,12 @@ class Extract(ComputationalNode[T]):
 
     # Internal Do not Overwrite
 
-    def run(self, _: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    def _set_run_config(self, run_config: 'RunConfig'):
+        self._run_config = run_config
+
+    def run(
+        self, _: Dict[str, Mapping[str, Any]], run_config: Optional['RunConfig'] = None
+    ) -> Optional[Dict[str, Any]]:
         row = next(self._extractor)
         return self.process_row(row)
 
@@ -92,3 +103,49 @@ class Extract(ComputationalNode[T]):
 
     def __str__(self):
         return f"{self.__class__.__qualname__}<outputs= {self.outputs}>"
+
+
+# TODO add better error messaging when user passes in a non-arg to pyblock
+class PythonExtract(Extract[Output]):
+
+    env: Optional[Environment] = Field(default_factory=lambda: Environment(imports=set()))
+    function: Func[Output]
+
+    @validator('function', pre=True)
+    def convert_callable_to_func(cls, function: Union[Func[Output], Callable[..., Output]], values):
+        env = values.get('env', Environment())
+        if isinstance(function, (Func, dict)):
+            return function
+        elif callable(function):
+            return func_from_callable(function, env=env)
+        raise ValueError(f"Unknown function type {type(function)} {function}")
+
+    @root_validator
+    def check_nargs(cls, values):
+        if "function" not in values:
+            return values
+        inputs = values.get("inputs")
+        func = values.get("function")
+        num_req_args = values.get("function").number_of_required_inputs
+        num_max_args = values.get("function").number_of_inputs
+        if inputs:
+            number_of_inputs = len(inputs)
+            assert (
+                number_of_inputs >= num_req_args
+            ), f"Too few arguments supplied to Func. Number of Inputs: {number_of_inputs}, Number of Args: {num_req_args}\n{values}"
+            if not func.var_positional_keyword:
+                assert (
+                    number_of_inputs <= num_max_args
+                ), f"Too many arguments supplied to Func. Number of Inputs: {number_of_inputs}, Max Number of Args: {num_max_args}\n"
+        return values
+
+    def extract(self) -> Generator[Output, None, None]:
+        inputvars = self._get_inputs({})
+        args = {key: val for key, val in inputvars.items() if key.isdigit()}
+        kwargs = {key: val for key, val in inputvars.items() if key not in args}
+        if 'settings' in self.function.argnames:
+            setting_index = self.function.argnames.index('settings')
+            if 'settings' not in kwargs or len(args) < setting_index + 1:
+                kwargs['settings'] = self._run_config.settings
+
+        yield from self.function(*args.values(), **kwargs)  # type: ignore

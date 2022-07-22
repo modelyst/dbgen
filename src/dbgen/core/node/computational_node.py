@@ -15,6 +15,7 @@
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, TypeVar, Union, overload
 
+from platformdirs import TYPE_CHECKING
 from pydantic import Field, validator
 
 from dbgen.core.args import Arg, ArgLike, Constant
@@ -22,6 +23,9 @@ from dbgen.core.base import Base
 from dbgen.core.context import ETLStepContext
 from dbgen.core.dependency import Dependency
 from dbgen.exceptions import DBgenMissingInfo, NodeUsedAsInput
+
+if TYPE_CHECKING:
+    from dbgen.core.run.utilities import RunConfig
 
 BasicType = TypeVar('BasicType', int, float, str, bytes, Path)
 T1 = TypeVar('T1')
@@ -103,7 +107,9 @@ class ComputationalNode(Base, Generic[Output]):
             )
         return input_variables
 
-    def run(self, namespace: Dict[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    def run(
+        self, namespace: Dict[str, Mapping[str, Any]], run_config: Optional['RunConfig'] = None
+    ) -> Optional[Dict[str, Any]]:
         return {}
 
     @overload

@@ -91,7 +91,7 @@ def run_etl_step(
 ):
     # Retrieve the configured engines for
     main_engine, meta_engine = get_engines()
-    run_config = RunConfig(
+    run_config: RunConfig = RunConfig(
         retry=retry,
         start=start,
         until=until,

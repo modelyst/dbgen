@@ -26,6 +26,7 @@ from dbgen.core.dashboard import Dashboard
 from dbgen.core.etl_step import ETLStep
 from dbgen.core.metadata import ETLStepRunEntity, RunEntity, Status
 from dbgen.core.model import Model
+from dbgen.core.model_settings import BaseModelSettings
 from dbgen.utils.log import LogLevel
 
 if TYPE_CHECKING:
@@ -49,6 +50,7 @@ class RunConfig(Base):
     skip_on_error: bool = False
     batch_number: int = 10
     log_level: LogLevel = LogLevel.INFO
+    settings: BaseModelSettings = Field(default_factory=lambda: BaseModelSettings())
 
     def should_etl_step_run(self, etl_step: ETLStep) -> bool:
         """Check an ETLStep against include/exclude to see if it should run."""

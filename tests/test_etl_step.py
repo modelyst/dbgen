@@ -64,7 +64,7 @@ def test_basic_graph_in_place(basic_etl_step: ETLStep):
     """Ensure that changes to the output of ._sort_graph() are in place and affect the ETLStep as well."""
     query, transform, load = basic_etl_step._sort_nodes()
     assert isinstance(load, Load)
-    load.run({transform.hash: {"newnames": ("1", "2")}})
+    load.run({transform.hash: {"newnames": ("1", "2")}}, None)
     assert load._output == basic_etl_step._sorted_loads()[0]._output
     assert isinstance(query, BaseQuery)
     query.outputs.append("test")

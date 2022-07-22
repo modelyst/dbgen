@@ -71,6 +71,7 @@ class ETLStepExecutor(BaseETLStepExecutor):
         # Setup the extractor
         self._logger.debug('Initializing extractor')
         extract = self.etl_step.extract
+        extract._set_run_config(self.run_config)
         with main_engine.connect() as extractor_connection:
             try:
                 with extract:

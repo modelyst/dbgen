@@ -20,7 +20,7 @@ from sqlalchemy import Column
 from sqlalchemy.orm import registry
 from sqlmodel import Field, select
 
-from dbgen import Environment, Import
+from dbgen import BaseModelSettings, Environment, Import
 from dbgen.core.args import Constant
 from dbgen.core.decorators import transform
 from dbgen.core.entity import Entity
@@ -30,6 +30,10 @@ from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
 
 my_registry = registry()
+
+
+class ModelSettings(BaseModelSettings):
+    suffix: str = 'secret'
 
 
 class Parent(Entity, registry=my_registry, table=True):
@@ -91,8 +95,8 @@ def make_model():
     query = Query(select(Parent.id, Parent.label))
 
     @transform(env=Environment([Import('typing', ['Tuple'])]))
-    def concise_func(label: str) -> Tuple[str]:
-        return (f"{label}-test",)
+    def concise_func(label: str, settings: ModelSettings) -> Tuple[str]:
+        return (f"{label}-{settings.suffix}",)
 
     concise_pyblock = concise_func(query["label"])
     child_load = Child.load(insert=True, label=concise_pyblock.results(), parent_id=query["id"])
@@ -115,6 +119,7 @@ def make_model():
             etl_step_6,
         ],
         registry=my_registry,
+        settings=ModelSettings(),
     )
     return model
 

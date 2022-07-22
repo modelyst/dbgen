@@ -71,6 +71,8 @@ class ModelRun(Base):
         start = time()
         if run_config is None:
             run_config = RunConfig()
+
+        run_config.settings = self.model.settings
         # Sync the Database statew with the model state
         self.model.sync(main_engine, meta_engine, build=build)
 
