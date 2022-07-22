@@ -13,9 +13,8 @@
 #   limitations under the License.
 
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Mapping, Optional, Tuple, TypeVar, Union, overload
 
-from platformdirs import TYPE_CHECKING
 from pydantic import Field, validator
 
 from dbgen.core.args import Arg, ArgLike, Constant
