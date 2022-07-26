@@ -65,6 +65,6 @@ def test_basic_python_extract_initialization_with_settings():
     with ETLStep(name='test') as step:
         setting_extract()
 
-    test_run = ETLStepTestRunner().test(step, settings=ModelSettings())
+    test_run = ETLStepTestRunner().test(step, settings=ModelSettings(n_value=100))
     assert test_run.number_of_extracted_rows == 100
     assert test_run.status == 'completed'
