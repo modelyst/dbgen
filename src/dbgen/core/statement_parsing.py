@@ -26,6 +26,7 @@ from sqlalchemy.sql.elements import (
     ColumnElement,
     TextClause,
 )
+from sqlalchemy.sql.expression import TypeClause  # type: ignore
 from sqlalchemy.sql.expression import Alias, BooleanClauseList, Function, Label  # type: ignore
 from sqlalchemy.sql.expression import Select as _Select
 from sqlalchemy.sql.schema import Column as SAColumn
@@ -66,8 +67,12 @@ def get_where_dependency(where_stmt: BooleanClauseList):
             tables.extend(c_tables)
             columns.extend(c_columns)
             fks.extend(c_fks)
+        elif isinstance(child, TypeClause):
+            pass
         else:
-            print(type(child))
+            logger.warning(
+                f'Found SQLAlchemy element that cannot be parsed parse type, {child} {type(child)}'
+            )
     return columns, tables, fks
 
 
@@ -125,8 +130,17 @@ def get_from_dependency(from_statement: Union[_ORMJoin, ColumnElement, ClauseLis
             tables.update(c_tables)
             columns.update(c_columns)
             fks.update(c_fks)
+        elif isinstance(child, (_ORMJoin, ColumnElement, ClauseList)):
+            c_columns, c_tables, c_fks = get_from_dependency(child)
+            tables.update(c_tables)
+            columns.update(c_columns)
+            fks.update(c_fks)
+        elif isinstance(child, TypeClause):
+            pass
         else:
-            print(type(child))
+            logger.warning(
+                f'Found SQLAlchemy element that cannot be parsed parse type, {child} {type(child)}'
+            )
     return columns, tables, fks
 
 
