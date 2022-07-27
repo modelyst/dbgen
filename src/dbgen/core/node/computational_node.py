@@ -37,6 +37,7 @@ Output = TypeVar('Output')
 
 class ComputationalNode(Base, Generic[Output]):
     inputs: Mapping[str, Union[Constant, Arg]] = Field(default_factory=lambda: {})
+    kwargs: Mapping[str, Union[Constant, Arg]] = Field(default_factory=lambda: {})
     outputs: List[str] = Field(default_factory=lambda: ["out"])
 
     def __init__(self, **kwargs):
@@ -70,6 +71,24 @@ class ComputationalNode(Base, Generic[Output]):
                 raise TypeError(f"Bad input type provided: {type(arg_val)} {arg_val}")
         return new_inputs
 
+    @validator("kwargs", pre=True)
+    def convert_vals_to_constants(cls, kwargs):
+        from dbgen.core.decorators import FunctionNode
+
+        new_inputs = {}
+        for key, arg_val in kwargs.items():
+            if isinstance(arg_val, (str, int, bool, float, type(None))):
+                new_inputs[key] = Constant(val=arg_val)
+            elif isinstance(arg_val, ArgLike):
+                new_inputs[key] = arg_val
+            elif isinstance(arg_val, (ComputationalNode, FunctionNode)):
+                raise NodeUsedAsInput(
+                    f"A {type(arg_val).__name__!r} is being used as an input rather than its output. Make sure to call .results() method on Node to feed the outputs to this node."
+                )
+            else:
+                raise TypeError(f"Bad input type provided: {type(arg_val)} {arg_val}")
+        return new_inputs
+
     @validator("outputs", pre=True)
     def unique_keys(cls, outputs):
         if isinstance(outputs, set):
@@ -94,6 +113,7 @@ class ComputationalNode(Base, Generic[Output]):
     def _get_inputs(self, namespace: Dict[str, Mapping[str, Any]]) -> Dict[str, Any]:
         try:
             input_variables = {name: value.arg_get(namespace) for name, value in self.inputs.items()}
+            input_variables.update({name: value.arg_get(namespace) for name, value in self.kwargs.items()})
         except (TypeError, IndexError) as e:
             print(e)
             print(namespace)

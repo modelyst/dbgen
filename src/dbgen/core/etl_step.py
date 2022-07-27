@@ -207,6 +207,15 @@ class ETLStep(Base):
                             )
                         edges.append((arg.key, node_id))
 
+                for key, arg in node.kwargs.items():
+                    if isinstance(arg, Arg):
+                        if arg.key not in nodes:
+                            raise DBgenMissingInfo(
+                                f"Argument {key} of {node} refers to an object with a hash key {arg.key} asking for name \"{getattr(arg,'name','<No Name>')}\" that does not exist in the namespace.\n"
+                                "Did you make sure to include all PyBlocks and Queries in the func kwarg of Generator()?"
+                            )
+                        edges.append((arg.key, node_id))
+
             graph = DiGraph()
             for node_id, node in nodes.items():
                 graph.add_node(node_id, data=node)

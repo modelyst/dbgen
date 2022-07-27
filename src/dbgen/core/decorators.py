@@ -96,10 +96,12 @@ class TransformNode(FunctionNode[In, Out]):
         function: Callable[In, Out] = None,
         env: Optional[Environment] = None,
         outputs=None,
+        kwargs: dict = None,
     ):
         outputs = outputs or ['out']
+        kwargs = kwargs or {}
         try:
-            node = PythonTransform(function=function, env=env, inputs=inputs, outputs=outputs)
+            node = PythonTransform(function=function, env=env, inputs=inputs, kwargs=kwargs, outputs=outputs)
         except ValidationError as exc:
             raise InvalidArgument(
                 f'Error occurred during the validation of the transform {function.__name__!r}'
@@ -157,8 +159,8 @@ def transform(function=None, *, env: Optional[Environment] = None, outputs: List
                         outputs = [str(i) for i, _ in enumerate(args)]
         func = partial(TransformNode, function=function, env=env, outputs=outputs)
 
-        def set_inputs(*inputs: List[Arg]) -> FunctionNode[In, Out]:
-            return func(*inputs)
+        def set_inputs(*inputs: List[Arg], **kwargs) -> FunctionNode[In, Out]:
+            return func(*inputs, kwargs=kwargs)
 
         return set_inputs
     else:
@@ -194,8 +196,8 @@ def extract(function=None, *, env: Optional[Environment] = None, outputs: List[s
                         outputs = [str(i) for i, _ in enumerate(args)]
         func = partial(ExtractNode, function=function, env=env, outputs=outputs)
 
-        def set_inputs(*inputs: List[Arg]) -> ExtractNode[In, Out]:
-            return func(*inputs)
+        def set_inputs(*inputs: List[Arg], **kwargs) -> ExtractNode[In, Out]:
+            return func(*inputs, kwargs=kwargs)
 
         return set_inputs
     else:

@@ -62,7 +62,7 @@ class PythonTransform(Transform[Output]):
 
         number_of_injected_kwargs = len(list(filter(lambda x: x in func.argnames, _INJECTED_KWARGS)))
         num_req_args -= number_of_injected_kwargs
-        number_of_inputs = len(inputs) if inputs else 0
+        number_of_inputs = len(inputs) + len(values.get('kwargs', {})) if inputs else 0
         assert (
             number_of_inputs >= num_req_args
         ), f"Too few arguments supplied to Func. Number of Inputs: {number_of_inputs}, Number of Args: {num_req_args}\n{values}"

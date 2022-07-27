@@ -105,11 +105,13 @@ class ETLStepTestRunner(Base):
         self,
         extract: Extract,
         batch_size: int,
+        input_rows: List[dict] = None,
     ) -> Generator[Any, None, None]:
         # initialize the batch and counts
         batch = []
+        generator = extract.extract() if not input_rows else input_rows
         # Loop the the rows in the extract function
-        for row in extract.extract():
+        for row in generator:
             # Check the hash of the inputs against the metadatabase
             processed_row = extract.process_row(row)
             input_hash = self._get_hash(processed_row, self._etl_step.uuid)
