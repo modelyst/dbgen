@@ -14,6 +14,7 @@
 
 from datetime import datetime
 from logging import getLogger
+from os import cpu_count
 from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
@@ -147,6 +148,7 @@ def run_model(
     ),
     remote: bool = typer.Option(False, help='Use the RemoteETLStep Runner'),
     run_async: bool = typer.Option(False, '--async', help='Use the RemoteGenerator Runner'),
+    user_cpu_count: Optional[int] = typer.Option(None, '--cpu-count', help='Number of cpus to use'),
     config_file: Path = config_option,
     no_conf: bool = typer.Option(
         False,
@@ -190,6 +192,7 @@ def run_model(
         skip_on_error=skip_on_error,
         batch_size=batch,
         batch_number=batch_number,
+        cpu_count=user_cpu_count or cpu_count(),
     )
     # Set the stdout logger to the --level value
     stdout_handler.setLevel(run_config.log_level.get_log_level())

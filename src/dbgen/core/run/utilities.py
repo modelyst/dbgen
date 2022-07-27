@@ -14,6 +14,7 @@
 
 """Objects related to the running of Models and ETLSteps."""
 from abc import abstractmethod
+from os import cpu_count
 from typing import TYPE_CHECKING, Dict, List, Optional, Set
 from uuid import UUID
 
@@ -51,6 +52,7 @@ class RunConfig(Base):
     batch_number: int = 10
     log_level: LogLevel = LogLevel.INFO
     settings: BaseModelSettings = Field(default_factory=lambda: BaseModelSettings())
+    cpu_count: Optional[int] = Field(default_factory=lambda: cpu_count())
 
     def should_etl_step_run(self, etl_step: ETLStep) -> bool:
         """Check an ETLStep against include/exclude to see if it should run."""
