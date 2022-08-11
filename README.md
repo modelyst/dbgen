@@ -123,12 +123,12 @@ Currently, the only method of installing DBgen is through Github. This is best d
 git clone https://github.com/modelyst/dbgen
 cd ./dbgen
 # Get Poetry
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3 -
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3 - --preview
 # Install Poetrywhich ma
 poetry install
 poetry shell
 # Test dbgen
-dbgen verson
+dbgen version
 dbgen model validate --model tests.example.full_model:make_model
 ```
 
