@@ -56,14 +56,26 @@ class RunConfig(Base):
 
     def should_etl_step_run(self, etl_step: ETLStep) -> bool:
         """Check an ETLStep against include/exclude to see if it should run."""
-        markers = [etl_step.name, *etl_step.tags]
-        should_run = any(
-            map(
-                lambda x: (not self.include or x in self.include) and x not in self.exclude,
-                markers,
+        markers = (etl_step.name, *etl_step.tags)
+
+        # if include is set at least one marker needs to be included to return True
+        if self.exclude:
+            for marker in markers:
+                if marker in self.exclude:
+                    return False
+
+        # if include is set at least one marker needs to be included to return True
+        if self.include:
+            return any(
+                map(
+                    lambda x: x in self.include,
+                    markers,
+                )
             )
-        )
-        return should_run
+
+        # Step was not excluded and there is not included set,
+        # so by default it should be run
+        return True
 
     def get_invalid_markers(self, model: Model) -> Dict[str, List[str]]:
         """Check that all inputs to RunConfig are meaningful for the model."""

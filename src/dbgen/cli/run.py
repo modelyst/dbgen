@@ -195,6 +195,7 @@ def run_model(
         cpu_count=user_cpu_count or cpu_count(),
     )
     # Set the stdout logger to the --level value
+    root_logger.setLevel(run_config.log_level.get_log_level())
     stdout_handler.setLevel(run_config.log_level.get_log_level())
     # If --log-file is add a file handler to the logger
     if log_file:
