@@ -28,7 +28,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 from pydasher import hasher
 from sqlalchemy.future import Engine
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from dbgen.core.base import encoders
 from dbgen.core.dashboard import BarNames, Dashboard
@@ -66,6 +66,14 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
     ):
         start = time()
         batch_size = self.run_config.batch_size or self.etl_step.batch_size or 1000
+        # Query the repeats table for input_hashes that match this etl_step's hash
+        self._logger.info('Getting repeats from meta database')
+        self._old_repeats = set(
+            meta_session.exec(
+                select(Repeats.input_hash).where(Repeats.etl_step_id == self.etl_step.uuid)
+            ).all()
+        )
+        self._logger.debug(f'Found {len(self._old_repeats)} repeated rows')
         (
             inputs_extracted,
             unique_inputs,
