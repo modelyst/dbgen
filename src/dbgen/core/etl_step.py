@@ -26,7 +26,7 @@ from sqlalchemy.future import Engine
 
 from dbgen.core.args import Arg
 from dbgen.core.base import Base
-from dbgen.core.context import ETLStepContext, ModelContext
+from dbgen.core.context import ETLStepContext, ModelContext, TagsContext
 from dbgen.core.decorators import ExtractNode, FunctionNode, TransformNode
 from dbgen.core.dependency import Dependency
 from dbgen.core.metadata import ETLStepEntity
@@ -66,6 +66,12 @@ class ETLStep(Base):
     }
 
     def __init__(self, name: str, **kwargs):
+        # Get tag context and append the kwargs tags
+        tags_context = TagsContext.get()
+        if tags_context:
+            tags = tags_context.get('tags', [])
+            tags = tags + (kwargs.get('tags', []))
+            kwargs['tags'] = tags
         super().__init__(name=name, **kwargs)
         etl_step_context = ETLStepContext.get()
         if not etl_step_context:

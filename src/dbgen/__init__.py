@@ -36,4 +36,5 @@ from dbgen.core.model_settings import BaseModelSettings
 from dbgen.core.node.extract import Extract
 from dbgen.core.node.query import Query
 from dbgen.core.node.transforms import PythonTransform
+from dbgen.core.tags import tags
 from dbgen.utils.typing import IDType

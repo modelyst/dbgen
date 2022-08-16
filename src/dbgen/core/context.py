@@ -15,7 +15,7 @@
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, Dict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from contextvars import Token  # pragma: no cover
@@ -48,3 +48,8 @@ class ModelContext(BaseContext):
 
 class ETLStepContext(BaseContext):
     __context__: ContextVar = ContextVar('etl_step')
+
+
+class TagsContext(BaseContext):
+    __context__: ContextVar = ContextVar('tags')
+    context_dict: Dict[str, Any] = Field(default_factory=dict)
