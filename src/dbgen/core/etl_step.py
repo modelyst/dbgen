@@ -70,7 +70,7 @@ class ETLStep(Base):
         tags_context = TagsContext.get()
         if tags_context:
             tags = tags_context.get('tags', [])
-            tags = tags + (kwargs.get('tags', []))
+            tags = tags + kwargs.get('tags', [])
             kwargs['tags'] = tags
         super().__init__(name=name, **kwargs)
         etl_step_context = ETLStepContext.get()

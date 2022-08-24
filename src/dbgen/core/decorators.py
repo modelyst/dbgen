@@ -118,11 +118,13 @@ class ExtractNode(FunctionNode[In, Out]):
         function: Callable[In, Out] = None,
         env: Optional[Environment] = None,
         outputs=None,
+        kwargs: dict = None,
     ):
         outputs = outputs or ['out']
+        kwargs = kwargs or {}
 
         try:
-            node = PythonExtract(function=function, env=env, inputs=inputs, outputs=outputs)
+            node = PythonExtract(function=function, env=env, inputs=inputs, kwargs=kwargs, outputs=outputs)
         except ValidationError as exc:
             raise InvalidArgument(
                 f'Error occurred during the validation of the transform {function.__name__!r}'
