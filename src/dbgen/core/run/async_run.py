@@ -119,6 +119,7 @@ class AsyncETLStepExecutor(BaseETLStepExecutor):
         )
         self._logger.info(f"Inserted approximately {etl_step_run.rows_inserted} rows")
         self._logger.info(f"Updated approximately {etl_step_run.rows_updated} rows")
+        self._logger.info(f"Skipped approximately {etl_step_run.inputs_skipped} rows")
         meta_session.commit()
         meta_session.close()
         return

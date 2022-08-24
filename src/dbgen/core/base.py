@@ -74,3 +74,6 @@ class Base(HashMixIn, BaseModel, metaclass=BaseMeta):
     @classmethod
     def canonical_name(cls) -> str:
         return cls.__module__ + "." + cls.__qualname__
+
+    def __repr__(self) -> str:
+        return f'{self.canonical_name()}({self.hash})'
