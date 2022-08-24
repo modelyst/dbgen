@@ -19,11 +19,11 @@ from dbgen.core.tags import tags
 
 def test_model_tags():
     with Model(name='test'):
-        with tags(['a']):
-            with tags(['b']):
+        with tags('a'):
+            with tags('b'):
                 with ETLStep(name='step_b', tags=['step_b']) as step_b:
                     pass
-            with tags(['c']):
+            with tags('c'):
                 with ETLStep(name='step_c') as step_c:
                     pass
             with ETLStep(name='step_d') as step_d:

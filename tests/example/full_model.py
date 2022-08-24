@@ -103,10 +103,11 @@ def make_model():
     etl_step_3 = ETLStep(
         name="add_child",
         extract=query,
+        tags=['failing'],
         transforms=[concise_pyblock],
         loads=[child_load],
     )
-    etl_step_5 = ETLStep(name="failing_etl_step", transforms=[failing_func()])
+    etl_step_5 = ETLStep(name="failing_etl_step", transforms=[failing_func()], tags=['failing'])
     etl_step_6 = ETLStep(name="skip_etl_step", transforms=[inputs_skipped()])
     model = Model(
         name="test",

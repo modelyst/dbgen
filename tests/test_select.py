@@ -137,6 +137,7 @@ def test_base_query():
         "query": str(basic_statement),
         "outputs": ["id", "label", "col_label"],
         "params": {},
+        "kwargs": {},
     }
     assert isinstance(base_query.hash, str)
     assert isinstance(base_query.dict(), dict)
