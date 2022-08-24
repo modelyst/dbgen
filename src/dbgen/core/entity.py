@@ -70,7 +70,7 @@ def inherit_field(
 
 overwrite_parent = partial(inherit_field, initial_value="", joiner=lambda x, y: y)
 DEFAULT_ENTITY_REGISTRY = registry()
-_RESERVED_WORDS = {'hex', 'uuid', 'hash', 'id', 'load', 'clear_registry', 'foreign_key', 'cls'}
+_RESERVED_WORDS = {'hex', 'uuid', 'hash', 'load', 'clear_registry', 'foreign_key', 'cls'}
 
 logger = logging.getLogger('dbgen.core.entity')
 
