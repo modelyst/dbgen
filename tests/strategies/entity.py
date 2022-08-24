@@ -21,7 +21,7 @@ from hypothesis.strategies._internal.strategies import SearchStrategy
 from sqlalchemy.orm import registry
 from sqlmodel import Field
 
-from dbgen.core.entity import BaseEntity, EntityMetaclass
+from dbgen.core.entity import _RESERVED_WORDS, BaseEntity, EntityMetaclass
 
 protected_words = {"mro"}
 uni_text = lambda x: st.text(ascii_lowercase, min_size=x)
@@ -35,9 +35,6 @@ id_field = Field(
 )
 fk_field = lambda x: Field(default=None, foreign_key=x)
 ID_TYPE = UUID
-
-
-reserved_words = {'hex', 'uuid', 'hash', 'id', 'load', 'clear_registry', 'foreign_key'}
 
 
 @st.composite
@@ -54,7 +51,7 @@ def example_entity(
         fks = draw(
             st.dictionaries(
                 non_private_attr.filter(
-                    lambda x: attrs and x not in attrs and x != 'id' and x not in reserved_words
+                    lambda x: attrs and x not in attrs and x != 'id' and x not in _RESERVED_WORDS
                 ),
                 non_private_attr,
             )
@@ -65,7 +62,7 @@ def example_entity(
         annotations.update(
             draw(
                 st.dictionaries(
-                    non_private_attr.filter(lambda x: x not in fks and x not in reserved_words),
+                    non_private_attr.filter(lambda x: x not in fks and x not in _RESERVED_WORDS),
                     pydantic_type_strat,
                     min_size=1,
                 )

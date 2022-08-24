@@ -70,6 +70,8 @@ def inherit_field(
 
 overwrite_parent = partial(inherit_field, initial_value="", joiner=lambda x, y: y)
 DEFAULT_ENTITY_REGISTRY = registry()
+_RESERVED_WORDS = {'hex', 'uuid', 'hash', 'id', 'load', 'clear_registry', 'foreign_key', 'cls'}
+
 logger = logging.getLogger('dbgen.core.entity')
 
 _T = TypeVar("_T")
@@ -448,6 +450,8 @@ def create_entity(
     for f_name, f_def in field_definitions.items():
         if f_name.startswith("_"):
             raise ValueError("Field names may not start with an underscore")
+        elif f_name in _RESERVED_WORDS:
+            raise ValueError(f"Invalid field definition cannot name field {f_name} as it is reserved.")
         try:
             if isinstance(f_def, tuple) and len(f_def) > 1:
                 f_annotation, f_value = f_def

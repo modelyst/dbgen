@@ -25,7 +25,7 @@ from sqlalchemy.orm.decl_api import registry
 from sqlmodel import Field, Session, select
 
 from dbgen.core.args import Constant
-from dbgen.core.entity import BaseEntity, Entity, EntityMetaclass, create_entity
+from dbgen.core.entity import _RESERVED_WORDS, BaseEntity, Entity, EntityMetaclass, create_entity
 from dbgen.core.node.load import LoadEntity
 from dbgen.exceptions import InvalidArgument
 from tests.strategies.entity import example_entity, fill_required_fields
@@ -157,6 +157,12 @@ def test_basic_parent_child_load(clear_registry):
     )
     child_load = DummyChild.load(insert=True, dummy_parent_id=Constant(None))
     assert "dummy_parent_id" in child_load.inputs and child_load.inputs["dummy_parent_id"] == Constant(None)
+
+
+@pytest.mark.parametrize('reserved_word', _RESERVED_WORDS)
+def test_create_entity_reserved_words(reserved_word: str):
+    with pytest.raises(ValueError):
+        create_entity('ReservedEntity', {reserved_word: (str,)})
 
 
 def test_identifying_info_validation(clear_registry):
