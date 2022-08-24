@@ -1,4 +1,4 @@
-#   Copyright 2021 Modelyst LLC
+#   Copyright 2022 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from dbgen.core.func import Func  # pragma: no cover
     from dbgen.core.node.transforms import PythonTransform  # pragma: no cover
 
-    Func
+    Func  # pragma: no cover
 
 
 T = TypeVar('T')
@@ -31,7 +31,7 @@ T = TypeVar('T')
 class ArgLike(Base, Generic[T], metaclass=ABCMeta):
     @abstractmethod
     def arg_get(self, dic: dict):
-        raise NotImplementedError
+        ...
 
     def map(self, function: Callable[[Any], Any]) -> 'PythonTransform':
         from dbgen.core.node.transforms import PythonTransform

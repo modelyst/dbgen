@@ -1,4 +1,4 @@
-#   Copyright 2021 Modelyst LLC
+#   Copyright 2022 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -77,11 +77,11 @@ nav:
   - Database Basics and Terminology: pages/database_basics.md
   - DBgen Overview and Concepts: pages/overview_and_concepts.md
   - Tutorial:
-    - Directory Structure: pages/tutorial/01_directory_structure.md
-    - Defining the Schema: pages/tutorial/02_defining_schema.md
-    - CSV to Database: pages/tutorial/03_csv_to_db.md
-    - Custom Text File to Database: pages/tutorial/04_handling_data_custom_formats.md
-    - Refining Data in the Database: pages/tutorial/05_refining_data.md
+      - Directory Structure: pages/tutorial/01_directory_structure.md
+      - Defining the Schema: pages/tutorial/02_defining_schema.md
+      - CSV to Database: pages/tutorial/03_csv_to_db.md
+      - Custom Text File to Database: pages/tutorial/04_handling_data_custom_formats.md
+      - Refining Data in the Database: pages/tutorial/05_refining_data.md
   - Running and Debugging Models: pages/running_and_debugging.md
   - Common Errors: pages/common_errors.md
   # - Technical Documentation: technical_documentation.md

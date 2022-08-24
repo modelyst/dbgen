@@ -1,4 +1,4 @@
-#   Copyright 2021 Modelyst LLC
+#   Copyright 2022 Modelyst LLC
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -129,7 +129,7 @@ def get_pyblock_strat(draw: Callable, function: Callable = None) -> st.SearchStr
 
 pyblock_strat = get_pyblock_strat()
 datatypes_strat = st.sampled_from(
-    sorted([key for key in column_registry._registry.keys() if isinstance(key, str)])
+    sorted(key for key in column_registry._registry.keys() if isinstance(key, str))
 )
 # TODO Fix load entity strat
 # Need to do composite strat where attributes are picked then identifying attributes are subselected
