@@ -18,7 +18,7 @@ __author__ = "Michael Statt"
 __email__ = "michael.statt@modelyst.io"
 __maintainer__ = "Michael Statt"
 __maintainer_email__ = "michael.statt@modelyst.io"
-__version__ = "1.0.0a6"
+__version__ = "1.0.0a7"
 
 
 from sqlalchemy.orm import registry
