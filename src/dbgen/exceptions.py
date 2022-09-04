@@ -37,6 +37,10 @@ class DBgenInternalError(DBgenException):
     """
 
 
+class BroadcastException(DBgenInternalError):
+    """Exception raised when broadcasting fails."""
+
+
 class DBgenETLStepError(DBgenException):
     """Custom class for catching errors that occur in code external to dbgen"""
 

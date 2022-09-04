@@ -23,16 +23,74 @@ from dbgen.core.args import Arg
 from dbgen.core.func import Environment
 from dbgen.core.node.computational_node import ComputationalNode
 from dbgen.core.node.extract import PythonExtract
-from dbgen.core.node.transforms import PythonTransform
+from dbgen.core.node.transforms import MapTransform, PythonTransform
 from dbgen.exceptions import InvalidArgument
 
 In = ParamSpec('In')
+In_2 = ParamSpec('In_2')
 Out = TypeVar('Out')
 T = TypeVar('T')
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 T3 = TypeVar('T3')
 T4 = TypeVar('T4')
+
+
+class TransformTemplate(Generic[In, Out]):
+    """A wrapper for a python transform without inputs"""
+
+    def __init__(
+        self,
+        function: Callable[In, Out] = None,
+        env: Optional[Environment] = None,
+        outputs=None,
+    ) -> None:
+        self.function = function
+        self.env = env
+        self.outputs = outputs or ['out']
+
+    def map(self, *inputs, **kwargs):
+        return MapTransform(
+            inputs=inputs, kwargs=kwargs, function=self.function, env=self.env, outputs=self.outputs
+        )
+
+    def __call__(self, *inputs, **kwargs):
+        return PythonTransform(
+            inputs=inputs, kwargs=kwargs, function=self.function, env=self.env, outputs=self.outputs
+        )
+
+
+@overload
+def transform(function: Callable[..., Out]) -> TransformTemplate[In, Out]:
+    ...  # pragma: no cover
+
+
+@overload
+def transform(
+    *, env: Environment = None, outputs: List[str] = None
+) -> Callable[[Callable[In, Out]], TransformTemplate[In, Out]]:
+    ...  # pragma: no cover
+
+
+def transform(function=None, *, env: Optional[Environment] = None, outputs: List[str] = None):
+
+    if function:
+        if not outputs:
+
+            # TODO add dict outputs or list of dict outputs!
+            sig = inspect.signature(function)
+            if outputs is None and sig.return_annotation:
+                annotation = sig.return_annotation
+                origin = get_origin(annotation)
+                if origin is not None and origin is not Union and issubclass(origin, (list, tuple)):
+                    args = get_args(annotation)
+                    bad_args = list(filter(lambda x: not isinstance(x, type), args))
+                    if not bad_args:
+                        outputs = [str(i) for i, _ in enumerate(args)]
+
+        return TransformTemplate(function=function, env=env, outputs=outputs)
+    else:
+        return partial(transform, env=env, outputs=outputs)
 
 
 class FunctionNode(Generic[In, Out]):
@@ -87,13 +145,13 @@ class FunctionNode(Generic[In, Out]):
         return self._arglist[0] if len(self._arglist) == 1 else self._arglist
 
 
-class TransformNode(FunctionNode[In, Out]):
+class TransformNode(FunctionNode[In_2, Out]):
     """Temporary wrapper API for pyblocks."""
 
     def __init__(
         self,
         *inputs,
-        function: Callable[In, Out] = None,
+        function: Callable[In_2, Out] = None,
         env: Optional[Environment] = None,
         outputs=None,
         kwargs: dict = None,
@@ -133,18 +191,18 @@ class ExtractNode(FunctionNode[In, Out]):
 
 
 @overload
-def transform(function: Callable[In, Out]) -> Callable[In, FunctionNode[In, Out]]:
+def transform_old(function: Callable[..., Out]) -> Callable[..., TransformNode[In, Out]]:
     ...  # pragma: no cover
 
 
 @overload
-def transform(
+def transform_old(
     *, env: Environment = None, outputs: List[str] = None
-) -> Callable[[Callable[In, Out]], Callable[In, FunctionNode[In, Out]]]:
+) -> Callable[[Callable[..., Out]], Callable[..., TransformNode[In, Out]]]:
     ...  # pragma: no cover
 
 
-def transform(function=None, *, env: Optional[Environment] = None, outputs: List[str] = None):
+def transform_old(function=None, *, env: Optional[Environment] = None, outputs: List[str] = None):
 
     if function:
         if not outputs:

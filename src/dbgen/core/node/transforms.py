@@ -12,15 +12,22 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+from itertools import chain
 from traceback import format_exc
-from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Optional, Tuple, TypeVar, Union
 
 from pydantic import Field, root_validator, validator
 
 from dbgen.configuration import config
 from dbgen.core.func import Environment, Func, func_from_callable
 from dbgen.core.node.computational_node import ComputationalNode
-from dbgen.exceptions import DBgenExternalError, DBgenPythonTransformError, DBgenSkipException
+from dbgen.exceptions import (
+    BroadcastException,
+    DBgenExternalError,
+    DBgenPythonTransformError,
+    DBgenSkipException,
+)
+from dbgen.utils.lists import broadcast
 from dbgen.utils.log import capture_stdout
 
 if TYPE_CHECKING:
@@ -85,22 +92,8 @@ class PythonTransform(Transform[Output]):
                 kwargs['settings'] = run_config.settings
 
         try:
-            wrapped = capture_stdout(self.function) if not config.pdb else self.function
-            output = wrapped(*args.values(), **kwargs)
-            if isinstance(output, tuple):
-                l1, l2 = len(output), len(self.outputs)
-                assert l1 == l2, "Expected %d outputs from %s, got %d" % (
-                    l2,
-                    self.function.name,
-                    l1,
-                )
-                return {o: val for val, o in zip(output, self.outputs)}
-            else:
-                if len(self.outputs) != 1:
-                    raise DBgenPythonTransformError(
-                        f"Function returned a non-tuple but outputs is greater length 1: {self.outputs}"
-                    )
-                return {list(self.outputs)[0]: output}
+            output = self.apply(args, kwargs)
+            return self._process_outputs(output)
         except (DBgenSkipException, DBgenPythonTransformError):
             raise
         except Exception:
@@ -110,3 +103,62 @@ class PythonTransform(Transform[Output]):
 
     def __call__(self, *args, **kwargs) -> Output:
         return self.function(*args, **kwargs)
+
+    def _process_outputs(self, output) -> dict:
+        if isinstance(output, tuple):
+            l1, l2 = len(output), len(self.outputs)
+            if l1 != l2:
+                raise ValueError(f'Expected {l2} outputs from {self.function.name}, got {l1}')
+            return {o: val for val, o in zip(output, self.outputs)}
+        else:
+            if len(self.outputs) != 1:
+                raise DBgenPythonTransformError(
+                    f"Function returned a non-tuple but outputs is greater than length 1: {self.outputs}"
+                )
+            return {list(self.outputs)[0]: output}
+
+    @property
+    def name(self):
+        return self.function.name
+
+    def apply(self, args, kwargs):
+        wrapped = capture_stdout(self.function) if not config.pdb else self.function
+        output = wrapped(*args.values(), **kwargs)
+        return output
+
+    def map(self, *args, **kwargs):
+        return MapTransform(inputs=args, kwargs=kwargs, env=self.env, outputs=self.outputs)
+
+
+not_list = lambda x: not isinstance(x, (list, tuple))
+
+
+class MapTransform(PythonTransform[Output]):
+    broadcast: bool = True
+
+    def apply(self, args, kwargs):
+        wrapped = capture_stdout(self.function) if not config.pdb else self.function
+
+        # If we don't want to broadcast
+        zipper = broadcast if self.broadcast else zip
+
+        listified_inputs = {
+            key: [val] if not_list(val) else val for key, val in chain(args.items(), kwargs.items())
+        }
+        try:
+            input_dicts = (dict(zip(listified_inputs, x)) for x in zipper(*listified_inputs.values()))
+        except Exception as exc:
+            raise BroadcastException('Error occurred while broadcasting inputs to the MapTransform') from exc
+
+        output = [
+            wrapped(*arg_curr, **kwarg_curr) for arg_curr, kwarg_curr in map(self._make_input, input_dicts)
+        ]
+        tupled_outputs = tuple(zip(*list((x,) if not isinstance(x, tuple) else x for x in output)))
+        return tupled_outputs
+
+    @staticmethod
+    def _make_input(input_dict: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+        """Utility for taking dict of args and kwargs and splitting into tuple"""
+        input_args = tuple(v for k, v in input_dict.items() if k.isdigit())
+        input_kwargs = {k: v for k, v in input_dict.items() if not k.isdigit()}
+        return input_args, input_kwargs
