@@ -13,8 +13,8 @@
 #   limitations under the License.
 
 from dbgen import Constant, ETLStep
-from dbgen.core.decorators import mappable_transform
-from dbgen.core.node.transforms import PythonTransform
+from dbgen.core.decorators import transform
+from dbgen.core.node.transforms import MapTransform
 from dbgen.testing import ETLStepTestRunner
 
 
@@ -24,11 +24,11 @@ def transform_function(x: int):
 
 def test_basic_map():
     input_val = Constant(list(range(100)))
-    python_transform = PythonTransform(inputs=[input_val], function=transform_function)
+    python_transform = MapTransform(inputs=[input_val], function=transform_function)
     python_transform.run({})
 
 
-@mappable_transform
+@transform
 def func(x, y, z: int = 0):
     return x + y + z
 
@@ -40,4 +40,3 @@ def test_map_etl_step():
         func.map(added, added, z=3)
 
     ETLStepTestRunner(log_level='DEBUG').test(test)
-    assert False

@@ -20,7 +20,7 @@ from dbgen.core.args import Arg, Constant
 from dbgen.core.decorators import transform
 from dbgen.core.func import Environment, Func, func_from_callable
 from dbgen.core.node.transforms import PythonTransform
-from dbgen.exceptions import DBgenMissingInfo, DBgenPythonTransformError, InvalidArgument, NodeUsedAsInput
+from dbgen.exceptions import DBgenMissingInfo, DBgenPythonTransformError, NodeUsedAsInput
 from tests.example_functions import nonary, ternary
 from tests.strategies import pyblock_strat
 
@@ -129,5 +129,5 @@ def test_python_transform_input():
     x = first_func()
     with pytest.raises(NodeUsedAsInput):
         second_func(x)
-    with pytest.raises(InvalidArgument):
+    with pytest.raises(ValidationError):
         second_func({})

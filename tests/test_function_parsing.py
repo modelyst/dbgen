@@ -32,7 +32,7 @@ def test():
 
 
 def test_decorated_function():
-    source_code = get_callable_source_code(test().function)
+    source_code = get_callable_source_code(test.function)
     assert source_code == """def test():\n    pass"""
 
 
@@ -54,7 +54,7 @@ def multi_line_test():
 
 
 def test_multi_line_decorator():
-    source_code = get_callable_source_code(multi_line_test().function)
+    source_code = get_callable_source_code(multi_line_test.function)
     assert source_code == """def multi_line_test():\n    pass"""
 
 
@@ -63,5 +63,5 @@ def test_nested_function():
     def nested_test():
         pass
 
-    source_code = get_callable_source_code(nested_test().function)
+    source_code = get_callable_source_code(nested_test.function)
     assert source_code == """def nested_test():\n    pass"""
